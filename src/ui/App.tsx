@@ -145,12 +145,6 @@ function TouchHud() {
         <button className="tool icon labeled" onClick={() => setOverlay('map')} aria-label="町の地図">
           🗺<span>マップ</span>
         </button>
-        <button className="tool icon labeled" onClick={() => setOverlay('estate')} aria-label="不動産屋">
-          🏠<span>不動産</span>
-        </button>
-        <button className="tool icon labeled" onClick={() => setOverlay('casino')} aria-label="カジノ・競技場">
-          🎰<span>カジノ</span>
-        </button>
         <BuildChip />
       </div>
     </div>
@@ -400,7 +394,7 @@ function useAutosave() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const unsub = useGame.subscribe((s, prev) => {
-      if (s.house === prev.house || s.dragBase) return;
+      if ((s.house === prev.house && !(prev.dragBase && !s.dragBase)) || s.dragBase) return;
       clearTimeout(timer);
       timer = setTimeout(() => autosave(useGame.getState().house), 400);
     });
@@ -481,7 +475,7 @@ function useKeyboard() {
           s.setDefaults({ furnitureRotation: (s.defaults.furnitureRotation + 90) % 360 });
         } else if (sel?.kind === 'furniture') {
           const f = s.house.furniture.find((p) => p.id === sel.id);
-          if (f) patchPart('furniture', f.id, { rotation: (f.rotation + 90) % 360 });
+          if (f && !f.wallMount) patchPart('furniture', f.id, { rotation: (f.rotation + 90) % 360 });
         } else if (sel?.kind === 'stair') {
           const st = s.house.stairs.find((p) => p.id === sel.id);
           if (st) {
@@ -502,7 +496,7 @@ function useKeyboard() {
       if (arrows[e.key] && sel?.kind === 'furniture') {
         e.preventDefault();
         const f = s.house.furniture.find((p) => p.id === sel.id);
-        if (f) {
+        if (f && !f.wallMount) {
           const [dx, dz] = arrows[e.key];
           patchPart('furniture', f.id, { x: +(f.x + dx).toFixed(3), z: +(f.z + dz).toFixed(3) });
         }
@@ -513,3 +507,4 @@ function useKeyboard() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 }
+
