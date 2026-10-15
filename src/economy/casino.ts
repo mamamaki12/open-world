@@ -60,7 +60,14 @@ export type RouletteBet =
   | { kind: 'low' }
   | { kind: 'high' }
   | { kind: 'dozen'; dozen: 1 | 2 | 3 }
+  /** 縦の列（台の上で 1列目 = 1,4,7…34、3列目 = 3,6,9…36） */
+  | { kind: 'column'; column: 1 | 2 | 3 }
   | { kind: 'number'; number: number };
+
+/** ホイールに並ぶ順（ヨーロピアン） */
+export const WHEEL_ORDER = [
+  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26,
+];
 
 export function rouletteColor(n: number): 'red' | 'black' | 'green' {
   if (n === 0) return 'green';
@@ -89,6 +96,8 @@ export function roulettePayout(bet: RouletteBet, n: number): number {
       return n >= 19 ? 2 : 0;
     case 'dozen':
       return Math.ceil(n / 12) === bet.dozen ? 3 : 0;
+    case 'column':
+      return ((n - 1) % 3) + 1 === bet.column ? 3 : 0;
     case 'number':
       return n === bet.number ? 36 : 0;
   }
@@ -110,6 +119,8 @@ export function rouletteBetName(bet: RouletteBet): string {
       return '19〜36';
     case 'dozen':
       return `${(bet.dozen - 1) * 12 + 1}〜${bet.dozen * 12}`;
+    case 'column':
+      return `${bet.column}列目`;
     case 'number':
       return `${bet.number} 一点`;
   }

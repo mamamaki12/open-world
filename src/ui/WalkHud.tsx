@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useDoors } from '../state/doors';
 import { getOpening } from '../catalog';
 import { useGame } from '../state/store';
-import { toggleTargetDoor } from '../world/Player';
+import { enterCasino, toggleTargetDoor } from '../world/Player';
 import { useTouchDevice } from './useTouchDevice';
 
 const KEYS: [string, string][] = [
@@ -14,7 +14,7 @@ const KEYS: [string, string][] = [
   ['C', 'しゃがむ / 立つ'],
   ['Q', '一人称 ⇄ 三人称'],
   ['R', 'カメラを背中側に戻す'],
-  ['F / E', 'ドア・窓を開ける / 閉める'],
+  ['F / E', 'ドア・窓を開ける / 閉める、カジノに入る'],
   ['マウス', 'クリックで視点操作（Esc で解除）'],
   ['ホイール', 'カメラの距離（三人称）'],
   ['2〜9', '建てるツールを持つ（その場で建てられる）'],
@@ -28,6 +28,8 @@ export function WalkHud() {
   const targetOpen = useDoors((s) => (s.target ? s.target in s.open : false));
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
+  const atCasino = useDoors((s) => s.atCasino);
+  const overlay = useGame((s) => s.overlay);
   const house = useGame((s) => s.house);
   const opening = target ? house.openings.find((o) => o.id === target) : undefined;
   const noun = opening?.kind === 'window' ? '窓' : 'ドア';
@@ -43,7 +45,21 @@ export function WalkHud() {
   return (
     <>
       {view === 'first' && !holding && <div className="crosshair" />}
-      {target && !climbing && (
+      {atCasino && !overlay && (
+        <div className="door-prompts">
+          <button
+            className="door-prompt casino"
+            onClick={(e) => {
+              e.currentTarget.blur();
+              enterCasino();
+            }}
+          >
+            <kbd>F</kbd>
+            カジノ・競技場に入る
+          </button>
+        </div>
+      )}
+      {target && !climbing && !atCasino && (
         <div className="door-prompts">
           <button
             className="door-prompt"
