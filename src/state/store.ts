@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { removePart } from '../building/rules';
 import { emptyHouse } from '../building/types';
-import type { Finish, House, PartRef, RoofType } from '../building/types';
+import type { Finish, House, PartRef, RoofType, StairRail } from '../building/types';
 
 /** build：建築モード（俯瞰で建てる） / walk：歩きモード（プレイヤーを動かす） */
 export type Mode = 'build' | 'walk';
@@ -27,6 +27,7 @@ export interface Defaults {
   roofOverhang: number;
   roofFinish: Finish;
   stairFinish: Finish;
+  stairRail: StairRail;
   furnitureType: string;
   furnitureRotation: number;
 }
@@ -45,6 +46,7 @@ export const INITIAL_DEFAULTS: Defaults = {
   roofOverhang: 0.6,
   roofFinish: { material: 'slate', color: '#2f3133' },
   stairFinish: { material: 'oak', color: '#a77b52' },
+  stairRail: 'left',
   furnitureType: 'sofa',
   furnitureRotation: 0,
 };

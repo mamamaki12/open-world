@@ -19,6 +19,9 @@ export const MAX_LEVEL = 1; // 2階建てまで（0 = 1階, 1 = 2階）
 /** 階段：幅1マス × 長さ4マス、14段 */
 export const STAIR_LENGTH = 4;
 export const STAIR_RISERS = 14;
+/** 階段の踏み板の幅と、段鼻から手すりまでの高さ */
+export const STAIR_WIDTH = GRID - 0.12;
+export const STAIR_RAIL_HEIGHT = 0.8;
 
 export function floorY(level: number): number {
   return BASE_HEIGHT + level * STORY_HEIGHT;

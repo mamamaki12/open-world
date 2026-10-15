@@ -57,7 +57,11 @@ export interface StairPart {
   /** 0: +z方向へ上る, 1: +x, 2: -z, 3: -x */
   rot: 0 | 1 | 2 | 3;
   finish: Finish;
+  /** 手すりの側（上る向きに見て）。省略は左 */
+  rail?: StairRail;
 }
+
+export type StairRail = 'left' | 'right';
 
 export type RoofType = 'gable' | 'hip' | 'shed' | 'flat';
 

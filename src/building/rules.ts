@@ -1,8 +1,8 @@
 // 配置ルール（置けるかどうかの判定、吸着、削除の連鎖）。描画からは独立させ、
 // 将来サーバー側でも同じ判定を使えるようにする。
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
-import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_LENGTH, WALL_THICKNESS } from './dimensions';
-import type { House, OpeningPart, PartRef, StairPart, WallPart } from './types';
+import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_LENGTH, STAIR_WIDTH, WALL_THICKNESS } from './dimensions';
+import type { House, OpeningPart, PartRef, StairPart, StairRail, WallPart } from './types';
 
 export interface Rect {
   x0: number;
@@ -192,6 +192,11 @@ export function stairFootprint(s: Pick<StairPart, 'x' | 'z' | 'rot'>): Rect {
     case 3:
       return { x0: s.x - STAIR_LENGTH + 1, z0: s.z, x1: s.x + 1, z1: s.z + 1 };
   }
+}
+
+/** 手すりの位置（階段ローカルの X。上る向き +Z に見て左が +X） */
+export function stairRailX(rail: StairRail = 'left'): number {
+  return (rail === 'left' ? 1 : -1) * (STAIR_WIDTH / 2 - 0.03);
 }
 
 export function canPlaceStair(house: House, s: Omit<StairPart, 'id' | 'finish'>, ignoreId?: string): string | null {

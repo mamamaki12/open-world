@@ -94,7 +94,7 @@ function PreviewView() {
     case 'stair':
       return (
         <group>
-          <StairModel stair={{ level, x: preview.x, z: preview.z, rot: stairRot, finish: defaults.stairFinish }} ghost />
+          <StairModel stair={{ level, x: preview.x, z: preview.z, rot: stairRot, finish: defaults.stairFinish, rail: defaults.stairRail }} ghost />
           {!preview.valid && (
             <mesh position={[(preview.x + 0.5) * GRID, y + 0.05, (preview.z + 0.5) * GRID]} material={badMat}>
               <boxGeometry args={[GRID, 0.1, GRID]} />

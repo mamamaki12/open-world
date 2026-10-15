@@ -1,22 +1,23 @@
-import { GRID, STAIR_LENGTH, STAIR_RISERS, STORY_HEIGHT, floorY } from '../../building/dimensions';
+import { GRID, STAIR_LENGTH, STAIR_RAIL_HEIGHT, STAIR_RISERS, STAIR_WIDTH, STORY_HEIGHT, floorY } from '../../building/dimensions';
+import { stairRailX } from '../../building/rules';
 import type { StairPart } from '../../building/types';
 import { finishMaterial, plainMaterial } from '../materials';
 import { usePart } from './usePart';
 
 /** 直階段。ローカル座標で +Z に向かって上る。幅1マス × 長さ4マス */
-export function StairModel({ stair, ghost = false }: { stair: Pick<StairPart, 'level' | 'x' | 'z' | 'rot' | 'finish'>; ghost?: boolean }) {
+export function StairModel({ stair, ghost = false }: { stair: Pick<StairPart, 'level' | 'x' | 'z' | 'rot' | 'finish' | 'rail'>; ghost?: boolean }) {
   return (
     <group
       position={[(stair.x + 0.5) * GRID, floorY(stair.level), (stair.z + 0.5) * GRID]}
       rotation={[0, (stair.rot * Math.PI) / 2, 0]}
     >
-      <StairBody finish={stair.finish} ghost={ghost} />
+      <StairBody finish={stair.finish} rail={stair.rail} ghost={ghost} />
     </group>
   );
 }
 
-function StairBody({ finish, ghost, highlight = 'none' }: { finish: StairPart['finish']; ghost: boolean; highlight?: 'none' | 'selected' | 'hover' | 'erase' }) {
-  const width = GRID - 0.12;
+function StairBody({ finish, rail: railSide, ghost, highlight = 'none' }: { finish: StairPart['finish']; rail: StairPart['rail']; ghost: boolean; highlight?: 'none' | 'selected' | 'hover' | 'erase' }) {
+  const width = STAIR_WIDTH;
   const run = (STAIR_LENGTH * GRID) / STAIR_RISERS;
   const rise = STORY_HEIGHT / STAIR_RISERS;
   const z0 = -GRID / 2;
@@ -55,7 +56,7 @@ function StairBody({ finish, ghost, highlight = 'none' }: { finish: StairPart['f
           <boxGeometry args={[0.035, 0.25, diag]} />
         </mesh>
       ))}
-      <mesh position={[width / 2 - 0.03, STORY_HEIGHT / 2 + 0.8, z0 + len / 2]} rotation={[Math.PI / 2 - slope, 0, 0]} material={rail}>
+      <mesh position={[stairRailX(railSide), STORY_HEIGHT / 2 + STAIR_RAIL_HEIGHT, z0 + len / 2]} rotation={[Math.PI / 2 - slope, 0, 0]} material={rail}>
         <cylinderGeometry args={[0.02, 0.02, diag, 8]} />
       </mesh>
     </group>
@@ -70,7 +71,7 @@ export function Stair({ stair }: { stair: StairPart }) {
       rotation={[0, (stair.rot * Math.PI) / 2, 0]}
       {...handlers}
     >
-      <StairBody finish={stair.finish} ghost={false} highlight={highlight} />
+      <StairBody finish={stair.finish} rail={stair.rail} ghost={false} highlight={highlight} />
     </group>
   );
 }

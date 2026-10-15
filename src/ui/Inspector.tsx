@@ -5,7 +5,7 @@ import { canPlaceOpening, canPlaceStair, snapOpeningOffset, wallLength } from '.
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
-import { RoofTypeButtons, Slider } from './ToolOptions';
+import { RoofTypeButtons, Slider, StairRailButtons } from './ToolOptions';
 import { patchPart } from './edit';
 
 const mm = (m: number) => `${Math.round(m * 1000).toLocaleString()}mm`;
@@ -165,6 +165,7 @@ function StairInspector({ stair: s }: { stair: StairPart }) {
   return (
     <>
       <FinishPicker label="踏み板" category="wood" value={s.finish} onChange={(finish) => patchPart('stair', s.id, { finish })} />
+      <StairRailButtons value={s.rail} onChange={(rail) => patchPart('stair', s.id, { rail })} />
       <button className="btn" onClick={rotate}>
         向きを変える
       </button>
