@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { nearestSeat } from '../building/seating';
 import { useVehicles } from '../state/vehicles';
-import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract } from './vehicleLogic';
+import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract, resolveParkedCars } from './vehicleLogic';
 import { useVenue, enterVenue, exitVenue } from '../state/venue';
 import { resolveVenue } from '../building/venues';
 import { DEALER } from '../building/dealer';
@@ -154,7 +154,7 @@ function resolveTown(p: { x: number; z: number }, feetY: number, height: number)
     const r = resolveCollisions(other, { x: q.x - ox, z: q.z - oz }, feetY, height, () => false);
     q = { x: r.x + ox, z: r.z + oz };
   }
-  return q;
+  return resolveParkedCars(q,feetY);
 }
 
 /** 近くの開いた窓のうち、乗り越えられるもの */
