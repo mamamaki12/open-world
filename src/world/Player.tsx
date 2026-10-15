@@ -15,8 +15,8 @@ import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
-import { lotHouse, plotOffset, useEconomy } from '../state/economy';
-import { CASINO_PLOT, FIRST_PLOT, LAST_PLOT } from '../economy/town';
+import { lotHouse, plotOffset, plotOffsetZ, civicOffset, currentPlotOf, useEconomy } from '../state/economy';
+import { TOWN_BOUNDS, plotX, plotZ } from '../economy/town';
 import { RUN_THRESHOLD, touchMove, walkActions } from '../state/touch';
 import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
 
@@ -95,14 +95,14 @@ export function interact() {
 
 /** カジノの入口の前なら中へ入る（カジノの画面を開く）。入れたら true */
 export function enterCasino(): boolean {
-  if (useGame.getState().mode !== 'walk' || !atCasinoDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z, playerMemory.y)) return false;
+  if (useGame.getState().mode !== 'walk' || !atCasinoDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y)) return false;
   useGame.getState().setOverlay('casino');
   return true;
 }
 
 /** 不動産屋の店舗前でだけ入れる。 */
 export function enterEstate(): boolean {
-  if (useGame.getState().mode !== 'walk' || !atEstateDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z, playerMemory.y)) return false;
+  if (useGame.getState().mode !== 'walk' || !atEstateDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y)) return false;
   useGame.getState().setOverlay('estate');
   return true;
 }
@@ -128,17 +128,17 @@ export function warpToLot(id: string) {
 /** 原点の土地の外にあるもの（カジノ・ほかの持っている家）にぶつかったら押し戻す */
 function resolveTown(p: { x: number; z: number }, feetY: number, height: number) {
   const s = useEconomy.getState();
-  const dx = plotOffset(CASINO_PLOT, s);
-  const c = resolveLandmarks({ x: p.x - dx, z: p.z });
-  let q = { x: c.x + dx, z: c.z };
+  const site = civicOffset(s);
+  const c = resolveLandmarks({ x: p.x - site.x, z: p.z - site.z });
+  let q = { x: c.x + site.x, z: c.z + site.z };
   // ほかの土地の家は中に入れない（入るときはその土地へワープする）
   for (const l of s.lots) {
     const other = lotHouse(l);
     if (l.id === s.currentLotId || !other || typeof l.plot !== 'number') continue;
-    const ox = plotOffset(l.plot, s);
+    const ox = plotOffset(l.plot, s), oz = plotOffsetZ(l.plot, s);
     if (Math.abs(q.x - ox - (LOT_W * GRID) / 2) > LOT_W * GRID) continue;
-    const r = resolveCollisions(other, { x: q.x - ox, z: q.z }, feetY, height, () => false);
-    q = { x: r.x + ox, z: r.z };
+    const r = resolveCollisions(other, { x: q.x - ox, z: q.z - oz }, feetY, height, () => false);
+    q = { x: r.x + ox, z: r.z + oz };
   }
   return q;
 }
@@ -473,8 +473,9 @@ export function Player() {
             const alongZ = { x: playerMemory.x, z: next.z };
             next = !blocked(alongX) ? alongX : !blocked(alongZ) ? alongZ : { x: playerMemory.x, z: playerMemory.z };
           }
-          playerMemory.x = Math.min(Math.max(next.x, plotOffset(FIRST_PLOT) - 25), plotOffset(LAST_PLOT) + LOT_W * GRID + 25);
-          playerMemory.z = Math.min(Math.max(next.z, -25), LOT_D * GRID + 25);
+          const plot = currentPlotOf(useEconomy.getState());
+          playerMemory.x = Math.min(Math.max(next.x, TOWN_BOUNDS.x0 - plotX(plot) - 25), TOWN_BOUNDS.x1 - plotX(plot) + 40);
+          playerMemory.z = Math.min(Math.max(next.z, TOWN_BOUNDS.z0 - plotZ(plot) - 25), TOWN_BOUNDS.z1 - plotZ(plot) + 35);
           // 三人称では進む向きへ体を回す
           if (mlen > 0 || !st.grounded) {
             const target = Math.atan2(-st.vx, -st.vz);
@@ -531,8 +532,8 @@ export function Player() {
         if (pass) climb = pass.ok ? (Math.hypot(playerMemory.x - pass.x, playerMemory.z - pass.z) <= CLIMB_REACH ? 'ok' : null) : pass.reason;
       }
       doors.setClimb(climb, false);
-      doors.setAtCasino(atCasinoDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z, playerMemory.y));
-      doors.setAtEstate(atEstateDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z, playerMemory.y));
+      doors.setAtCasino(atCasinoDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y));
+      doors.setAtEstate(atEstateDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y));
     } else {
       doors.setClimb(null, true);
     }
