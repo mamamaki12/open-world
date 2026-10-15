@@ -59,7 +59,7 @@ export function surfaceHeight(house: House, x: number, z: number, y: number): nu
   const gz = z / GRID;
   for (const f of house.floors) {
     if (gx < f.x0 || gx > f.x1 || gz < f.z0 || gz > f.z1) continue;
-    const inHole = stairHoles(house, f.level).some((h) => gx > h.x0 && gx < h.x1 && gz > h.z0 && gz < h.z1);
+    const inHole = stairHoles(house, f.level).some((h) => gx >= h.x0 && gx <= h.x1 && gz >= h.z0 && gz <= h.z1);
     if (!inHole) consider(floorY(f.level));
   }
   for (const s of house.stairs) {
@@ -90,7 +90,7 @@ export function ceilingHeight(house: House, x: number, z: number, feetY: number)
   }
   for (const f of house.floors) {
     if (f.level === 0 || gx < f.x0 || gx > f.x1 || gz < f.z0 || gz > f.z1) continue;
-    const inHole = stairHoles(house, f.level).some((h) => gx > h.x0 && gx < h.x1 && gz > h.z0 && gz < h.z1);
+    const inHole = stairHoles(house, f.level).some((h) => gx >= h.x0 && gx <= h.x1 && gz >= h.z0 && gz <= h.z1);
     if (!inHole) consider(floorY(f.level) - SLAB_THICKNESS);
   }
   return best;
