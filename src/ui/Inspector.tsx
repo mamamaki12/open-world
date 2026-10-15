@@ -1,7 +1,7 @@
 // 右のパネル：選んだパーツの種類・素材・色・寸法を変える
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, getOpening, openingsOf } from '../catalog';
 import { GRID, levelName } from '../building/dimensions';
-import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapOpeningOffset, wallLength } from '../building/rules';
+import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapFurniture, snapOpeningOffset, wallLength } from '../building/rules';
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
@@ -236,8 +236,22 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
   const def = getFurniture(f.type);
   const set = (patch: Partial<FurniturePart>) => patchPart('furniture', f.id, patch);
   const rotate = (deg: number) => set({ rotation: (((f.rotation + deg) % 360) + 360) % 360 });
+  const move = (dx: number, dz: number) => set(snapFurniture(f.x + dx, f.z + dz));
   return (
     <>
+      <div className="field">
+        <div className="field-label">移動・回転</div>
+        <div className="row">
+          <button className="btn" onClick={() => move(-0.05, 0)}>← 5cm</button>
+          <button className="btn" onClick={() => move(0.05, 0)}>→ 5cm</button>
+          <button className="btn" onClick={() => move(0, -0.05)}>↑ 5cm</button>
+          <button className="btn" onClick={() => move(0, 0.05)}>↓ 5cm</button>
+        </div>
+        <div className="row">
+          <button className="btn" onClick={() => rotate(90)}>⟲ 90°</button>
+          <button className="btn" onClick={() => rotate(-90)}>⟳ 90°</button>
+        </div>
+      </div>
       <div className="field">
         <div className="field-label">種類</div>
         <select value={f.type} onChange={(e) => set({ type: e.target.value, color: getFurniture(e.target.value).colors[0] })}>
@@ -266,3 +280,4 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
     </>
   );
 }
+
