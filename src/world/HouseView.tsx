@@ -12,6 +12,8 @@ import { Roof } from './parts/Roof';
 import { Stair, StairModel } from './parts/Stair';
 import { Wall } from './parts/Wall';
 import { mountedTransform } from '../building/mounts';
+import { HouseScope } from './HouseScope';
+import type { ActivateHouse } from './HouseScope';
 
 export function HouseView() {
   const house = useGame((s) => s.house);
@@ -36,7 +38,7 @@ export function HouseView() {
 }
 
 /** 家の部品をまとめて描く（いまの土地の家と、町に建っているほかの土地の家で使う） */
-export function HouseParts({ house, showRoofs = true }: { house: House; showRoofs?: boolean }) {
+export function HouseParts({ house, showRoofs = true, activate }: { house: House; showRoofs?: boolean; activate?: ActivateHouse }) {
   const openingsByWall = useMemo(() => {
     const m = new Map<string, House['openings']>();
     for (const o of house.openings) m.set(o.wallId, [...(m.get(o.wallId) ?? []), o]);
@@ -44,7 +46,7 @@ export function HouseParts({ house, showRoofs = true }: { house: House; showRoof
   }, [house.openings]);
 
   return (
-    <>
+    <HouseScope.Provider value={{ house, activate }}>
       {house.floors.map((f) => (
         <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} stairwells={stairHoles(house, f.level + 1)} roofs={house.roofs.filter((r) => r.level === f.level)} />
       ))}
@@ -60,7 +62,7 @@ export function HouseParts({ house, showRoofs = true }: { house: House; showRoof
       {showRoofs && house.roofs.map((r) => (
         <Roof key={r.id} roof={r} />
       ))}
-    </>
+    </HouseScope.Provider>
   );
 }
 
@@ -123,7 +125,7 @@ function PreviewView() {
     case 'stair':
       return (
         <group>
-          <StairModel stair={{ level, x: preview.x, z: preview.z, rot: stairRot, finish: defaults.stairFinish, rail: defaults.stairRail }} ghost />
+          <StairModel stair={{ level, x: preview.x, z: preview.z, rot: stairRot, shape: defaults.stairShape, finish: defaults.stairFinish, rail: defaults.stairRail }} ghost />
           {!preview.valid && (
             <mesh position={[(preview.x + 0.5) * GRID, y + 0.05, (preview.z + 0.5) * GRID]} material={badMat}>
               <boxGeometry args={[GRID, 0.1, GRID]} />
