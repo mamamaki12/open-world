@@ -45,6 +45,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .field-label { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
 .field select, .field input[type=range] { width: 100%; }
 select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; border: 1px solid var(--line); background: #fff; }
+.field input[type=text] { box-sizing: border-box; width: 100%; font: inherit; font-size: 16px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: #fff; }
 
 .swatches { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .swatch {

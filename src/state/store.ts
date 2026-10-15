@@ -34,6 +34,8 @@ export interface Defaults {
   wallHeight: WallHeight;
   furnitureType: string;
   furnitureRotation: number;
+  /** 表札に書く文字 */
+  nameplateText: string;
 }
 
 export const INITIAL_DEFAULTS: Defaults = {
@@ -56,6 +58,7 @@ export const INITIAL_DEFAULTS: Defaults = {
   wallHeight: 'full',
   furnitureType: 'sofa',
   furnitureRotation: 0,
+  nameplateText: '山田',
 };
 
 const HISTORY_LIMIT = 200;

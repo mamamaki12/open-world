@@ -230,6 +230,7 @@ export function PlacementController() {
             ...pos,
             rotation: g.defaults.furnitureRotation,
             color: getFurniture(g.defaults.furnitureType).colors[0],
+            ...(getFurniture(g.defaults.furnitureType).label ? { label: g.defaults.nameplateText } : {}),
           };
           g.commit({ ...g.house, furniture: [...g.house.furniture, item] });
           break;

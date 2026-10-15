@@ -1,5 +1,5 @@
 // 左のパネル：いま持っているツールで置くパーツの種類・素材・色を選ぶ
-import { FURNITURE, PANEL_COLORS, SASH_COLORS, openingsOf } from '../catalog';
+import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, openingsOf } from '../catalog';
 import { ROOF_TYPE_NAMES } from '../building/roof';
 import type { FloorKind, RoofType, StairRail, WallHeight } from '../building/types';
 import { useGame } from '../state/store';
@@ -125,7 +125,7 @@ export function ToolOptions() {
         <div className="field">
           {(
             [
-              ['庭・外（プール・花など）', FURNITURE.filter((f) => f.category === 'outdoor')],
+              ['庭・外（プール・花・表札など）', FURNITURE.filter((f) => f.category === 'outdoor')],
               ['家の中', FURNITURE.filter((f) => f.category !== 'outdoor')],
             ] as const
           ).map(([label, items]) => (
@@ -140,6 +140,9 @@ export function ToolOptions() {
               </div>
             </div>
           ))}
+          {getFurniture(d.furnitureType).label && (
+            <NameplateInput value={d.nameplateText} onChange={(nameplateText) => set({ nameplateText })} />
+          )}
           <button className="btn" onClick={() => set({ furnitureRotation: (d.furnitureRotation + 90) % 360 })}>
             向きを変える<span className="kbd-hint">（R）</span>：{d.furnitureRotation}°
           </button>
@@ -153,6 +156,15 @@ export function ToolOptions() {
       <p className="help">{(touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
       {body}
     </div>
+  );
+}
+
+export function NameplateInput({ value = '', onChange }: { value?: string; onChange: (v: string) => void }) {
+  return (
+    <label className="field">
+      <div className="field-label">表札の文字</div>
+      <input type="text" value={value} maxLength={12} placeholder="山田" onChange={(e) => onChange(e.target.value)} />
+    </label>
   );
 }
 

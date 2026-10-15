@@ -97,6 +97,8 @@
     "rug": 25000,
     "pool": 2500000,
     "flowerbed": 40000,
-    "flowerpot": 8000
+    "flowerpot": 8000,
+    "nameplate-post": 180000,
+    "nameplate": 20000
   }
 }

@@ -1,4 +1,6 @@
+import { useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
+import * as THREE from 'three';
 import { getFurniture } from '../../catalog';
 import type { FurnitureDef, Paint } from '../../catalog';
 import { furnitureBaseY } from '../../building/rules';
@@ -24,9 +26,48 @@ const PAINT: Record<Exclude<Paint, 'main'>, { color: string; roughness?: number;
   terracotta: { color: '#b8613f', roughness: 0.85 },
 };
 
-export function FurnitureModel({ def, color, highlight = 'none' }: { def: FurnitureDef; color: string; highlight?: Highlight }) {
+/** 表札の文字を描いたテクスチャ。板の色が暗ければ白い字、明るければ黒い字 */
+function LabelPlane({ text, plate, size, pos }: { text: string; plate: string; size: [number, number]; pos: [number, number, number] }) {
+  const texture = useMemo(() => {
+    const w = 512;
+    const h = Math.round((w * size[1]) / size[0]);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const c = new THREE.Color(plate);
+      const dark = c.r * 0.3 + c.g * 0.59 + c.b * 0.11 < 0.5;
+      ctx.fillStyle = dark ? '#f4efe4' : '#1d1b19';
+      const fit = (px: number) => `bold ${px}px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif`;
+      let px = h * 0.72;
+      ctx.font = fit(px);
+      // 長い名前は板の幅に収まるまで小さくする
+      const width = ctx.measureText(text).width;
+      if (width > w * 0.9) px *= (w * 0.9) / width;
+      ctx.font = fit(px);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, w / 2, h / 2 + px * 0.04);
+    }
+    const t = new THREE.CanvasTexture(canvas);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, [text, plate, size[0], size[1]]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return (
+    <mesh position={pos}>
+      <planeGeometry args={size} />
+      <meshBasicMaterial map={texture} transparent toneMapped={false} />
+    </mesh>
+  );
+}
+
+export function FurnitureModel({ def, color, label, highlight = 'none' }: { def: FurnitureDef; color: string; label?: string; highlight?: Highlight }) {
   return (
     <>
+      {def.label && label && <LabelPlane text={label} plate={color} size={def.label.size} pos={def.label.pos} />}
       {def.parts.map((p, i) => {
         const paint = p.paint === 'main' ? { color, roughness: 0.7 } : PAINT[p.paint];
         const mat = plainMaterial(paint.color, highlight, { roughness: paint.roughness, metalness: paint.metalness });
@@ -63,7 +104,7 @@ export function Furniture({ item }: { item: FurniturePart }) {
       {...handlers}
       onPointerDown={onPointerDown}
     >
-      <FurnitureModel def={def} color={item.color} highlight={highlight} />
+      <FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} />
     </group>
   );
 }

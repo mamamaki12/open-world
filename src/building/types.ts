@@ -104,6 +104,8 @@ export interface FurniturePart {
   z: number;
   rotation: number;
   color: string;
+  /** 表札の文字 */
+  label?: string;
 }
 
 export interface House {

@@ -108,7 +108,7 @@ function PreviewView() {
       const fp = furnitureFootprint(def);
       return (
         <group position={[preview.x, furnitureBaseY(house, { level, x: preview.x, z: preview.z }), preview.z]} rotation={[0, (defaults.furnitureRotation * Math.PI) / 180, 0]}>
-          <FurnitureModel def={def} color={def.colors[0]} />
+          <FurnitureModel def={def} color={def.colors[0]} label={defaults.nameplateText} />
           <mesh position={[0, 0.01, 0]} material={okMat}>
             <boxGeometry args={[fp.w, 0.02, fp.d]} />
           </mesh>

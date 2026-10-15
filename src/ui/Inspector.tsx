@@ -5,7 +5,7 @@ import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapOpeningOffset,
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
-import { FloorKindButtons, RoofTypeButtons, Slider, StairRailButtons, WallHeightButtons } from './ToolOptions';
+import { FloorKindButtons, NameplateInput, RoofTypeButtons, Slider, StairRailButtons, WallHeightButtons } from './ToolOptions';
 import { patchPart } from './edit';
 
 const mm = (m: number) => `${Math.round(m * 1000).toLocaleString()}mm`;
@@ -252,6 +252,7 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
         <div className="field-label">色</div>
         <Swatches colors={def.colors} value={f.color} onChange={(color) => set({ color })} />
       </div>
+      {def.label && <NameplateInput value={f.label} onChange={(label) => set({ label })} />}
       <div className="field">
         <div className="field-label">向き：{Math.round(f.rotation)}°</div>
         <div className="row">

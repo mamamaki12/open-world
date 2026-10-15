@@ -133,6 +133,18 @@
         { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0.09, 0.55, -0.04], "paint": "main" },
         { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0, 0.55, 0.09], "paint": "main" },
         { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0.02, 0.55, -0.01], "paint": "main" }
+      ] },
+    { "id": "nameplate-post", "name": "門柱と表札", "category": "outdoor", "colors": ["#f2efe8", "#2f2a26", "#b8a07a", "#c9c5bb"],
+      "label": { "pos": [0, 0.95, 0.161], "size": [0.34, 0.12] },
+      "parts": [
+        { "shape": "box", "size": [0.5, 1.2, 0.3], "pos": [0, 0.6, 0], "paint": "stone" },
+        { "shape": "box", "size": [0.38, 0.15, 0.02], "pos": [0, 0.95, 0.15], "paint": "main" },
+        { "shape": "box", "size": [0.56, 0.06, 0.36], "pos": [0, 1.23, 0], "paint": "dark" }
+      ] },
+    { "id": "nameplate", "name": "表札（壁付け）", "category": "outdoor", "colors": ["#f2efe8", "#2f2a26", "#b8a07a", "#5a4030"],
+      "label": { "pos": [0, 1.6, 0.0135], "size": [0.3, 0.1] },
+      "parts": [
+        { "shape": "box", "size": [0.34, 0.13, 0.025], "pos": [0, 1.6, 0], "paint": "main" }
       ] }
   ]
 }
