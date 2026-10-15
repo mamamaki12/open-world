@@ -1,10 +1,9 @@
 // 建築モードのカメラをキーで動かす：WASD / 矢印で前後左右、Q / E で回る、Shift で速く。
-// 作業する階を変えたら、カメラも同じ高さだけ上下させる。
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import { GRID, LOT_D, LOT_W, floorY } from '../building/dimensions';
+import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { useGame } from '../state/store';
 import { touchCamera } from '../state/touch';
 
@@ -48,22 +47,7 @@ export function BuildCamera() {
     };
   }, []);
 
-  // 作業する階を変えたら、その階の床の高さへカメラごと移す（歩きモード中に変わった分は戻ったときに合わせる）
   const walking = useGame((s) => s.mode === 'walk');
-  const alignedLevel = useRef(useGame.getState().activeLevel);
-  useEffect(() => {
-    if (walking || !controls) return;
-    const align = (level: number) => {
-      if (level === alignedLevel.current) return;
-      const dy = floorY(level) - floorY(alignedLevel.current);
-      alignedLevel.current = level;
-      controls.target.y += dy;
-      camera.position.y += dy;
-      controls.update();
-    };
-    align(useGame.getState().activeLevel);
-    return useGame.subscribe((s) => align(s.activeLevel));
-  }, [camera, controls, walking]);
 
   useFrame((_, rawDt) => {
     if (!controls || walking) return;

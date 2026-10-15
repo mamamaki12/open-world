@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { BASE_HEIGHT, GRID, LOT_D, LOT_W, MAX_LEVEL, STORY_HEIGHT } from '../building/dimensions';
+import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
 import type { ClimbPlan } from '../building/climb';
@@ -86,11 +86,6 @@ export function isBuilding() {
   return useGame.getState().tool !== 'select';
 }
 
-/** 立っている高さから、いまいる階を求める */
-function levelAt(y: number) {
-  return Math.min(Math.max(Math.floor((y - BASE_HEIGHT + 0.4) / STORY_HEIGHT), 0), MAX_LEVEL);
-}
-
 interface Action {
   plan: ClimbPlan;
   t: number;
@@ -118,7 +113,6 @@ export function Player() {
   const keys = useRef(new Set<string>());
   const state = useRef({ velY: 0, vx: 0, vz: 0, grounded: true, crouch: false, airTime: 0, lastYaw: 0, shake: 0 });
   const action = useRef<Action | null>(null);
-  const playerLevel = useRef(-1);
   /** 窓から飛び出した直後：通ってきた窓の壁に押し戻されないよう、少しの間だけ壁の当たり判定を切る */
   const skipWalls = useRef(false);
   const raycaster = useRef(new THREE.Raycaster());
@@ -444,13 +438,6 @@ export function Player() {
           skipWalls.current = false;
         }
       }
-    }
-
-    // 作業する階は、いまいる階に合わせる（Z / X で一時的に変えられる）
-    const lv = levelAt(playerMemory.y);
-    if (lv !== playerLevel.current) {
-      playerLevel.current = lv;
-      if (useGame.getState().activeLevel !== lv) useGame.getState().setLevel(lv);
     }
 
     // 近くのドア・窓を操作対象にする。開いた窓なら出られるかも調べる

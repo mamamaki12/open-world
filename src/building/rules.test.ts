@@ -82,7 +82,9 @@ describe('床・階段', () => {
     const h: House = { ...emptyHouse(), floors: [{ id: 'f', level: 0, x0: 0, z0: 0, x1: 4, z1: 4, finish }] };
     expect(canPlaceFloor(h, 0, { x0: 3, z0: 3, x1: 6, z1: 6 })).not.toBeNull();
     expect(canPlaceFloor(h, 0, { x0: 4, z0: 0, x1: 6, z1: 4 })).toBeNull();
-    expect(canPlaceFloor(h, 1, { x0: 0, z0: 0, x1: 4, z1: 4 })).toBeNull();
+    // 別の階なら重なってもよい（2階は下に壁があれば張れる）
+    const withWall: House = { ...h, walls: [wall('w', 0, 0, 4, 0)] };
+    expect(canPlaceFloor(withWall, 1, { x0: 0, z0: 0, x1: 4, z1: 4 })).toBeNull();
   });
 
   it('階段は向きに応じて1×4マスを占め、最上階には置けない', () => {
@@ -134,5 +136,24 @@ describe('サンプルの家', () => {
     const h = sampleHouse();
     for (const o of h.openings) expect(canPlaceOpening(h, o.wallId, o.type, o.offset, o.id)).toBeNull();
     for (const s of h.stairs) expect(canPlaceStair(h, s, s.id)).toBeNull();
+  });
+});
+
+describe('床を張れる場所', () => {
+  const walled: House = { ...emptyHouse(), walls: [wall('a', 0, 0, 4, 0), wall('b', 4, 0, 4, 4)] };
+
+  it('1階の床は地面の上ならどこでも張れる', () => {
+    expect(canPlaceFloor(emptyHouse(), 0, { x0: 2, z0: 2, x1: 5, z1: 5 })).toBeNull();
+  });
+
+  it('2階の床は、下に1階の壁がかかっていれば張れる', () => {
+    expect(canPlaceFloor(walled, 1, { x0: 0, z0: 0, x1: 4, z1: 4 })).toBeNull();
+    expect(canPlaceFloor(walled, 1, { x0: 1, z0: -0, x1: 2, z1: 1 })).toBeNull();
+  });
+
+  it('下に壁のない空中には2階の床を張れない。角で点だけ接していてもだめ', () => {
+    expect(canPlaceFloor(emptyHouse(), 1, { x0: 0, z0: 0, x1: 4, z1: 4 })).not.toBeNull();
+    expect(canPlaceFloor(walled, 1, { x0: 6, z0: 6, x1: 8, z1: 8 })).not.toBeNull();
+    expect(canPlaceFloor(walled, 1, { x0: 4, z0: 4, x1: 6, z1: 6 })).not.toBeNull();
   });
 });

@@ -14,18 +14,13 @@ import { Wall } from './parts/Wall';
 
 export function HouseView() {
   const house = useGame((s) => s.house);
-  const activeLevel = useGame((s) => s.activeLevel);
-  const showAll = useGame((s) => s.showAll);
   const tool = useGame((s) => s.tool);
   const walking = useGame((s) => s.mode === 'walk');
 
-  // 歩きモードでは家全体を見せる
-  const visible = (level: number) => walking || showAll || level <= activeLevel;
-  // 今の階の屋根は、中を作る道具（床・壁・ドア・窓・階段・家具）を持っている間だけ隠す。
-  // 選択・削除・屋根ツールでは見せる（置いた屋根を選んで直せるように）
+  // 家はいつも全部見せる。屋根だけは、建築モードで中を作る道具（床・壁・ドア・窓・階段・家具）を
+  // 持っている間は隠して、壁の上や2階を触れるようにする。選択・削除・屋根ツールでは見せる
   const insideTool = tool !== 'roof' && tool !== 'select' && tool !== 'erase';
-  const roofVisible = (level: number) =>
-    walking || showAll || level < activeLevel || (level === activeLevel && !insideTool);
+  const showRoofs = walking || !insideTool;
 
   const openingsByWall = useMemo(() => {
     const m = new Map<string, House['openings']>();
@@ -34,24 +29,27 @@ export function HouseView() {
   }, [house.openings]);
 
   return (
-    <group name="house">
-      {house.floors.filter((f) => visible(f.level)).map((f) => (
-        <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} stairwells={stairHoles(house, f.level + 1)} />
-      ))}
-      {house.walls.filter((w) => visible(w.level)).map((w) => (
-        <Wall key={w.id} wall={w} openings={openingsByWall.get(w.id) ?? []} outside={wallOutsideSide(house, w)} />
-      ))}
-      {house.stairs.filter((s) => visible(s.level)).map((s) => (
-        <Stair key={s.id} stair={s} />
-      ))}
-      {house.furniture.filter((f) => visible(f.level)).map((f) => (
-        <Furniture key={f.id} item={f} />
-      ))}
-      {house.roofs.filter((r) => roofVisible(r.level)).map((r) => (
-        <Roof key={r.id} roof={r} />
-      ))}
+    <>
+      <group name="house">
+        {house.floors.map((f) => (
+          <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} stairwells={stairHoles(house, f.level + 1)} />
+        ))}
+        {house.walls.map((w) => (
+          <Wall key={w.id} wall={w} openings={openingsByWall.get(w.id) ?? []} outside={wallOutsideSide(house, w)} />
+        ))}
+        {house.stairs.map((s) => (
+          <Stair key={s.id} stair={s} />
+        ))}
+        {house.furniture.map((f) => (
+          <Furniture key={f.id} item={f} />
+        ))}
+        {showRoofs && house.roofs.map((r) => (
+          <Roof key={r.id} roof={r} />
+        ))}
+      </group>
+      {/* プレビューは家の外に置く（マウスの下の面を調べるときに当たらないように） */}
       <PreviewView />
-    </group>
+    </>
   );
 }
 

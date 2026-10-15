@@ -59,8 +59,8 @@ interface GameState {
   mode: Mode;
   view: View;
   tool: Tool;
+  /** いま置こうとしている階（マウスの下の面から自動で決まる。プレビューとマス目の高さに使う） */
   activeLevel: number;
-  showAll: boolean;
   selection: PartRef | null;
   defaults: Defaults;
   message: { text: string; at: number } | null;
@@ -80,7 +80,6 @@ interface GameState {
   toggleView: () => void;
   setTool: (tool: Tool) => void;
   setLevel: (level: number) => void;
-  setShowAll: (v: boolean) => void;
   select: (ref: PartRef | null) => void;
   deleteSelected: () => void;
   setDefaults: (patch: Partial<Defaults>) => void;
@@ -98,7 +97,6 @@ export const useGame = create<GameState>((set, get) => ({
   view: 'third',
   tool: 'select',
   activeLevel: 0,
-  showAll: true,
   selection: null,
   defaults: INITIAL_DEFAULTS,
   message: null,
@@ -147,8 +145,9 @@ export const useGame = create<GameState>((set, get) => ({
   setMode: (mode) => set({ mode, selection: null, tool: mode === 'walk' ? 'select' : get().tool }),
   toggleView: () => set({ view: get().view === 'third' ? 'first' : 'third' }),
   setTool: (tool) => set({ tool, selection: tool === 'select' ? get().selection : null }),
-  setLevel: (level) => set({ activeLevel: level, selection: null }),
-  setShowAll: (v) => set({ showAll: v }),
+  setLevel: (level) => {
+    if (get().activeLevel !== level) set({ activeLevel: level });
+  },
   select: (ref) => set({ selection: ref }),
   deleteSelected: () => {
     const { selection, house, commit } = get();
