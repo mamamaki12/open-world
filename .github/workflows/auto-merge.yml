@@ -1,0 +1,33 @@
+name: Merge after CI
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const { owner, repo } = context.repo;
+            if (run.head_repository?.full_name !== `${owner}/${repo}`) return;
+            const { data: prs } = await github.rest.pulls.list({
+              owner, repo, state: 'open', base: 'main', head: `${owner}:${run.head_branch}`
+            });
+            for (const pr of prs) {
+              if (pr.draft || pr.user.login !== owner || pr.head.sha !== run.head_sha) continue;
+              if (pr.head.repo?.full_name !== `${owner}/${repo}`) continue;
+              const result = await github.rest.pulls.merge({
+                owner, repo, pull_number: pr.number, sha: run.head_sha, merge_method: 'squash'
+              });
+              core.info(`PR #${pr.number}: ${result.data.message}`);
+            }
