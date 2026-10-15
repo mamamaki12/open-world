@@ -4,7 +4,6 @@ import { yen } from '../economy/money';
 import { renovationCost } from '../economy/pricing';
 import { saveEconomy, useCurrentLot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
-import { goToCasino } from '../world/Player';
 
 export function MoneyBar() {
   const money = useEconomy((s) => s.money);
@@ -25,16 +24,6 @@ export function MoneyBar() {
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">
         🗺 マップ
       </button>
-      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('estate'); }}>
-        🏠 不動産
-      </button>
-      <button
-        className="tool"
-        onClick={(e) => { e.currentTarget.blur(); goToCasino(); }}
-        title="カジノは道路の向かいに建っています。入口の前で F キーを押すと中に入れます"
-      >
-        🎰 カジノへ行く
-      </button>
       <BuildChip />
     </div>
   );
@@ -44,13 +33,10 @@ export function MoneyBar() {
 export function BuildChip() {
   const lot = useCurrentLot();
   const house = useGame((s) => s.house);
-  const setOverlay = useGame((s) => s.setOverlay);
   const est = useMemo(() => (lot ? renovationCost(lot.built, house) : null), [lot?.built, house]);
   if (!lot) {
     return (
-      <button className="tool chip warn" onClick={() => setOverlay('estate')}>
-        土地がありません → 土地を買う
-      </button>
+      <span className="chip warn">土地は不動産屋で購入できます</span>
     );
   }
   if (lot.construction) {
@@ -64,9 +50,7 @@ export function BuildChip() {
   }
   if (!est || est.parts === 0) return null;
   return (
-    <button className="tool chip go" onClick={() => setOverlay('estate')} title="設計はタダ。着工したときに工事費を払います">
-      🔨 {lot.built ? '改築' : '着工'} {yen(est.total)}
-    </button>
+    <span className="chip go" title="不動産屋の店舗で着工できます">🔨 工事見積 {yen(est.total)}（不動産屋で着工）</span>
   );
 }
 
@@ -91,4 +75,5 @@ export function useEconomyClock() {
     };
   }, []);
 }
+
 

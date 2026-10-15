@@ -5,7 +5,9 @@ import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { useGame } from '../state/store';
+import { useInteraction } from '../state/interaction';
 import { touchCamera } from '../state/touch';
+import { useTouchDevice } from '../ui/useTouchDevice';
 
 export const CAMERA_KEYS = {
   forward: ['KeyW', 'ArrowUp'],
@@ -25,6 +27,26 @@ export function BuildCamera() {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null;
   const keys = useRef(new Set<string>());
+  const touch = useTouchDevice();
+  const tool = useGame((s) => s.tool);
+  const mode = useGame((s) => s.mode);
+  const preciseTouch = touch && mode === 'build' && (tool === 'floor' || tool === 'wall');
+  // 真上からなら床・壁の高さで画面上の位置がずれず、指の真下に配置できる。
+  useEffect(() => {
+    if (!preciseTouch || !controls) return;
+    const position = camera.position.clone();
+    const target = controls.target.clone();
+    const height = Math.max(12, position.distanceTo(target));
+    camera.position.set(target.x, target.y + height, target.z + 0.001);
+    camera.lookAt(target);
+    controls.update();
+    return () => {
+      camera.position.copy(position);
+      controls.target.copy(target);
+      camera.lookAt(target);
+      controls.update();
+    };
+  }, [preciseTouch, camera, controls]);
 
   useEffect(() => {
     const isTyping = (e: KeyboardEvent) => {
@@ -50,7 +72,7 @@ export function BuildCamera() {
   const walking = useGame((s) => s.mode === 'walk');
 
   useFrame((_, rawDt) => {
-    if (!controls || walking) return;
+    if (!controls || walking || useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag) return;
     const dt = Math.min(rawDt, 0.1);
     const k = keys.current;
     // 家具を選んでいるときの矢印キーは、家具を少しずつ動かすのに使う
@@ -96,3 +118,4 @@ export function BuildCamera() {
 
   return null;
 }
+

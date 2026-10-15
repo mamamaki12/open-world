@@ -27,6 +27,8 @@ export const DISTRICTS: District[] = [
 export const START_PLOT = 0;
 /** カジノの正面にある区画 */
 export const CASINO_PLOT = 0;
+/** 不動産屋はカジノの東隣 */
+export const ESTATE_PLOT = 1;
 
 export const FIRST_PLOT = Math.min(...DISTRICTS.map((d) => d.from));
 export const LAST_PLOT = Math.max(...DISTRICTS.map((d) => d.to));
@@ -74,3 +76,4 @@ export function assignPlots<T extends { location: string; plot?: number | null }
     return { ...it, plot };
   });
 }
+

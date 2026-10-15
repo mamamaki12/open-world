@@ -7,6 +7,9 @@ import type { PartRef } from '../../building/types';
 import { useGame } from '../../state/store';
 import { useInteraction } from '../../state/interaction';
 import type { Highlight } from '../materials';
+import * as THREE from 'three';
+import { floorY } from '../../building/dimensions';
+import { materialGroup, movableBuilding } from '../../building/groups';
 
 /** カメラを回したドラッグの終わりをクリックと見なさないための閾値（px） */
 const CLICK_SLOP = 5;
@@ -14,7 +17,7 @@ const CLICK_SLOP = 5;
 export function usePart(ref: PartRef) {
   const tool = useGame((s) => s.tool);
   const walking = useGame((s) => s.mode === 'walk');
-  const selected = useGame((s) => s.selection?.kind === ref.kind && s.selection.id === ref.id);
+  const selected = useGame((s) => !!s.selection && materialGroup(s.house, s.selection, s.groupSelection).some(r => r.kind === ref.kind && r.id === ref.id));
   const marked = useGame((s) => s.marked.some((m) => m.kind === ref.kind && m.id === ref.id));
   const [hover, setHover] = useState(false);
   // 歩きモードでは選択はせず、削除ツールだけ効く
@@ -24,6 +27,21 @@ export function usePart(ref: PartRef) {
 
   const handlers = interactive
     ? {
+        onPointerDown: (e: ThreeEvent<PointerEvent>) => {
+          const game = useGame.getState();
+          if (game.mode !== 'build' || game.tool !== 'select' || !movableBuilding(ref) || e.button !== 0) return;
+          e.stopPropagation();
+          const parts = ref.kind === 'wall' ? game.house.walls : ref.kind === 'floor' ? game.house.floors : ref.kind === 'roof' ? game.house.roofs : game.house.stairs;
+          const part = parts.find(p => p.id === ref.id);
+          if (!part) return;
+          const level = part.level + (ref.kind === 'roof' ? 1 : 0);
+          const point = e.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -floorY(level)), new THREE.Vector3());
+          if (!point) return;
+          game.select(ref);
+          game.beginDrag();
+          useInteraction.setState({ buildingDrag: { refs: materialGroup(game.house, ref, game.groupSelection), level, x: point.x, z: point.z,
+            startX: e.clientX, startY: e.clientY, dx: 0, dz: 0, error: null } });
+        },
         onClick: (e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           if (Date.now() < useInteraction.getState().ignorePartClickUntil) return;

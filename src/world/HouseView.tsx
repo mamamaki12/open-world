@@ -11,6 +11,7 @@ import { Furniture, FurnitureModel } from './parts/Furniture';
 import { Roof } from './parts/Roof';
 import { Stair, StairModel } from './parts/Stair';
 import { Wall } from './parts/Wall';
+import { mountedTransform } from '../building/mounts';
 
 export function HouseView() {
   const house = useGame((s) => s.house);
@@ -79,6 +80,13 @@ function PreviewView() {
   const y = floorY(level);
 
   switch (preview.kind) {
+    case 'nameplate': {
+      const transform = mountedTransform(house, preview.mount);
+      if (!transform) return null;
+      return <group position={[transform.x, transform.y, transform.z]} rotation={[0, transform.rotation * Math.PI / 180, 0]}>
+        <FurnitureModel def={getFurniture('nameplate')} color="#f2efe8" label={defaults.nameplateText} highlight="hover" />
+      </group>;
+    }
     case 'rect': {
       const { rect } = preview;
       const w = (rect.x1 - rect.x0) * GRID;

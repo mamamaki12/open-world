@@ -2,12 +2,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getLocation, landPrice } from '../economy/market';
 import { yen, yenShort } from '../economy/money';
-import { CASINO_PLOT, DISTRICTS, FIRST_PLOT, LAST_PLOT, PLOT_PITCH, plotX } from '../economy/town';
+import { CASINO_PLOT, ESTATE_PLOT, DISTRICTS, FIRST_PLOT, LAST_PLOT, PLOT_PITCH, plotX } from '../economy/town';
 import { useCurrentPlot, useEconomy } from '../state/economy';
 import type { Lot } from '../state/economy';
 import type { LandOffer } from '../economy/market';
 import { useGame } from '../state/store';
-import { goToCasino, playerMemory, warpToLot } from '../world/Player';
+import { playerMemory, warpToLot } from '../world/Player';
 import { GRID, LOT_W } from '../building/dimensions';
 import { Modal } from './Modal';
 
@@ -18,7 +18,7 @@ const Y = { band: 0, north: 26, road: 92, plot: 116, bottom: 186 };
 const WIDTH = (LAST_PLOT - FIRST_PLOT + 1) * CELL + PAD * 2;
 const cellX = (plot: number) => PAD + (plot - FIRST_PLOT) * CELL;
 
-type Pick = { kind: 'lot'; id: string } | { kind: 'offer'; id: string } | { kind: 'casino' } | null;
+type Pick = { kind: 'lot'; id: string } | { kind: 'offer'; id: string } | { kind: 'casino' | 'estate' } | null;
 
 export function MapPanel() {
   const close = useGame((s) => s.setOverlay);
@@ -94,6 +94,11 @@ export function MapPanel() {
             <text x={cellX(CASINO_PLOT) + CELL / 2} y={Y.north + 30} textAnchor="middle" className="map-casino-text">カジノ</text>
             <text x={cellX(CASINO_PLOT) + CELL / 2} y={Y.north + 46} textAnchor="middle" className="map-casino-sub">競技場</text>
           </g>
+          <g className={`map-cell casino${pick?.kind === 'estate' ? ' picked' : ''}`}
+            onClick={() => setPick({ kind: 'estate' })} role="button" aria-label="不動産屋">
+            <rect x={cellX(ESTATE_PLOT) + 4} y={Y.north + 6} width={CELL - 8} height={Y.road - Y.north - 12} rx={5} />
+            <text x={cellX(ESTATE_PLOT) + CELL / 2} y={Y.north + 34} textAnchor="middle" className="map-casino-text">不動産</text>
+          </g>
           {/* 区画 */}
           {plots.map((p) => {
             const lot = lotByPlot.get(p);
@@ -139,12 +144,14 @@ export function MapPanel() {
       </div>
 
       <div className="map-detail card">
-        {pick?.kind === 'casino' ? (
+        {pick?.kind === 'estate' ? (
+          <><h3>まちの不動産</h3><p>カジノの東隣です。店舗の入口で F キー（スマホは「入る」ボタン）を押すと、土地の売買・賃貸・着工ができます。</p></>
+        ) : pick?.kind === 'casino' ? (
           <CasinoDetail />
         ) : pick?.kind === 'lot' && picked ? (
           <LotDetail lot={picked as Lot} />
         ) : pick?.kind === 'offer' && picked ? (
-          <OfferDetail offer={picked as LandOffer} onBought={(id) => setPick({ kind: 'lot', id })} />
+          <OfferDetail offer={picked as LandOffer} />
         ) : (
           <p className="muted">地図の区画を選んでください。</p>
         )}
@@ -152,7 +159,7 @@ export function MapPanel() {
 
       <section className="map-mylots">
         <div className="card-title">あなたの土地（{lots.length}）</div>
-        {lots.length === 0 && <p className="muted">土地を持っていません。地図の「売地」から買えます。</p>}
+        {lots.length === 0 && <p className="muted">土地を持っていません。不動産屋で購入できます。</p>}
         <ul>
           {lots.map((l) => (
             <li key={l.id} className={l.id === currentLotId ? 'on' : ''}>
@@ -225,11 +232,8 @@ function LotDetail({ lot }: { lot: Lot }) {
   );
 }
 
-function OfferDetail({ offer, onBought }: { offer: LandOffer; onBought: (lotId: string) => void }) {
+function OfferDetail({ offer }: { offer: LandOffer }) {
   const market = useEconomy((s) => s.market);
-  const money = useEconomy((s) => s.money);
-  const buy = useEconomy((s) => s.buyLand);
-  const notify = useGame((s) => s.notify);
   const loc = getLocation(offer.location);
   const price = landPrice(offer.location, offer.variance, market);
   return (
@@ -238,19 +242,7 @@ function OfferDetail({ offer, onBought }: { offer: LandOffer; onBought: (lotId: 
       <p className="muted">
         {loc.name}（建物の査定 ×{loc.factor}）　価格 <b>{yen(price)}</b>
       </p>
-      <button
-        className="btn primary"
-        disabled={price > money}
-        onClick={() => {
-          const err = buy(offer.id);
-          if (err) return notify(err);
-          const lot = useEconomy.getState().lots.find((l) => l.plot === offer.plot);
-          if (lot) onBought(lot.id);
-        }}
-      >
-        この土地を買う（{yen(price)}）
-      </button>
-      {price > money && <p className="warn">お金が {yen(price - money)} 足りません。</p>}
+      <p className="info">購入は不動産屋の店舗でお手続きください（カジノの東隣）。</p>
     </>
   );
 }
@@ -260,9 +252,8 @@ function CasinoDetail() {
     <>
       <h3>🎰 カジノ・競技場</h3>
       <p className="muted">はじめの土地の道路の向かいにあります。入口の前で F キー（スマホは「入る」ボタン）で中に入れます。</p>
-      <button className="btn primary" onClick={() => goToCasino()}>
-        カジノの入口へワープ
-      </button>
+
     </>
   );
 }
+

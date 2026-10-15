@@ -9,6 +9,7 @@ import { yen } from '../economy/money';
 import { CASINO_PLOT, FIRST_PLOT, LAST_PLOT, PLOT_PITCH, districtOf, plotX } from '../economy/town';
 import { lotHouse, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
+import { EstateBuilding } from './EstateBuilding';
 import { HouseParts } from './HouseView';
 import { grassTexture } from './textures';
 
@@ -53,6 +54,7 @@ export function Town() {
         </mesh>
         <group position={[plotX(CASINO_PLOT), 0, 0]}>
           <CasinoBuilding />
+          <EstateBuilding />
         </group>
         {/* 地区の境目の看板 */}
         {[FIRST_PLOT, ...[3, 9].filter((p) => p <= LAST_PLOT)].map((p) => (
@@ -218,3 +220,4 @@ function DistrictSign({ plot }: { plot: number }) {
     </group>
   );
 }
+

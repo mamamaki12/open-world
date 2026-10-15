@@ -18,7 +18,7 @@ export function Scene() {
   const tool = useGame((s) => s.tool);
   const mode = useGame((s) => s.mode);
   const select = useGame((s) => s.select);
-  const dragging = useInteraction((s) => s.furnitureDrag !== null);
+  const dragging = useInteraction((s) => s.furnitureDrag !== null || s.buildingDrag !== null);
   // カジノ・不動産のメニューを開いている間は、後ろの世界の描画を止めて軽くする
   const paused = useGame((s) => s.overlay !== null);
   const walking = mode === 'walk';
@@ -80,7 +80,7 @@ export function Scene() {
         makeDefault
         target={CENTER}
         enabled={!walking && !dragging}
-        enableDamping
+        enableDamping={!placing && !dragging}
         dampingFactor={0.12}
         minDistance={1.2}
         maxDistance={120}
@@ -137,3 +137,4 @@ function LevelGrid() {
     />
   );
 }
+

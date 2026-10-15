@@ -1,12 +1,14 @@
 // 右のパネル：選んだパーツの種類・素材・色・寸法を変える
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, getOpening, openingsOf } from '../catalog';
-import { GRID, levelName } from '../building/dimensions';
+import { GRID, floorY, levelName } from '../building/dimensions';
 import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapFurniture, snapOpeningOffset, wallLength } from '../building/rules';
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
 import { FloorKindButtons, NameplateInput, RoofTypeButtons, Slider, StairRailButtons, WallHeightButtons } from './ToolOptions';
 import { patchPart } from './edit';
+import { materialGroup, movableBuilding } from '../building/groups';
+import { mountedTransform, nameplateMount } from '../building/mounts';
 
 const mm = (m: number) => `${Math.round(m * 1000).toLocaleString()}mm`;
 
@@ -96,7 +98,31 @@ export function Inspector() {
           削除
         </button>
       </div>
+      {movableBuilding(selection) && <GroupMove />}
       {body}
+    </div>
+  );
+}
+
+function GroupMove() {
+  const house = useGame((s) => s.house);
+  const selection = useGame((s) => s.selection);
+  const enabled = useGame((s) => s.groupSelection);
+  const setEnabled = useGame((s) => s.setGroupSelection);
+  const move = useGame((s) => s.moveSelection);
+  if (!selection) return null;
+  const count = materialGroup(house, selection, enabled).length;
+  return (
+    <div className="field">
+      <label><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> 同じ素材・色をまとめて移動</label>
+      <p className="info">移動対象：{count}個。作成した時間に関係なく、同じ種類・仕上げをまとめます。壁の窓・ドアも一緒に動きます。</p>
+      <div className="row">
+        <button className="btn" onClick={() => move(-1, 0)}>← 1マス</button>
+        <button className="btn" onClick={() => move(1, 0)}>→ 1マス</button>
+        <button className="btn" onClick={() => move(0, -1)}>↑ 1マス</button>
+        <button className="btn" onClick={() => move(0, 1)}>↓ 1マス</button>
+      </div>
+      <p className="info">選択したパーツをドラッグしても移動できます。素材・色の変更と削除は、最初に選んだ1個に適用します。</p>
     </div>
   );
 }
@@ -239,7 +265,8 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
   const move = (dx: number, dz: number) => set(snapFurniture(f.x + dx, f.z + dz));
   return (
     <>
-      <div className="field">
+      {f.wallMount && <NameplateMountControls item={f} />}
+      {!f.wallMount && <div className="field">
         <div className="field-label">移動・回転</div>
         <div className="row">
           <button className="btn" onClick={() => move(-0.05, 0)}>← 5cm</button>
@@ -251,7 +278,7 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
           <button className="btn" onClick={() => rotate(90)}>⟲ 90°</button>
           <button className="btn" onClick={() => rotate(-90)}>⟳ 90°</button>
         </div>
-      </div>
+      </div>}
       <div className="field">
         <div className="field-label">種類</div>
         <select value={f.type} onChange={(e) => set({ type: e.target.value, color: getFurniture(e.target.value).colors[0] })}>
@@ -267,7 +294,7 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
         <Swatches colors={def.colors} value={f.color} onChange={(color) => set({ color })} />
       </div>
       {def.label && <NameplateInput value={f.label} onChange={(label) => set({ label })} />}
-      <div className="field">
+      {!f.wallMount && <div className="field">
         <div className="field-label">向き：{Math.round(f.rotation)}°</div>
         <div className="row">
           <button className="btn" onClick={() => rotate(90)}>⟲ 90°</button>
@@ -275,9 +302,34 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
           <button className="btn" onClick={() => rotate(-15)}>⟳ 15°</button>
           <button className="btn" onClick={() => rotate(-90)}>⟳ 90°</button>
         </div>
-      </div>
-      <p className="info">ドラッグで移動、矢印キーで5cmずつ動かせます。</p>
+      </div>}
+      {!f.wallMount && <p className="info">ドラッグで移動、矢印キーで5cmずつ動かせます。</p>}
     </>
   );
+}
+
+function NameplateMountControls({ item }: { item: FurniturePart }) {
+  const house = useGame((s) => s.house);
+  const mount = item.wallMount!;
+  const wall = house.walls.find(w => w.id === mount.wallId);
+  const change = (offset: number, height: number) => {
+    if (!wall) return;
+    const candidate = { ...mount, offset: mount.offset + offset, height: mount.height + height };
+    const point = mountedTransform(house, candidate)!;
+    const next = nameplateMount(house, wall, { ...point, y: floorY(wall.level) + candidate.height }, point);
+    if (!next) return useGame.getState().notify('窓やドアには表札を取り付けられません');
+    const pos = mountedTransform(house, next)!;
+    patchPart('furniture', item.id, { wallMount: next, x: pos.x, z: pos.z, rotation: pos.rotation });
+  };
+  return <div className="field">
+    <div className="field-label">壁への取付位置（高さ {Math.round(mount.height * 100)}cm）</div>
+    <div className="row">
+      <button className="btn" onClick={() => change(-0.05, 0)}>← 5cm</button>
+      <button className="btn" onClick={() => change(0.05, 0)}>→ 5cm</button>
+      <button className="btn" onClick={() => change(0, 0.05)}>↑ 5cm</button>
+      <button className="btn" onClick={() => change(0, -0.05)}>↓ 5cm</button>
+    </div>
+    <p className="info">壁の手前側に固定しています。文字や高さはここで変更できます。</p>
+  </div>;
 }
 

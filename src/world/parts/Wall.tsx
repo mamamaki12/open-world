@@ -10,6 +10,7 @@ import { finishMaterial } from '../materials';
 import { wallGeometry } from '../geometry';
 import { usePart } from './usePart';
 import { Opening } from './Opening';
+import { nameplateMount, mountedTransform } from '../../building/mounts';
 
 interface Props {
   wall: WallPart;
@@ -20,6 +21,7 @@ interface Props {
 export function Wall({ wall, openings, outside }: Props) {
   const { highlight, handlers } = usePart({ kind: 'wall', id: wall.id });
   const tool = useGame((s) => s.tool);
+  const placingNameplate = useGame((s) => s.tool === 'furniture' && s.defaults.furnitureType === 'nameplate');
   const house = useGame((s) => s.house);
   const length = wallLength(wall);
   const height = wallHeight(wall);
@@ -108,11 +110,39 @@ export function Wall({ wall, openings, outside }: Props) {
       }
     : {};
 
+  const previewNameplate = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
+    const game = useGame.getState();
+    const mount = nameplateMount(game.house, wall, e.point, e.ray.origin);
+    useInteraction.getState().setPreview(mount ? { kind: 'nameplate', mount } : null);
+    return mount;
+  };
+  const nameplateHandlers = placingNameplate ? {
+    onPointerMove: (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); previewNameplate(e); },
+    onPointerOut: () => {
+      const p = useInteraction.getState().preview;
+      if (p?.kind === 'nameplate' && p.mount.wallId === wall.id) useInteraction.getState().setPreview(null);
+    },
+    onClick: (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation();
+      if (e.delta > 12) return;
+      const game = useGame.getState();
+      const wallMount = previewNameplate(e);
+      if (!wallMount) return game.notify('表札は窓・ドアを避けて壁面に取り付けてください');
+      const transform = mountedTransform(game.house, wallMount)!;
+      const item = { id: newId('furniture'), type: 'nameplate', level: wall.level, x: transform.x, z: transform.z,
+        rotation: transform.rotation, color: '#f2efe8', label: game.defaults.nameplateText, wallMount };
+      game.commit({ ...game.house, furniture: [...game.house.furniture, item] });
+      useInteraction.setState({ ignorePartClickUntil: Date.now() + 100 });
+      game.setTool('select'); game.select({ kind: 'furniture', id: item.id });
+      useInteraction.getState().setPreview(null);
+    },
+  } : {};
+
   return (
     <group position={[wall.x0 * GRID, floorY(wall.level), wall.z0 * GRID]} rotation={[0, angle, 0]}>
       {segments.map((segment, i) => (
         <mesh key={i} position={[segment.start, 0, 0]} geometry={segment.geometry}
-          material={materialsFor(segment.outside)} castShadow receiveShadow {...handlers} {...openingHandlers} />
+          material={materialsFor(segment.outside)} castShadow receiveShadow {...handlers} {...openingHandlers} {...nameplateHandlers} />
       ))}
       {openings.map((o) => (
         <Opening key={o.id} opening={o} outside={outside === -1 ? -1 : 1} />
