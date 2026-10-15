@@ -140,11 +140,11 @@ function TouchHud() {
       </div>
       <div className="touch-hud-row">
         <span className={`touch-cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
-        <button className="tool icon" onClick={() => setOverlay('estate')} aria-label="不動産屋">
-          🏠
+        <button className="tool icon labeled" onClick={() => setOverlay('estate')} aria-label="不動産屋">
+          🏠<span>不動産</span>
         </button>
-        <button className="tool icon" onClick={() => setOverlay('casino')} aria-label="カジノ・競技場">
-          🎰
+        <button className="tool icon labeled" onClick={() => setOverlay('casino')} aria-label="カジノ・競技場">
+          🎰<span>カジノ</span>
         </button>
         <BuildChip />
       </div>
@@ -354,7 +354,22 @@ function ControlsHelp() {
       building ? '右ドラッグ：回転　中ドラッグ / Shift+右ドラッグ：移動' : '左ドラッグ：回転　右ドラッグ：移動'
     }　ホイール：ズーム`;
   }
-  return <div className="controls-help">{text}</div>;
+  // スマホでは画面が狭いので、道具やモードを変えたときだけ少しの間出して消す
+  const [faded, setFaded] = useState(false);
+  useEffect(() => {
+    setFaded(false);
+    if (!touch) return;
+    const t = setTimeout(() => setFaded(true), 6000);
+    return () => clearTimeout(t);
+  }, [text, touch]);
+  // 「　」で区切った操作ごとに折り返す（途中で折れて読みにくくならないように）
+  return (
+    <div className={`controls-help${faded ? ' faded' : ''}`}>
+      {text.split('　').map((t) => (
+        <span key={t}>{t}</span>
+      ))}
+    </div>
+  );
 }
 
 function Toast() {

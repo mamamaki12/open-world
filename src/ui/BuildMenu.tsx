@@ -17,13 +17,13 @@ const ICONS: Record<Tool, string> = {
 };
 
 const DESCRIPTIONS: Record<Tool, string> = {
-  select: 'パーツを選んで変える',
-  floor: 'なぞって床を張る',
-  wall: 'なぞって壁を立てる',
-  door: '壁をタップして付ける',
-  window: '壁をタップして付ける',
+  select: '選んで変える',
+  floor: 'なぞって張る',
+  wall: 'なぞって立てる',
+  door: '壁をタップ',
+  window: '壁をタップ',
   stair: 'タップして置く',
-  roof: 'なぞって屋根を載せる',
+  roof: 'なぞって載せる',
   furniture: 'タップして置く',
   erase: 'タップして消す',
 };
