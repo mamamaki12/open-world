@@ -1,8 +1,8 @@
 // 建築費の見積もり、改築の差額、家の査定（品質係数）。描画から独立した計算。
 import prices from '../catalog/prices.json';
 import { getSashType } from '../catalog';
-import { GRID, WALL_HEIGHT } from '../building/dimensions';
-import { wallLength, wallOutsideSide } from '../building/rules';
+import { GRID } from '../building/dimensions';
+import { wallHeight, wallLength, wallOutsideSide } from '../building/rules';
 import type { House } from '../building/types';
 
 const MATERIAL_PRICE = prices.materials as Record<string, number>;
@@ -62,7 +62,7 @@ export function partCosts(house: House): PartCost[] {
     // 屋外に面する側には外壁材、室内側には内装材がかかる
     const outsideFaces = side === 2 ? 2 : side === 0 ? 0 : 1;
     const finishUnit = outsideFaces * materialPrice(w.exterior.material) + (2 - outsideFaces) * materialPrice(w.interior.material);
-    const face = wallLength(w) * WALL_HEIGHT;
+    const face = wallLength(w) * wallHeight(w);
     out.push({ category: 'wall', id: w.id, cost: face * (STRUCTURE.wall + finishUnit), key: JSON.stringify(w) });
   }
   for (const o of house.openings) {

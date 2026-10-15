@@ -244,3 +244,21 @@ describe('階段の手すり', () => {
     expect(resolveCollisions(only(undefined), start, 0, PLAYER.height)).toEqual(start);
   });
 });
+
+describe('半分の高さの壁', () => {
+  const finish = { material: 'siding', color: '#ffffff' };
+  const h = (height: 'full' | 'half'): House => ({
+    ...house, floors: [], openings: [], stairs: [], roofs: [], furniture: [],
+    walls: [{ id: 'w', level: 0, x0: 2, z0: 2, x1: 6, z1: 2, exterior: finish, interior: finish, height }],
+  });
+  const p = { x: 4 * GRID, z: 2 * GRID + 0.1 };
+
+  it('床の上に立つと半分の壁にも当たる', () => {
+    expect(resolveCollisions(h('half'), p, floorY(0), PLAYER.height).z).toBeGreaterThan(2 * GRID + PLAYER.radius);
+  });
+
+  it('壁の上端より高いところ（2階）からは当たらない', () => {
+    expect(resolveCollisions(h('half'), p, floorY(0) + STORY_HEIGHT / 2, PLAYER.height)).toEqual(p);
+    expect(resolveCollisions(h('full'), p, floorY(0) + STORY_HEIGHT / 2, PLAYER.height)).not.toEqual(p);
+  });
+});

@@ -30,7 +30,11 @@ export interface WallPart {
   z1: number;
   exterior: Finish;
   interior: Finish;
+  /** 壁の高さ。half は腰壁（階高の半分）。省略は full */
+  height?: WallHeight;
 }
+
+export type WallHeight = 'full' | 'half';
 
 export type OpeningKind = 'door' | 'window';
 

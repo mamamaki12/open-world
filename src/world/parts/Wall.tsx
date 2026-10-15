@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { getOpening } from '../../catalog';
-import { GRID, WALL_HEIGHT, WALL_THICKNESS, floorY } from '../../building/dimensions';
-import { canPlaceOpening, newId, snapOpeningOffset, wallLength } from '../../building/rules';
+import { GRID, WALL_THICKNESS, floorY } from '../../building/dimensions';
+import { canPlaceOpening, newId, snapOpeningOffset, wallHeight, wallLength } from '../../building/rules';
 import type { OpeningPart, WallPart } from '../../building/types';
 import { useGame } from '../../state/store';
 import { useInteraction } from '../../state/interaction';
@@ -21,6 +21,7 @@ export function Wall({ wall, openings, outside }: Props) {
   const { highlight, handlers } = usePart({ kind: 'wall', id: wall.id });
   const tool = useGame((s) => s.tool);
   const length = wallLength(wall);
+  const height = wallHeight(wall);
   const angle = -Math.atan2(wall.z1 - wall.z0, wall.x1 - wall.x0);
 
   const holesKey = openings.map((o) => `${o.type}@${o.offset}`).join(',');
@@ -30,8 +31,8 @@ export function Wall({ wall, openings, outside }: Props) {
       return { lo: o.offset - def.width / 2, hi: o.offset + def.width / 2, bottom: def.sill, top: def.sill + def.height };
     });
     // 端は厚みの半分だけ伸ばして角をふさぐ（わずかに短くして面のちらつきを防ぐ）
-    return wallGeometry(length, WALL_HEIGHT, WALL_THICKNESS, holes, WALL_THICKNESS / 2 - 0.002);
-  }, [length, holesKey]);
+    return wallGeometry(length, height, WALL_THICKNESS, holes, WALL_THICKNESS / 2 - 0.002);
+  }, [length, height, holesKey]);
 
   const ext = finishMaterial(wall.exterior, highlight);
   const int = finishMaterial(wall.interior, highlight);

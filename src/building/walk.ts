@@ -6,9 +6,9 @@
 // - 家具：床に置いた箱として押し返す
 // - 階段の手すり：横から越えられない（下をくぐるのはよい）
 import { furnitureBounds, getFurniture, getOpening } from '../catalog';
-import { GRID, SLAB_THICKNESS, STAIR_LENGTH, STAIR_RAIL_HEIGHT, STORY_HEIGHT, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
+import { GRID, SLAB_THICKNESS, STAIR_LENGTH, STAIR_RAIL_HEIGHT, STORY_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import { roofHeightAt } from './roof';
-import { stairFootprint, stairHoles, stairRailX } from './rules';
+import { stairFootprint, stairHoles, stairRailX, wallHeight } from './rules';
 import type { OpeningDef } from '../catalog';
 import type { House, OpeningPart, StairPart, WallPart } from './types';
 
@@ -194,7 +194,7 @@ export function resolveCollisions(
   for (let iter = 0; iter < 3; iter++) {
     for (const w of house.walls) {
       const wy0 = floorY(w.level);
-      const wy1 = wy0 + WALL_HEIGHT;
+      const wy1 = wy0 + wallHeight(w);
       // 足が壁の上端より上（段差で越えられる高さも含む）か、頭が壁の下なら当たらない
       if (feetY >= wy1 - 0.05 || headY <= wy0 + PLAYER.maxStep) continue;
       const ax = w.x0 * GRID;

@@ -292,7 +292,7 @@ export function PlacementController() {
           ...g.house,
           walls: [
             ...g.house.walls,
-            { id: newId('wall'), level: surface, ...seg, exterior: g.defaults.wallExterior, interior: g.defaults.wallInterior },
+            { id: newId('wall'), level: surface, ...seg, exterior: g.defaults.wallExterior, interior: g.defaults.wallInterior, height: g.defaults.wallHeight },
           ],
         });
       }
