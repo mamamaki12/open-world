@@ -11,9 +11,10 @@ const CLICK_SLOP = 5;
 
 export function usePart(ref: PartRef) {
   const tool = useGame((s) => s.tool);
+  const walking = useGame((s) => s.mode === 'walk');
   const selected = useGame((s) => s.selection?.kind === ref.kind && s.selection.id === ref.id);
   const [hover, setHover] = useState(false);
-  const interactive = tool === 'select' || tool === 'erase';
+  const interactive = !walking && (tool === 'select' || tool === 'erase');
 
   const highlight: Highlight = selected ? 'selected' : hover && interactive ? (tool === 'erase' ? 'erase' : 'hover') : 'none';
 

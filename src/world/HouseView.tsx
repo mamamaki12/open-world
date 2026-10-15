@@ -17,9 +17,12 @@ export function HouseView() {
   const activeLevel = useGame((s) => s.activeLevel);
   const showAll = useGame((s) => s.showAll);
   const tool = useGame((s) => s.tool);
+  const walking = useGame((s) => s.mode === 'walk');
 
-  const visible = (level: number) => showAll || level <= activeLevel;
-  const roofVisible = (level: number) => showAll || level < activeLevel || (tool === 'roof' && level === activeLevel);
+  // 歩きモードでは家全体を見せる
+  const visible = (level: number) => walking || showAll || level <= activeLevel;
+  const roofVisible = (level: number) =>
+    walking || showAll || level < activeLevel || (tool === 'roof' && level === activeLevel);
 
   const openingsByWall = useMemo(() => {
     const m = new Map<string, House['openings']>();
@@ -28,9 +31,9 @@ export function HouseView() {
   }, [house.openings]);
 
   return (
-    <group>
+    <group name="house">
       {house.floors.filter((f) => visible(f.level)).map((f) => (
-        <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} />
+        <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} stairwells={stairHoles(house, f.level + 1)} />
       ))}
       {house.walls.filter((w) => visible(w.level)).map((w) => (
         <Wall key={w.id} wall={w} openings={openingsByWall.get(w.id) ?? []} outside={wallOutsideSide(house, w)} />
@@ -44,7 +47,7 @@ export function HouseView() {
       {house.roofs.filter((r) => roofVisible(r.level)).map((r) => (
         <Roof key={r.id} roof={r} />
       ))}
-      <PreviewView />
+      {!walking && <PreviewView />}
     </group>
   );
 }

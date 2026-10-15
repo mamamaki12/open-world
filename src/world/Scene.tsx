@@ -7,6 +7,7 @@ import { useInteraction } from '../state/interaction';
 import { DebugBridge } from './DebugBridge';
 import { HouseView } from './HouseView';
 import { PlacementController } from './PlacementController';
+import { Player } from './Player';
 import { grassTexture } from './textures';
 
 const CENTER: [number, number, number] = [(LOT_W * GRID) / 2, 0, (LOT_D * GRID) / 2];
@@ -14,9 +15,11 @@ const SUN: [number, number, number] = [CENTER[0] + 14, 26, CENTER[2] + 12];
 
 export function Scene() {
   const tool = useGame((s) => s.tool);
+  const mode = useGame((s) => s.mode);
   const select = useGame((s) => s.select);
   const dragging = useInteraction((s) => s.furnitureDrag !== null);
-  const building = tool !== 'select' && tool !== 'erase';
+  const walking = mode === 'walk';
+  const building = !walking && tool !== 'select' && tool !== 'erase';
 
   return (
     <Canvas
@@ -37,9 +40,9 @@ export function Scene() {
         <Lightformer intensity={1.6} position={[0, 10, 0]} rotation-x={Math.PI / 2} scale={[40, 40, 1]} color="#dfe9f5" />
         <Lightformer intensity={0.8} position={[-20, 4, 0]} rotation-y={Math.PI / 2} scale={[40, 8, 1]} color="#f7efe2" />
         <Lightformer intensity={0.6} position={[20, 4, 0]} rotation-y={-Math.PI / 2} scale={[40, 8, 1]} color="#e3ecf7" />
-        <Lightformer intensity={0.4} position={[0, -2, 0]} rotation-x={-Math.PI / 2} scale={[40, 40, 1]} color="#8a9a6a" />
+        <Lightformer intensity={0.5} position={[0, -2, 0]} rotation-x={-Math.PI / 2} scale={[40, 40, 1]} color="#c9c3b4" />
       </Environment>
-      <hemisphereLight args={['#dfeaff', '#7d8c5c', 0.45]} />
+      <hemisphereLight args={['#dfeaff', '#bdb6a6', 0.55]} />
       <directionalLight
         position={SUN}
         intensity={2.6}
@@ -61,9 +64,10 @@ export function Scene() {
       <Ground />
       {building && <LevelGrid />}
       <HouseView />
-      <PlacementController />
+      {walking ? <Player /> : <PlacementController />}
       {import.meta.env.DEV && <DebugBridge />}
 
+      {!walking && (
       <OrbitControls
         makeDefault
         target={CENTER}
@@ -79,6 +83,7 @@ export function Scene() {
           RIGHT: building ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
         }}
       />
+      )}
     </Canvas>
   );
 }

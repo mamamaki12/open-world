@@ -153,14 +153,14 @@ export function floorStrips(rect: Rect, holes: Rect[]): Rect[] {
   return strips;
 }
 
-/** 床の表面（上向きの板） */
-export function floorTopGeometry(strips: Rect[], y: number): THREE.BufferGeometry | null {
+/** 床の表面（上向きの板）。down = true なら下向き（天井） */
+export function floorTopGeometry(strips: Rect[], y: number, down = false): THREE.BufferGeometry | null {
   if (!strips.length) return null;
   const parts = strips.map((s) => {
     const w = (s.x1 - s.x0) * GRID;
     const d = (s.z1 - s.z0) * GRID;
     const g = new THREE.PlaneGeometry(w, d);
-    g.rotateX(-Math.PI / 2);
+    g.rotateX(down ? Math.PI / 2 : -Math.PI / 2);
     g.translate(s.x0 * GRID + w / 2, y, s.z0 * GRID + d / 2);
     return g;
   });

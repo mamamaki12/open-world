@@ -120,3 +120,16 @@ export function furnitureFootprint(def: FurnitureDef): { w: number; d: number } 
   }
   return { w: maxX - minX, d: maxZ - minZ };
 }
+
+/** 家具の外形（回転前のローカル座標、m） */
+export function furnitureBounds(def: FurnitureDef): { minX: number; maxX: number; minZ: number; maxZ: number; top: number } {
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, top = 0;
+  for (const p of def.parts) {
+    minX = Math.min(minX, p.pos[0] - p.size[0] / 2);
+    maxX = Math.max(maxX, p.pos[0] + p.size[0] / 2);
+    minZ = Math.min(minZ, p.pos[2] - p.size[2] / 2);
+    maxZ = Math.max(maxZ, p.pos[2] + p.size[2] / 2);
+    top = Math.max(top, p.pos[1] + p.size[1] / 2);
+  }
+  return { minX, maxX, minZ, maxZ, top };
+}

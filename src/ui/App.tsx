@@ -11,6 +11,7 @@ import { Scene } from '../world/Scene';
 import { Inspector } from './Inspector';
 import { ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
+import { WalkHud } from './WalkHud';
 
 const TOOLS: { id: Tool; label: string; key: string }[] = [
   { id: 'select', label: '選択', key: 'V' },
@@ -30,20 +31,42 @@ useGame.setState({ house: loadAutosave() ?? sampleHouse() });
 export function App() {
   useKeyboard();
   useAutosave();
+  const walking = useGame((s) => s.mode === 'walk');
   return (
     <div className="app">
       <Scene />
       <TopBar />
-      <div className="side left">
-        <ToolOptions />
-      </div>
-      <div className="side right">
-        <Inspector />
-      </div>
-      <LevelBar />
-      <ControlsHelp />
+      {walking ? (
+        <WalkHud />
+      ) : (
+        <>
+          <div className="side left">
+            <ToolOptions />
+          </div>
+          <div className="side right">
+            <Inspector />
+          </div>
+          <LevelBar />
+          <ControlsHelp />
+        </>
+      )}
       <Toast />
     </div>
+  );
+}
+
+function ModeButton() {
+  const mode = useGame((s) => s.mode);
+  const setMode = useGame((s) => s.setMode);
+  return (
+    <button
+      className="tool mode on"
+      onClick={(e) => {
+        e.currentTarget.blur(); // Space（ジャンプ）でボタンが押し直されないように
+        setMode(mode === 'walk' ? 'build' : 'walk');
+      }} title="Tab キーでも切り替えられます">
+      {mode === 'walk' ? '建築に戻る（Tab）' : '歩いてみる（Tab）'}
+    </button>
   );
 }
 
@@ -54,9 +77,19 @@ function TopBar() {
   const redo = useGame((s) => s.redo);
   const canUndo = useGame((s) => s.past.length > 0);
   const canRedo = useGame((s) => s.future.length > 0);
+  const walking = useGame((s) => s.mode === 'walk');
+  if (walking) {
+    return (
+      <div className="topbar">
+        <div className="brand">家づくり</div>
+        <ModeButton />
+      </div>
+    );
+  }
   return (
     <div className="topbar">
       <div className="brand">家づくり</div>
+      <ModeButton />
       <div className="tools">
         {TOOLS.map((t) => (
           <button key={t.id} className={`tool${tool === t.id ? ' on' : ''}`} onClick={() => setTool(t.id)} title={`ショートカット：${t.key}`}>
@@ -235,6 +268,13 @@ function useKeyboard() {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') return;
       const s = useGame.getState();
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        s.setMode(s.mode === 'walk' ? 'build' : 'walk');
+        return;
+      }
+      // 歩きモードのキーはプレイヤー側で受ける
+      if (s.mode === 'walk') return;
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.key.toLowerCase() === 'z') {
         e.preventDefault();

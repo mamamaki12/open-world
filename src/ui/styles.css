@@ -100,3 +100,14 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
   position: absolute; left: 50%; top: 70px; transform: translateX(-50%);
   background: rgba(35,38,43,0.9); color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 14px;
 }
+
+.tool.mode { font-weight: 600; }
+.walk-hud { position: absolute; left: 10px; bottom: 10px; width: 290px; }
+.keys { width: 100%; border-collapse: collapse; font-size: 13px; }
+.keys th { text-align: left; white-space: nowrap; padding: 3px 10px 3px 0; font-weight: 600; }
+.keys td { padding: 3px 0; color: var(--muted); }
+.keys tr + tr { border-top: 1px solid var(--line); }
+.crosshair {
+  position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px;
+  border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.5); pointer-events: none;
+}

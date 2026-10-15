@@ -20,6 +20,7 @@ interface Props {
 export function Wall({ wall, openings, outside }: Props) {
   const { highlight, handlers } = usePart({ kind: 'wall', id: wall.id });
   const tool = useGame((s) => s.tool);
+  const walking = useGame((s) => s.mode === 'walk');
   const length = wallLength(wall);
   const angle = -Math.atan2(wall.z1 - wall.z0, wall.x1 - wall.x0);
 
@@ -38,7 +39,7 @@ export function Wall({ wall, openings, outside }: Props) {
   const materials =
     outside === 1 ? [ext, int, int] : outside === -1 ? [int, ext, int] : outside === 0 ? [int, int, int] : [ext, ext, ext];
 
-  const openingTool = tool === 'door' || tool === 'window';
+  const openingTool = !walking && (tool === 'door' || tool === 'window');
   const openingHandlers = openingTool
     ? {
         onPointerMove: (e: ThreeEvent<PointerEvent>) => {

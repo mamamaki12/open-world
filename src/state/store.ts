@@ -4,6 +4,10 @@ import { removePart } from '../building/rules';
 import { emptyHouse } from '../building/types';
 import type { Finish, House, PartRef, RoofType } from '../building/types';
 
+/** build：建築モード（俯瞰で建てる） / walk：歩きモード（プレイヤーを動かす） */
+export type Mode = 'build' | 'walk';
+export type View = 'third' | 'first';
+
 export type Tool = 'select' | 'floor' | 'wall' | 'door' | 'window' | 'stair' | 'roof' | 'furniture' | 'erase';
 
 export interface Defaults {
@@ -49,6 +53,8 @@ interface GameState {
   /** ドラッグ中の元の状態（ドラッグ全体を1回の取り消しにまとめる） */
   dragBase: House | null;
 
+  mode: Mode;
+  view: View;
   tool: Tool;
   activeLevel: number;
   showAll: boolean;
@@ -66,6 +72,8 @@ interface GameState {
   endDrag: () => void;
   replaceHouse: (next: House) => void;
 
+  setMode: (mode: Mode) => void;
+  toggleView: () => void;
   setTool: (tool: Tool) => void;
   setLevel: (level: number) => void;
   setShowAll: (v: boolean) => void;
@@ -81,6 +89,8 @@ export const useGame = create<GameState>((set, get) => ({
   future: [],
   dragBase: null,
 
+  mode: 'build',
+  view: 'third',
   tool: 'select',
   activeLevel: 0,
   showAll: true,
@@ -127,6 +137,8 @@ export const useGame = create<GameState>((set, get) => ({
     set({ selection: null });
   },
 
+  setMode: (mode) => set({ mode, selection: null }),
+  toggleView: () => set({ view: get().view === 'third' ? 'first' : 'third' }),
   setTool: (tool) => set({ tool, selection: tool === 'select' ? get().selection : null }),
   setLevel: (level) => set({ activeLevel: level, selection: null }),
   setShowAll: (v) => set({ showAll: v }),
