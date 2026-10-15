@@ -14,7 +14,7 @@ interface InteractionState {
   /** 階段の向き（配置時） */
   stairRot: 0 | 1 | 2 | 3;
   /** ドラッグ中の家具と、つかんだ位置のずれ */
-  furnitureDrag: { id: string; dx: number; dz: number } | null;
+  furnitureDrag: { id: string; dx: number; dz: number; startX: number; startY: number } | null;
   setPreview: (p: Preview | null) => void;
   setStairRot: (r: 0 | 1 | 2 | 3) => void;
   setFurnitureDrag: (d: InteractionState['furnitureDrag']) => void;
@@ -31,3 +31,4 @@ export const useInteraction = create<InteractionState>((set, get) => ({
   setStairRot: (stairRot) => set({ stairRot }),
   setFurnitureDrag: (furnitureDrag) => set({ furnitureDrag }),
 }));
+
