@@ -5,6 +5,7 @@ import { getFurniture } from '../../catalog';
 import type { FurnitureDef, Paint } from '../../catalog';
 import { furnitureBaseY } from '../../building/rules';
 import { floorY } from '../../building/dimensions';
+import { mountedTransform } from '../../building/mounts';
 import type { FurniturePart } from '../../building/types';
 import { useGame } from '../../state/store';
 import { useInteraction } from '../../state/interaction';
@@ -89,6 +90,7 @@ export function Furniture({ item }: { item: FurniturePart }) {
   const def = getFurniture(item.type);
   const tool = useGame((s) => s.tool);
   const baseY = useGame((s) => furnitureBaseY(s.house, item));
+  const mounted = useGame((s) => item.wallMount ? mountedTransform(s.house, item.wallMount) : null);
 
   // 選択中の家具はドラッグで動かせる
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -96,6 +98,7 @@ export function Furniture({ item }: { item: FurniturePart }) {
     if (tool !== 'select' || game.mode !== 'build' || e.button !== 0) return;
     e.stopPropagation();
     game.select({ kind: 'furniture', id: item.id });
+    if (item.wallMount) return;
     const point = e.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -floorY(item.level)), new THREE.Vector3());
     if (!point) return;
     game.beginDrag();
@@ -104,8 +107,8 @@ export function Furniture({ item }: { item: FurniturePart }) {
 
   return (
     <group
-      position={[item.x, baseY, item.z]}
-      rotation={[0, (item.rotation * Math.PI) / 180, 0]}
+      position={[mounted?.x ?? item.x, mounted?.y ?? baseY, mounted?.z ?? item.z]}
+      rotation={[0, ((mounted?.rotation ?? item.rotation) * Math.PI) / 180, 0]}
       {...handlers}
       onPointerDown={onPointerDown}
     >
