@@ -51,7 +51,7 @@
   border: 0; background: transparent; padding: 10px 14px; font-weight: 700; font-size: 15px; min-height: 44px;
 }
 .sheet-arrow { font-weight: 400; font-size: 13px; color: var(--muted); }
-.sheet-body { max-height: 38vh; overflow-y: auto; padding: 0 4px 6px; -webkit-overflow-scrolling: touch; }
+.sheet-body { max-height: 38vh; max-height: min(38vh, calc(100dvh - var(--hud-top) - 200px)); overflow-y: auto; padding: 0 4px 6px; -webkit-overflow-scrolling: touch; }
 .sheet-body .panel { box-shadow: none; background: transparent; padding: 0 10px 8px; }
 .sheet-body .panel-title { margin-top: 0; }
 .touch .swatch { width: 32px; height: 32px; }
@@ -139,13 +139,16 @@
 
 /* 横向き：高さが足りないので、上の表示は横に並べ、ドアのボタンはスティックと動作ボタンの間に */
 @media (orientation: landscape) and (max-height: 500px) {
+  .touch .topbar { flex-wrap: nowrap; }
+  .touch .topbar .tool-list { order: 0; flex: 1 1 auto; min-width: 0; margin: 0; }
+  .touch .topbar .history .tool { min-width: 38px; padding: 4px 8px; }
   .touch-top { flex-direction: row; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
   .touch-top .sheet { width: 300px; }
   .touch-top .sheet-body { max-height: 50vh; }
   .touch .door-prompts { bottom: calc(16px + var(--safe-b)); }
   .touch-dock { flex-direction: row; align-items: flex-end; justify-content: center; }
   .touch-dock .sheet { max-width: 380px; }
-  .sheet-body { max-height: 55vh; }
+  .sheet-body { max-height: 45vh; max-height: calc(100dvh - var(--hud-top) - 110px); }
   .joystick { width: 116px; height: 116px; left: calc(16px + var(--safe-l)); bottom: calc(14px + var(--safe-b)); }
   .touch-actions { bottom: calc(14px + var(--safe-b)); }
 }

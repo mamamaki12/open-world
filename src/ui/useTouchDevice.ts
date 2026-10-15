@@ -1,7 +1,8 @@
 // 指で操作する端末（スマホ・タブレット）かどうか。URL に ?touch=1 を付けるとパソコンでも試せる
 import { useEffect, useState } from 'react';
 
-const QUERY = '(pointer: coarse)';
+// 指が主な入力の端末。iPad にキーボードやマウスをつないでいても指で触れるなら指用にする
+const QUERY = '(pointer: coarse), (any-pointer: coarse) and (hover: none)';
 
 export function isTouchDevice(): boolean {
   if (typeof window === 'undefined') return false;

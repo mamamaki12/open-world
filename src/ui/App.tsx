@@ -44,6 +44,7 @@ export function App() {
   const holding = useGame((s) => s.tool !== 'select');
   const app = useRef<HTMLDivElement>(null);
   useTopBarHeight(app);
+  useNoPageZoom(touch);
   return (
     <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}`}>
       <Scene />
@@ -121,6 +122,20 @@ function TouchLayout({ walking, holding }: { walking: boolean; holding: boolean 
       <ControlsHelp />
     </>
   );
+}
+
+/** iPhone の Safari はページの拡大を止める指定を無視するので、2本指のつまみで画面ごと拡大されないようにする */
+function useNoPageZoom(touch: boolean) {
+  useEffect(() => {
+    if (!touch) return;
+    const stop = (e: Event) => e.preventDefault();
+    document.addEventListener('gesturestart', stop);
+    document.addEventListener('gesturechange', stop);
+    return () => {
+      document.removeEventListener('gesturestart', stop);
+      document.removeEventListener('gesturechange', stop);
+    };
+  }, [touch]);
 }
 
 /** 上のバー（折り返すと高さが変わる）とお金のバーの下端を CSS 変数にして、その下に他の表示を並べる */
