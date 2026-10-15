@@ -8,6 +8,7 @@ import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { touchCamera } from '../state/touch';
 import { useTouchDevice } from '../ui/useTouchDevice';
+import { useBuildView } from '../state/lotEditing';
 
 export const CAMERA_KEYS = {
   forward: ['KeyW', 'ArrowUp'],
@@ -31,6 +32,8 @@ export function BuildCamera() {
   const tool = useGame((s) => s.tool);
   const mode = useGame((s) => s.mode);
   const preciseTouch = touch && mode === 'build' && (tool === 'floor' || tool === 'wall');
+  const focusVersion = useBuildView((s) => s.focusVersion);
+  const focused = useRef(focusVersion);
   // 真上からなら床・壁の高さで画面上の位置がずれず、指の真下に配置できる。
   useEffect(() => {
     if (!preciseTouch || !controls) return;
@@ -47,6 +50,17 @@ export function BuildCamera() {
       controls.update();
     };
   }, [preciseTouch, camera, controls]);
+
+  useEffect(() => {
+    if (!controls || mode !== 'build' || focusVersion === focused.current) return;
+    focused.current = focusVersion;
+    keys.current.clear();
+    const x = LOT_W * GRID / 2, z = LOT_D * GRID / 2;
+    controls.target.set(x, 0, z);
+    camera.position.set(x + 13, 15, z + 19);
+    camera.lookAt(controls.target);
+    controls.update();
+  }, [focusVersion, mode, camera, controls]);
 
   useEffect(() => {
     const isTyping = (e: KeyboardEvent) => {
