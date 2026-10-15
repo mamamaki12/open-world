@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { stairHeightFraction, stairPlan, stairRects, stairWorldGrid } from './stairs';
 import { canPlaceStair, stairFootprint, stairHoles } from './rules';
-import { surfaceHeight } from './walk';
+import { ceilingHeight, surfaceHeight } from './walk';
 import { emptyHouse } from './types';
 import type { StairPart, StairShape } from './types';
 import { GRID, STORY_HEIGHT, floorY } from './dimensions';
@@ -40,5 +40,11 @@ describe('compact and turning stairs', () => {
   it('checks the whole turning footprint against the lot boundary', () => {
     expect(canPlaceStair(emptyHouse(), { ...stair('l'), x: 23 })).not.toBeNull();
     expect(canPlaceStair(emptyHouse(), stair('u'))).toBeNull();
+  });
+  it('keeps the joint between a flight and landing open through the upper floor', () => {
+    const s = stair('l');
+    const house = { ...emptyHouse(), stairs: [s], floors: [{ id: 'upper', level: 1, x0: 4, z0: 4, x1: 9, z1: 9, finish: s.finish }] };
+    const p = stairWorldGrid(s, 0.5, 2);
+    expect(ceilingHeight(house, p.x * GRID, p.z * GRID, floorY(0))).toBe(Infinity);
   });
 });
