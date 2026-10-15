@@ -31,6 +31,18 @@ export function PlacementController() {
     const raycaster = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
     let dragStart: { x: number; z: number } | null = null;
+    // 指で触っているもの。2本目が触れたら、置く操作をやめてカメラの操作にゆずる
+    const touches = new Set<number>();
+    /** 置く操作をしている指（マウスなら null） */
+    let activeTouch: number | null = null;
+    /** 指でタップして置くもの（階段・家具）は、離したときに置く */
+    let tap: { x: number; y: number } | null = null;
+    const cancelTouch = () => {
+      dragStart = null;
+      tap = null;
+      activeTouch = null;
+      useInteraction.getState().setPreview(null);
+    };
 
     const groundPoint = (e: PointerEvent, level: number) => {
       const r = el.getBoundingClientRect();
@@ -95,10 +107,25 @@ export function PlacementController() {
 
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
+      if (e.pointerType === 'touch') {
+        touches.add(e.pointerId);
+        if (touches.size > 1) return cancelTouch();
+        activeTouch = e.pointerId;
+      }
       const g = useGame.getState();
-      const ui = useInteraction.getState();
       const p = groundPoint(e, g.activeLevel);
       if (!p) return;
+      if (e.pointerType === 'touch' && (g.tool === 'stair' || g.tool === 'furniture')) {
+        tap = { x: e.clientX, y: e.clientY };
+        updatePreview(e);
+        return;
+      }
+      place(e, p);
+    };
+
+    const place = (e: PointerEvent, p: THREE.Vector3) => {
+      const g = useGame.getState();
+      const ui = useInteraction.getState();
       switch (g.tool) {
         case 'floor':
         case 'roof':
@@ -135,6 +162,7 @@ export function PlacementController() {
     };
 
     const onMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' && activeTouch !== e.pointerId && !useInteraction.getState().furnitureDrag) return;
       const drag = useInteraction.getState().furnitureDrag;
       if (drag) {
         const g = useGame.getState();
@@ -151,6 +179,20 @@ export function PlacementController() {
     };
 
     const onUp = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') {
+        const mine = activeTouch === e.pointerId;
+        touches.delete(e.pointerId);
+        if (!mine && !useInteraction.getState().furnitureDrag) return;
+        activeTouch = null;
+        if (tap) {
+          // 少しでも指を滑らせたら置かない（見回すつもりだったかもしれない）
+          const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
+          tap = null;
+          const p = groundPoint(e, useGame.getState().activeLevel);
+          if (!moved && p) place(e, p);
+          return;
+        }
+      }
       if (useInteraction.getState().furnitureDrag) {
         useInteraction.getState().setFurnitureDrag(null);
         useGame.getState().endDrag();
@@ -220,14 +262,21 @@ export function PlacementController() {
       if (!dragStart && !useInteraction.getState().furnitureDrag) useInteraction.getState().setPreview(null);
     };
 
+    const onCancel = (e: PointerEvent) => {
+      touches.delete(e.pointerId);
+      if (activeTouch === e.pointerId) cancelTouch();
+    };
+
     el.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
     el.addEventListener('pointerleave', onLeave);
     return () => {
       el.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
       el.removeEventListener('pointerleave', onLeave);
       refresh.current = null;
     };

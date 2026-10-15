@@ -12,6 +12,7 @@ import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
+import { RUN_THRESHOLD, touchMove, walkActions } from '../state/touch';
 import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
 
 const WALK_SPEED = 2.6;
@@ -151,41 +152,52 @@ export function Player() {
     const el = gl.domElement;
     const isTyping = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      return t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA';
+      return t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || useGame.getState().overlay !== null;
     };
+    // 動作はキーと画面のボタン（スマホ）の両方から呼ぶ
+    const jump = () => {
+      const st = state.current;
+      if (!st.grounded || action.current) return;
+      // 開いた窓の前なら乗り越える。そうでなければジャンプ
+      const pass = climbablePassage();
+      if (pass) {
+        const { house } = useGame.getState();
+        action.current = { plan: planClimb(house, pass, { x: playerMemory.x, y: playerMemory.y, z: playerMemory.z }), t: 0 };
+        st.crouch = false;
+        st.vx = 0;
+        st.vz = 0;
+        playClimbSound();
+      } else {
+        st.velY = JUMP_SPEED;
+        st.grounded = false;
+      }
+    };
+    const crouch = () => {
+      if (!action.current) state.current.crouch = !state.current.crouch;
+      return state.current.crouch;
+    };
+    const toggleView = () => {
+      useGame.getState().toggleView();
+      playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
+    };
+    const resetCamera = () => {
+      playerMemory.yaw = playerMemory.bodyYaw;
+      playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
+    };
+    Object.assign(walkActions, { jump, crouch, toggleView, resetCamera });
+
     const onDown = (e: KeyboardEvent) => {
       if (isTyping(e) || e.ctrlKey || e.metaKey) return;
       if (Object.values(WALK_KEYS).some((codes) => codes.includes(e.code))) e.preventDefault();
       if (e.repeat) return;
       keys.current.add(e.code);
-      const st = state.current;
-      if (WALK_KEYS.jump.includes(e.code) && st.grounded && !action.current) {
-        // 開いた窓の前なら乗り越える。そうでなければジャンプ
-        const pass = climbablePassage();
-        if (pass) {
-          const { house } = useGame.getState();
-          action.current = { plan: planClimb(house, pass, { x: playerMemory.x, y: playerMemory.y, z: playerMemory.z }), t: 0 };
-          st.crouch = false;
-          st.vx = 0;
-          st.vz = 0;
-          playClimbSound();
-        } else {
-          st.velY = JUMP_SPEED;
-          st.grounded = false;
-        }
-      }
-      if (WALK_KEYS.crouch.includes(e.code) && !action.current) st.crouch = !st.crouch;
-      if (WALK_KEYS.view.includes(e.code)) {
-        useGame.getState().toggleView();
-        playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
-      }
+      if (WALK_KEYS.jump.includes(e.code)) jump();
+      if (WALK_KEYS.crouch.includes(e.code)) crouch();
+      if (WALK_KEYS.view.includes(e.code)) toggleView();
       if (WALK_KEYS.interact.includes(e.code)) toggleTargetDoor();
       // 階段・家具を持っているときの R は向きを変える（App 側で処理）
       const tool = useGame.getState().tool;
-      if (WALK_KEYS.resetCamera.includes(e.code) && tool !== 'stair' && tool !== 'furniture') {
-        playerMemory.yaw = playerMemory.bodyYaw;
-        playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
-      }
+      if (WALK_KEYS.resetCamera.includes(e.code) && tool !== 'stair' && tool !== 'furniture') resetCamera();
     };
     const onUp = (e: KeyboardEvent) => keys.current.delete(e.code);
     const onBlur = () => keys.current.clear();
@@ -196,6 +208,7 @@ export function Player() {
       playerMemory.pitch = Math.min(Math.max(playerMemory.pitch - dy * 0.0028, -1.25), 1.25);
     };
     const onMouseDown = (e: MouseEvent) => {
+      if (touchActive) return; // 指で触ったときに後から来るマウスの真似のイベントは無視する
       // 建てるツールを持っているときは、左クリックで置き、右ドラッグで見回す
       if (isBuilding()) {
         if (e.button === 2) dragging = true;
@@ -220,6 +233,45 @@ export function Player() {
     const unsubTool = useGame.subscribe((s, prev) => {
       if (s.tool !== prev.tool && s.tool !== 'select' && document.pointerLockElement === el) document.exitPointerLock();
     });
+    // 指：画面をなぞって見回す。2本指でつまむとカメラの距離。
+    // 建てるツールを持っているときは1本指が「置く」になるので、見回すのは2本指で
+    const fingers = new Map<number, { x: number; y: number }>();
+    let touchActive = false;
+    let touchTimer: ReturnType<typeof setTimeout> | undefined;
+    let pinch = 0;
+    const spread = () => {
+      const [a, b] = [...fingers.values()];
+      return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+    };
+    const onTouchDown = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      touchActive = true;
+      clearTimeout(touchTimer);
+      fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      pinch = spread();
+    };
+    const onTouchMove = (e: PointerEvent) => {
+      const f = fingers.get(e.pointerId);
+      if (!f) return;
+      const dx = e.clientX - f.x;
+      const dy = e.clientY - f.y;
+      f.x = e.clientX;
+      f.y = e.clientY;
+      const count = fingers.size;
+      if (count === 1 && !isBuilding()) look(dx * 1.6, dy * 1.6);
+      if (count === 2) {
+        // 2本指は、指の動きの平均で見回す（2本ぶん来るので半分ずつ）
+        look(dx * 0.8, dy * 0.8);
+        const d = spread();
+        if (pinch > 0 && d > 0) playerMemory.distance = Math.min(Math.max(playerMemory.distance - (d - pinch) * 0.02, 1.6), 9);
+        pinch = d;
+      }
+    };
+    const onTouchUp = (e: PointerEvent) => {
+      if (!fingers.delete(e.pointerId)) return;
+      pinch = spread();
+      if (fingers.size === 0) touchTimer = setTimeout(() => (touchActive = false), 600);
+    };
     const onWheel = (e: WheelEvent) => {
       playerMemory.distance = Math.min(Math.max(playerMemory.distance + e.deltaY * 0.004, 1.6), 9);
     };
@@ -232,7 +284,19 @@ export function Player() {
     window.addEventListener('mousemove', onMouseMove);
     el.addEventListener('wheel', onWheel, { passive: true });
     el.addEventListener('contextmenu', onContextMenu);
+    el.addEventListener('pointerdown', onTouchDown);
+    window.addEventListener('pointermove', onTouchMove);
+    window.addEventListener('pointerup', onTouchUp);
+    window.addEventListener('pointercancel', onTouchUp);
     return () => {
+      clearTimeout(touchTimer);
+      Object.assign(walkActions, { jump: () => undefined, crouch: () => false, toggleView: () => undefined, resetCamera: () => undefined });
+      touchMove.x = 0;
+      touchMove.y = 0;
+      el.removeEventListener('pointerdown', onTouchDown);
+      window.removeEventListener('pointermove', onTouchMove);
+      window.removeEventListener('pointerup', onTouchUp);
+      window.removeEventListener('pointercancel', onTouchUp);
       unsubTool();
       el.removeEventListener('contextmenu', onContextMenu);
       window.removeEventListener('keydown', onDown);
@@ -257,8 +321,14 @@ export function Player() {
     const yawBefore = playerMemory.bodyYaw;
 
     // 移動の入力（カメラの向き基準）
-    const fwd = (pressed(WALK_KEYS.forward) ? 1 : 0) - (pressed(WALK_KEYS.back) ? 1 : 0);
-    const side = (pressed(WALK_KEYS.right) ? 1 : 0) - (pressed(WALK_KEYS.left) ? 1 : 0);
+    let fwd = (pressed(WALK_KEYS.forward) ? 1 : 0) - (pressed(WALK_KEYS.back) ? 1 : 0);
+    let side = (pressed(WALK_KEYS.right) ? 1 : 0) - (pressed(WALK_KEYS.left) ? 1 : 0);
+    // キーを押していなければ、画面のスティック（倒した量で速さが変わる）
+    const stick = !fwd && !side ? Math.min(1, Math.hypot(touchMove.x, touchMove.y)) : 0;
+    if (stick > 0) {
+      fwd = touchMove.y;
+      side = touchMove.x;
+    }
     const sinY = Math.sin(playerMemory.yaw);
     const cosY = Math.cos(playerMemory.yaw);
     let mx = -sinY * fwd + cosY * side;
@@ -268,8 +338,9 @@ export function Player() {
       mx /= mlen;
       mz /= mlen;
     }
-    const running = pressed(WALK_KEYS.run) && !st.crouch;
-    const speedGoal = mlen === 0 ? 0 : st.crouch ? CROUCH_SPEED : running ? RUN_SPEED : WALK_SPEED;
+    const running = (pressed(WALK_KEYS.run) || stick >= RUN_THRESHOLD) && !st.crouch;
+    const analog = stick > 0 ? Math.min(1, stick / 0.7) : 1;
+    const speedGoal = mlen === 0 ? 0 : (st.crouch ? CROUCH_SPEED : running ? RUN_SPEED : WALK_SPEED) * (running ? 1 : analog);
 
     // 窓を乗り越えている最中は、決まった動きに沿って体を動かす
     let climbPose: ReturnType<typeof climbFrame> | null = null;

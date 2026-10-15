@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { playerMemory } from './Player';
 
@@ -11,6 +12,7 @@ export function DebugBridge() {
     if (!import.meta.env.DEV) return;
     (window as unknown as Record<string, unknown>).__ow = {
       game: useGame,
+      economy: useEconomy,
       player: playerMemory,
       project: (x: number, y: number, z: number) => {
         const v = new THREE.Vector3(x, y, z).project(camera);

@@ -90,6 +90,11 @@ export function Scene() {
           MIDDLE: THREE.MOUSE.PAN,
           RIGHT: building ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
         }}
+        // 指：1本でなぞると回転（建てるツールを持っているときは1本指が「置く」なので使わない）、2本で移動・つまんでズーム
+        touches={{
+          ONE: building ? (-1 as THREE.TOUCH) : THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY_PAN,
+        }}
       />
       <BuildCamera />
     </Canvas>
