@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { getOpening } from '../../catalog';
 import { GRID, WALL_THICKNESS, floorY } from '../../building/dimensions';
@@ -48,6 +48,7 @@ export function Wall({ wall, openings, outside }: Props) {
         geometry: wallGeometry(end - start, height, WALL_THICKNESS, holes, 0, lo, hi) };
     });
   }, [length, height, holesKey, wall, house.floors]);
+  useEffect(() => () => segments.forEach((segment) => segment.geometry.dispose()), [segments]);
 
   const ext = finishMaterial(wall.exterior, highlight);
   const int = finishMaterial(wall.interior, highlight);
