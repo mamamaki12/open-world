@@ -23,7 +23,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'boat', label: '🚤 ボートレース' },
 ];
 
-let lastTab: Tab = 'slots';
 
 /** 所持金の表示：増えたり減ったりしたら、数字が回って色が光る */
 function Wallet() {
@@ -100,18 +99,20 @@ function VoiceNotice() {
 }
 
 export function CasinoPanel() {
-  const [tab, setTabState] = useState<Tab>(lastTab);
-  const setTab = (t: Tab) => {
-    lastTab = t;
-    setTabState(t);
-  };
+  const [tab, setTabState] = useState<Tab | null>(null);
+  const setTab = (t: Tab | null) => { stopSpeaking(); setTabState(t); };
   const close = useGame((s) => s.setOverlay);
   const race = tab === 'horse' || tab === 'keirin' || tab === 'boat';
   return (
-    <Modal title="🎰 カジノ・競技場" className="casino-modal" onClose={() => close(null)} tabs={TABS} tab={tab} onTab={setTab}>
+    <Modal title={tab ? TABS.find(t => t.id === tab)!.label : 'GRAND STRIP CASINO'} className={`casino-modal ${tab ? 'casino-playing' : 'casino-lobby-modal'}`} onClose={() => close(null)} tabs={[]} tab={tab ?? ''} onTab={() => undefined}>
       <div className="casino-bar">
         <Wallet />
         <MuteButton />
+      </div>
+      {!tab ? <CasinoLobby onSelect={setTab} /> : <>
+      <div className="casino-game-nav">
+        <button className="btn casino-back" onClick={() => setTab(null)}>← ゲーム選択に戻る</button>
+        <span>GRAND STRIP <i> / </i> {TABS.find(t => t.id === tab)!.label}</span>
       </div>
       <VoiceNotice />
       <div className={race ? `casino-paper ${tab}` : 'casino-felt'}>
@@ -121,6 +122,36 @@ export function CasinoPanel() {
         {tab === 'highlow' && <HighLow />}
         {race && <RaceGame key={tab} kind={tab} />}
       </div>
+      </>}
     </Modal>
   );
 }
+
+const GAME_DETAILS: Record<Tab, { tag: string; copy: string; icon: string; scene: string }> = {
+  slots: { tag: 'SLOT LOUNGE', copy: 'リールを回して、幸運の一瞬を。', icon: '777', scene: 'slot' },
+  roulette: { tag: 'ROULETTE SALON', copy: '一球の行方を見守る、華やかなテーブル。', icon: '◉', scene: 'wheel' },
+  highlow: { tag: 'CARD ROOM', copy: '次の一枚を読む、シンプルな駆け引き。', icon: 'A♠', scene: 'cards' },
+  horse: { tag: 'TURF CLUB', copy: 'パドックで選んだ一頭と、最後の直線へ。', icon: '🏇', scene: 'turf' },
+  keirin: { tag: 'VELODROME', copy: 'ラインと脚質を読み、仕掛けの瞬間を待つ。', icon: '🚴', scene: 'track' },
+  boat: { tag: 'MARINA RACE', copy: '水面を切り裂く6艇。ターンが勝負を分ける。', icon: '🚤', scene: 'water' },
+};
+function CasinoLobby({ onSelect }: { onSelect: (game: Tab) => void }) {
+  return <div className="casino-lobby">
+    <header className="casino-lobby-hero">
+      <span className="lobby-eyebrow">WELCOME TO THE GRAND STRIP</span>
+      <h1>今夜は、どこで遊ぶ？</h1>
+      <p>華やかなフロアから、お好きなゲームへ。</p>
+      <span className="lobby-diamond" aria-hidden="true">✦</span>
+    </header>
+    <div className="casino-game-grid">
+      {TABS.map(game => { const detail = GAME_DETAILS[game.id]; return (
+        <button key={game.id} className={`casino-game-card ${detail.scene}`} onClick={() => onSelect(game.id)}>
+          <div className="casino-card-scene" aria-hidden="true"><span>{detail.icon}</span><i /><i /><i /></div>
+          <div className="casino-card-copy"><small>{detail.tag}</small><h2>{game.label}</h2><p>{detail.copy}</p><b>このゲームで遊ぶ <span>↗</span></b></div>
+        </button>
+      ); })}
+    </div>
+    <p className="casino-lobby-note">各ゲームの画面から、いつでもこのロビーに戻れます。</p>
+  </div>;
+}
+
