@@ -8,6 +8,7 @@ const page=await browser.newPage({viewport:{width:1100,height:760},deviceScaleFa
 const errors=[];page.on('pageerror',error=>errors.push(error.message));
 page.setDefaultTimeout(90000);
 try {
+  for(let i=0;i<60;i++){try{await fetch('http://127.0.0.1:5173');break;}catch{await new Promise(r=>setTimeout(r,250));}}
   await page.goto('http://127.0.0.1:5173');
   await page.waitForFunction(()=>window.__ow);
   const visit=async(kind,action)=>{
@@ -39,14 +40,14 @@ try {
   assert.equal(await page.evaluate(()=>window.__ow.economy.getState().money),19020000);
   for(const [action,label] of [['slots','スロットで遊ぶ'],['roulette','ルーレットで遊ぶ'],['highlow','ハイ＆ローで遊ぶ'],['horse','競馬で遊ぶ'],['keirin','競輪で遊ぶ'],['boat','ボートレースで遊ぶ']]){
     await visit('casino',action);
-    await page.getByRole('button',{name:'F'+label,exact:false}).waitFor();
+    await page.getByRole('button',{name:new RegExp(label)}).waitFor();
     await page.keyboard.press('f');
     await page.getByRole('button',{name:'← ゲーム選択に戻る',exact:true}).waitFor();
     await page.evaluate(()=>window.__ow.game.getState().setOverlay(null));
   }
   await visit('casino','lobby');await page.screenshot({path:'browser-checks/casino-interior.png'});
   await visit('estate','land');
-  await page.getByRole('button',{name:'F土地を見る',exact:false}).waitFor();
+  await page.getByRole('button',{name:/土地を見る/}).waitFor();
   await page.screenshot({path:'browser-checks/estate-interior.png'});
   await page.keyboard.press('f');await page.getByRole('button',{name:'土地を買う',exact:true}).waitFor();
   await page.evaluate(async()=>{
@@ -55,7 +56,7 @@ try {
     g.game.getState().setOverlay(null);useVenue.setState({inside:null,outside:null});
     Object.assign(g.player,{x:plotX(offer.plot)-plotX(p)-1.1,z:plotZ(offer.plot)-plotZ(p)+18.8,y:0});
   });
-  await page.getByRole('button',{name:'Fこの土地を買う',exact:false}).waitFor();
+  await page.getByRole('button',{name:/この土地を買う/}).waitFor();
   await page.keyboard.press('f');
   await page.getByRole('button',{name:'購入を確定する',exact:true}).waitFor();
   await page.evaluate(async()=>{
