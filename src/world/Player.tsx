@@ -13,7 +13,7 @@ import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
-import { plotOffset, useEconomy } from '../state/economy';
+import { lotHouse, plotOffset, useEconomy } from '../state/economy';
 import { CASINO_PLOT } from '../economy/town';
 import { RUN_THRESHOLD, touchMove, walkActions } from '../state/touch';
 import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
@@ -117,10 +117,11 @@ function resolveTown(p: { x: number; z: number }, feetY: number, height: number)
   let q = { x: c.x + dx, z: c.z };
   // ほかの土地の家は中に入れない（入るときはその土地へワープする）
   for (const l of s.lots) {
-    if (l.id === s.currentLotId || !l.built || typeof l.plot !== 'number') continue;
+    const other = lotHouse(l);
+    if (l.id === s.currentLotId || !other || typeof l.plot !== 'number') continue;
     const ox = plotOffset(l.plot, s);
     if (Math.abs(q.x - ox - (LOT_W * GRID) / 2) > LOT_W * GRID) continue;
-    const r = resolveCollisions(l.built, { x: q.x - ox, z: q.z }, feetY, height, () => false);
+    const r = resolveCollisions(other, { x: q.x - ox, z: q.z }, feetY, height, () => false);
     q = { x: r.x + ox, z: r.z };
   }
   return q;

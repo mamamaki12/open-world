@@ -382,7 +382,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
         return l;
       });
       set({ lots, currentLotId: id });
-      showHouse(target.design ?? target.construction?.target ?? target.built ?? emptyHouse());
+      showHouse(lotHouse(target) ?? emptyHouse());
     },
 
     startJob: () => {
@@ -414,4 +414,9 @@ export function plotOffset(plot: number, s: Pick<EconomyData, 'lots' | 'currentL
 
 export function useCurrentPlot(): number {
   return useEconomy(currentPlotOf);
+}
+
+/** その土地を開いたときに出る家（設計中ならその設計図、工事中なら完成予定、なければ建っている家）。町でほかの土地を描くのにも使う */
+export function lotHouse(l: Lot): House | null {
+  return l.design ?? l.construction?.target ?? l.built;
 }
