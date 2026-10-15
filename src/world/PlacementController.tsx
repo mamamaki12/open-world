@@ -35,7 +35,7 @@ function floorLevel(house: House, surface: number, rect: Rect): number {
 
 /** その階の（高さのある）壁が囲む範囲。壁がなければ null */
 function wallBounds(house: House, level: number): Rect | null {
-  const ws = house.walls.filter((w) => w.level === level && w.height !== 'half');
+  const ws = house.walls.filter((w) => w.level === level && (!w.height || w.height === 'full'));
   if (!ws.length) return null;
   return {
     x0: Math.min(...ws.map((w) => Math.min(w.x0, w.x1))),
@@ -91,7 +91,10 @@ export function PlacementController() {
     };
 
     const groundPoint = (e: PointerEvent, level: number) => {
-      return placementPoint(camera, el.getBoundingClientRect(), e.clientX, e.clientY, level);
+      const g=useGame.getState();
+      const grounded = (g.tool==='wall' && (g.defaults.wallHeight==='fence'||g.defaults.wallHeight==='privacyFence')) ||
+        (g.tool==='furniture' && getFurniture(g.defaults.furnitureType).grounded);
+      return placementPoint(camera, el.getBoundingClientRect(), e.clientX, e.clientY, level, grounded?0:undefined);
     };
     /** マウスの下にある面の階。地面なら0、床の上ならその階、壁の上なら一つ上の階 */
     const pickSurface = (e: PointerEvent): number => {
@@ -144,6 +147,8 @@ export function PlacementController() {
     const surfaceAt = (e: PointerEvent) => {
       if (dragStart) return dragSurface;
       const g = useGame.getState();
+      if (g.tool === 'wall' && (g.defaults.wallHeight === 'fence' || g.defaults.wallHeight === 'privacyFence')) return 0;
+      if (g.tool === 'furniture' && getFurniture(g.defaults.furnitureType).grounded) return 0;
       if (g.tool === 'roof') return roofSurface(e);
       const surface = pickSurface(e);
       if (g.tool !== 'floor') return surface;
