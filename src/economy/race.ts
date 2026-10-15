@@ -470,6 +470,9 @@ export interface Ticket {
   combo: number[];
   /** 1点あたりの金額（100円単位） */
   stake: number;
+  /** 券売機で一度に買った券のまとまり（1枚の券に印字する単位）と、その買い方 */
+  group?: number;
+  method?: string;
 }
 
 export type BuyMethod = 'normal' | 'nagashi';
