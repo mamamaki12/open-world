@@ -75,6 +75,8 @@ export function RaceView({ race, motion, order, onDone }: Props) {
     let last = performance.now();
     let raf = 0;
     let finished = false;
+    // 片付けたあとに古いループが動き続けないように（実況が二重にならない）
+    let alive = true;
     const pacer = { d: 0, lat: 0.55, leaving: false, alpha: 1 };
     let bellAt = -1;
     let hudClock = 0;
@@ -147,6 +149,7 @@ export function RaceView({ race, motion, order, onDone }: Props) {
     };
 
     const frame = () => {
+      if (!alive) return;
       const now = performance.now();
       let dtReal = Math.min((now - last) / 1000, 0.1);
       last = now;
@@ -268,6 +271,7 @@ export function RaceView({ race, motion, order, onDone }: Props) {
     };
     raf = requestAnimationFrame(frame);
     return () => {
+      alive = false;
       cancelAnimationFrame(raf);
       ro.disconnect();
       stopSpeaking();
