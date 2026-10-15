@@ -441,3 +441,31 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
   .wallet-amount { font-size: 18px; }
   .casino-bar .mute { padding: 2px 8px; font-size: 15px; }
 }
+
+/* ---- 初心者向けの遊び方（ゲームの上にたためる説明） ---- */
+.guide { margin-bottom: 12px; border-radius: 10px; border: 1px solid rgba(232, 197, 106, 0.55); background: rgba(0, 0, 0, 0.28); color: #f3ead2; }
+.guide-toggle {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  background: none; border: 0; color: inherit; font: inherit; font-weight: 700; font-size: 14px; padding: 9px 12px; cursor: pointer; text-align: left;
+}
+.guide-arrow { font-size: 12px; font-weight: 600; opacity: 0.8; white-space: nowrap; }
+.guide-body { padding: 0 14px 12px; font-size: 13px; line-height: 1.65; }
+.guide-sec h4 { margin: 10px 0 4px; font-size: 13px; color: #ffd76a; }
+.guide-sec p, .guide-sec ol, .guide-sec ul { margin: 0 0 4px; }
+.guide-sec ol, .guide-sec ul { padding-left: 1.4em; }
+.guide-note { font-size: 12px; opacity: 0.85; }
+.guide-table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 12.5px; }
+.guide-table th, .guide-table td { border-bottom: 1px solid rgba(255, 255, 255, 0.15); padding: 4px 6px; text-align: left; vertical-align: top; }
+.guide-table th { font-weight: 700; opacity: 0.85; white-space: nowrap; }
+.guide-stars { color: #ffcf4a; letter-spacing: -1px; white-space: nowrap; }
+/* 競馬・競輪・ボートの白い紙の上では、黒い文字で */
+.casino-paper .guide { background: #fffaf0; border-color: #e3c983; color: var(--ink, #222); }
+.casino-paper .guide-sec h4 { color: #8a5a00; }
+.casino-paper .guide-table th, .casino-paper .guide-table td { border-bottom-color: #eadfc6; }
+.casino-paper .guide-stars { color: #d99a00; }
+@media (max-width: 640px) {
+  .guide-body { padding: 0 10px 10px; font-size: 12.5px; }
+  .guide-table { font-size: 11.5px; }
+  .guide-table th, .guide-table td { padding: 3px 4px; }
+}
+.guide-table td:first-child { white-space: nowrap; }

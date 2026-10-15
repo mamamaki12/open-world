@@ -9,6 +9,7 @@ import { Roulette } from './casino/Roulette';
 import { Slots } from './casino/Slots';
 import { isMuted, setMuted } from './casino/sfx';
 import { onVoiceChange, stopSpeaking, voiceStatus } from './casino/voice';
+import { Guide } from './casino/Guide';
 import { Modal } from './Modal';
 import './casino/casino.css';
 
@@ -114,6 +115,7 @@ export function CasinoPanel() {
       </div>
       <VoiceNotice />
       <div className={race ? `casino-paper ${tab}` : 'casino-felt'}>
+        <Guide key={`guide-${tab}`} game={tab} />
         {tab === 'slots' && <Slots />}
         {tab === 'roulette' && <Roulette />}
         {tab === 'highlow' && <HighLow />}
