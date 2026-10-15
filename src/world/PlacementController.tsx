@@ -15,7 +15,6 @@ import {
   newId,
   normalizeRect,
   snapFurniture,
-  wallsUnder,
 } from '../building/rules';
 import type { Rect } from '../building/rules';
 import type { House } from '../building/types';
@@ -30,10 +29,16 @@ function floorLevel(house: House, surface: number, rect: Rect): number {
   return surface;
 }
 
-/** 屋根を載せる階：範囲の下に壁がある一番上の階。壁がなければマウスの下の面の高さ */
-function roofLevel(house: House, surface: number, rect: Rect): number {
-  for (let l = MAX_LEVEL; l >= 0; l--) if (wallsUnder(house, l, rect) && canPlaceRoof(house, l, rect) === null) return l;
-  return Math.max(0, surface - 1);
+/** その階の（高さのある）壁が囲む範囲。壁がなければ null */
+function wallBounds(house: House, level: number): Rect | null {
+  const ws = house.walls.filter((w) => w.level === level && w.height !== 'half');
+  if (!ws.length) return null;
+  return {
+    x0: Math.min(...ws.map((w) => Math.min(w.x0, w.x1))),
+    z0: Math.min(...ws.map((w) => Math.min(w.z0, w.z1))),
+    x1: Math.max(...ws.map((w) => Math.max(w.x0, w.x1))),
+    z1: Math.max(...ws.map((w) => Math.max(w.z0, w.z1))),
+  };
 }
 
 /** 当たったメッシュが、見えている不透明なものか（プレビューやガラスは除く） */
@@ -87,7 +92,6 @@ export function PlacementController() {
       if (!hit || (ground && ground.distanceTo(raycaster.ray.origin) < hit.distance)) return 0;
       return clamp(Math.floor((hit.point.y - BASE_HEIGHT + 0.15) / STORY_HEIGHT), 0, MAX_LEVEL);
     };
-    const surfaceAt = (e: PointerEvent) => (dragStart ? dragSurface : pickSurface(e));
     const cellAt = (p: THREE.Vector3) => ({
       x: clamp(Math.floor(p.x / GRID), 0, LOT_W - 1),
       z: clamp(Math.floor(p.z / GRID), 0, LOT_D - 1),
@@ -100,6 +104,33 @@ export function PlacementController() {
       const r = normalizeRect({ x0: a.x, z0: a.z, x1: b.x, z1: b.z });
       return { ...r, x1: r.x1 + 1, z1: r.z1 + 1 };
     };
+
+    /**
+     * 屋根は壁の上端に載るので、カーソルは地面や床ではなく壁の上端の高さの面で読む
+     * （でないと、斜めから見たときに屋根がカーソルからずれた所に出る）。
+     * 上の階から順に、その階の壁の上端の面でカーソルがその階の部屋（床、なければ壁の囲む範囲）の上に来るかを見て、来た階に載せる。
+     * 返すのは groundPoint に渡す階（屋根の階 + 1 の床の高さ = 壁の上端）
+     */
+    const roofSurface = (e: PointerEvent): number => {
+      const house = useGame.getState().house;
+      for (let l = MAX_LEVEL; l >= 0; l--) {
+        const b = wallBounds(house, l);
+        const p = b && groundPoint(e, l + 1);
+        if (!b || !p) continue;
+        const gx = p.x / GRID;
+        const gz = p.z / GRID;
+        const inside = (r: Rect) => gx >= r.x0 && gx <= r.x1 && gz >= r.z0 && gz <= r.z1;
+        // その階に床があれば床の上（L字の2階のへこみには載せない）、なければ壁の囲む範囲
+        const floors = house.floors.filter((f) => f.level === l);
+        if (floors.length ? floors.some(inside) : inside(b)) return l + 1;
+      }
+      // どの壁の範囲にも入らない：壁のある一番下の階（壁がなければ1階）の上端
+      for (let l = 0; l <= MAX_LEVEL; l++) if (wallBounds(house, l)) return l + 1;
+      return 1;
+    };
+    /** 置く位置を読む面の階。ドラッグ中は始めたときの面のまま */
+    const surfaceAt = (e: PointerEvent) =>
+      dragStart ? dragSurface : useGame.getState().tool === 'roof' ? roofSurface(e) : pickSurface(e);
 
     let lastPointer: PointerEvent | null = null;
     refresh.current = () => {
@@ -117,7 +148,7 @@ export function PlacementController() {
         case 'roof': {
           const c = cellAt(p);
           const rect = dragStart ? cellRect(dragStart, c) : cellRect(c, c);
-          const level = g.tool === 'floor' ? floorLevel(g.house, surface, rect) : roofLevel(g.house, surface, rect);
+          const level = g.tool === 'floor' ? floorLevel(g.house, surface, rect) : surface - 1;
           g.setLevel(level);
           const valid =
             (g.tool === 'floor' ? canPlaceFloor(g.house, level, rect) : canPlaceRoof(g.house, level, rect)) === null;
@@ -155,7 +186,7 @@ export function PlacementController() {
         activeTouch = e.pointerId;
       }
       const g = useGame.getState();
-      const surface = pickSurface(e);
+      const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
       if (e.pointerType === 'touch' && (g.tool === 'stair' || g.tool === 'furniture')) {
@@ -259,7 +290,8 @@ export function PlacementController() {
           if (err) return g.notify(err);
           g.commit({ ...g.house, floors: [...g.house.floors, { id: newId('floor'), level, ...rect, finish: g.defaults.floor }] });
         } else {
-          const level = roofLevel(g.house, surface, rect);
+          // 屋根は、ドラッグを始めたときにカーソルが読んでいた壁の上端に載る
+          const level = surface - 1;
           const err = canPlaceRoof(g.house, level, rect);
           if (err) return g.notify(err);
           const d = g.defaults;
