@@ -111,13 +111,20 @@ function LevelBar() {
 
 function SaveMenu() {
   const [open, setOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [, refresh] = useState(0);
   const house = useGame((s) => s.house);
   const replaceHouse = useGame((s) => s.replaceHouse);
   const notify = useGame((s) => s.notify);
   return (
     <div className="save">
-      <button className="tool" onClick={() => setOpen(!open)}>
+      <button
+        className="tool"
+        onClick={() => {
+          setOpen(!open);
+          setConfirmClear(false);
+        }}
+      >
         セーブ / ロード ▾
       </button>
       {open && (
@@ -166,14 +173,16 @@ function SaveMenu() {
             </button>
             <button
               className="btn danger"
+              title="取り消し（Ctrl+Z）で戻せます"
               onClick={() => {
-                if (confirm('いまの家をすべて消して、更地から始めますか？（取り消しで戻せます）')) {
-                  replaceHouse(emptyHouse());
-                  setOpen(false);
-                }
+                // 誤操作防止のため2回押しで実行する
+                if (!confirmClear) return setConfirmClear(true);
+                replaceHouse(emptyHouse());
+                setConfirmClear(false);
+                setOpen(false);
               }}
             >
-              更地にする
+              {confirmClear ? 'もう一度押すと全部消します' : '更地にする'}
             </button>
           </div>
         </div>
