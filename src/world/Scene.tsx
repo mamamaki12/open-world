@@ -5,6 +5,7 @@ import { GRID, LOT_D, LOT_W, floorY } from '../building/dimensions';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { BuildCamera } from './BuildCamera';
+import { CasinoBuilding } from './CasinoBuilding';
 import { DebugBridge } from './DebugBridge';
 import { HouseView } from './HouseView';
 import { PlacementController } from './PlacementController';
@@ -54,12 +55,12 @@ export function Scene() {
         shadow-mapSize={[4096, 4096]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
-        shadow-camera-left={-22}
-        shadow-camera-right={22}
-        shadow-camera-top={22}
-        shadow-camera-bottom={-22}
+        shadow-camera-left={-36}
+        shadow-camera-right={36}
+        shadow-camera-top={36}
+        shadow-camera-bottom={-36}
         shadow-camera-near={1}
-        shadow-camera-far={80}
+        shadow-camera-far={110}
       >
         <object3D attach="target" position={CENTER} />
       </directionalLight>
@@ -67,6 +68,7 @@ export function Scene() {
       <Ground />
       {placing && <LevelGrid />}
       <HouseView />
+      <CasinoBuilding />
       {walking && <Player />}
       <PlacementController />
       {import.meta.env.DEV && <DebugBridge />}

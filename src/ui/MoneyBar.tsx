@@ -1,9 +1,10 @@
-// 上のバーに出す所持金・日付・相場と、不動産屋・カジノへの入り口
+// 上のバーに出す所持金・日付・相場と、不動産屋の入り口・カジノへ行くボタン
 import { useEffect, useMemo } from 'react';
 import { yen } from '../economy/money';
 import { renovationCost } from '../economy/pricing';
 import { saveEconomy, useCurrentLot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
+import { goToCasino } from '../world/Player';
 
 export function MoneyBar() {
   const money = useEconomy((s) => s.money);
@@ -24,8 +25,12 @@ export function MoneyBar() {
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('estate'); }}>
         🏠 不動産
       </button>
-      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('casino'); }}>
-        🎰 カジノ・競技場
+      <button
+        className="tool"
+        onClick={(e) => { e.currentTarget.blur(); goToCasino(); }}
+        title="カジノは道路の向かいに建っています。入口の前で F キーを押すと中に入れます"
+      >
+        🎰 カジノへ行く
       </button>
       <BuildChip />
     </div>
