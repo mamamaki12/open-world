@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useVenue } from '../state/venue';
-import { VENUE_ACTIONS, venueAction } from '../building/venues';
+import { VENUE_ACTIONS, VENUES, venueAction, venueDoorId } from '../building/venues';
+import type { Venue } from '../building/venues';
+import { useDoors } from '../state/doors';
 import { getCar } from '../catalog/cars';
 import { useVehicles } from '../state/vehicles';
 import { civicOffset, currentPlotOf, saveEconomy, useEconomy } from '../state/economy';
@@ -12,15 +14,16 @@ import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
 import { Modal } from './Modal';
 export function WorldActionHud(){
-  const inside=useVenue(s=>s.inside);
+  const inside=useVenue(s=>s.inside),doorsOpen=useDoors(s=>s.open);
   const driving=useVehicles(s=>s.driving),target=useVehicles(s=>s.target),overlay=useGame(s=>s.overlay);
   const [,tick]=useState(0);
   useEffect(()=>{if(!driving)return;const t=setInterval(()=>tick(v=>v+1),120);return()=>clearInterval(t);},[driving]);
   if(overlay||!target)return null;
   const car=useVehicles.getState().cars.find(c=>c.id===(driving??target));
   if(driving&&car)return <div className="drive-hud"><b>{getCar(car.model)!.name}</b><div className="drive-speed">{car.speed<-.1?'R ':''}{Math.round(Math.abs(car.speed)*3.6)}<small>km/h</small></div><p>W/S 前後 · A/D ハンドル · Space ブレーキ</p><p>Q 視点 · L ライト {car.lights?'ON':'OFF'}</p><button onClick={()=>interact()}>F · 停車して降りる</button><button onClick={()=>{car.lights=!car.lights;}}>ライト切替</button></div>;
-  const venueLabel=target==='venue:exit'?'外へ出る':inside&&target.startsWith('venue:')?VENUE_ACTIONS[inside].find(a=>target==='venue:'+a.id)?.label:undefined;
-  const label=venueLabel??(target==='dealer'?'カーディーラーに入る':target.startsWith('land:')?'この土地を買う':target.startsWith('shutter:')?'ガレージシャッターを開閉する':car?getCar(car.model)!.name+' に乗る':'');
+  const door=target.startsWith('door:')?target.slice(5) as Venue:null;
+  const venueLabel=door?`${VENUES[door].name}のドアを${venueDoorId(door) in doorsOpen?'閉める':'開ける'}`:inside&&target.startsWith('venue:')?VENUE_ACTIONS[inside].find(a=>target==='venue:'+a.id)?.label:undefined;
+  const label=venueLabel??(target.startsWith('land:')?'この土地を買う':target.startsWith('shutter:')?'ガレージシャッターを開閉する':car?getCar(car.model)!.name+' に乗る':'');
   const site=civicOffset(),action=inside==='dealer'?venueAction('dealer',playerMemory.x-site.x,playerMemory.z-site.z):null;
   return label?<div className="door-prompts"><button className="door-prompt" onClick={()=>interact()}><kbd>F</kbd>{label}</button>{action?.model&&<button className="door-prompt" onClick={()=>{useVenue.setState({model:action.model!,dealerIntent:'specs'});useGame.getState().setOverlay('dealer');}}>スペックを見る</button>}</div>:null;
 }

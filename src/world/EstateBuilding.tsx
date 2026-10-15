@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { ESTATE } from '../building/landmarks';
+import { OpenFrontBox, PlinthRing, VenueDoor } from './VenueShell';
 
 function printed(draw: (ctx: CanvasRenderingContext2D) => void, width = 1024, height = 384) {
   const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
@@ -37,14 +38,10 @@ export function EstateBuilding() {
   }), []);
   const listings = useMemo(propertyWindow, []);
   useEffect(() => () => { sign.dispose(); listings.dispose(); }, [sign, listings]);
-  const cx = ESTATE.door.x, front = ESTATE.z0, width = ESTATE.x1 - ESTATE.x0;
+  const cx = ESTATE.door.x, front = ESTATE.z0;
   return <group name="estate">
-    <mesh position={[cx, ESTATE.height / 2, (front + ESTATE.z1) / 2]} castShadow receiveShadow>
-      <boxGeometry args={[width, ESTATE.height, ESTATE.z1 - front]} /><meshStandardMaterial color="#e8e3d7" roughness={0.85} />
-    </mesh>
-    <mesh position={[cx, 0.15, (front + ESTATE.z1) / 2]} receiveShadow>
-      <boxGeometry args={[width + 0.12, 0.3, ESTATE.z1 - front + 0.1]} /><meshStandardMaterial color="#827c70" />
-    </mesh>
+    <OpenFrontBox kind="estate" height={ESTATE.height} color="#e8e3d7" roughness={0.85} />
+    <PlinthRing kind="estate" height={0.3} margin={0.06} color="#827c70" />
     <mesh position={[cx, 3.7, front - 0.08]} rotation-y={Math.PI}>
       <planeGeometry args={[9.7, 1.25]} /><meshStandardMaterial map={sign} emissiveMap={sign} emissive="#ffffff" emissiveIntensity={0.25} />
     </mesh>
@@ -54,9 +51,7 @@ export function EstateBuilding() {
       {[-1.82, 1.82].map(x => <mesh key={x} position={[x, 1.55, -0.15]}><boxGeometry args={[0.08, 2.8, 0.1]} /><meshStandardMaterial color="#505a5a" metalness={0.7} /></mesh>)}
       <mesh position={[0, 0.28, -0.16]}><boxGeometry args={[3.7, 0.28, 0.12]} /><meshStandardMaterial color="#d3cbbc" /></mesh>
     </group>)}
-    <mesh position={[cx, 1.3, front - 0.1]}><boxGeometry args={[2.15, 2.6, 0.1]} /><meshStandardMaterial color="#5c858a" metalness={0.45} roughness={0.15} /></mesh>
-    {[-1.08, 0, 1.08].map(x => <mesh key={x} position={[cx + x, 1.3, front - 0.18]}><boxGeometry args={[0.06, 2.6, 0.08]} /><meshStandardMaterial color="#445052" metalness={0.6} /></mesh>)}
-    {[-0.14, 0.14].map(x => <mesh key={x} position={[cx + x, 1.15, front - 0.27]}><boxGeometry args={[0.04, 0.5, 0.08]} /><meshStandardMaterial color="#e3e0cf" metalness={0.8} /></mesh>)}
+    <VenueDoor kind="estate" frame="#445052" />
     <mesh position={[cx, 2.96, front - 0.5]} rotation-x={-0.12} castShadow><boxGeometry args={[10.2, 0.16, 1.2]} /><meshStandardMaterial color="#1d6469" /></mesh>
     <mesh position={[cx, 2.82, front - 1.05]}><boxGeometry args={[10.2, 0.24, 0.08]} /><meshStandardMaterial color="#174c51" /></mesh>
     <mesh position={[cx, 0.012, front - 0.65]} rotation-x={-Math.PI / 2}><planeGeometry args={[1.8, 0.9]} /><meshStandardMaterial color="#233b3d" /></mesh>

@@ -13,12 +13,9 @@ try {
   await page.waitForFunction(()=>window.__ow);
   const visit=async(kind,action)=>{
     await page.evaluate(async({kind,action})=>{
-      const {useVenue,enterVenue}=await import('/src/state/venue.ts');
       const {VENUES,VENUE_ACTIONS}=await import('/src/building/venues.ts');
       const {civicOffset}=await import('/src/state/economy.ts');
-      const g=window.__ow;g.game.getState().setOverlay(null);
-      useVenue.setState({inside:null,outside:null});g.game.getState().setMode('walk');
-      enterVenue(kind,g.player);
+      const g=window.__ow;g.game.getState().setOverlay(null);g.game.getState().setMode('walk');
       const b=VENUES[kind],o=civicOffset(),a=VENUE_ACTIONS[kind].find(a=>a.id===action);
       Object.assign(g.player,{x:o.x+(b.x0+b.x1)/2+a.x,z:o.z+(b.z0+b.z1)/2+a.z,y:0,yaw:Math.PI,bodyYaw:Math.PI});
     },{kind,action});
@@ -53,7 +50,7 @@ try {
   await page.evaluate(async()=>{
     const {useVenue}=await import('/src/state/venue.ts');const {currentPlotOf}=await import('/src/state/economy.ts');const {plotX,plotZ}=await import('/src/economy/town.ts');
     const g=window.__ow,s=g.economy.getState(),offer=s.offers.find(o=>typeof o.plot==='number'),p=currentPlotOf(s);
-    g.game.getState().setOverlay(null);useVenue.setState({inside:null,outside:null});
+    g.game.getState().setOverlay(null);
     Object.assign(g.player,{x:plotX(offer.plot)-plotX(p)-1.1,z:plotZ(offer.plot)-plotZ(p)+18.8,y:0});
   });
   await page.getByRole('button',{name:/この土地を買う/}).waitFor();
@@ -62,7 +59,7 @@ try {
   await page.evaluate(async()=>{
     const {useVenue}=await import('/src/state/venue.ts');const {useVehicles}=await import('/src/state/vehicles.ts');const {currentPlotOf}=await import('/src/state/economy.ts');const {plotX,plotZ}=await import('/src/economy/town.ts');
     const g=window.__ow,c=useVehicles.getState().cars[0],p=currentPlotOf(g.economy.getState());
-    g.game.getState().setOverlay(null);useVenue.setState({inside:null,outside:null});
+    g.game.getState().setOverlay(null);
     Object.assign(g.player,{x:c.x-plotX(p)-Math.cos(c.yaw)*1.5,z:c.z-plotZ(p)+Math.sin(c.yaw)*1.5,y:0});
   });
   await page.getByRole('button',{name:/に乗る/}).waitFor();await page.keyboard.press('f');

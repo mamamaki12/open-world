@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CASINO, CASINO_PILLARS, CASINO_PLANTERS, CASINO_PLAZA } from '../building/landmarks';
+import { OpenFrontBox, PlinthRing, VenueDoor } from './VenueShell';
 
 const W = CASINO.x1 - CASINO.x0;
 const D = CASINO.z1 - CASINO.z0;
@@ -156,14 +157,8 @@ export function CasinoBuilding() {
       </mesh>
 
       {/* 建物 */}
-      <mesh position={[CX, H / 2, CZ]} castShadow receiveShadow>
-        <boxGeometry args={[W, H, D]} />
-        <meshStandardMaterial color="#efe6d4" roughness={0.8} />
-      </mesh>
-      <mesh position={[CX, 0.35, CZ]} receiveShadow>
-        <boxGeometry args={[W + 0.3, 0.7, D + 0.3]} />
-        <meshStandardMaterial color="#6b6258" roughness={0.9} />
-      </mesh>
+      <OpenFrontBox kind="casino" height={H} color="#efe6d4" />
+      <PlinthRing kind="casino" height={0.7} margin={0.15} color="#6b6258" />
       {/* 屋上（平らな屋根）と、ふちの金色の飾り */}
       <mesh position={[CX, H + 0.02, CZ]} receiveShadow>
         <boxGeometry args={[W - 0.3, 0.04, D - 0.3]} />
@@ -195,14 +190,7 @@ export function CasinoBuilding() {
       {/* 正面のガラス壁と入口 */}
       <GlassWall x0={CASINO.x0 + 1} x1={doorL - 0.9} />
       <GlassWall x0={doorR + 0.9} x1={CASINO.x1 - 1} />
-      <mesh position={[DOOR.x, DOOR.height / 2 + 0.02, FRONT - 0.03]}>
-        <planeGeometry args={[DOOR.width, DOOR.height]} />
-        <meshStandardMaterial color="#ffe2a3" emissive="#ffb84d" emissiveIntensity={1.3} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[DOOR.x, DOOR.height / 2, FRONT - 0.06]}>
-        <boxGeometry args={[0.06, DOOR.height, 0.06]} />
-        <meshStandardMaterial {...GOLD} />
-      </mesh>
+      <VenueDoor kind="casino" frame="#c9a03c" />
       {[doorL - 0.2, doorR + 0.2].map((x) => (
         <mesh key={x} position={[x, (DOOR.height + 0.4) / 2, FRONT - 0.12]} castShadow>
           <boxGeometry args={[0.4, DOOR.height + 0.4, 0.24]} />
