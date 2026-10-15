@@ -1,8 +1,8 @@
 // 配置ルール（置けるかどうかの判定、吸着、削除の連鎖）。描画からは独立させ、
 // 将来サーバー側でも同じ判定を使えるようにする。
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
-import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_LENGTH, WALL_THICKNESS } from './dimensions';
-import type { House, OpeningPart, PartRef, StairPart, WallPart } from './types';
+import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_LENGTH, STAIR_WIDTH, WALL_HEIGHT, WALL_THICKNESS } from './dimensions';
+import type { House, OpeningPart, PartRef, StairPart, StairRail, WallHeight, WallPart } from './types';
 
 export interface Rect {
   x0: number;
@@ -39,7 +39,8 @@ function rectsOverlap(a: Rect, b: Rect): boolean {
 /** 下の階の壁が、四角の中か縁にかかっているか（上の階の床・屋根を支えられるか） */
 export function wallsUnder(house: House, level: number, r: Rect): boolean {
   return house.walls.some((w) => {
-    if (w.level !== level) return false;
+    // 半分の高さの壁には床も屋根も載らない
+    if (w.level !== level || w.height === 'half') return false;
     const x0 = Math.min(w.x0, w.x1);
     const x1 = Math.max(w.x0, w.x1);
     const z0 = Math.min(w.z0, w.z1);
@@ -64,6 +65,22 @@ export function canPlaceRoof(house: House, level: number, r: Rect): string | nul
 }
 
 // ---- 壁 ----
+
+/** 壁の高さ（m） */
+export function wallHeight(w: Pick<WallPart, 'height'>): number {
+  return w.height === 'half' ? WALL_HEIGHT / 2 : WALL_HEIGHT;
+}
+
+/** 壁の高さを変えたときに、付いている窓・ドアが収まるか */
+export function canChangeWallHeight(house: House, wallId: string, height: WallHeight): string | null {
+  const top = wallHeight({ height }) - 0.05;
+  const tooTall = house.openings.some((o) => {
+    if (o.wallId !== wallId) return false;
+    const d = getOpening(o.type);
+    return d.sill + d.height > top;
+  });
+  return tooTall ? '付いている窓・ドアが収まりません' : null;
+}
 
 export function wallLength(w: Pick<WallPart, 'x0' | 'z0' | 'x1' | 'z1'>): number {
   return Math.hypot(w.x1 - w.x0, w.z1 - w.z0) * GRID;
@@ -168,6 +185,7 @@ export function canPlaceOpening(
   const lo = offset - def.width / 2;
   const hi = offset + def.width / 2;
   if (lo < 0.04 || hi > len - 0.04) return '壁に収まりません（壁を長くしてください）';
+  if (def.sill + def.height > wallHeight(wall) - 0.05) return '壁が低くて収まりません';
   for (const o of house.openings) {
     if (o.wallId !== wallId || o.id === ignoreId) continue;
     const od = getOpening(o.type);
@@ -192,6 +210,11 @@ export function stairFootprint(s: Pick<StairPart, 'x' | 'z' | 'rot'>): Rect {
     case 3:
       return { x0: s.x - STAIR_LENGTH + 1, z0: s.z, x1: s.x + 1, z1: s.z + 1 };
   }
+}
+
+/** 手すりの位置（階段ローカルの X。上る向き +Z に見て左が +X） */
+export function stairRailX(rail: StairRail = 'left'): number {
+  return (rail === 'left' ? 1 : -1) * (STAIR_WIDTH / 2 - 0.03);
 }
 
 export function canPlaceStair(house: House, s: Omit<StairPart, 'id' | 'finish'>, ignoreId?: string): string | null {

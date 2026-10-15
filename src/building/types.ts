@@ -30,7 +30,11 @@ export interface WallPart {
   z1: number;
   exterior: Finish;
   interior: Finish;
+  /** 壁の高さ。half は腰壁（階高の半分）。省略は full */
+  height?: WallHeight;
 }
+
+export type WallHeight = 'full' | 'half';
 
 export type OpeningKind = 'door' | 'window';
 
@@ -57,7 +61,11 @@ export interface StairPart {
   /** 0: +z方向へ上る, 1: +x, 2: -z, 3: -x */
   rot: 0 | 1 | 2 | 3;
   finish: Finish;
+  /** 手すりの側（上る向きに見て）。省略は左 */
+  rail?: StairRail;
 }
+
+export type StairRail = 'left' | 'right';
 
 export type RoofType = 'gable' | 'hip' | 'shed' | 'flat';
 

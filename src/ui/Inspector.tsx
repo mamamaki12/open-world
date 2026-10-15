@@ -1,11 +1,11 @@
 // 右のパネル：選んだパーツの種類・素材・色・寸法を変える
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, getOpening, openingsOf } from '../catalog';
 import { GRID, levelName } from '../building/dimensions';
-import { canPlaceOpening, canPlaceStair, snapOpeningOffset, wallLength } from '../building/rules';
+import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapOpeningOffset, wallLength } from '../building/rules';
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
-import { RoofTypeButtons, Slider } from './ToolOptions';
+import { RoofTypeButtons, Slider, StairRailButtons, WallHeightButtons } from './ToolOptions';
 import { patchPart } from './edit';
 
 const mm = (m: number) => `${Math.round(m * 1000).toLocaleString()}mm`;
@@ -40,6 +40,14 @@ export function Inspector() {
       body = (
         <>
           <p className="info">長さ {mm(wallLength(w))}</p>
+          <WallHeightButtons
+            value={w.height}
+            onChange={(height) => {
+              const err = canChangeWallHeight(house, w.id, height);
+              if (err) return useGame.getState().notify(err);
+              patchPart('wall', w.id, { height });
+            }}
+          />
           <FinishPicker label="外壁材" category="exterior" value={w.exterior} onChange={(exterior) => patchPart('wall', w.id, { exterior })} />
           <FinishPicker label="内装" category="interior" value={w.interior} onChange={(interior) => patchPart('wall', w.id, { interior })} />
           <button className="btn" onClick={() => applyToLevelWalls(w.level, { exterior: w.exterior })}>
@@ -165,6 +173,7 @@ function StairInspector({ stair: s }: { stair: StairPart }) {
   return (
     <>
       <FinishPicker label="踏み板" category="wood" value={s.finish} onChange={(finish) => patchPart('stair', s.id, { finish })} />
+      <StairRailButtons value={s.rail} onChange={(rail) => patchPart('stair', s.id, { rail })} />
       <button className="btn" onClick={rotate}>
         向きを変える
       </button>

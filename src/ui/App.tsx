@@ -224,7 +224,7 @@ function TopBar() {
             className={`tool${tool === t.id ? ' on' : ''}`}
             onClick={(e) => {
               e.currentTarget.blur(); // Space（ジャンプ）でボタンが押し直されないように
-              setTool(t.id);
+              setTool(tool === t.id ? 'select' : t.id); // もう一度押すと手ぶらに戻る
             }}
             title={`ショートカット：${t.key}`}
           >
@@ -431,7 +431,8 @@ function useKeyboard() {
       const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
       if (digit) {
         const t = TOOLS.find((x) => x.key === digit[1]);
-        if (t) s.setTool(t.id);
+        // 持っているツールの数字をもう一度押すと手ぶら（選択）に戻る
+        if (t) s.setTool(t.id === s.tool ? 'select' : t.id);
         return;
       }
       if (e.key === 'Escape') {

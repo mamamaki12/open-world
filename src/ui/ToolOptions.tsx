@@ -1,7 +1,7 @@
 // 左のパネル：いま持っているツールで置くパーツの種類・素材・色を選ぶ
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, openingsOf } from '../catalog';
 import { ROOF_TYPE_NAMES } from '../building/roof';
-import type { RoofType } from '../building/types';
+import type { RoofType, StairRail, WallHeight } from '../building/types';
 import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
@@ -11,10 +11,10 @@ import { useTouchDevice } from './useTouchDevice';
 export const TOOL_HELP: Record<Tool, string> = {
   select: 'パーツをクリックして選ぶと、右のパネルで種類・素材・色を変えられます。選んだ家具はドラッグで動かせます。',
   floor: 'ドラッグで四角く床を張ります（1マス = 910mm）。地面の上なら1階、1階の壁の上からドラッグすると2階の床になります。',
-  wall: 'マス目の線に沿ってドラッグして壁を立てます。床のない側が外壁になります。',
+  wall: 'マス目の線に沿ってドラッグして壁を立てます。床のない側が外壁になります。高さは半分の腰壁も選べます。',
   door: '壁の上にマウスを当てて、クリックでドアを付けます。',
   window: '壁の上にマウスを当てて、クリックで窓を付けます。',
-  stair: '1階でクリックすると2階へ上がる階段を置きます（幅1マス × 長さ4マス）。R キーで向きを変えます。',
+  stair: '1階でクリックすると2階へ上がる階段を置きます（幅1マス × 長さ4マス）。R キーで向きを変え、左のパネルで手すりの側を選べます。',
   roof: '屋根を載せる範囲をドラッグします。範囲の下にあるいちばん上の階の壁に載ります。',
   furniture: 'クリックで家具を置きます。R キーで90度回します。',
   erase: 'クリックしたパーツを消します。',
@@ -48,6 +48,7 @@ export function ToolOptions() {
     case 'wall':
       body = (
         <>
+          <WallHeightButtons value={d.wallHeight} onChange={(wallHeight) => set({ wallHeight })} />
           <FinishPicker label="外壁材" category="exterior" value={d.wallExterior} onChange={(wallExterior) => set({ wallExterior })} />
           <FinishPicker label="内装" category="interior" value={d.wallInterior} onChange={(wallInterior) => set({ wallInterior })} />
         </>
@@ -89,6 +90,7 @@ export function ToolOptions() {
       body = (
         <>
           <FinishPicker label="踏み板" category="wood" value={d.stairFinish} onChange={(stairFinish) => set({ stairFinish })} />
+          <StairRailButtons value={d.stairRail} onChange={(stairRail) => set({ stairRail })} />
           <button className="btn" onClick={() => useInteraction.getState().setStairRot(((stairRot + 1) % 4) as 0 | 1 | 2 | 3)}>
             向きを変える<span className="kbd-hint">（R）</span>
           </button>
@@ -132,6 +134,40 @@ export function ToolOptions() {
     <div className="panel tool-options">
       <p className="help">{(touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
       {body}
+    </div>
+  );
+}
+
+const WALL_HEIGHT_NAMES: Record<WallHeight, string> = { full: 'ふつう 2,900mm', half: '半分 1,450mm' };
+
+export function WallHeightButtons({ value = 'full', onChange }: { value?: WallHeight; onChange: (h: WallHeight) => void }) {
+  return (
+    <div className="field">
+      <div className="field-label">壁の高さ</div>
+      <div className="seg">
+        {(Object.keys(WALL_HEIGHT_NAMES) as WallHeight[]).map((h) => (
+          <button key={h} className={h === value ? 'on' : ''} onClick={() => onChange(h)}>
+            {WALL_HEIGHT_NAMES[h]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const STAIR_RAIL_NAMES: Record<StairRail, string> = { left: '左', right: '右' };
+
+export function StairRailButtons({ value = 'left', onChange }: { value?: StairRail; onChange: (r: StairRail) => void }) {
+  return (
+    <div className="field">
+      <div className="field-label">手すり（上る向きに見て）</div>
+      <div className="seg">
+        {(Object.keys(STAIR_RAIL_NAMES) as StairRail[]).map((r) => (
+          <button key={r} className={r === value ? 'on' : ''} onClick={() => onChange(r)}>
+            {STAIR_RAIL_NAMES[r]}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

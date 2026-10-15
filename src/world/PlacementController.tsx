@@ -186,7 +186,7 @@ export function PlacementController() {
           const stair = { level: surface, x: c.x, z: c.z, rot: ui.stairRot };
           const err = canPlaceStair(g.house, stair);
           if (err) return g.notify(err);
-          g.commit({ ...g.house, stairs: [...g.house.stairs, { id: newId('stair'), ...stair, finish: g.defaults.stairFinish }] });
+          g.commit({ ...g.house, stairs: [...g.house.stairs, { id: newId('stair'), ...stair, finish: g.defaults.stairFinish, rail: g.defaults.stairRail }] });
           updatePreview(e);
           break;
         }
@@ -292,7 +292,7 @@ export function PlacementController() {
           ...g.house,
           walls: [
             ...g.house.walls,
-            { id: newId('wall'), level: surface, ...seg, exterior: g.defaults.wallExterior, interior: g.defaults.wallInterior },
+            { id: newId('wall'), level: surface, ...seg, exterior: g.defaults.wallExterior, interior: g.defaults.wallInterior, height: g.defaults.wallHeight },
           ],
         });
       }

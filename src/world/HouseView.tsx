@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
 import { GRID, WALL_HEIGHT, WALL_THICKNESS, floorY } from '../building/dimensions';
-import { stairHoles, wallLength, wallOutsideSide } from '../building/rules';
+import { stairHoles, wallHeight, wallLength, wallOutsideSide } from '../building/rules';
 import type { House } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
@@ -85,16 +85,17 @@ function PreviewView() {
       const cx = ((preview.x0 + preview.x1) / 2) * GRID;
       const cz = ((preview.z0 + preview.z1) / 2) * GRID;
       const angle = -Math.atan2(preview.z1 - preview.z0, preview.x1 - preview.x0);
+      const h = wallHeight({ height: defaults.wallHeight });
       return (
-        <mesh position={[cx, y + WALL_HEIGHT / 2, cz]} rotation={[0, angle, 0]} material={preview.valid ? okMat : badMat}>
-          <boxGeometry args={[len + WALL_THICKNESS, WALL_HEIGHT, WALL_THICKNESS + 0.02]} />
+        <mesh position={[cx, y + h / 2, cz]} rotation={[0, angle, 0]} material={preview.valid ? okMat : badMat}>
+          <boxGeometry args={[len + WALL_THICKNESS, h, WALL_THICKNESS + 0.02]} />
         </mesh>
       );
     }
     case 'stair':
       return (
         <group>
-          <StairModel stair={{ level, x: preview.x, z: preview.z, rot: stairRot, finish: defaults.stairFinish }} ghost />
+          <StairModel stair={{ level, x: preview.x, z: preview.z, rot: stairRot, finish: defaults.stairFinish, rail: defaults.stairRail }} ghost />
           {!preview.valid && (
             <mesh position={[(preview.x + 0.5) * GRID, y + 0.05, (preview.z + 0.5) * GRID]} material={badMat}>
               <boxGeometry args={[GRID, 0.1, GRID]} />

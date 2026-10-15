@@ -4,10 +4,11 @@
 // - 壁：開いたドアと掃き出し窓だけ通り抜けられる。腰高の窓はよじ登って越える
 // - 窓：開いた窓から出入りできるか（窓枠の高さ・すき間の大きさ）
 // - 家具：床に置いた箱として押し返す
+// - 階段の手すり：横から越えられない（下をくぐるのはよい）
 import { furnitureBounds, getFurniture, getOpening } from '../catalog';
-import { GRID, SLAB_THICKNESS, STAIR_LENGTH, STORY_HEIGHT, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
+import { GRID, SLAB_THICKNESS, STAIR_LENGTH, STAIR_RAIL_HEIGHT, STORY_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import { roofHeightAt } from './roof';
-import { stairFootprint, stairHoles } from './rules';
+import { stairFootprint, stairHoles, stairRailX, wallHeight } from './rules';
 import type { OpeningDef } from '../catalog';
 import type { House, OpeningPart, StairPart, WallPart } from './types';
 
@@ -47,6 +48,26 @@ function stairHeight(s: StairPart, x: number, z: number): number | null {
       break;
   }
   return floorY(s.level) + Math.min(Math.max(u / len, 0), 1) * STORY_HEIGHT;
+}
+
+/**
+ * 階段の手すりを上から見た線分（ワールド座標 m）。a が下端、b が上端。
+ * n は階段の中心から手すりへ向かう単位ベクトル
+ */
+export function stairRail(s: StairPart): { ax: number; az: number; bx: number; bz: number; nx: number; nz: number } {
+  const a = (s.rot * Math.PI) / 2;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  const cx = (s.x + 0.5) * GRID;
+  const cz = (s.z + 0.5) * GRID;
+  // 描画と同じ：ローカル (lx, lz) を Y 軸まわりに a 回す
+  const toWorld = (lx: number, lz: number) => [cx + lx * cos + lz * sin, cz - lx * sin + lz * cos];
+  const lx = stairRailX(s.rail);
+  const z0 = -GRID / 2;
+  const [ax, az] = toWorld(lx, z0);
+  const [bx, bz] = toWorld(lx, z0 + STAIR_LENGTH * GRID);
+  const side = Math.sign(lx);
+  return { ax, az, bx, bz, nx: side * cos, nz: -side * sin };
 }
 
 /**
@@ -173,7 +194,7 @@ export function resolveCollisions(
   for (let iter = 0; iter < 3; iter++) {
     for (const w of house.walls) {
       const wy0 = floorY(w.level);
-      const wy1 = wy0 + WALL_HEIGHT;
+      const wy1 = wy0 + wallHeight(w);
       // 足が壁の上端より上（段差で越えられる高さも含む）か、頭が壁の下なら当たらない
       if (feetY >= wy1 - 0.05 || headY <= wy0 + PLAYER.maxStep) continue;
       const ax = w.x0 * GRID;
@@ -198,6 +219,31 @@ export function resolveCollisions(
           x = cx + (ox / dist) * minD;
           z = cz + (oz / dist) * minD;
         }
+      }
+    }
+    for (const s of house.stairs) {
+      const r = stairRail(s);
+      // 手すりの線上でプレイヤーにいちばん近い点
+      const ex = r.bx - r.ax;
+      const ez = r.bz - r.az;
+      const t = Math.min(Math.max(((x - r.ax) * ex + (z - r.az) * ez) / (ex * ex + ez * ez), 0), 1);
+      // その点の段の高さから手すりの上までを壁とみなす（階段の下は通れる）
+      const tread = floorY(s.level) + t * STORY_HEIGHT;
+      if (feetY >= tread + STAIR_RAIL_HEIGHT + 0.05 || headY <= tread - 0.3) continue;
+      const cx = r.ax + ex * t;
+      const cz = r.az + ez * t;
+      const ox = x - cx;
+      const oz = z - cz;
+      const dist = Math.hypot(ox, oz);
+      const minD = radius + 0.03;
+      if (dist >= minD) continue;
+      if (dist < 1e-6) {
+        // 手すりの真上：階段の内側へ
+        x = cx - r.nx * minD;
+        z = cz - r.nz * minD;
+      } else {
+        x = cx + (ox / dist) * minD;
+        z = cz + (oz / dist) * minD;
       }
     }
     for (const f of house.furniture) {

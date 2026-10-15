@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GRID, STORY_HEIGHT, floorY } from './dimensions';
 import { sampleHouse } from './sample';
+import { stairRailX } from './rules';
+import type { House, StairPart } from './types';
 import { LEAP_DROP, climbDuration, climbFrame, planClimb } from './climb';
-import { PLAYER, ceilingHeight, nearestDoor, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, windowPassage } from './walk';
+import { PLAYER, ceilingHeight, nearestDoor, nearestOpening, resolveCollisions, roofBlocks, stairRail, surfaceHeight, windowPassage } from './walk';
 
 const house = sampleHouse();
 
@@ -191,5 +193,72 @@ describe('屋根の当たり判定', () => {
     expect(roofBlocks(house, x, ridgeZ - 0.3, feet, PLAYER.height)).toBe(true);
     // 地面を歩いているときは軒下を通れる
     expect(roofBlocks(house, x, 5.7 * GRID, 0, PLAYER.height)).toBe(false);
+  });
+});
+
+describe('階段の手すり', () => {
+  const only = (rail: StairPart['rail'], rot: StairPart['rot'] = 0): House => ({
+    ...house,
+    floors: [],
+    walls: [],
+    openings: [],
+    roofs: [],
+    furniture: [],
+    stairs: [{ id: 's', level: 0, x: 5, z: 5, rot, finish: { material: 'oak', color: '#a77b52' }, rail }],
+  });
+  const railX = 5.5 * GRID + stairRailX('left'); // 上る向き(+z)に見て左 = +x
+
+  it('階段の途中で手すりの外へは出られない', () => {
+    const feet = floorY(0) + STORY_HEIGHT / 2;
+    const p = resolveCollisions(only(undefined), { x: railX, z: 7 * GRID }, feet, PLAYER.height);
+    expect(p.x).toBeLessThan(railX - PLAYER.radius);
+    // 外から近づいても押し返される
+    const q = resolveCollisions(only(undefined), { x: railX + 0.1, z: 7 * GRID }, feet, PLAYER.height);
+    expect(q.x).toBeGreaterThan(railX + PLAYER.radius);
+  });
+
+  it('手すりのない側はふさがない', () => {
+    const feet = floorY(0) + STORY_HEIGHT / 2;
+    const start = { x: 5.5 * GRID - stairRailX('left'), z: 7 * GRID };
+    expect(resolveCollisions(only(undefined), start, feet, PLAYER.height)).toEqual(start);
+  });
+
+  it('右手すりの階段は反対側に手すりがある', () => {
+    const feet = floorY(0) + STORY_HEIGHT / 2;
+    const leftSide = { x: railX, z: 7 * GRID };
+    expect(resolveCollisions(only('right'), leftSide, feet, PLAYER.height)).toEqual(leftSide);
+    const rightX = 5.5 * GRID + stairRailX('right');
+    const p = resolveCollisions(only('right'), { x: rightX, z: 7 * GRID }, feet, PLAYER.height);
+    expect(Math.abs(p.x - rightX)).toBeGreaterThan(PLAYER.radius);
+  });
+
+  it('向きを変えた階段でも手すりの位置が合う', () => {
+    // rot 1：+x へ上る。上る向きに見て左は -z
+    const r = stairRail({ ...only('left', 1).stairs[0] });
+    expect(r.az).toBeCloseTo(5.5 * GRID - stairRailX('left'));
+    expect(r.bx - r.ax).toBeCloseTo(4 * GRID);
+  });
+
+  it('階段の高いほうの下は、手すりに当たらずくぐれる', () => {
+    const start = { x: railX, z: 8.8 * GRID };
+    expect(resolveCollisions(only(undefined), start, 0, PLAYER.height)).toEqual(start);
+  });
+});
+
+describe('半分の高さの壁', () => {
+  const finish = { material: 'siding', color: '#ffffff' };
+  const h = (height: 'full' | 'half'): House => ({
+    ...house, floors: [], openings: [], stairs: [], roofs: [], furniture: [],
+    walls: [{ id: 'w', level: 0, x0: 2, z0: 2, x1: 6, z1: 2, exterior: finish, interior: finish, height }],
+  });
+  const p = { x: 4 * GRID, z: 2 * GRID + 0.1 };
+
+  it('床の上に立つと半分の壁にも当たる', () => {
+    expect(resolveCollisions(h('half'), p, floorY(0), PLAYER.height).z).toBeGreaterThan(2 * GRID + PLAYER.radius);
+  });
+
+  it('壁の上端より高いところ（2階）からは当たらない', () => {
+    expect(resolveCollisions(h('half'), p, floorY(0) + STORY_HEIGHT / 2, PLAYER.height)).toEqual(p);
+    expect(resolveCollisions(h('full'), p, floorY(0) + STORY_HEIGHT / 2, PLAYER.height)).not.toEqual(p);
   });
 });

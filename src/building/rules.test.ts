@@ -5,6 +5,7 @@ import {
   canPlaceFloor,
   canPlaceOpening,
   canPlaceStair,
+  canChangeWallHeight,
   canPlaceWall,
   removePart,
   snapOpeningOffset,
@@ -155,5 +156,31 @@ describe('床を張れる場所', () => {
     expect(canPlaceFloor(emptyHouse(), 1, { x0: 0, z0: 0, x1: 4, z1: 4 })).not.toBeNull();
     expect(canPlaceFloor(walled, 1, { x0: 6, z0: 6, x1: 8, z1: 8 })).not.toBeNull();
     expect(canPlaceFloor(walled, 1, { x0: 4, z0: 4, x1: 6, z1: 6 })).not.toBeNull();
+  });
+});
+
+describe('半分の高さの壁', () => {
+  const half = (id: string, x0: number, z0: number, x1: number, z1: number): WallPart => ({ ...wall(id, x0, z0, x1, z1), height: 'half' });
+
+  it('半分の壁の上には2階の床を張れない', () => {
+    const h: House = { ...emptyHouse(), walls: [half('a', 0, 0, 4, 0), half('b', 4, 0, 4, 4)] };
+    expect(canPlaceFloor(h, 1, { x0: 0, z0: 0, x1: 4, z1: 4 })).not.toBeNull();
+  });
+
+  it('背の高い窓・ドアは付けられないが、地窓は付けられる', () => {
+    const h: House = { ...emptyHouse(), walls: [half('a', 0, 0, 4, 0)] };
+    expect(canPlaceOpening(h, 'a', 'door', 1.82)).not.toBeNull();
+    expect(canPlaceOpening(h, 'a', 'sliding', 1.82)).not.toBeNull();
+    expect(canPlaceOpening(h, 'a', 'jimado', 1.82)).toBeNull();
+  });
+
+  it('窓が収まらなくなる高さには変えられない', () => {
+    const h: House = {
+      ...emptyHouse(),
+      walls: [wall('a', 0, 0, 4, 0)],
+      openings: [{ id: 'o', wallId: 'a', kind: 'window', type: 'sliding', offset: 1.82, sashColor: '', panelColor: '' }],
+    };
+    expect(canChangeWallHeight(h, 'a', 'half')).not.toBeNull();
+    expect(canChangeWallHeight({ ...h, openings: [] }, 'a', 'half')).toBeNull();
   });
 });
