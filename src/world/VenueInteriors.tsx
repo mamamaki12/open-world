@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { useVenue } from '../state/venue';
 import { VENUES, VENUE_ACTIONS } from '../building/venues';
@@ -15,7 +16,7 @@ function Label({text,p,w=3,h=.55,color='#edd8a3'}:{text:string;p:[number,number,
     const g=canvas.getContext('2d')!;g.fillStyle=color;g.textAlign='center';g.textBaseline='middle';g.font='bold 82px sans-serif';g.fillText(text,512,128,980);
     const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;},[text,color]);
   useEffect(()=>()=>texture.dispose(),[texture]);
-  return <mesh position={p} rotation-y={Math.PI}><planeGeometry args={[w,h]}/><meshBasicMaterial map={texture} transparent side={THREE.DoubleSide} toneMapped={false}/></mesh>;
+  return <Billboard position={p}><mesh><planeGeometry args={[w,h]}/><meshBasicMaterial map={texture} transparent toneMapped={false}/></mesh></Billboard>;
 }
 function Chair({x,z,rot=0}:{x:number;z:number;rot?:number}){
   return <group position={[x,0,z]} rotation-y={rot}><Box p={[0,.47,0]} s={[.52,.12,.52]} c="#5b3534"/><Box p={[0,.85,.22]} s={[.52,.65,.1]} c="#5b3534"/>{[-1,1].flatMap(a=>[-1,1].map(b=><Box key={a+','+b} p={[a*.2,.23,b*.2]} s={[.035,.46,.035]} c="#a69264" metal={.65}/>))}</group>;
@@ -33,10 +34,17 @@ function CasinoInterior(){
     {[-1,1].flatMap(side=>[-3,3].map(z=><group key={side+','+z}><Round p={[side*10,2.7,z]} r={.24} h={5.4} c="#bda065"/><Round p={[side*10,.12,z]} r={.38} h={.24} c="#e1cf9e"/></group>))}
     {[-3,3].map(z=><group key={z}><Round p={[0,4.9,z]} r={.035} h={1.8} c="#c2a369"/><mesh position={[0,4.1,z]} rotation-x={Math.PI/2}><torusGeometry args={[1.1,.06,10,48]}/><meshStandardMaterial color="#d1b777" metalness={.85} roughness={.2}/></mesh>
       {Array.from({length:14},(_,i)=><group key={i} position={[Math.cos(i*Math.PI/7),3.9,z+Math.sin(i*Math.PI/7)]}><mesh><octahedronGeometry args={[.14]}/><meshPhysicalMaterial color="#f9e8bb" metalness={.3} roughness={.08} clearcoat={1}/></mesh><mesh position={[0,.22,0]}><sphereGeometry args={[.065,10,8]}/><meshBasicMaterial color="#ffe4a0"/></mesh></group>)}</group>)}
-    <RouletteTable x={-6}/><RouletteTable x={6}/>
-    {[-8,-6,-4,4,6,8].map(x=><group key={x} position={[x,0,-4.7]}><Box p={[0,.9,0]} s={[1.15,1.8,1.1]} c="#552031"/><Box p={[0,1.3,-.57]} s={[.93,.65,.04]} c="#172128"/>
-      {[-1,0,1].map(i=><Box key={i} p={[i*.25,1.3,-.6]} s={[.22,.45,.02]} c="#e9dba4"/>)}
-      <Label text="777" p={[0,1.32,-.63]} w={.8} h={.35}/><Label text="GRAND" p={[0,1.85,-.57]} w={1} h={.3}/></group>)}
+    <RouletteTable x={-6}/><group position={[6,0,1]}><Box p={[0,.65,0]} s={[3.3,1.3,2.1]} c="#4c3024"/><Box p={[0,1.32,0]} s={[3.3,.08,2.1]} c="#124d3c"/>{[-1,1].map(side=><Box key={side} p={[side*.6,1.38,0]} s={[.43,.025,.62]} c="#f4eee0"/>)}<Label text="A♠  HIGH / LOW  K♥" p={[0,1.6,0]} w={2.6} h={.4}/>{[-1,0,1].map(i=><Chair key={i} x={i*.85} z={-1.6}/>)}</group>
+    {[-8,-6,-4].map(x=><group key={x} position={[x,0,-4.7]}><Box p={[0,.9,0]} s={[1.15,1.8,1.1]} c="#552031"/><Box p={[0,1.3,.57]} s={[.93,.65,.04]} c="#172128"/>
+      {[-1,0,1].map(i=><Box key={i} p={[i*.25,1.3,.6]} s={[.22,.45,.02]} c="#e9dba4"/>)}
+      <Label text="777" p={[0,1.32,.63]} w={.8} h={.35}/><Label text="GRAND" p={[0,1.85,.57]} w={1} h={.3}/></group>)}
+    {[4,6,8].map((x,i)=><group key={x} position={[x,0,-4.7]}>
+      <Box p={[0,.65,0]} s={[1.4,1.3,1.1]} c="#273b47"/><Box p={[0,1.72,0]} s={[1.55,.9,.16]} c="#182126"/>
+      <Box p={[0,1.72,.09]} s={[1.4,.7,.025]} c={i===2?'#1d758e':'#36654a'}/>
+      <mesh position={[0,1.72,.12]} scale={[1,.45,1]}><torusGeometry args={[.48,.035,8,36]}/><meshStandardMaterial color="#d3c7a8"/></mesh>
+      <Label text={['競馬 HORSE','競輪 KEIRIN','ボート BOAT'][i]} p={[0,2.35,.12]} w={1.8} h={.3}/>
+      <Box p={[0,1.04,.45]} s={[1.2,.06,.55]} c="#b9c7cb"/>
+    </group>)}
     <Box p={[0,.63,4]} s={[6,1.25,1.2]} c="#443028"/><Box p={[0,1.29,4]} s={[6.2,.12,1.35]} c="#dac8a2"/>
     <Label text="GRAND STRIP · BAR & LOUNGE" p={[0,2.8,6.7]} w={8} h={.7}/>
     {Array.from({length:17},(_,i)=><Round key={i} p={[-2.6+i*.32,1.63,4.2]} r={.065} h={.55} c={['#365c3b','#a57434','#692b37'][i%3]}/>)}
