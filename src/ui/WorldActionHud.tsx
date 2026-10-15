@@ -20,7 +20,17 @@ export function WorldActionHud(){
   useEffect(()=>{if(!driving)return;const t=setInterval(()=>tick(v=>v+1),120);return()=>clearInterval(t);},[driving]);
   if(overlay||!target)return null;
   const car=useVehicles.getState().cars.find(c=>c.id===(driving??target));
-  if(driving&&car)return <div className="drive-hud"><b>{getCar(car.model)!.name}</b><div className="drive-speed">{car.speed<-.1?'R ':''}{Math.round(Math.abs(car.speed)*3.6)}<small>km/h</small></div><p>W/S 前後 · A/D ハンドル · Space ブレーキ</p><p>Q 視点 · L ライト {car.lights?'ON':'OFF'}</p><button onClick={()=>interact()}>F · 停車して降りる</button><button onClick={()=>{car.lights=!car.lights;}}>ライト切替</button></div>;
+  if(driving&&car)return <div className="drive-hud" aria-label="運転情報">
+    <div className="drive-dashboard">
+      <b className="drive-model">{getCar(car.model)!.name}</b>
+      <div className="drive-speed">{car.speed<-.1?'R ':''}{Math.round(Math.abs(car.speed)*3.6)}<small>km/h</small></div>
+    </div>
+    <div className="drive-keyboard-help"><p>W/S 前後 · A/D ハンドル · Space ブレーキ</p><p>Q 視点 · L ライト {car.lights?'ON':'OFF'}</p></div>
+    <div className="drive-actions">
+      <button onClick={()=>interact()}><span className="drive-key">F · </span>停車して降りる</button>
+      <button aria-pressed={car.lights} onClick={()=>{car.lights=!car.lights;tick(v=>v+1);}}>ライト {car.lights?'ON':'OFF'}</button>
+    </div>
+  </div>;
   const door=target.startsWith('door:')?target.slice(5) as Venue:null;
   const venueLabel=door?`${VENUES[door].name}のドアを${venueDoorId(door) in doorsOpen?'閉める':'開ける'}`:inside&&target.startsWith('venue:')?VENUE_ACTIONS[inside].find(a=>target==='venue:'+a.id)?.label:undefined;
   const label=venueLabel??(target.startsWith('land:')?'この土地を買う':target.startsWith('shutter:')?'ガレージシャッターを開閉する':car?getCar(car.model)!.name+' に乗る':'');

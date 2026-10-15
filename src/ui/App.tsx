@@ -3,6 +3,7 @@ import { canPlaceStair } from '../building/rules';
 import { sampleHouse } from '../building/sample';
 import { emptyHouse } from '../building/types';
 import { autosave, loadAutosave, loadSlot, saveSlot, slotInfos } from '../save/storage';
+import { useVehicles } from '../state/vehicles';
 import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
@@ -43,6 +44,7 @@ export function App() {
   useKeyboard();
   useAutosave();
   useEconomyClock();
+  const driving = useVehicles(s => s.driving !== null);
   const overlay = useGame((s) => s.overlay);
   const touch = useTouchDevice();
   const walking = useGame((s) => s.mode === 'walk');
@@ -51,7 +53,7 @@ export function App() {
   useTopBarHeight(app, touch);
   useNoPageZoom(touch);
   return (
-    <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}`}>
+    <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}`}>
       <Scene />
       {!touch && (
         <>
