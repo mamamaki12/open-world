@@ -556,7 +556,7 @@ export function RaceView({ race, motion, order, onDone }: Props) {
         if (race.kind === 'horse') {
           say('start', 'ゲートが開いて、各馬いっせいにスタートしました！');
           if (leadD > 250) say('early', `先行争い。先頭は ${who(lead)}、続いて ${standings.slice(1, 3).map(who).join('、')}`);
-          if (leadD > L * 0.5 && L >= 1400) say('half', `半分を通過。先頭は ${who(lead)}、${top3} の順`);
+          if (leadD > L * 0.5 && L >= 1400) say('half', `半分を通過。先頭は ${who(lead)}、続いて ${standings.slice(1, 3).map(who).join('、')}`);
           const inStretch = remain < c.finishP + 2 && remain > 0;
           if (inStretch) say('stretch', `最後の直線に入りました！ 先頭は ${who(lead)}！`);
           if (remain < 200 && remain > 0) say('200', `残り200！ ${who(lead)} 先頭、${who(standings[1])} が迫る！`);
