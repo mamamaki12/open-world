@@ -1,4 +1,6 @@
 /* スマホ・タブレット（指で操作する端末）の画面。.app.touch のときだけ効く */
+/* iPhone の Safari は横向きにすると文字を勝手に大きくするので止める（横向きでボタンが折り返していた原因） */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .app { --top-h: 60px; --hud-top: 60px; --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); }
 .app canvas { touch-action: none; }
 .touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
@@ -11,7 +13,7 @@
   gap: 6px; padding: 6px; row-gap: 6px;
 }
 .touch .brand { display: none; }
-.touch .tool { padding: 7px 12px; font-size: 14px; min-height: 36px; }
+.touch .tool { padding: 7px 12px; font-size: 14px; min-height: 36px; white-space: nowrap; }
 .touch .topbar .tool-list {
   order: 10; flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
   -webkit-overflow-scrolling: touch; margin: 0 -2px; padding: 0 2px;
@@ -137,18 +139,46 @@
   .touch .ledger { font-size: 12px; }
 }
 
-/* 横向き：高さが足りないので、上の表示は横に並べ、ドアのボタンはスティックと動作ボタンの間に */
+/* 横向き：iPhone は高さが 330px ほどしかなく、左右にノッチの余白もあるので、全部を小さく詰める。
+   上は1段（モード・ツール・取り消し・セーブ）＋お金のバー、カメラのボタンは右に2×2、下は階と引き出しを横並びに */
 @media (orientation: landscape) and (max-height: 500px) {
-  .touch .topbar { flex-wrap: nowrap; }
+  .touch .tool { min-height: 32px; padding: 4px 9px; font-size: 13px; white-space: nowrap; }
+  .touch .topbar { flex-wrap: nowrap; gap: 4px; padding: 4px 6px; top: 4px; }
   .touch .topbar .tool-list { order: 0; flex: 1 1 auto; min-width: 0; margin: 0; }
-  .touch .topbar .history .tool { min-width: 38px; padding: 4px 8px; }
-  .touch-top { flex-direction: row; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
-  .touch-top .sheet { width: 300px; }
-  .touch-top .sheet-body { max-height: 50vh; }
-  .touch .door-prompts { bottom: calc(16px + var(--safe-b)); }
-  .touch-dock { flex-direction: row; align-items: flex-end; justify-content: center; }
-  .touch-dock .sheet { max-width: 380px; }
-  .sheet-body { max-height: 45vh; max-height: calc(100dvh - var(--hud-top) - 110px); }
-  .joystick { width: 116px; height: 116px; left: calc(16px + var(--safe-l)); bottom: calc(14px + var(--safe-b)); }
-  .touch-actions { bottom: calc(14px + var(--safe-b)); }
+  .touch .topbar .history { flex-wrap: nowrap; flex: none; }
+  .touch .topbar .history .tool { min-width: 34px; padding: 2px 6px; font-size: 16px; }
+  .touch .topbar .tool.mode, .touch .save { flex: none; }
+  .touch .moneybar { top: calc(var(--top-h) + 4px); padding: 3px 5px; gap: 3px; }
+  .touch .moneybar .tool { min-height: 28px; padding: 3px 8px; font-size: 12px; }
+  .touch .money { flex-direction: row; align-items: baseline; gap: 6px; }
+  .touch .money .cash { font-size: 14px; }
+  .touch .controls-help { top: calc(var(--hud-top) + 4px); font-size: 10px; padding: 2px 8px; }
+
+  .touch-camera {
+    top: calc(var(--hud-top) + 8px); right: calc(8px + var(--safe-r));
+    grid-template-columns: 40px 40px; gap: 6px;
+  }
+  .touch-camera .touch-btn { width: 40px; height: 40px; font-size: 18px; }
+
+  .touch-dock {
+    flex-direction: row; align-items: flex-end; justify-content: center; gap: 6px;
+    bottom: calc(4px + var(--safe-b));
+  }
+  .touch-dock .levelbar { flex-wrap: nowrap; flex: none; }
+  .touch .levelbar .tool { min-height: 30px; padding: 3px 10px; }
+  .touch .levelbar-label { display: none; }
+  .touch-dock .sheet { max-width: 360px; flex: 1 1 auto; }
+  .sheet-head { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+  .sheet-body { max-height: 45vh; max-height: calc(100dvh - var(--hud-top) - 90px); }
+
+  .touch-top { top: calc(var(--hud-top) + 22px); flex-direction: row; justify-content: center; align-items: flex-start; flex-wrap: nowrap; }
+  .touch-top .sheet { width: 280px; }
+  .touch-top .sheet-body { max-height: 45vh; max-height: calc(100dvh - var(--hud-top) - 80px); }
+  .touch .door-prompts { bottom: calc(10px + var(--safe-b)); }
+  .touch .door-prompt { padding: 8px 14px; font-size: 14px; }
+  .joystick { width: 104px; height: 104px; left: calc(14px + var(--safe-l)); bottom: calc(10px + var(--safe-b)); }
+  .joystick-knob { width: 46px; height: 46px; }
+  .touch-actions { right: calc(12px + var(--safe-r)); bottom: calc(10px + var(--safe-b)); gap: 6px; }
+  .touch-actions .touch-btn.small { width: 62px; height: 34px; font-size: 12px; }
+  .touch-actions .jump { width: 70px; height: 70px; font-size: 14px; }
 }
