@@ -1,4 +1,5 @@
 // カジノ・競技場：スロット、ルーレット、ハイ＆ロー、競馬、競輪、ボートレース。賭け金の上限はなし
+import { useVenue } from '../state/venue';
 import { useEffect, useRef, useState } from 'react';
 import { yen } from '../economy/money';
 import { useEconomy } from '../state/economy';
@@ -99,7 +100,7 @@ function VoiceNotice() {
 }
 
 export function CasinoPanel() {
-  const [tab, setTabState] = useState<Tab | null>(null);
+  const [tab, setTabState] = useState<Tab | null>(()=>useVenue.getState().game);
   const setTab = (t: Tab | null) => { stopSpeaking(); setTabState(t); };
   const close = useGame((s) => s.setOverlay);
   const race = tab === 'horse' || tab === 'keirin' || tab === 'boat';
