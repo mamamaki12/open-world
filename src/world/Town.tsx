@@ -7,7 +7,7 @@ import type { House } from '../building/types';
 import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
 import { CASINO_PLOT, FIRST_PLOT, LAST_PLOT, PLOT_PITCH, districtOf, plotX } from '../economy/town';
-import { useCurrentPlot, useEconomy } from '../state/economy';
+import { lotHouse, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
 import { HouseParts } from './HouseView';
 import { grassTexture } from './textures';
@@ -63,6 +63,7 @@ export function Town() {
       <group name="neighbors">
         {lots.map((l) => {
           if (typeof l.plot !== 'number') return null;
+          const house = lotHouse(l);
           const x = plotX(l.plot) + shift;
           const current = l.id === currentLotId;
           return (
@@ -73,7 +74,7 @@ export function Town() {
                   <meshStandardMaterial color="#b9b2a3" roughness={1} />
                 </mesh>
               )}
-              {!current && l.built && <StaticHouse house={l.built} />}
+              {!current && house && <StaticHouse house={house} />}
               <Signboard
                 lines={[current ? 'いまの土地' : 'あなたの土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : '']}
                 tone="owned"
