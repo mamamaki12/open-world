@@ -9,14 +9,14 @@ import { useSeating } from '../state/seating';
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
 import type { ClimbPlan } from '../building/climb';
-import { CASINO_ARRIVAL, atCasinoDoor, resolveLandmarks } from '../building/landmarks';
+import { atCasinoDoor, atEstateDoor, resolveLandmarks } from '../building/landmarks';
 import { PLAYER, ceilingHeight, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, windowPassage } from '../building/walk';
 import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
 import { lotHouse, plotOffset, useEconomy } from '../state/economy';
-import { CASINO_PLOT } from '../economy/town';
+import { CASINO_PLOT, FIRST_PLOT, LAST_PLOT } from '../economy/town';
 import { RUN_THRESHOLD, touchMove, walkActions } from '../state/touch';
 import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
 
@@ -80,7 +80,7 @@ export function interact() {
     useSeating.setState({ seated: null, returnTo: null });
     return;
   }
-  if (enterCasino()) return;
+  if (enterCasino() || enterEstate()) return;
   if (useDoors.getState().climbing) return;
   const seat = seating.target;
   if (seat) {
@@ -95,23 +95,16 @@ export function interact() {
 
 /** カジノの入口の前なら中へ入る（カジノの画面を開く）。入れたら true */
 export function enterCasino(): boolean {
-  if (!useDoors.getState().atCasino) return false;
+  if (useGame.getState().mode !== 'walk' || !atCasinoDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z, playerMemory.y)) return false;
   useGame.getState().setOverlay('casino');
   return true;
 }
 
-/** 歩きモードにして、カジノの入口の前へ移動する */
-export function goToCasino() {
-  useSeating.setState({ seated: null, target: null, returnTo: null });
-  const game = useGame.getState();
-  game.setOverlay(null);
-  if (game.mode !== 'walk') game.setMode('walk');
-  playerMemory.x = CASINO_ARRIVAL.x + plotOffset(CASINO_PLOT);
-  playerMemory.y = 0;
-  playerMemory.z = CASINO_ARRIVAL.z;
-  playerMemory.yaw = CASINO_ARRIVAL.yaw;
-  playerMemory.bodyYaw = CASINO_ARRIVAL.yaw;
-  playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
+/** 不動産屋の店舗前でだけ入れる。 */
+export function enterEstate(): boolean {
+  if (useGame.getState().mode !== 'walk' || !atEstateDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z, playerMemory.y)) return false;
+  useGame.getState().setOverlay('estate');
+  return true;
 }
 
 /** 持っている土地へワープする：その土地を画面に出し、歩きモードなら土地の前の道に立つ */
@@ -217,6 +210,7 @@ export function Player() {
       useDoors.getState().setTarget(null);
       useDoors.getState().setClimb(null, false);
       useDoors.getState().setAtCasino(false);
+      useDoors.getState().setAtEstate(false);
     };
   }, [camera]);
 
@@ -479,7 +473,7 @@ export function Player() {
             const alongZ = { x: playerMemory.x, z: next.z };
             next = !blocked(alongX) ? alongX : !blocked(alongZ) ? alongZ : { x: playerMemory.x, z: playerMemory.z };
           }
-          playerMemory.x = Math.min(Math.max(next.x, -25), LOT_W * GRID + 25);
+          playerMemory.x = Math.min(Math.max(next.x, plotOffset(FIRST_PLOT) - 25), plotOffset(LAST_PLOT) + LOT_W * GRID + 25);
           playerMemory.z = Math.min(Math.max(next.z, -25), LOT_D * GRID + 25);
           // 三人称では進む向きへ体を回す
           if (mlen > 0 || !st.grounded) {
@@ -537,7 +531,8 @@ export function Player() {
         if (pass) climb = pass.ok ? (Math.hypot(playerMemory.x - pass.x, playerMemory.z - pass.z) <= CLIMB_REACH ? 'ok' : null) : pass.reason;
       }
       doors.setClimb(climb, false);
-      doors.setAtCasino(atCasinoDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z));
+      doors.setAtCasino(atCasinoDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z, playerMemory.y));
+      doors.setAtEstate(atEstateDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z, playerMemory.y));
     } else {
       doors.setClimb(null, true);
     }
@@ -622,7 +617,7 @@ export function Player() {
       const focus = new THREE.Vector3(playerMemory.x, eye - 0.1, playerMemory.z);
       let dist = playerMemory.distance;
       // 壁や屋根でカメラが埋もれないよう、手前に寄せる
-      const blockers = ['house', 'casino', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
+      const blockers = ['house', 'casino', 'estate', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
       if (blockers.length) {
         raycaster.current.set(focus, dir.clone().negate());
         raycaster.current.far = dist;
