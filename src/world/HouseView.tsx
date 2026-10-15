@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
-import { GRID, WALL_HEIGHT, WALL_THICKNESS, floorY } from '../building/dimensions';
+import { GRID, MAX_LEVEL, WALL_HEIGHT, WALL_THICKNESS, floorY } from '../building/dimensions';
 import { furnitureBaseY, stairHoles, wallHeight, wallLength, wallOutsideSide } from '../building/rules';
 import type { House } from '../building/types';
 import { useGame } from '../state/store';
@@ -64,6 +64,7 @@ export function HouseParts({ house, showRoofs = true }: { house: House; showRoof
 
 const okMat = new THREE.MeshBasicMaterial({ color: '#3d8bff', transparent: true, opacity: 0.35, depthWrite: false });
 const badMat = new THREE.MeshBasicMaterial({ color: '#ff4a3d', transparent: true, opacity: 0.4, depthWrite: false });
+const eraseMat = new THREE.MeshBasicMaterial({ color: '#ff4a3d', transparent: true, opacity: 0.18, depthWrite: false });
 
 /** 置く前の半透明のプレビュー */
 function PreviewView() {
@@ -81,6 +82,15 @@ function PreviewView() {
       const { rect } = preview;
       const w = (rect.x1 - rect.x0) * GRID;
       const d = (rect.z1 - rect.z0) * GRID;
+      if (preview.tool === 'erase') {
+        // まとめて消す範囲：地面から2階の上までの赤い箱
+        const top = floorY(MAX_LEVEL + 1) + 0.5;
+        return (
+          <mesh position={[rect.x0 * GRID + w / 2, top / 2, rect.z0 * GRID + d / 2]} material={eraseMat}>
+            <boxGeometry args={[w, top, d]} />
+          </mesh>
+        );
+      }
       const h = preview.tool === 'roof' ? 0.1 : 0.05;
       const py = preview.tool === 'roof' ? y + WALL_HEIGHT + h / 2 : y + h / 2;
       return (

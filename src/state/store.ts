@@ -1,6 +1,6 @@
 // ゲーム状態（Zustand）。3D側とメニュー側の両方から使う。
 import { create } from 'zustand';
-import { removePart } from '../building/rules';
+import { removePart, removeParts } from '../building/rules';
 import { emptyHouse } from '../building/types';
 import type { Finish, House, FloorKind, PartRef, RoofType, StairRail, WallHeight } from '../building/types';
 
@@ -76,6 +76,10 @@ interface GameState {
   /** いま置こうとしている階（マウスの下の面から自動で決まる。プレビューとマス目の高さに使う） */
   activeLevel: number;
   selection: PartRef | null;
+  /** 削除ツールで「まとめて選んで消す」にしているか */
+  eraseMulti: boolean;
+  /** まとめて消すために選んだパーツ */
+  marked: PartRef[];
   defaults: Defaults;
   message: { text: string; at: number } | null;
   overlay: Overlay;
@@ -96,6 +100,13 @@ interface GameState {
   setLevel: (level: number) => void;
   select: (ref: PartRef | null) => void;
   deleteSelected: () => void;
+  setEraseMulti: (on: boolean) => void;
+  /** クリックしたパーツを選ぶ／選んであれば外す */
+  toggleMark: (ref: PartRef) => void;
+  /** 範囲で選んだパーツを足す */
+  addMarks: (refs: PartRef[]) => void;
+  clearMarks: () => void;
+  deleteMarked: () => void;
   setDefaults: (patch: Partial<Defaults>) => void;
   notify: (text: string) => void;
   setOverlay: (overlay: Overlay) => void;
@@ -112,6 +123,8 @@ export const useGame = create<GameState>((set, get) => ({
   tool: 'select',
   activeLevel: 0,
   selection: null,
+  eraseMulti: false,
+  marked: [],
   defaults: INITIAL_DEFAULTS,
   message: null,
   overlay: null,
@@ -132,12 +145,12 @@ export const useGame = create<GameState>((set, get) => ({
   undo: () => {
     const { past, house, future } = get();
     if (!past.length) return;
-    set({ house: past[past.length - 1], past: past.slice(0, -1), future: [house, ...future], selection: null, lastCommit: null });
+    set({ house: past[past.length - 1], past: past.slice(0, -1), future: [house, ...future], selection: null, marked: [], lastCommit: null });
   },
   redo: () => {
     const { past, house, future } = get();
     if (!future.length) return;
-    set({ house: future[0], past: [...past, house], future: future.slice(1), selection: null, lastCommit: null });
+    set({ house: future[0], past: [...past, house], future: future.slice(1), selection: null, marked: [], lastCommit: null });
   },
   beginDrag: () => set({ dragBase: get().house }),
   dragTo: (next) => set({ house: next }),
@@ -158,7 +171,7 @@ export const useGame = create<GameState>((set, get) => ({
   // 歩きモードに入るときは手ぶら（選択ツール）から始める
   setMode: (mode) => set({ mode, selection: null, tool: mode === 'walk' ? 'select' : get().tool }),
   toggleView: () => set({ view: get().view === 'third' ? 'first' : 'third' }),
-  setTool: (tool) => set({ tool, selection: tool === 'select' ? get().selection : null }),
+  setTool: (tool) => set({ tool, selection: tool === 'select' ? get().selection : null, marked: [] }),
   setLevel: (level) => {
     if (get().activeLevel !== level) set({ activeLevel: level });
   },
@@ -168,6 +181,24 @@ export const useGame = create<GameState>((set, get) => ({
     if (!selection) return;
     commit(removePart(house, selection));
     set({ selection: null });
+  },
+  setEraseMulti: (on) => set({ eraseMulti: on, marked: [] }),
+  toggleMark: (ref) => {
+    const { marked } = get();
+    const has = marked.some((m) => m.kind === ref.kind && m.id === ref.id);
+    set({ marked: has ? marked.filter((m) => !(m.kind === ref.kind && m.id === ref.id)) : [...marked, ref] });
+  },
+  addMarks: (refs) => {
+    const { marked } = get();
+    const fresh = refs.filter((r) => !marked.some((m) => m.kind === r.kind && m.id === r.id));
+    if (fresh.length) set({ marked: [...marked, ...fresh] });
+  },
+  clearMarks: () => set({ marked: [] }),
+  deleteMarked: () => {
+    const { marked, house, commit } = get();
+    if (!marked.length) return;
+    commit(removeParts(house, marked));
+    set({ marked: [], selection: null });
   },
   setDefaults: (patch) => set({ defaults: { ...get().defaults, ...patch } }),
   notify: (text) => set({ message: { text, at: Date.now() } }),

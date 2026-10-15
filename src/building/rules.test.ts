@@ -8,6 +8,8 @@ import {
   canChangeWallHeight,
   canPlaceWall,
   furnitureBaseY,
+  partsInRect,
+  removeParts,
   removePart,
   snapOpeningOffset,
   stairFootprint,
@@ -199,5 +201,23 @@ describe('テラスと庭', () => {
     const h: House = { ...emptyHouse(), floors: [{ id: 'f', level: 0, x0: 0, z0: 0, x1: 4, z1: 4, finish }] };
     expect(furnitureBaseY(h, { level: 0, x: 2 * GRID, z: 2 * GRID })).toBeCloseTo(0.5);
     expect(furnitureBaseY(h, { level: 0, x: 8 * GRID, z: 8 * GRID })).toBe(0);
+  });
+});
+
+describe('まとめて消す', () => {
+  it('範囲にかかるパーツを集め、まとめて消せる', () => {
+    const h = sampleHouse();
+    const all = partsInRect(h, { x0: 0, z0: 0, x1: 24, z1: 20 });
+    expect(all.length).toBe(h.floors.length + h.walls.length + h.openings.length + h.stairs.length + h.roofs.length + h.furniture.length);
+    const empty = removeParts(h, all);
+    expect(empty.floors.length + empty.walls.length + empty.openings.length + empty.stairs.length + empty.roofs.length + empty.furniture.length).toBe(0);
+  });
+
+  it('範囲の外のパーツは選ばない', () => {
+    const h = sampleHouse();
+    expect(partsInRect(h, { x0: 0, z0: 0, x1: 2, z1: 2 })).toEqual([]);
+    const some = partsInRect(h, { x0: 14, z0: 7, x1: 15, z1: 8 });
+    expect(some.some((r) => r.kind === 'stair')).toBe(true);
+    expect(some.length).toBeLessThan(partsInRect(h, { x0: 0, z0: 0, x1: 24, z1: 20 }).length);
   });
 });

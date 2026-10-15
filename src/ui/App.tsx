@@ -344,8 +344,13 @@ function ControlsHelp() {
   const walking = useGame((s) => s.mode === 'walk');
   const building = tool !== 'select' && tool !== 'erase';
   const touch = useTouchDevice();
+  const eraseMulti = useGame((s) => s.eraseMulti) && tool === 'erase' && !walking;
   let text: string;
-  if (touch) {
+  if (eraseMulti) {
+    text = touch
+      ? 'タップ：選ぶ・外す　なぞる：範囲で選ぶ　2本指：移動・ズーム'
+      : 'クリック：選ぶ・外す　ドラッグ：範囲で選ぶ　Delete：まとめて削除　右ドラッグ：回転';
+  } else if (touch) {
     const place = tool === 'erase' ? 'タップ：消す' : tool === 'floor' || tool === 'roof' || tool === 'wall' ? 'なぞる：置く' : 'タップ：置く';
     if (walking) text = tool === 'select' ? 'スティック：歩く（端まで倒すと走る）　なぞる：見回す' : `${place}　2本指：見回す`;
     else text = building || tool === 'erase' ? `${place}　2本指：移動・ズーム` : 'タップ：選ぶ　なぞる：回す　2本指：移動・ズーム';
@@ -462,7 +467,8 @@ function useKeyboard() {
         return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        s.deleteSelected();
+        if (s.marked.length) s.deleteMarked();
+        else s.deleteSelected();
         return;
       }
       const sel = s.selection;

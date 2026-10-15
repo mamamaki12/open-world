@@ -75,6 +75,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .btn { border: 1px solid var(--line); background: #fff; border-radius: 7px; padding: 6px 10px; font-size: 13px; margin: 2px 0; }
 .btn.small { padding: 3px 8px; font-size: 12px; }
 .btn.danger { color: var(--danger); border-color: #e6b5b2; }
+.btn:disabled { opacity: 0.45; cursor: default; }
 .row { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .levelbar {

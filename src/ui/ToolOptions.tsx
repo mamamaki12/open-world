@@ -17,7 +17,7 @@ export const TOOL_HELP: Record<Tool, string> = {
   stair: '1階でクリックすると2階へ上がる階段を置きます（幅1マス × 長さ4マス）。R キーで向きを変えます。手すりは なし・左・右・両側 から選べます。',
   roof: '屋根を載せる範囲をドラッグします。範囲の下にあるいちばん上の階の壁に載ります。',
   furniture: 'クリックで家具を置きます。庭にはプールや花も置けます。R キーで90度回します。',
-  erase: 'クリックしたパーツを消します。',
+  erase: 'クリックしたパーツを消します。「まとめて選ぶ」にすると、いくつも選んでから一度に消せます。',
 };
 
 /** 指で操作するときの説明 */
@@ -30,7 +30,7 @@ const TOUCH_TOOL_HELP: Record<Tool, string> = {
   stair: '1階をタップすると2階へ上がる階段を置きます（幅1マス × 長さ4マス）。下のボタンで向きを変えます。',
   roof: '屋根を載せる範囲を指でなぞります。範囲の下にあるいちばん上の階の壁に載ります。',
   furniture: 'タップで家具を置きます。庭にはプールや花も置けます。下のボタンで90度回します。',
-  erase: 'タップしたパーツを消します。',
+  erase: 'タップしたパーツを消します。「まとめて選ぶ」にすると、いくつも選んでから一度に消せます。',
 };
 
 export function ToolOptions() {
@@ -120,6 +120,9 @@ export function ToolOptions() {
         </>
       );
       break;
+    case 'erase':
+      body = <EraseOptions />;
+      break;
     case 'furniture':
       body = (
         <div className="field">
@@ -165,6 +168,42 @@ export function NameplateInput({ value = '', onChange }: { value?: string; onCha
       <div className="field-label">表札の文字</div>
       <input type="text" value={value} maxLength={12} placeholder="山田" onChange={(e) => onChange(e.target.value)} />
     </label>
+  );
+}
+
+function EraseOptions() {
+  const multi = useGame((s) => s.eraseMulti);
+  const count = useGame((s) => s.marked.length);
+  const g = useGame.getState();
+  const touch = useTouchDevice();
+  return (
+    <>
+      <div className="field">
+        <div className="field-label">消し方</div>
+        <div className="seg">
+          <button className={!multi ? 'on' : ''} onClick={() => g.setEraseMulti(false)}>
+            1つずつ
+          </button>
+          <button className={multi ? 'on' : ''} onClick={() => g.setEraseMulti(true)}>
+            まとめて選ぶ
+          </button>
+        </div>
+      </div>
+      {multi && (
+        <>
+          <p className="info">
+            {touch ? 'タップで選ぶ・外す、なぞると範囲で選べます。' : 'クリックで選ぶ・外す、何もない所からドラッグすると範囲で選べます。'}
+            選んだもの：<b>{count}</b> 個
+          </p>
+          <button className="btn danger" disabled={!count} onClick={() => useGame.getState().deleteMarked()}>
+            まとめて削除{!touch && <span className="kbd-hint">（Delete）</span>}
+          </button>
+          <button className="btn" disabled={!count} onClick={() => useGame.getState().clearMarks()}>
+            選び直す
+          </button>
+        </>
+      )}
+    </>
   );
 }
 
