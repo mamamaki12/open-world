@@ -49,6 +49,25 @@ describe('壁', () => {
     expect(wallOutsideSide(h, wall('w', 0, 4, 4, 4))).toBe(1);
     expect(wallOutsideSide(h, wall('w', 2, 0, 2, 4))).toBe(0);
   });
+
+  it('壁で囲まれた部屋は、床が壁の外まではみ出していても外壁を外に向ける', () => {
+    const walls = [wall('n', 2, 2, 6, 2), wall('e', 6, 2, 6, 6), wall('s', 6, 6, 2, 6), wall('w', 2, 6, 2, 2), wall('p', 4, 2, 4, 6)];
+    const h: House = { ...emptyHouse(), walls, floors: [{ id: 'f', level: 0, x0: 0, z0: 0, x1: 10, z1: 10, finish }] };
+    // (2,2)→(6,2) の左側（+z）が部屋
+    expect(wallOutsideSide(h, walls[0])).toBe(-1);
+    expect(wallOutsideSide(h, walls[1])).not.toBe(0);
+    expect(wallOutsideSide(h, walls[2])).not.toBe(0);
+    expect(wallOutsideSide(h, walls[3])).not.toBe(0);
+    // 部屋の中の仕切りは両側とも室内
+    expect(wallOutsideSide(h, walls[4])).toBe(0);
+  });
+
+  it('床がなくても、壁で囲まれていれば内側を室内とする', () => {
+    const walls = [wall('n', 0, 0, 4, 0), wall('e', 4, 0, 4, 4), wall('s', 4, 4, 0, 4), wall('w', 0, 4, 0, 0)];
+    const h: House = { ...emptyHouse(), walls };
+    expect(wallOutsideSide(h, walls[0])).toBe(-1);
+    expect(wallOutsideSide({ ...emptyHouse(), walls: walls.slice(0, 3) }, walls[0])).toBe(2);
+  });
 });
 
 describe('窓・ドア', () => {
