@@ -1,7 +1,8 @@
 // 配置ルール（置けるかどうかの判定、吸着、削除の連鎖）。描画からは独立させ、
 // 将来サーバー側でも同じ判定を使えるようにする。
+import { stairRects } from './stairs';
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
-import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_LENGTH, STAIR_WIDTH, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
+import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_WIDTH, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import type { FurniturePart, House, OpeningPart, PartRef, StairPart, StairRail, WallHeight, WallPart } from './types';
 
 export interface Rect {
@@ -208,17 +209,10 @@ export function canPlaceOpening(
 // ---- 階段 ----
 
 /** 階段の占めるマス（グリッド点の四角形） */
-export function stairFootprint(s: Pick<StairPart, 'x' | 'z' | 'rot'>): Rect {
-  switch (s.rot) {
-    case 0:
-      return { x0: s.x, z0: s.z, x1: s.x + 1, z1: s.z + STAIR_LENGTH };
-    case 2:
-      return { x0: s.x, z0: s.z - STAIR_LENGTH + 1, x1: s.x + 1, z1: s.z + 1 };
-    case 1:
-      return { x0: s.x, z0: s.z, x1: s.x + STAIR_LENGTH, z1: s.z + 1 };
-    case 3:
-      return { x0: s.x - STAIR_LENGTH + 1, z0: s.z, x1: s.x + 1, z1: s.z + 1 };
-  }
+export function stairFootprint(s: Pick<StairPart, 'x' | 'z' | 'rot' | 'shape'>): Rect {
+  const rects = stairRects(s);
+  return { x0: Math.min(...rects.map(r => r.x0)), x1: Math.max(...rects.map(r => r.x1)),
+    z0: Math.min(...rects.map(r => r.z0)), z1: Math.max(...rects.map(r => r.z1)) };
 }
 
 /** 手すりの位置（階段ローカルの X。上る向き +Z に見て左が +X）。両側なら2本、なしなら空 */
@@ -232,7 +226,7 @@ export function canPlaceStair(house: House, s: Omit<StairPart, 'id' | 'finish'>,
   const fp = stairFootprint(s);
   if (!rectInsideLot(fp)) return '土地の外には置けません';
   const clash = house.stairs.some(
-    (o) => o.id !== ignoreId && (o.level === s.level || Math.abs(o.level - s.level) === 1) && rectsOverlap(stairFootprint(o), fp),
+    (o) => o.id !== ignoreId && (o.level === s.level || Math.abs(o.level - s.level) === 1) && stairRects(o).some(a => stairRects(s).some(b => rectsOverlap(a, b))),
   );
   if (clash) return '他の階段と重なります';
   return null;
@@ -240,7 +234,7 @@ export function canPlaceStair(house: House, s: Omit<StairPart, 'id' | 'finish'>,
 
 /** その階の床に開ける吹き抜け（下の階から上がってくる階段の穴） */
 export function stairHoles(house: House, level: number): Rect[] {
-  return house.stairs.filter((s) => s.level === level - 1).map(stairFootprint);
+  return house.stairs.filter((s) => s.level === level - 1).flatMap(stairRects);
 }
 
 // ---- 家具 ----

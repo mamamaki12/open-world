@@ -64,12 +64,14 @@ export interface StairPart {
   z: number;
   /** 0: +z方向へ上る, 1: +x, 2: -z, 3: -x */
   rot: 0 | 1 | 2 | 3;
+  shape?: StairShape;
   finish: Finish;
   /** 手すりの付き方（上る向きに見て）。省略は左 */
   rail?: StairRail;
 }
 
 export type StairRail = 'left' | 'right' | 'both' | 'none';
+export type StairShape = 'straight' | 'compact' | 'l' | 'u';
 
 export type RoofType = 'gable' | 'hip' | 'shed' | 'flat';
 

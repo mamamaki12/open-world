@@ -83,7 +83,7 @@ export function Scene() {
         enableDamping={!placing && !dragging}
         dampingFactor={0.12}
         minDistance={1.2}
-        maxDistance={120}
+        maxDistance={320}
         maxPolarAngle={Math.PI / 2 - 0.02}
         // 移動は地面と平行に。ズームはマウスのある場所へ寄る
         screenSpacePanning={false}

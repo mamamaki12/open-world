@@ -3,11 +3,12 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { touchCamera } from '../state/touch';
 import { useTouchDevice } from '../ui/useTouchDevice';
+import { currentPlotOf, useEconomy } from '../state/economy';
+import { TOWN_BOUNDS, plotX, plotZ } from '../economy/town';
 
 export const CAMERA_KEYS = {
   forward: ['KeyW', 'ArrowUp'],
@@ -107,8 +108,9 @@ export function BuildCamera() {
       const right = new THREE.Vector3(-forward.z, 0, forward.x);
       const move = forward.multiplyScalar(fwd).add(right.multiplyScalar(side)).normalize().multiplyScalar(speed * dt);
       const next = target.clone().add(move);
-      next.x = Math.min(Math.max(next.x, -MARGIN), LOT_W * GRID + MARGIN);
-      next.z = Math.min(Math.max(next.z, -MARGIN), LOT_D * GRID + MARGIN);
+      const plot = currentPlotOf(useEconomy.getState());
+      next.x = Math.min(Math.max(next.x, TOWN_BOUNDS.x0 - plotX(plot) - MARGIN), TOWN_BOUNDS.x1 - plotX(plot) + MARGIN);
+      next.z = Math.min(Math.max(next.z, TOWN_BOUNDS.z0 - plotZ(plot) - MARGIN), TOWN_BOUNDS.z1 - plotZ(plot) + MARGIN);
       const delta = next.sub(target);
       target.add(delta);
       camera.position.add(delta);

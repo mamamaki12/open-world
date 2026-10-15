@@ -14,6 +14,7 @@ export type Preview =
 interface InteractionState {
   preview: Preview | null;
   ignorePartClickUntil: number;
+  pendingErase: { ref: PartRef; x: number; y: number } | null;
   /** 階段の向き（配置時） */
   stairRot: 0 | 1 | 2 | 3;
   /** ドラッグ中の家具と、つかんだ位置のずれ */
@@ -27,6 +28,7 @@ interface InteractionState {
 export const useInteraction = create<InteractionState>((set, get) => ({
   preview: null,
   ignorePartClickUntil: 0,
+  pendingErase: null,
   stairRot: 0,
   furnitureDrag: null,
   buildingDrag: null,

@@ -98,6 +98,7 @@ export function ToolOptions() {
     case 'stair':
       body = (
         <>
+          <StairShapeButtons value={d.stairShape} onChange={(stairShape) => set({ stairShape })} />
           <StairRailButtons value={d.stairRail} onChange={(stairRail) => set({ stairRail })} />
           <FinishPicker label="踏み板" category="wood" value={d.stairFinish} onChange={(stairFinish) => set({ stairFinish })} />
           <button className="btn" onClick={() => useInteraction.getState().setStairRot(((stairRot + 1) % 4) as 0 | 1 | 2 | 3)}>
@@ -247,6 +248,16 @@ export function WallHeightButtons({ value = 'full', onChange }: { value?: WallHe
 }
 
 const STAIR_RAIL_NAMES: Record<StairRail, string> = { none: 'なし', left: '左', right: '右', both: '両側' };
+
+export function StairShapeButtons({ value = 'straight', onChange }: { value?: import('../building/types').StairShape; onChange: (shape: import('../building/types').StairShape) => void }) {
+  const shapes = [
+    ['straight', '直階段', '1×4マス'], ['compact', 'コンパクト', '1×3マス'],
+    ['l', 'L字＋踊り場', '3×3マス'], ['u', '折り返し＋踊り場', '2×3マス'],
+  ] as const;
+  return <div className="field"><div className="field-label">階段の形・サイズ</div><div className="choice-list">
+    {shapes.map(([shape, label, size]) => <button key={shape} className={`choice${shape === value ? ' on' : ''}`} onClick={() => onChange(shape)}><span>{label}</span><small>{size}</small></button>)}
+  </div><p className="info">L字・折り返しは途中に水平な踊り場があり、そこで方向を変えて上れます。</p></div>;
+}
 
 export function StairRailButtons({ value = 'left', onChange }: { value?: StairRail; onChange: (r: StairRail) => void }) {
   return (

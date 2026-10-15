@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { removePart, removeParts } from '../building/rules';
 import { emptyHouse } from '../building/types';
 import { materialGroup, moveBuildingGroup } from '../building/groups';
-import type { Finish, House, FloorKind, PartRef, RoofType, StairRail, WallHeight } from '../building/types';
+import type { Finish, House, FloorKind, PartRef, RoofType, StairRail, StairShape, WallHeight } from '../building/types';
 
 /** build：建築モード（俯瞰で建てる） / walk：歩きモード（プレイヤーを動かす） */
 export type Mode = 'build' | 'walk';
@@ -32,6 +32,7 @@ export interface Defaults {
   roofFinish: Finish;
   stairFinish: Finish;
   stairRail: StairRail;
+  stairShape: StairShape;
   wallHeight: WallHeight;
   furnitureType: string;
   furnitureRotation: number;
@@ -56,6 +57,7 @@ export const INITIAL_DEFAULTS: Defaults = {
   roofFinish: { material: 'slate', color: '#2f3133' },
   stairFinish: { material: 'oak', color: '#a77b52' },
   stairRail: 'left',
+  stairShape: 'straight',
   wallHeight: 'full',
   furnitureType: 'sofa',
   furnitureRotation: 0,

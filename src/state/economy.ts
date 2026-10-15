@@ -3,13 +3,14 @@
 import { create } from 'zustand';
 import { emptyHouse } from '../building/types';
 import type { House } from '../building/types';
-import { isHouse } from '../save/storage';
+import { autosave, isHouse } from '../save/storage';
 import { DAY_SECONDS, dailyBill, getLocation, landOffers, landPrice, salePrice, stepMarket } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { appraiseBuilding, buildSeconds, estimateCost, renovationCost } from '../economy/pricing';
 import { yen } from '../economy/money';
-import { START_PLOT, assignPlots, freePlot, plotX } from '../economy/town';
+import { START_PLOT, assignPlots, freePlot, plotX, plotZ, CIVIC_SITE } from '../economy/town';
 import { useGame } from './store';
+import { useInteraction } from './interaction';
 
 export const START_MONEY = 20_000_000;
 const SAVE_KEY = 'open-world:economy:v1';
@@ -195,7 +196,9 @@ export function lotNumbers(lot: Lot, market: number) {
 const currentDesign = () => useGame.getState().house;
 
 function showHouse(house: House) {
-  useGame.setState({ house, past: [], future: [], selection: null, dragBase: null, lastCommit: null });
+  useInteraction.setState({ preview: null, furnitureDrag: null, buildingDrag: null });
+  useGame.setState({ house, past: [], future: [], selection: null, marked: [], activeLevel: 0, dragBase: null, lastCommit: null });
+  autosave(house);
 }
 
 export const useEconomy = create<EconomyState>((set, get) => {
@@ -383,6 +386,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
       });
       set({ lots, currentLotId: id });
       showHouse(lotHouse(target) ?? emptyHouse());
+      saveEconomy();
     },
 
     startJob: () => {
@@ -412,6 +416,13 @@ export function plotOffset(plot: number, s: Pick<EconomyData, 'lots' | 'currentL
   return plotX(plot) - plotX(currentPlotOf(s));
 }
 
+export function plotOffsetZ(plot: number, s: Pick<EconomyData, 'lots' | 'currentLotId'> = useEconomy.getState()): number {
+  return plotZ(plot) - plotZ(currentPlotOf(s));
+}
+export function civicOffset(s: Pick<EconomyData, 'lots' | 'currentLotId'> = useEconomy.getState()) {
+  return { x: CIVIC_SITE.x - plotX(currentPlotOf(s)), z: CIVIC_SITE.z - plotZ(currentPlotOf(s)) };
+}
+
 export function useCurrentPlot(): number {
   return useEconomy(currentPlotOf);
 }
@@ -420,3 +431,4 @@ export function useCurrentPlot(): number {
 export function lotHouse(l: Lot): House | null {
   return l.design ?? l.construction?.target ?? l.built;
 }
+

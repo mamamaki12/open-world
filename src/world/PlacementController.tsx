@@ -15,6 +15,7 @@ import {
   newId,
   partsInRect,
   normalizeRect,
+  removePart,
 } from '../building/rules';
 import type { Rect } from '../building/rules';
 import type { House } from '../building/types';
@@ -191,7 +192,7 @@ export function PlacementController() {
         case 'stair': {
           g.setLevel(surface);
           const c = cellAt(p);
-          const valid = canPlaceStair(g.house, { level: surface, x: c.x, z: c.z, rot: ui.stairRot }) === null;
+          const valid = canPlaceStair(g.house, { level: surface, x: c.x, z: c.z, rot: ui.stairRot, shape: g.defaults.stairShape }) === null;
           ui.setPreview({ kind: 'stair', x: c.x, z: c.z, valid });
           break;
         }
@@ -205,6 +206,7 @@ export function PlacementController() {
 
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
+      if (Date.now() < useInteraction.getState().ignorePartClickUntil) return;
       if (useGame.getState().tool === 'furniture' && useGame.getState().defaults.furnitureType === 'nameplate') return;
       if (e.pointerType === 'touch') {
         touches.add(e.pointerId);
@@ -247,7 +249,7 @@ export function PlacementController() {
           break;
         case 'stair': {
           const c = cellAt(p);
-          const stair = { level: surface, x: c.x, z: c.z, rot: ui.stairRot };
+          const stair = { level: surface, x: c.x, z: c.z, rot: ui.stairRot, shape: g.defaults.stairShape };
           const err = canPlaceStair(g.house, stair);
           if (err) return g.notify(err);
           g.commit({ ...g.house, stairs: [...g.house.stairs, { id: newId('stair'), ...stair, finish: g.defaults.stairFinish, rail: g.defaults.stairRail }] });
@@ -308,6 +310,16 @@ export function PlacementController() {
     };
 
     const onUp = (e: PointerEvent) => {
+      const pendingErase = useInteraction.getState().pendingErase;
+      if (pendingErase) {
+        useInteraction.setState({ pendingErase: null });
+        if (Math.hypot(e.clientX - pendingErase.x, e.clientY - pendingErase.y) <= 5) {
+          const game = useGame.getState();
+          if (game.tool === 'erase' && game.eraseMulti) game.toggleMark(pendingErase.ref);
+          else if (game.tool === 'erase') game.commit(removePart(game.house, pendingErase.ref));
+        }
+        return;
+      }
       const building = useInteraction.getState().buildingDrag;
       if (building) {
         touches.delete(e.pointerId);
@@ -420,6 +432,7 @@ export function PlacementController() {
     };
 
     const onCancel = (e: PointerEvent) => {
+      useInteraction.setState({ pendingErase: null });
       touches.delete(e.pointerId);
       if (activeTouch === e.pointerId || useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag) cancelTouch();
     };

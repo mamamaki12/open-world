@@ -1,5 +1,5 @@
 // 道路の向かいに最初から建っているカジノ・競技場。家の部品ではないので、消したり動かしたりできない
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CASINO, CASINO_PILLARS, CASINO_PLANTERS, CASINO_PLAZA } from '../building/landmarks';
@@ -45,7 +45,7 @@ function mainSign() {
     g.shadowBlur = 30;
     g.fillStyle = '#ffe08a';
     g.font = '900 190px Georgia, "Times New Roman", serif';
-    g.fillText('CASINO', w / 2, h * 0.42);
+    g.fillText('GRAND STRIP', w / 2, h * 0.42, w * 0.92);
     g.shadowBlur = 16;
     g.fillStyle = '#fff3d0';
     g.font = '700 74px "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif';
@@ -138,10 +138,12 @@ function GlassWall({ x0, x1 }: { x0: number; x1: number }) {
 export function CasinoBuilding() {
   const main = useMemo(mainSign, []);
   const roof = useMemo(roofSign, []);
+  useEffect(() => () => { main.dispose(); roof.dispose(); }, [main, roof]);
   const doorL = DOOR.x - DOOR.width / 2;
   const doorR = DOOR.x + DOOR.width / 2;
   return (
     <group name="casino">
+      <LuxuryFacade />
       {/* 入口前の広場 */}
       <mesh rotation-x={-Math.PI / 2} position={[(CASINO_PLAZA.x0 + CASINO_PLAZA.x1) / 2, 0.004, (CASINO_PLAZA.z0 + CASINO_PLAZA.z1) / 2]} receiveShadow>
         <planeGeometry args={[CASINO_PLAZA.x1 - CASINO_PLAZA.x0, CASINO_PLAZA.z1 - CASINO_PLAZA.z0]} />
@@ -269,3 +271,38 @@ export function CasinoBuilding() {
     </group>
   );
 }
+
+/** ラスベガスのリゾートを意識した、段状の塔・ネオン・噴水。 */
+function LuxuryFacade() {
+  const stream = useMemo(() => new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0.5, 0), new THREE.Vector3(0, 1.9, 0), new THREE.Vector3(0.65, 1.5, 0), new THREE.Vector3(0.9, 0.35, 0),
+  ]), 24, 0.025, 6, false), []);
+  useEffect(() => () => stream.dispose(), [stream]);
+  return <>
+    {[-1, 1].map(side => <group key={side} position={[CX + side * 8, 0, FRONT + 5]}>
+      {[0, 1, 2, 3].map(tier => <group key={tier}>
+        <mesh position={[0, H + tier * 2 + 0.8, 0]} castShadow><boxGeometry args={[5.8 - tier, 2.1, 6.5 - tier]} /><meshStandardMaterial color={tier % 2 ? '#d1c0a0' : '#e5d5b5'} metalness={0.2} roughness={0.45} /></mesh>
+        <mesh position={[0, H + tier * 2 + 1.7, 0]}><boxGeometry args={[6 - tier, 0.18, 6.7 - tier]} /><meshStandardMaterial {...GOLD} emissive="#a97828" emissiveIntensity={0.45} /></mesh>
+        <mesh position={[0, H + tier * 2 + 0.7, -(6.5 - tier) / 2 - 0.02]}><boxGeometry args={[4.7 - tier, 1.15, 0.06]} /><meshStandardMaterial color="#244354" metalness={0.65} roughness={0.15} emissive="#2c7385" emissiveIntensity={0.4} /></mesh>
+      </group>)}
+      <mesh position={[0, H + 9, 0]} castShadow><coneGeometry args={[1.8, 2.8, 4]} /><meshStandardMaterial {...GOLD} /></mesh>
+      <mesh position={[0, H + 10.7, 0]}><sphereGeometry args={[0.18, 12, 8]} /><meshStandardMaterial color="#fff1c9" emissive="#ffc566" emissiveIntensity={3} /></mesh>
+    </group>)}
+    {[-1, 1].map(side => <group key={side} position={[CX + side * 9, 0, FRONT - 1.6]}>
+      <mesh position={[0, 0.16, 0]} receiveShadow><cylinderGeometry args={[1.05, 1.15, 0.32, 32]} /><meshStandardMaterial color="#d7c9ad" metalness={0.15} roughness={0.4} /></mesh>
+      <mesh position={[0, 0.33, 0]} rotation-x={-Math.PI / 2}><circleGeometry args={[0.92, 32]} /><meshStandardMaterial color="#4eabb5" metalness={0.6} roughness={0.12} emissive="#2d9ca7" emissiveIntensity={0.35} /></mesh>
+      <mesh position={[0, 0.36, 0]} rotation-x={Math.PI / 2}><torusGeometry args={[1, 0.085, 8, 32]} /><meshStandardMaterial {...GOLD} /></mesh>
+      {[0, Math.PI * 2 / 3, Math.PI * 4 / 3].map(a => <mesh key={a} rotation-y={a} geometry={stream}><meshStandardMaterial color="#b9f4ff" emissive="#81dbea" emissiveIntensity={0.55} roughness={0.1} /></mesh>)}
+    </group>)}
+    {CASINO_PLANTERS.map((b, index) => <group key={index} position={[(b.x0 + b.x1) / 2, 0, (b.z0 + b.z1) / 2]}>
+      <mesh position={[0, 2.2, 0]} castShadow><cylinderGeometry args={[0.1, 0.18, 3.5, 10]} /><meshStandardMaterial color="#8c6542" /></mesh>
+      {Array.from({ length: 6 }, (_, i) => <group key={i} rotation-y={i * Math.PI / 3} position={[0, 4, 0]}>
+        <mesh position={[0.7, 0.1, 0]} rotation-z={-0.2} scale={[1.5, 0.08, 0.4]}><sphereGeometry args={[0.8, 12, 8]} /><meshStandardMaterial color="#3b704c" /></mesh>
+      </group>)}
+    </group>)}
+    {[-1, 1].map(side => <mesh key={side} position={[CX + side * 10.8, 4.5, FRONT - 0.12]}>
+      <boxGeometry args={[0.32, 7.8, 0.18]} /><meshStandardMaterial color="#eac679" emissive="#e0a143" emissiveIntensity={1.2} metalness={0.6} />
+    </mesh>)}
+  </>;
+}
+
