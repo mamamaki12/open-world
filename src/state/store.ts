@@ -8,6 +8,9 @@ import type { Finish, House, PartRef, RoofType } from '../building/types';
 export type Mode = 'build' | 'walk';
 export type View = 'third' | 'first';
 
+/** 画面いっぱいに開くメニュー（開いている間はゲームのキー操作を止める） */
+export type Overlay = 'estate' | 'casino' | null;
+
 export type Tool = 'select' | 'floor' | 'wall' | 'door' | 'window' | 'stair' | 'roof' | 'furniture' | 'erase';
 
 export interface Defaults {
@@ -61,6 +64,7 @@ interface GameState {
   selection: PartRef | null;
   defaults: Defaults;
   message: { text: string; at: number } | null;
+  overlay: Overlay;
 
   /** 変更を確定して取り消し履歴に積む。coalesce が直前と同じなら1回分にまとめる（スライダーや色選び） */
   commit: (next: House, coalesce?: string) => void;
@@ -81,6 +85,7 @@ interface GameState {
   deleteSelected: () => void;
   setDefaults: (patch: Partial<Defaults>) => void;
   notify: (text: string) => void;
+  setOverlay: (overlay: Overlay) => void;
 }
 
 export const useGame = create<GameState>((set, get) => ({
@@ -97,6 +102,7 @@ export const useGame = create<GameState>((set, get) => ({
   selection: null,
   defaults: INITIAL_DEFAULTS,
   message: null,
+  overlay: null,
 
   lastCommit: null,
   commit: (next, coalesce) => {
@@ -152,4 +158,9 @@ export const useGame = create<GameState>((set, get) => ({
   },
   setDefaults: (patch) => set({ defaults: { ...get().defaults, ...patch } }),
   notify: (text) => set({ message: { text, at: Date.now() } }),
+  setOverlay: (overlay) => {
+    // 歩きモードでマウスを固定していたら外す（メニューのボタンを押せるように）
+    if (overlay && typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock();
+    set({ overlay });
+  },
 }));

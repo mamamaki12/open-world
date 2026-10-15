@@ -5,6 +5,7 @@
 - 設計書：[docs/game-design.md](docs/game-design.md)
 - 技術構成：[docs/tech-stack.md](docs/tech-stack.md)
 - 家づくりプロトタイプの遊び方：[docs/prototype.md](docs/prototype.md)
+- お金の仕組み（建築費・売買・カジノ・競馬など）：[docs/economy.md](docs/economy.md)
 
 ## 動かし方
 
@@ -13,7 +14,7 @@ Node.js 20 以上が必要です。
 ```bash
 npm install
 npm run dev      # http://localhost:5173 で起動
-npm test         # ルール（配置判定・屋根の形）のテスト
+npm test         # ルール（配置判定・屋根の形・お金の計算）のテスト
 npm run build    # dist/ に公開用ファイルを作る
 ```
 

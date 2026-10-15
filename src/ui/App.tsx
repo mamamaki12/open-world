@@ -12,6 +12,9 @@ import { Inspector } from './Inspector';
 import { ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
+import { CasinoPanel } from './CasinoPanel';
+import { EstatePanel } from './EstatePanel';
+import { MoneyBar, useEconomyClock } from './MoneyBar';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
@@ -32,12 +35,15 @@ useGame.setState({ house: loadAutosave() ?? sampleHouse() });
 export function App() {
   useKeyboard();
   useAutosave();
+  useEconomyClock();
   const walking = useGame((s) => s.mode === 'walk');
   const holding = useGame((s) => s.tool !== 'select');
+  const overlay = useGame((s) => s.overlay);
   return (
     <div className="app">
       <Scene />
       <TopBar />
+      <MoneyBar />
       {walking ? (
         <>
           <WalkHud />
@@ -63,6 +69,8 @@ export function App() {
           <ControlsHelp />
         </>
       )}
+      {overlay === 'estate' && <EstatePanel />}
+      {overlay === 'casino' && <CasinoPanel />}
       <Toast />
     </div>
   );
@@ -302,6 +310,8 @@ function useKeyboard() {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') return;
       const s = useGame.getState();
+      // 不動産屋・カジノを開いている間はゲームのキー操作を止める（Esc で閉じるのはメニュー側）
+      if (s.overlay) return;
       if (e.key === 'Tab') {
         e.preventDefault();
         s.setMode(s.mode === 'walk' ? 'build' : 'walk');

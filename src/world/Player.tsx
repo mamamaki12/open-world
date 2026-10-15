@@ -151,7 +151,7 @@ export function Player() {
     const el = gl.domElement;
     const isTyping = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      return t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA';
+      return t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || useGame.getState().overlay !== null;
     };
     const onDown = (e: KeyboardEvent) => {
       if (isTyping(e) || e.ctrlKey || e.metaKey) return;
