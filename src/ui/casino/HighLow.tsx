@@ -1,4 +1,4 @@
-// ハイ＆ロー：次のカードが今より大きいか小さいか。当てたら続けて倍々に挑める
+// ハイ＆ロー：次のカードが今より大きいか小さいか。当てたら続けて倍々に挑める（3Dのカードテーブル）
 import { useEffect, useRef, useState } from 'react';
 import { cardName, drawCard, highLowMultiplier, highLowWins } from '../../economy/casino';
 import { yen } from '../../economy/money';
@@ -7,6 +7,8 @@ import { useGame } from '../../state/store';
 import { BetInput } from './BetInput';
 import { WinBurst } from './Chips';
 import { sfxCard, sfxLose, sfxWin } from './sfx';
+import { CardTable3D } from './three/CardTable3D';
+import { Stage } from './three/Stage';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const suit = () => SUITS[Math.floor(Math.random() * 4)];
@@ -20,43 +22,6 @@ interface Card {
 
 let nextId = 1;
 const newCard = (): Card => ({ rank: drawCard(Math.random), suit: suit(), id: nextId++ });
-
-/** トランプ1枚（表）。数字札はマークを並べ、絵札は大きな文字 */
-export function PlayingCard({ card, size = 'big' }: { card: Card; size?: 'big' | 'small' }) {
-  const red = card.suit === '♥' || card.suit === '♦';
-  const name = cardName(card.rank);
-  const face = card.rank >= 11;
-  return (
-    <div className={`pcard ${size}${red ? ' red' : ''}`}>
-      <span className="corner tl">
-        <b>{name}</b>
-        {card.suit}
-      </span>
-      <span className="pcard-center">
-        {size === 'small' ? (
-          card.suit
-        ) : face ? (
-          <span className="face">
-            <i>{card.rank === 13 ? '♚' : card.rank === 12 ? '♛' : '♞'}</i>
-            {name}
-          </span>
-        ) : card.rank === 1 ? (
-          <span className="ace">{card.suit}</span>
-        ) : (
-          <span className={`pips${card.rank <= 3 ? ' one' : ''}`}>
-            {Array.from({ length: card.rank }, (_, i) => (
-              <i key={i}>{card.suit}</i>
-            ))}
-          </span>
-        )}
-      </span>
-      <span className="corner br">
-        <b>{name}</b>
-        {card.suit}
-      </span>
-    </div>
-  );
-}
 
 export function HighLow() {
   const [bet, setBet] = useState(10_000);
@@ -134,26 +99,9 @@ export function HighLow() {
   return (
     <div className="game highlow">
       <div className={`hl-table${outcome ? ` ${outcome}` : ''}`}>
-        <div className="deck" aria-hidden>
-          <div className="pcard-back" />
-          <div className="pcard-back" />
-          <div className="pcard-back" />
-        </div>
-        <div className="hl-current">
-          <PlayingCard key={card.id} card={card} />
-          {flipping && (
-            <div className="flip-in" key={flipping.card.id}>
-              <div className="flip-inner">
-                <div className="flip-back">
-                  <div className="pcard-back big" />
-                </div>
-                <div className="flip-front">
-                  <PlayingCard card={flipping.card} />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <Stage camera={{ position: [0.15, 1.75, 1.75], fov: 40 }} target={[0.1, 0, 0.05]} height={320} label="カードテーブル">
+          <CardTable3D current={card} incoming={flipping?.card ?? null} past={past} />
+        </Stage>
         <div className="hl-info">
           {pot > 0 ? (
             <>
@@ -173,14 +121,6 @@ export function HighLow() {
         </div>
         {burst && burst.level > 0 && <WinBurst key={burst.id} level={burst.level} amount={burst.amount} text="GET!" />}
       </div>
-      {past.length > 0 && (
-        <div className="hl-past">
-          <span className="muted">これまで</span>
-          {past.map((c) => (
-            <PlayingCard key={c.id} card={c} size="small" />
-          ))}
-        </div>
-      )}
       <div className="hl-buttons">
         <button className="btn hl-btn high" disabled={hi === 0 || !!flipping} onClick={() => guess('high')}>
           ▲ ハイ<small>×{hi || '-'}</small>

@@ -20,6 +20,8 @@ export function Scene() {
   const mode = useGame((s) => s.mode);
   const select = useGame((s) => s.select);
   const dragging = useInteraction((s) => s.furnitureDrag !== null);
+  // カジノ・不動産のメニューを開いている間は、後ろの世界の描画を止めて軽くする
+  const paused = useGame((s) => s.overlay !== null);
   const walking = mode === 'walk';
   /** 置くツールを持っている（歩きモードでも建てられる） */
   const placing = tool !== 'select' && tool !== 'erase';
@@ -28,6 +30,7 @@ export function Scene() {
   return (
     <Canvas
       shadows
+      frameloop={paused ? 'never' : 'always'}
       camera={{ position: [CENTER[0] + 13, 15, CENTER[2] + 19], fov: 45, near: 0.1, far: 500 }}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
       onCreated={({ gl }) => {

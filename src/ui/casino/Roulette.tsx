@@ -1,6 +1,5 @@
 // ルーレット（ヨーロピアン、0〜36）。台にチップを何か所でも置いて、ホイールに玉を投げる
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RefObject } from 'react';
 import { WHEEL_ORDER, rouletteBetName, rouletteColor, roulettePayout, spinRoulette } from '../../economy/casino';
 import type { RouletteBet } from '../../economy/casino';
 import { yen } from '../../economy/money';
@@ -8,15 +7,17 @@ import { useEconomy } from '../../state/economy';
 import { useGame } from '../../state/store';
 import { CHIP_VALUES, Chip, WinBurst, chipLabel } from './Chips';
 import { sfxBallRoll, sfxChip, sfxLose, sfxWin } from './sfx';
+import { speak, stopSpeaking } from './voice';
+import { RouletteWheel3D } from './three/RouletteWheel3D';
+import { Stage } from './three/Stage';
 
 const SPIN_MS = 5200;
 const TAU = Math.PI * 2;
 const POCKET = TAU / 37;
-const R = { rim: 146, track: 134, ring: 128, pocketIn: 96, num: 115, rest: 104, cone: 92 };
+const R = { track: 134, rest: 104 };
 
 const keyOf = (b: RouletteBet) => JSON.stringify(b);
 const pocketAngle = (n: number) => WHEEL_ORDER.indexOf(n) * POCKET;
-const polar = (r: number, a: number) => ({ x: r * Math.sin(a), y: -r * Math.cos(a) });
 
 interface Spot {
   bet: RouletteBet;
@@ -45,59 +46,6 @@ const SPOTS: Spot[] = [
 
 const payoutOf = (b: RouletteBet) => (b.kind === 'number' ? 36 : b.kind === 'dozen' || b.kind === 'column' ? 3 : 2);
 
-function Wheel({ wheelRef, ballRef }: { wheelRef: RefObject<SVGGElement>; ballRef: RefObject<SVGCircleElement> }) {
-  const pockets = useMemo(
-    () =>
-      WHEEL_ORDER.map((n, i) => {
-        const a0 = i * POCKET - POCKET / 2;
-        const a1 = a0 + POCKET;
-        const p = [polar(R.ring, a0), polar(R.ring, a1), polar(R.pocketIn, a1), polar(R.pocketIn, a0)];
-        const d = `M${p[0].x},${p[0].y} A${R.ring},${R.ring} 0 0 1 ${p[1].x},${p[1].y} L${p[2].x},${p[2].y} A${R.pocketIn},${R.pocketIn} 0 0 0 ${p[3].x},${p[3].y}Z`;
-        const t = polar(R.num, i * POCKET);
-        return { n, d, t, rot: (i * POCKET * 180) / Math.PI };
-      }),
-    [],
-  );
-  return (
-    <svg className="roulette-wheel" viewBox="-150 -150 300 300" role="img" aria-label="ルーレットのホイール">
-      <defs>
-        <radialGradient id="rw-wood" r="0.5">
-          <stop offset="0.85" stopColor="#6b3d1e" />
-          <stop offset="0.93" stopColor="#8a5329" />
-          <stop offset="1" stopColor="#3c2210" />
-        </radialGradient>
-        <radialGradient id="rw-cone" r="0.5">
-          <stop offset="0" stopColor="#f6dc8a" />
-          <stop offset="0.55" stopColor="#c9a03c" />
-          <stop offset="1" stopColor="#6e5418" />
-        </radialGradient>
-      </defs>
-      <circle r={R.rim} fill="url(#rw-wood)" />
-      <circle r={R.track + 4} fill="#2b1a0f" />
-      <circle r={R.track - 3} fill="#d9cdb4" opacity="0.18" />
-      <g ref={wheelRef}>
-        {pockets.map((p) => (
-          <g key={p.n}>
-            <path d={p.d} className={`pocket ${rouletteColor(p.n)}`} />
-            <text x={p.t.x} y={p.t.y} transform={`rotate(${p.rot} ${p.t.x} ${p.t.y})`} className="pocket-num">
-              {p.n}
-            </text>
-          </g>
-        ))}
-        <circle r={R.ring} fill="none" stroke="#c9a03c" strokeWidth="2" />
-        <circle r={R.pocketIn} fill="none" stroke="#c9a03c" strokeWidth="2" />
-        <circle r={R.cone} fill="url(#rw-cone)" />
-        <circle r={R.cone * 0.62} fill="#3c2210" opacity="0.35" />
-        {[0, 1, 2, 3].map((k) => (
-          <rect key={k} x={-4} y={-44} width={8} height={88} rx={4} fill="#e8c766" stroke="#7a5c18" transform={`rotate(${k * 45})`} />
-        ))}
-        <circle r={10} fill="#f6dc8a" stroke="#7a5c18" />
-      </g>
-      <circle ref={ballRef} r={5.5} className="ball" cx={0} cy={-R.rest} />
-    </svg>
-  );
-}
-
 interface Placement {
   key: string;
   bet: RouletteBet;
@@ -113,10 +61,9 @@ export function Roulette() {
   const [history, setHistory] = useState<number[]>([]);
   const money = useEconomy((s) => s.money);
   const notify = useGame((s) => s.notify);
-  const wheelRef = useRef<SVGGElement>(null);
-  const ballRef = useRef<SVGCircleElement>(null);
   const motion = useRef({ wheel: 0, omega: 0.7, ballRel: pocketAngle(0), ballR: R.rest, ballVisible: false, spin: null as null | { t0: number; relEnd: number; delta: number; done: () => void } });
   const pending = useRef(0);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // ホイールはいつもゆっくり回っている。投げたら速く回して、だんだん遅くする
   useEffect(() => {
@@ -146,18 +93,13 @@ export function Roulette() {
         }
       }
       m.wheel += omega * dt;
-      wheelRef.current?.setAttribute('transform', `rotate(${(m.wheel * 180) / Math.PI})`);
-      const b = polar(m.ballR, m.wheel + m.ballRel);
-      if (ballRef.current) {
-        ballRef.current.setAttribute('cx', b.x.toFixed(2));
-        ballRef.current.setAttribute('cy', b.y.toFixed(2));
-        ballRef.current.style.opacity = m.ballVisible ? '1' : '0';
-      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
+      timers.current.forEach(clearTimeout);
+      stopSpeaking();
       if (pending.current > 0) useEconomy.getState().collect(pending.current, 'ルーレット 払戻');
     };
   }, []);
@@ -192,6 +134,9 @@ export function Roulette() {
     setSpinning(true);
     setResult(null);
     sfxBallRoll(SPIN_MS / 1000);
+    // ディーラーの声：玉を投げて少ししたら締め切り、止まったら出目を読み上げる
+    speak('ボールが入りました', { rate: 1.05 });
+    timers.current.push(setTimeout(() => speak('ノー・モア・ベット', { rate: 1 }), 2600));
     const m = motion.current;
     m.ballVisible = true;
     m.spin = {
@@ -208,6 +153,7 @@ export function Roulette() {
         setSpinning(false);
         if (win > 0) sfxWin(win >= stake * 10 ? 2 : win > stake ? 1 : 0);
         else sfxLose();
+        speak(n === 0 ? 'ゼロ、グリーン' : `${n}、${rouletteColor(n) === 'red' ? 'レッド' : 'ブラック'}${n % 2 ? '、オッド' : '、イーブン'}`, { rate: 1, interrupt: true });
       },
     };
   };
@@ -219,7 +165,9 @@ export function Roulette() {
     <div className="game roulette">
       <div className="roulette-top">
         <div className="wheel-wrap">
-          <Wheel wheelRef={wheelRef} ballRef={ballRef} />
+          <Stage camera={{ position: [0, 1.5, 1.55], fov: 42 }} target={[0, 0, 0.08]} height={360} label="ルーレットのホイール">
+            <RouletteWheel3D motion={motion} />
+          </Stage>
           {result && (
             <div key={result.id} className={`winning-number ${rouletteColor(result.n)}`}>
               {result.n}

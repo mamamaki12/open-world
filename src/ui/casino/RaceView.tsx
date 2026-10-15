@@ -4,6 +4,7 @@ import { NUMBER_COLORS, RACES } from '../../economy/race';
 import type { Race } from '../../economy/race';
 import { PACK, Packer, courseP, distanceAt, pointAt, raceTime } from '../../economy/raceMotion';
 import type { Motion } from '../../economy/raceMotion';
+import { speak, stopSpeaking } from './voice';
 
 export function runnerColor(race: Race, i: number) {
   const r = race.runners[i];
@@ -81,6 +82,8 @@ export function RaceView({ race, motion, order, onDone }: Props) {
       if (said.has(key)) return;
       said.add(key);
       setCalls((cs) => [{ text, key: performance.now() + Math.random() }, ...cs].slice(0, 3));
+      // 実況アナウンサーの声（速めに、ゴールは少し高く）
+      speak(text, { rate: 1.3, pitch: key === 'goal' ? 1.2 : 1.05, interrupt: key === 'goal' });
     };
     const name = (i: number) => `${race.runners[i].no}番${race.kind === 'horse' ? race.runners[i].name : race.runners[i].name.split(' ')[0]}`;
     const boatName = (i: number) => `${race.runners[i].no}号艇`;
@@ -620,6 +623,7 @@ export function RaceView({ race, motion, order, onDone }: Props) {
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      stopSpeaking();
     };
   }, [race, motion, order]);
 

@@ -8,6 +8,7 @@ import { RaceGame } from './casino/RaceGame';
 import { Roulette } from './casino/Roulette';
 import { Slots } from './casino/Slots';
 import { isMuted, setMuted } from './casino/sfx';
+import { stopSpeaking } from './casino/voice';
 import { Modal } from './Modal';
 import './casino/casino.css';
 
@@ -63,9 +64,10 @@ function MuteButton() {
       onClick={() => {
         setMuted(!muted);
         set(!muted);
+        if (!muted) stopSpeaking();
       }}
       aria-pressed={muted}
-      title={muted ? '効果音を鳴らす' : '効果音を消す'}
+      title={muted ? '効果音と声を出す' : '効果音と声を消す'}
     >
       {muted ? '🔇' : '🔊'}
     </button>
