@@ -18,7 +18,7 @@ function Box({p,s,c,metal=0,glow=0}:{p:[number,number,number];s:[number,number,n
 }
 export function CarModel({def:d,color,pose}:{def:CarDef;color:string;pose?:OwnedCar}) {
   const front=useRef<THREE.Group[]>([]),rolling=useRef<THREE.Group[]>([]);
-  const tail=useRef<THREE.MeshStandardMaterial>(null),head=useRef<THREE.MeshStandardMaterial>(null);
+  const tail=useRef<THREE.MeshStandardMaterial[]>([]),head=useRef<THREE.MeshStandardMaterial[]>([]);
   const w=d.width,L=d.length,H=d.height,r=d.wheel;
   const truck=d.body==='pickup',van=d.body==='van',suv=d.body==='suv',open=d.body==='roadster',sport=d.body==='coupe'||open;
   const belt=H*(van ? .55:sport ? .51:.52),frontZ=-L*.5,rearZ=L*.5;
@@ -28,8 +28,8 @@ export function CarModel({def:d,color,pose}:{def:CarDef;color:string;pose?:Owned
     if(!pose)return;
     front.current.forEach(g=>{if(g)g.rotation.y=pose.steer;});
     rolling.current.forEach(g=>{if(g)g.rotation.x=pose.wheelSpin;});
-    if(tail.current)tail.current.emissiveIntensity=pose.braking?2.2:pose.lights ? .7:.15;
-    if(head.current)head.current.emissiveIntensity=pose.lights?2.8:.35;
+    tail.current.forEach(m=>{if(m)m.emissiveIntensity=pose.braking?2.2:pose.lights ? .7:.15;});
+    head.current.forEach(m=>{if(m)m.emissiveIntensity=pose.lights?2.8:.35;});
   });
   return <group>
     <Box p={[0,r*.85,0]} s={[w*.83,.16,L*.9]} c="#171b20"/>
@@ -64,8 +64,8 @@ export function CarModel({def:d,color,pose}:{def:CarDef;color:string;pose?:Owned
     {(d.body==='wagon'||suv)&&[-1,1].map(side=><Box key={side} p={[side*w*.32,H+.045,.15]} s={[.035,.055,L*.46]} c="#a9afb3" metal={.8}/>)}
     {d.id==='raven'&&<><Box p={[0,belt+.32,rearZ-.2]} s={[w*.9,.06,.24]} c="#21272c"/>{[-1,1].map(side=><Box key={side} p={[side*w*.3,belt+.18,rearZ-.2]} s={[.04,.22,.04]} c="#20262c"/>)}</>}
     {[-1,1].map((side,i)=><group key={side}>
-      <mesh position={[side*w*.34,belt-.05,frontZ-.025]}><boxGeometry args={[w*.23,van ? .19:.085,.045]}/><meshStandardMaterial ref={i===0?head:undefined} color="#e9f5ff" emissive="#e9f5ff" emissiveIntensity={.35}/></mesh>
-      <mesh position={[side*w*.34,belt-.04,rearZ+.025]}><boxGeometry args={[w*.23,.09,.04]}/><meshStandardMaterial ref={i===0?tail:undefined} color="#b61122" emissive="#ff1b22" emissiveIntensity={.15}/></mesh>
+      <mesh position={[side*w*.34,belt-.05,frontZ-.025]}><boxGeometry args={[w*.23,van ? .19:.085,.045]}/><meshStandardMaterial ref={m=>{if(m)head.current[i]=m;}} color="#e9f5ff" emissive="#e9f5ff" emissiveIntensity={.35}/></mesh>
+      <mesh position={[side*w*.34,belt-.04,rearZ+.025]}><boxGeometry args={[w*.23,.09,.04]}/><meshStandardMaterial ref={m=>{if(m)tail.current[i]=m;}} color="#b61122" emissive="#ff1b22" emissiveIntensity={.15}/></mesh>
       <Box p={[side*w*.43,belt-.08,frontZ-.028]} s={[.05,.05,.045]} c="#efa63c" glow={.25}/>
       <mesh position={[side*w*.29,.3,rearZ+.02]} rotation-x={Math.PI/2}><cylinderGeometry args={[.05,.05,.14,12]}/><meshStandardMaterial color="#b8bfc5" metalness={.95} roughness={.22}/></mesh>
     </group>)}
