@@ -74,8 +74,8 @@ export function BuildCamera() {
     const pressed = (codes: string[]) => codes.some((c) => k.has(c) && !(furniture && ARROWS.includes(c)));
     const fwd = (pressed(CAMERA_KEYS.forward) ? 1 : 0) - (pressed(CAMERA_KEYS.back) ? 1 : 0);
     const side = (pressed(CAMERA_KEYS.right) ? 1 : 0) - (pressed(CAMERA_KEYS.left) ? 1 : 0);
-    // Q / E か、スマホの回転ボタン
-    const turn = (pressed(CAMERA_KEYS.turnLeft) ? 1 : 0) - (pressed(CAMERA_KEYS.turnRight) ? 1 : 0) || touchCamera.turn;
+    // Q を押すとカメラは上から見て時計回りに家のまわりを回る（E はその逆）。スマホは回転ボタン
+    const turn = (pressed(CAMERA_KEYS.turnRight) ? 1 : 0) - (pressed(CAMERA_KEYS.turnLeft) ? 1 : 0) || touchCamera.turn;
     const zoom = touchCamera.zoom;
     if (!fwd && !side && !turn && !zoom) return;
     const fast = pressed(CAMERA_KEYS.fast) ? 2.5 : 1;

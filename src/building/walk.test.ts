@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GRID, STORY_HEIGHT, floorY } from './dimensions';
 import { sampleHouse } from './sample';
 import { LEAP_DROP, climbDuration, climbFrame, planClimb } from './climb';
-import { PLAYER, nearestDoor, nearestOpening, resolveCollisions, surfaceHeight, windowPassage } from './walk';
+import { PLAYER, ceilingHeight, nearestDoor, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, windowPassage } from './walk';
 
 const house = sampleHouse();
 
@@ -154,5 +154,42 @@ describe('窓の出入り', () => {
     expect(windowPassage(house, small, 6 * GRID + small.offset, 6 * GRID + 0.7, floorY(0))!.reason).toBe('narrow');
     const casement = find((w) => w.level === 0 && w.x0 === 16 && w.x1 === 16, 'casement');
     expect(windowPassage(house, casement, 16 * GRID - 0.7, 6 * GRID + casement.offset, floorY(0))!.reason).toBe('narrow');
+  });
+});
+
+describe('屋根の当たり判定', () => {
+  // サンプルの屋根：2階の上の切妻（x 6〜16、z 6〜14、棟は x 方向で z = 10 の上、4寸、軒の出 0.6m）
+  const ridgeZ = 10 * GRID;
+  const x = 11 * GRID;
+
+  it('屋根の上に立てる。棟に近いほど高い', () => {
+    const eave = surfaceHeight(house, x, 6.5 * GRID, 20);
+    const ridge = surfaceHeight(house, x, ridgeZ, 20);
+    expect(eave).toBeGreaterThan(floorY(1) + 2.9);
+    expect(ridge).toBeGreaterThan(eave);
+  });
+
+  it('2階の部屋の中では屋根に吸い上げられない', () => {
+    expect(surfaceHeight(house, x, ridgeZ, floorY(1))).toBeCloseTo(floorY(1));
+  });
+
+  it('2階でジャンプすると頭が屋根の下面でつかえる', () => {
+    const ceil = ceilingHeight(house, x, ridgeZ, floorY(1) + PLAYER.height);
+    expect(ceil).toBeGreaterThan(floorY(1) + 2.9);
+    expect(Number.isFinite(ceil)).toBe(true);
+  });
+
+  it('1階でジャンプすると2階の床の下でつかえる。吹き抜け（階段）の上はつかえない', () => {
+    expect(ceilingHeight(house, 9 * GRID, 9 * GRID, floorY(0) + PLAYER.height)).toBeCloseTo(floorY(1) - 0.25);
+    expect(ceilingHeight(house, 14.5 * GRID, 9 * GRID, floorY(0) + PLAYER.height)).toBeGreaterThan(floorY(1) + 2.9);
+  });
+
+  it('屋根の上で斜面を歩いて上るのは止めない。屋根の高さの空中から斜面に横から突っ込むと止まる', () => {
+    const feet = surfaceHeight(house, x, 7 * GRID, 20);
+    expect(roofBlocks(house, x, 7 * GRID + 0.05, feet, PLAYER.height)).toBe(false);
+    // 軒先の高さで、屋根の外から棟の近くへ入ろうとする
+    expect(roofBlocks(house, x, ridgeZ - 0.3, feet, PLAYER.height)).toBe(true);
+    // 地面を歩いているときは軒下を通れる
+    expect(roofBlocks(house, x, 5.7 * GRID, 0, PLAYER.height)).toBe(false);
   });
 });
