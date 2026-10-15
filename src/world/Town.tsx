@@ -12,6 +12,9 @@ import { CasinoBuilding } from './CasinoBuilding';
 import { EstateBuilding } from './EstateBuilding';
 import { HouseParts } from './HouseView';
 import { grassTexture } from './textures';
+import { Html } from '@react-three/drei';
+import { useGame } from '../state/store';
+import { editOwnedLot } from './Player';
 
 const lotW = LOT_W * GRID;
 const lotD = LOT_D * GRID;
@@ -22,6 +25,7 @@ const WEST = plotX(FIRST_PLOT) - 80;
 const EAST = plotX(LAST_PLOT) + lotW + 80;
 
 export function Town() {
+  const editing = useGame((s) => s.mode === 'build' && s.tool === 'select' && !s.overlay);
   const here = useCurrentPlot();
   const lots = useEconomy((s) => s.lots);
   const currentLotId = useEconomy((s) => s.currentLotId);
@@ -81,6 +85,13 @@ export function Town() {
                 lines={[current ? 'いまの土地' : 'あなたの土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : '']}
                 tone="owned"
               />
+              {!current && editing && <Html position={[lotW / 2, 1.8, lotD + 0.4]} center distanceFactor={18} zIndexRange={[5, 0]}>
+                <button className="btn small" style={{ whiteSpace: 'nowrap' }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); editOwnedLot(l.id); }}>
+                  この家を編集
+                </button>
+              </Html>}
             </group>
           );
         })}
