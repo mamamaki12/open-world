@@ -2,6 +2,7 @@ name: Deploy to GitHub Pages
 
 # main に入った変更を公開サイトに出す。
 # 初回だけ Settings → Pages → Source を「GitHub Actions」にしておく必要がある。
+# Pages を有効にするまでは、ジョブは失敗せずにスキップされる。
 on:
   push:
     branches: [main]
@@ -18,6 +19,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event.repository.has_pages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
