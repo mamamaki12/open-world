@@ -20,7 +20,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export function EstatePanel() {
-  const [tab, setTab] = useState<Tab>('lot');
+  const [tab, setTab] = useState<Tab>('land');
   const close = useGame((s) => s.setOverlay);
   return (
     <Modal title="🏠 不動産屋" onClose={() => close(null)} tabs={TABS} tab={tab} onTab={setTab}>
