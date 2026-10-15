@@ -158,7 +158,7 @@ export function Sheet({ title, children, defaultOpen = false, className }: { tit
     <div className={`sheet${open ? ' open' : ''} ${className ?? ''}`}>
       <button className="sheet-head" onClick={() => setOpen(!open)}>
         <span>{title}</span>
-        <span className="sheet-arrow">{open ? '閉じる ▾' : '開く ▴'}</span>
+        <span className="sheet-arrow">{open ? '閉じる' : '開く'}</span>
       </button>
       {open && <div className="sheet-body">{children}</div>}
     </div>

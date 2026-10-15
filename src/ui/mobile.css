@@ -135,3 +135,16 @@
   .touch .wheel-row, .touch .cards { flex-wrap: wrap; justify-content: center; }
   .touch .ledger { font-size: 12px; }
 }
+
+/* 横向き：高さが足りないので、上の表示は横に並べ、ドアのボタンはスティックと動作ボタンの間に */
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch-top { flex-direction: row; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+  .touch-top .sheet { width: 300px; }
+  .touch-top .sheet-body { max-height: 50vh; }
+  .touch .door-prompts { bottom: calc(16px + var(--safe-b)); }
+  .touch-dock { flex-direction: row; align-items: flex-end; justify-content: center; }
+  .touch-dock .sheet { max-width: 380px; }
+  .sheet-body { max-height: 55vh; }
+  .joystick { width: 116px; height: 116px; left: calc(16px + var(--safe-l)); bottom: calc(14px + var(--safe-b)); }
+  .touch-actions { bottom: calc(14px + var(--safe-b)); }
+}
