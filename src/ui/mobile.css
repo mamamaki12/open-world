@@ -1,5 +1,5 @@
 /* スマホ・タブレット（指で操作する端末）の画面。.app.touch のときだけ効く */
-.app { --top-h: 60px; --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); }
+.app { --top-h: 60px; --hud-top: 60px; --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); }
 .app canvas { touch-action: none; }
 .touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .touch button { touch-action: manipulation; }
@@ -23,11 +23,11 @@
 .touch .save { margin-left: auto; }
 .touch .save-menu { width: min(300px, calc(100vw - 24px)); }
 .touch .save-menu .btn { padding: 8px 12px; font-size: 14px; }
-.touch .toast { top: calc(var(--top-h) + 8px); max-width: calc(100% - 24px); text-align: center; z-index: 30; }
+.touch .toast { top: calc(var(--hud-top) + 8px); max-width: calc(100% - 24px); text-align: center; z-index: 30; }
 
 /* 操作の説明：上のバーのすぐ下に小さく */
 .touch .controls-help {
-  top: calc(var(--top-h) + 6px); bottom: auto; max-width: calc(100% - 80px);
+  top: calc(var(--hud-top) + 6px); bottom: auto; max-width: calc(100% - 80px);
   white-space: normal; text-align: center; font-size: 11px; pointer-events: none;
 }
 
@@ -64,7 +64,7 @@
 
 /* 歩きモードでツールを持っているとき：上に階の切り替えと設定 */
 .touch-top {
-  position: absolute; top: calc(var(--top-h) + 30px); left: calc(6px + var(--safe-l)); right: calc(6px + var(--safe-r));
+  position: absolute; top: calc(var(--hud-top) + 30px); left: calc(6px + var(--safe-l)); right: calc(6px + var(--safe-r));
   display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; z-index: 2;
 }
 .touch-top > * { pointer-events: auto; }
@@ -74,7 +74,7 @@
 
 /* 建築モードのカメラボタン（右端の縦並び） */
 .touch-camera {
-  position: absolute; right: calc(8px + var(--safe-r)); top: calc(var(--top-h) + 34px);
+  position: absolute; right: calc(8px + var(--safe-r)); top: calc(var(--hud-top) + 34px);
   display: grid; grid-template-columns: 44px; gap: 8px; z-index: 1;
 }
 .touch-camera .touch-btn { width: 44px; height: 44px; font-size: 20px; }
@@ -116,10 +116,11 @@
 
 /* お金のバーと、不動産屋・カジノのメニュー（お金の仕組みが入ったとき用） */
 .touch .moneybar {
-  top: calc(var(--top-h) + 6px); max-width: calc(100% - 12px); overflow-x: auto; scrollbar-width: none;
+  top: calc(var(--top-h) + 6px); max-width: calc(100% - 12px); overflow-x: auto; scrollbar-width: none; padding: 4px 6px;
 }
+.touch .moneybar .tool { padding: 5px 10px; min-height: 34px; flex: none; }
+.touch .money .cash { font-size: 15px; }
 .touch .moneybar::-webkit-scrollbar { display: none; }
-.touch .moneybar ~ .controls-help, .touch .moneybar ~ .touch-camera { margin-top: 52px; }
 .touch .overlay { padding: 0; align-items: stretch; }
 .touch .modal { width: 100%; max-height: none; height: 100%; border-radius: 0; padding-bottom: var(--safe-b); }
 .touch .modal-head { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(10px + var(--safe-r)) 8px calc(10px + var(--safe-l)); }

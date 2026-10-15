@@ -123,17 +123,26 @@ function TouchLayout({ walking, holding }: { walking: boolean; holding: boolean 
   );
 }
 
-/** 上のバーの高さ（折り返すと変わる）を CSS 変数にして、その下に他の表示を並べる */
+/** 上のバー（折り返すと高さが変わる）とお金のバーの下端を CSS 変数にして、その下に他の表示を並べる */
 function useTopBarHeight(app: React.RefObject<HTMLDivElement>) {
   useEffect(() => {
     const root = app.current;
-    const bar = root?.querySelector('.topbar');
-    if (!root || !bar) return;
-    const update = () => root.style.setProperty('--top-h', `${Math.ceil(bar.getBoundingClientRect().bottom)}px`);
+    const bars = root ? [...root.querySelectorAll('.topbar, .moneybar')] : [];
+    if (!root || bars.length === 0) return;
+    const update = () => {
+      const top = root.getBoundingClientRect().top;
+      const bottom = (sel: string) => Math.ceil((root.querySelector(sel)?.getBoundingClientRect().bottom ?? top) - top);
+      root.style.setProperty('--top-h', `${bottom('.topbar')}px`);
+      root.style.setProperty('--hud-top', `${Math.max(bottom('.topbar'), bottom('.moneybar'))}px`);
+    };
     update();
     const ro = new ResizeObserver(update);
-    ro.observe(bar);
-    return () => ro.disconnect();
+    bars.forEach((b) => ro.observe(b));
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
   }, [app]);
 }
 
@@ -231,7 +240,7 @@ function LevelBar() {
       ) : (
         <label className="check">
           <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
-          上の階<span className="btn-label">と</span>屋根も表示
+          <span className="btn-label">上の階と</span>屋根も表示
         </label>
       )}
     </div>
