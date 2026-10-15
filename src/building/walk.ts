@@ -6,9 +6,10 @@
 // - 家具：床に置いた箱として押し返す
 // - 階段の手すり：横から越えられない（下をくぐるのはよい）
 import { furnitureBounds, getFurniture, getOpening } from '../catalog';
-import { GRID, SLAB_THICKNESS, STAIR_LENGTH, STAIR_RAIL_HEIGHT, STORY_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
+import { GRID, SLAB_THICKNESS, STAIR_RAIL_HEIGHT, STORY_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import { roofHeightAt } from './roof';
-import { furnitureBaseY, stairFootprint, stairHoles, stairRailXs, wallHeight } from './rules';
+import { furnitureBaseY, stairHoles, wallHeight } from './rules';
+import { stairHeightFraction, stairLocalRails, stairWorldGrid } from './stairs';
 import type { OpeningDef } from '../catalog';
 import type { House, OpeningPart, StairPart, WallPart } from './types';
 
@@ -27,47 +28,20 @@ export interface Vec2 {
 
 /** 階段の上での高さ。階段の外なら null */
 function stairHeight(s: StairPart, x: number, z: number): number | null {
-  const fp = stairFootprint(s);
-  const gx = x / GRID;
-  const gz = z / GRID;
-  if (gx < fp.x0 || gx > fp.x1 || gz < fp.z0 || gz > fp.z1) return null;
-  const len = STAIR_LENGTH * GRID;
-  let u: number;
-  switch (s.rot) {
-    case 0:
-      u = z - s.z * GRID;
-      break;
-    case 2:
-      u = (s.z + 1) * GRID - z;
-      break;
-    case 1:
-      u = x - s.x * GRID;
-      break;
-    case 3:
-      u = (s.x + 1) * GRID - x;
-      break;
-  }
-  return floorY(s.level) + Math.min(Math.max(u / len, 0), 1) * STORY_HEIGHT;
+  const fraction = stairHeightFraction(s, x, z);
+  return fraction === null ? null : floorY(s.level) + fraction * STORY_HEIGHT;
 }
 
 /**
  * 階段の手すりを上から見た線分（ワールド座標 m）。a が下端、b が上端。
  * n は階段の中心から手すりへ向かう単位ベクトル。手すりがなければ空
  */
-export function stairRails(s: StairPart): { ax: number; az: number; bx: number; bz: number; nx: number; nz: number }[] {
-  const a = (s.rot * Math.PI) / 2;
-  const cos = Math.cos(a);
-  const sin = Math.sin(a);
-  const cx = (s.x + 0.5) * GRID;
-  const cz = (s.z + 0.5) * GRID;
-  // 描画と同じ：ローカル (lx, lz) を Y 軸まわりに a 回す
-  const toWorld = (lx: number, lz: number) => [cx + lx * cos + lz * sin, cz - lx * sin + lz * cos];
-  const z0 = -GRID / 2;
-  return stairRailXs(s.rail).map((lx) => {
-    const [ax, az] = toWorld(lx, z0);
-    const [bx, bz] = toWorld(lx, z0 + STAIR_LENGTH * GRID);
-    const side = Math.sign(lx);
-    return { ax, az, bx, bz, nx: side * cos, nz: -side * sin };
+export function stairRails(s: StairPart) {
+  return stairLocalRails(s).map(r => {
+    const a = stairWorldGrid(s, r.ax, r.az), b = stairWorldGrid(s, r.bx, r.bz);
+    const angle = s.rot * Math.PI / 2, cos = Math.cos(angle), sin = Math.sin(angle);
+    return { ax: a.x * GRID, az: a.z * GRID, bx: b.x * GRID, bz: b.z * GRID,
+      nx: r.nx * cos + r.nz * sin, nz: -r.nx * sin + r.nz * cos, bottom: r.bottom, top: r.top };
   });
 }
 
@@ -228,7 +202,7 @@ export function resolveCollisions(
       const ez = r.bz - r.az;
       const t = Math.min(Math.max(((x - r.ax) * ex + (z - r.az) * ez) / (ex * ex + ez * ez), 0), 1);
       // その点の段の高さから手すりの上までを壁とみなす（階段の下は通れる）
-      const tread = floorY(s.level) + t * STORY_HEIGHT;
+      const tread = floorY(s.level) + (r.bottom + t * (r.top - r.bottom)) * STORY_HEIGHT;
       if (feetY >= tread + STAIR_RAIL_HEIGHT + 0.05 || headY <= tread - 0.3) continue;
       const cx = r.ax + ex * t;
       const cz = r.az + ez * t;
@@ -376,3 +350,4 @@ export function windowPassage(house: House, o: OpeningPart, x: number, z: number
   const reason = width < WINDOW_MIN.width || height < WINDOW_MIN.height ? 'narrow' : climb > WINDOW_MIN.climb || climb < -0.3 ? 'high' : null;
   return { x: cx, z: cz, sillY, nx: dz * side, nz: -dx * side, width, height, climb, ok: reason === null, reason };
 }
+
