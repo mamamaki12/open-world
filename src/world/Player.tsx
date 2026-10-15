@@ -5,6 +5,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { nearestSeat } from '../building/seating';
+import { touchGesture } from '../state/gestures';
+import { useInteraction } from '../state/interaction';
 import { useVehicles } from '../state/vehicles';
 import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract, resolveParkedCars } from './vehicleLogic';
 import { useVenue, enterVenue, exitVenue } from '../state/venue';
@@ -342,7 +344,7 @@ export function Player() {
       f.x = e.clientX;
       f.y = e.clientY;
       const count = fingers.size;
-      if (count === 1 && !isBuilding()) look(dx * 1.6, dy * 1.6);
+      if (count === 1 && !touchGesture.reserved && !useInteraction.getState().furnitureDrag && !useInteraction.getState().buildingDrag) look(dx * 1.6, dy * 1.6);
       if (count === 2) {
         // 2本指は、指の動きの平均で見回す（2本ぶん来るので半分ずつ）
         look(dx * 0.8, dy * 0.8);
