@@ -126,6 +126,9 @@ export function ToolOptions() {
     case 'furniture':
       body = (
         <div className="field">
+          {getFurniture(d.furnitureType).label && (
+            <NameplateInput value={d.nameplateText} onChange={(nameplateText) => set({ nameplateText })} />
+          )}
           {(
             [
               ['庭・外（プール・花・表札など）', FURNITURE.filter((f) => f.category === 'outdoor')],
@@ -143,9 +146,6 @@ export function ToolOptions() {
               </div>
             </div>
           ))}
-          {getFurniture(d.furnitureType).label && (
-            <NameplateInput value={d.nameplateText} onChange={(nameplateText) => set({ nameplateText })} />
-          )}
           <button className="btn" onClick={() => set({ furnitureRotation: (d.furnitureRotation + 90) % 360 })}>
             向きを変える<span className="kbd-hint">（R）</span>：{d.furnitureRotation}°
           </button>
@@ -157,6 +157,9 @@ export function ToolOptions() {
   return (
     <div className="panel tool-options">
       <p className="help">{(touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
+      {touch && (tool === 'wall' || tool === 'floor') && <p className="info">真上から指の位置に合わせて配置します。2本指で移動・ズームできます。</p>}
+      {tool === 'select' && <p className="info">床・壁・屋根・階段は同じ素材・色でまとめて移動できます。選択後、ドラッグまたは1マス移動ボタンを使ってください。</p>}
+      {tool === 'furniture' && d.furnitureType === 'nameplate' && <p className="info">表示する文字を入力し、取り付けたい壁面をタップしてください。壁の手前側に固定します。</p>}
       {body}
     </div>
   );
@@ -165,8 +168,10 @@ export function ToolOptions() {
 export function NameplateInput({ value = '', onChange }: { value?: string; onChange: (v: string) => void }) {
   return (
     <label className="field">
-      <div className="field-label">表札の文字</div>
-      <input type="text" value={value} maxLength={12} placeholder="山田" onChange={(e) => onChange(e.target.value)} />
+      <div className="field-label">表札の文字（自由入力）</div>
+      <input aria-label="表札に表示する文字" type="text" value={value} maxLength={24} placeholder="例：山田 / YAMADA" autoComplete="off" onChange={(e) => onChange(e.target.value)} />
+      <output className="info" aria-live="polite">表示：{value || '（文字なし）'}</output>
+      <small className="info">日本語・英字・数字など24文字まで。配置後も表札を選ぶと変更できます。</small>
     </label>
   );
 }
@@ -293,3 +298,4 @@ export function Slider({ label, unit, min, max, step, value, onChange, scale = 1
     </div>
   );
 }
+
