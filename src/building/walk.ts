@@ -1,10 +1,12 @@
 // プレイヤーが歩くときの当たり判定（描画に依存しない純粋な計算）
-// - 足もとの高さ：地面、床、階段（坂として扱う）
+// - 足もとの高さ：地面、床、階段（坂として扱う）、屋根の上
+// - 頭上：屋根の下面と上の階の床でつかえる。屋根の斜面は横からもすり抜けない
 // - 壁：開いたドアと掃き出し窓だけ通り抜けられる。腰高の窓はよじ登って越える
 // - 窓：開いた窓から出入りできるか（窓枠の高さ・すき間の大きさ）
 // - 家具：床に置いた箱として押し返す
 import { furnitureBounds, getFurniture, getOpening } from '../catalog';
-import { GRID, STAIR_LENGTH, STORY_HEIGHT, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
+import { GRID, SLAB_THICKNESS, STAIR_LENGTH, STORY_HEIGHT, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
+import { roofHeightAt } from './roof';
 import { stairFootprint, stairHoles } from './rules';
 import type { OpeningDef } from '../catalog';
 import type { House, OpeningPart, StairPart, WallPart } from './types';
@@ -68,7 +70,45 @@ export function surfaceHeight(house: House, x: number, z: number, y: number): nu
     const h = stairHeight(s, x, z);
     if (h !== null) consider(h);
   }
+  for (const r of house.roofs) {
+    const h = roofHeightAt(r, x, z);
+    if (h) consider(h.top);
+  }
   return best;
+}
+
+/**
+ * 頭がつかえる高さ（屋根の下面・上の階の床の下面のうち、足の高さより上で一番低いもの）。
+ * 何もなければ Infinity
+ */
+export function ceilingHeight(house: House, x: number, z: number, feetY: number): number {
+  let best = Infinity;
+  const consider = (h: number) => {
+    if (h > feetY + 0.05 && h < best) best = h;
+  };
+  const gx = x / GRID;
+  const gz = z / GRID;
+  for (const r of house.roofs) {
+    const h = roofHeightAt(r, x, z);
+    if (h) consider(h.bottom);
+  }
+  for (const f of house.floors) {
+    if (f.level === 0 || gx < f.x0 || gx > f.x1 || gz < f.z0 || gz > f.z1) continue;
+    const inHole = stairHoles(house, f.level).some((h) => gx > h.x0 && gx < h.x1 && gz > h.z0 && gz < h.z1);
+    if (!inHole) consider(floorY(f.level) - SLAB_THICKNESS);
+  }
+  return best;
+}
+
+/**
+ * (x, z) に立つと体が屋根に埋まるか。屋根の上面が段差で上がれる高さより高く、
+ * 下面が頭より低ければ、そこへは進めない（斜面を横からすり抜けない）
+ */
+export function roofBlocks(house: House, x: number, z: number, feetY: number, height: number): boolean {
+  return house.roofs.some((r) => {
+    const h = roofHeightAt(r, x, z);
+    return h !== null && h.top > feetY + PLAYER.maxStep && h.bottom < feetY + height - 0.05;
+  });
 }
 
 /** 窓・ドアの枠の太さ（描画と同じ値） */
