@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
 import { ErrorBoundary, NoWebGL, hasWebGL } from './ui/Fallback';
 import './ui/styles.css';
+import './ui/mobile.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

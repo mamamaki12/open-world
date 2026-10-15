@@ -6,6 +6,7 @@ import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { FinishPicker, NamedSwatches } from './FinishPicker';
+import { useTouchDevice } from './useTouchDevice';
 
 export const TOOL_HELP: Record<Tool, string> = {
   select: 'パーツをクリックして選ぶと、右のパネルで種類・素材・色を変えられます。選んだ家具はドラッグで動かせます。',
@@ -19,7 +20,21 @@ export const TOOL_HELP: Record<Tool, string> = {
   erase: 'クリックしたパーツを消します。',
 };
 
+/** 指で操作するときの説明 */
+const TOUCH_TOOL_HELP: Record<Tool, string> = {
+  select: 'パーツをタップして選ぶと、この引き出しで種類・素材・色を変えられます。選んだ家具は指でなぞって動かせます。',
+  floor: '指でなぞって四角く床を張ります（1マス = 910mm）。2階の床は「作業する階」で 2階 を選んでから、1階の壁の上をなぞります。',
+  wall: 'マス目の線に沿って指でなぞって壁を立てます。床のない側が外壁になります。',
+  door: '壁をタップするとドアを付けます。',
+  window: '壁をタップすると窓を付けます。',
+  stair: '1階をタップすると2階へ上がる階段を置きます（幅1マス × 長さ4マス）。下のボタンで向きを変えます。',
+  roof: 'その階の壁の上に載せる屋根の範囲を指でなぞります。2階に置くと2階の上に載ります。',
+  furniture: 'タップで家具を置きます。下のボタンで90度回します。',
+  erase: 'タップしたパーツを消します。',
+};
+
 export function ToolOptions() {
+  const touch = useTouchDevice();
   const tool = useGame((s) => s.tool);
   const d = useGame((s) => s.defaults);
   const set = useGame((s) => s.setDefaults);
@@ -74,7 +89,7 @@ export function ToolOptions() {
         <>
           <FinishPicker label="踏み板" category="wood" value={d.stairFinish} onChange={(stairFinish) => set({ stairFinish })} />
           <button className="btn" onClick={() => useInteraction.getState().setStairRot(((stairRot + 1) % 4) as 0 | 1 | 2 | 3)}>
-            向きを変える（R）
+            向きを変える<span className="kbd-hint">（R）</span>
           </button>
         </>
       );
@@ -105,7 +120,7 @@ export function ToolOptions() {
             ))}
           </div>
           <button className="btn" onClick={() => set({ furnitureRotation: (d.furnitureRotation + 90) % 360 })}>
-            向きを変える（R）：{d.furnitureRotation}°
+            向きを変える<span className="kbd-hint">（R）</span>：{d.furnitureRotation}°
           </button>
         </div>
       );
@@ -114,7 +129,7 @@ export function ToolOptions() {
 
   return (
     <div className="panel tool-options">
-      <p className="help">{TOOL_HELP[tool]}</p>
+      <p className="help">{(touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
       {body}
     </div>
   );
