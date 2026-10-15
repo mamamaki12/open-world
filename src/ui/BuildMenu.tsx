@@ -1,6 +1,5 @@
 // スマホ用の建築メニュー：「建てる」ボタンから開き、道具を大きなカードで選び、その下で種類・素材・色を選ぶ
 import { useEffect } from 'react';
-import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { ToolOptions } from './ToolOptions';
@@ -48,12 +47,10 @@ export function BuildButton({ label, onOpen }: { label: string; onOpen: () => vo
 export function BuildMenu({
   tools,
   walking,
-  levelBar,
   onClose,
 }: {
   tools: { id: Tool; label: string }[];
   walking: boolean;
-  levelBar: ReactNode;
   onClose: () => void;
 }) {
   const tool = useGame((s) => s.tool);
@@ -83,7 +80,6 @@ export function BuildMenu({
             ))}
           </div>
           <div className="build-menu-options">
-            {levelBar}
             <ToolOptions />
           </div>
         </div>

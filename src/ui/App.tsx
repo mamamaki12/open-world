@@ -57,7 +57,7 @@ export function App() {
           <MoneyBar />
         </>
       )}
-      {touch ? <TouchLayout walking={walking} holding={holding} /> : walking ? (
+      {touch ? <TouchLayout walking={walking} /> : walking ? (
         <>
           <WalkHud />
           {holding && (
@@ -90,7 +90,7 @@ export function App() {
 }
 
 /** スマホ・タブレットの画面：上のバーの代わりに小さなボタンを四隅に置き、建築は「建てる」ボタンから大きなメニューで選ぶ */
-function TouchLayout({ walking, holding }: { walking: boolean; holding: boolean }) {
+function TouchLayout({ walking }: { walking: boolean }) {
   const tool = useGame((s) => s.tool);
   const selected = useGame((s) => s.selection !== null);
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
@@ -107,15 +107,9 @@ function TouchLayout({ walking, holding }: { walking: boolean; holding: boolean 
         <>
           <WalkHud />
           <TouchWalkControls />
-          {holding && (
-            <div className="touch-top">
-              <LevelBar />
-            </div>
-          )}
         </>
       ) : (
         <div className="touch-dock">
-          <LevelBar />
           {selected && (
             <Sheet key="inspector" title="選んだパーツ" defaultOpen>
               <Inspector />
@@ -124,7 +118,7 @@ function TouchLayout({ walking, holding }: { walking: boolean; holding: boolean 
         </div>
       )}
       <ControlsHelp />
-      {menu && <BuildMenu tools={TOOLS} walking={walking} levelBar={walking ? null : <LevelBar />} onClose={closeMenu} />}
+      {menu && <BuildMenu tools={TOOLS} walking={walking} onClose={closeMenu} />}
     </>
   );
 }
