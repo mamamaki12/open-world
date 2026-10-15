@@ -1,24 +1,30 @@
-// 歩きモードのプレイヤー：キー入力で動かし、三人称・一人称のカメラで追う
+// 歩きモードのプレイヤー：キー入力で動かし、三人称・一人称のカメラで追う。
+// 開いた窓は Space で乗り越えられる（2階以上なら枠によじ登ってから飛び降りる）
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { getOpening } from '../catalog';
-import { PLAYER, nearestDoor, resolveCollisions, surfaceHeight } from '../building/walk';
+import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
+import type { ClimbPlan } from '../building/climb';
+import { PLAYER, nearestOpening, resolveCollisions, surfaceHeight, windowPassage } from '../building/walk';
+import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
-import { playDoorSound } from './sound';
+import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
-import { plainMaterial } from './materials';
+import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
 
 const WALK_SPEED = 2.6;
 const RUN_SPEED = 5.2;
 const CROUCH_SPEED = 1.2;
 const JUMP_SPEED = 4.2;
 const GRAVITY = 9.8;
-const EYE = 1.58;
-const CROUCH_EYE = 1.0;
+/** 歩き出し・止まるときの加速のなめらかさ（大きいほどきびきび） */
+const ACCEL = 9;
 const THIRD_PITCH = -0.22;
 const FOV = { third: 55, first: 72 };
+/** 窓を乗り越えられる距離（m） */
+const CLIMB_REACH = 1.2;
 
 /** モードを切り替えても位置を覚えておく（セーブはしない） */
 export const playerMemory = {
@@ -45,31 +51,68 @@ export const WALK_KEYS = {
   interact: ['KeyF', 'KeyE'],
 };
 
-/** いま狙っているドアを開け閉めする（キーと画面のボタンの両方から呼ぶ） */
+/** いま狙っているドア・窓を開け閉めする（キーと画面のボタンの両方から呼ぶ） */
 export function toggleTargetDoor() {
   const doors = useDoors.getState();
   const id = doors.target;
-  if (!id) return;
+  if (!id || doors.climbing) return;
   const { house } = useGame.getState();
-  const spot = nearestDoor(house, playerMemory.x, playerMemory.z, playerMemory.y);
+  const spot = nearestOpening(house, playerMemory.x, playerMemory.z, playerMemory.y);
   // 開く向き：プレイヤーがいる側と反対へ
   const dir = (spot && spot.id === id ? -spot.side : 1) as 1 | -1;
   const opened = doors.toggle(id, dir);
   const o = house.openings.find((p) => p.id === id);
-  playDoorSound(opened, o ? getOpening(o.type).style === 'sliding' : false);
+  if (!o) return;
+  const style = getOpening(o.type).style;
+  if (o.kind === 'window') playWindowSound(opened, style === 'slidingWindow');
+  else playDoorSound(opened, style === 'sliding');
+}
+
+/** 近くの開いた窓のうち、乗り越えられるもの */
+function climbablePassage(): WindowPassage | null {
+  const { house } = useGame.getState();
+  const id = useDoors.getState().target;
+  const o = id ? house.openings.find((p) => p.id === id) : undefined;
+  if (!o || !isDoorOpen(o.id)) return null;
+  const pass = windowPassage(house, o, playerMemory.x, playerMemory.z, playerMemory.y);
+  if (!pass || !pass.ok) return null;
+  if (Math.hypot(playerMemory.x - pass.x, playerMemory.z - pass.z) > CLIMB_REACH) return null;
+  return pass;
+}
+
+interface Action {
+  plan: ClimbPlan;
+  t: number;
+}
+
+/** 着地の土ぼこり：広がって消える輪と、舞い上がる粒 */
+const DUST_COUNT = 12;
+function makeDust() {
+  return {
+    life: 0,
+    strength: 0,
+    origin: new THREE.Vector3(),
+    dirs: Array.from({ length: DUST_COUNT }, (_, i) => {
+      const a = (i / DUST_COUNT) * Math.PI * 2 + Math.random() * 0.4;
+      return new THREE.Vector3(Math.cos(a), 0.35 + Math.random() * 0.5, Math.sin(a)).multiplyScalar(0.7 + Math.random() * 0.6);
+    }),
+  };
 }
 
 export function Player() {
   const { camera, gl, scene } = useThree();
   const view = useGame((s) => s.view);
-  const body = useRef<THREE.Group>(null);
-  const legL = useRef<THREE.Group>(null);
-  const legR = useRef<THREE.Group>(null);
-  const armL = useRef<THREE.Group>(null);
-  const armR = useRef<THREE.Group>(null);
+  const rig = useRig();
+  const smooth = useSmooth();
   const keys = useRef(new Set<string>());
-  const state = useRef({ velY: 0, grounded: true, crouch: false, phase: 0, crouchBlend: 0 });
+  const state = useRef({ velY: 0, vx: 0, vz: 0, grounded: true, crouch: false, airTime: 0, lastYaw: 0, shake: 0 });
+  const action = useRef<Action | null>(null);
+  /** 窓から飛び出した直後：通ってきた窓の壁に押し戻されないよう、少しの間だけ壁の当たり判定を切る */
+  const skipWalls = useRef(false);
   const raycaster = useRef(new THREE.Raycaster());
+  const dust = useRef(makeDust());
+  const dustRing = useRef<THREE.Mesh>(null);
+  const dustPuffs = useRef<THREE.InstancedMesh>(null);
 
   // 建築モードのカメラを覚えておき、戻るときに元に戻す
   useEffect(() => {
@@ -82,6 +125,7 @@ export function Player() {
       cam.updateProjectionMatrix();
       if (document.pointerLockElement) document.exitPointerLock();
       useDoors.getState().setTarget(null);
+      useDoors.getState().setClimb(null, false);
     };
   }, [camera]);
 
@@ -104,11 +148,22 @@ export function Player() {
       if (e.repeat) return;
       keys.current.add(e.code);
       const st = state.current;
-      if (WALK_KEYS.jump.includes(e.code) && st.grounded) {
-        st.velY = JUMP_SPEED;
-        st.grounded = false;
+      if (WALK_KEYS.jump.includes(e.code) && st.grounded && !action.current) {
+        // 開いた窓の前なら乗り越える。そうでなければジャンプ
+        const pass = climbablePassage();
+        if (pass) {
+          const { house } = useGame.getState();
+          action.current = { plan: planClimb(house, pass, { x: playerMemory.x, y: playerMemory.y, z: playerMemory.z }), t: 0 };
+          st.crouch = false;
+          st.vx = 0;
+          st.vz = 0;
+          playClimbSound();
+        } else {
+          st.velY = JUMP_SPEED;
+          st.grounded = false;
+        }
       }
-      if (WALK_KEYS.crouch.includes(e.code)) st.crouch = !st.crouch;
+      if (WALK_KEYS.crouch.includes(e.code) && !action.current) st.crouch = !st.crouch;
       if (WALK_KEYS.view.includes(e.code)) {
         useGame.getState().toggleView();
         playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
@@ -164,7 +219,7 @@ export function Player() {
     };
   }, [gl]);
 
-  useFrame((_, rawDt) => {
+  useFrame(({ clock }, rawDt) => {
     // 描画が遅い環境でも同じ速さで動くよう、細かい時間に分けて計算する
     const frameDt = Math.min(rawDt, 0.25);
     const steps = Math.max(1, Math.ceil(frameDt / 0.03));
@@ -173,8 +228,9 @@ export function Player() {
     const st = state.current;
     const k = keys.current;
     const pressed = (codes: string[]) => codes.some((c) => k.has(c));
+    const yawBefore = playerMemory.bodyYaw;
 
-    // 移動（カメラの向き基準）
+    // 移動の入力（カメラの向き基準）
     const fwd = (pressed(WALK_KEYS.forward) ? 1 : 0) - (pressed(WALK_KEYS.back) ? 1 : 0);
     const side = (pressed(WALK_KEYS.right) ? 1 : 0) - (pressed(WALK_KEYS.left) ? 1 : 0);
     const sinY = Math.sin(playerMemory.yaw);
@@ -182,69 +238,186 @@ export function Player() {
     let mx = -sinY * fwd + cosY * side;
     let mz = -cosY * fwd - sinY * side;
     const mlen = Math.hypot(mx, mz);
-    const moving = mlen > 0;
-    const running = pressed(WALK_KEYS.run) && !st.crouch;
-    if (moving) {
+    if (mlen > 0) {
       mx /= mlen;
       mz /= mlen;
     }
-    for (let i = 0; i < steps; i++) {
-      if (moving) {
-        const speed = st.crouch ? CROUCH_SPEED : running ? RUN_SPEED : WALK_SPEED;
-        const height = st.crouch ? PLAYER.crouchHeight : PLAYER.height;
-        const next = resolveCollisions(
-          house,
-          { x: playerMemory.x + mx * speed * dt, z: playerMemory.z + mz * speed * dt },
-          playerMemory.y,
-          height,
-          isDoorOpen,
-        );
-        playerMemory.x = Math.min(Math.max(next.x, -25), LOT_W * GRID + 25);
-        playerMemory.z = Math.min(Math.max(next.z, -25), LOT_D * GRID + 25);
-        // 三人称では進む向きへ体を回す
-        const target = Math.atan2(-mx, -mz);
-        let diff = target - playerMemory.bodyYaw;
-        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-        playerMemory.bodyYaw += diff * Math.min(1, dt * 12);
-      }
-      if (v === 'first') playerMemory.bodyYaw = playerMemory.yaw;
+    const running = pressed(WALK_KEYS.run) && !st.crouch;
+    const speedGoal = mlen === 0 ? 0 : st.crouch ? CROUCH_SPEED : running ? RUN_SPEED : WALK_SPEED;
 
-      // 高さ：重力・ジャンプ・段差と階段
-      const ground = surfaceHeight(house, playerMemory.x, playerMemory.z, playerMemory.y);
-      if (st.grounded && st.velY <= 0 && playerMemory.y - ground < 0.35) {
-        playerMemory.y = ground; // 段差を上る・階段を下りるときは地面に沿わせる
-      } else {
-        st.velY -= GRAVITY * dt;
-        playerMemory.y += st.velY * dt;
+    // 窓を乗り越えている最中は、決まった動きに沿って体を動かす
+    let climbPose: ReturnType<typeof climbFrame> | null = null;
+    const act = action.current;
+    if (act) {
+      act.t += frameDt;
+      const f = climbFrame(act.plan, act.t);
+      if (f.phase === 'leap') {
+        // 枠から外へ飛び出す。ここからは重力で落ちる
+        playerMemory.x = f.pos.x;
+        playerMemory.y = f.pos.y;
+        playerMemory.z = f.pos.z;
+        st.vx = act.plan.passage.nx * LEAP_VELOCITY.out;
+        st.vz = act.plan.passage.nz * LEAP_VELOCITY.out;
+        st.velY = LEAP_VELOCITY.up;
         st.grounded = false;
-      }
-      if (playerMemory.y <= ground) {
-        playerMemory.y = ground;
-        st.velY = 0;
+        st.airTime = 0;
+        skipWalls.current = true;
+        action.current = null;
+      } else if (act.t >= climbDuration(act.plan)) {
+        // 足から降りきった
+        playerMemory.x = act.plan.dest.x;
+        playerMemory.y = act.plan.dest.y;
+        playerMemory.z = act.plan.dest.z;
+        st.velY = -2.5; // 軽い着地として扱う
         st.grounded = true;
+        action.current = null;
+        playLandSound(0.2);
+      } else {
+        climbPose = f;
+        playerMemory.x = f.pos.x;
+        playerMemory.y = f.pos.y;
+        playerMemory.z = f.pos.z;
+        let diff = act.plan.yaw - playerMemory.bodyYaw;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        playerMemory.bodyYaw += diff * Math.min(1, frameDt * 10);
+        if (v === 'first') playerMemory.yaw = playerMemory.bodyYaw;
       }
     }
 
-    // 近くのドアを操作対象にする
-    useDoors.getState().setTarget(nearestDoor(house, playerMemory.x, playerMemory.z, playerMemory.y)?.id ?? null);
+    if (!climbPose) {
+      for (let i = 0; i < steps; i++) {
+        // 速さは少しずつ変える（歩き出し・止まりがなめらかになる）。空中では向きを変えにくい
+        const control = st.grounded ? ACCEL : 1.2;
+        const blend = 1 - Math.exp(-control * dt);
+        st.vx += (mx * speedGoal - st.vx) * (st.grounded || mlen > 0 ? blend : 0);
+        st.vz += (mz * speedGoal - st.vz) * (st.grounded || mlen > 0 ? blend : 0);
+        const hs = Math.hypot(st.vx, st.vz);
+        if (hs > 0.01) {
+          const height = st.crouch ? PLAYER.crouchHeight : PLAYER.height;
+          const nx = playerMemory.x + st.vx * dt;
+          const nz = playerMemory.z + st.vz * dt;
+          // 窓から飛び出した直後は、通ってきた窓の壁に押し戻されないようにする
+          const next = skipWalls.current && st.airTime < 0.3
+            ? { x: nx, z: nz }
+            : resolveCollisions(house, { x: nx, z: nz }, playerMemory.y, height, isDoorOpen);
+          playerMemory.x = Math.min(Math.max(next.x, -25), LOT_W * GRID + 25);
+          playerMemory.z = Math.min(Math.max(next.z, -25), LOT_D * GRID + 25);
+          // 三人称では進む向きへ体を回す
+          if (mlen > 0 || !st.grounded) {
+            const target = Math.atan2(-st.vx, -st.vz);
+            let diff = target - playerMemory.bodyYaw;
+            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+            playerMemory.bodyYaw += diff * Math.min(1, dt * (mlen > 0 ? 9 : 3));
+          }
+        }
+        if (v === 'first') playerMemory.bodyYaw = playerMemory.yaw;
 
-    // しゃがみ・歩きの動き
-    st.crouchBlend += ((st.crouch ? 1 : 0) - st.crouchBlend) * Math.min(1, frameDt * 10);
-    st.phase += moving && st.grounded ? frameDt * (running ? 13 : 8) : 0;
-    const swing = moving && st.grounded ? Math.sin(st.phase) * (running ? 0.9 : 0.6) : 0;
-    if (body.current) {
-      body.current.position.set(playerMemory.x, playerMemory.y, playerMemory.z);
-      body.current.rotation.y = playerMemory.bodyYaw;
-      body.current.scale.y = 1 - st.crouchBlend * 0.32;
-      body.current.visible = v === 'third';
+        // 高さ：重力・ジャンプ・段差と階段
+        const ground = surfaceHeight(house, playerMemory.x, playerMemory.z, playerMemory.y);
+        if (st.grounded && st.velY <= 0 && playerMemory.y - ground < 0.35) {
+          playerMemory.y = ground; // 段差を上る・階段を下りるときは地面に沿わせる
+        } else {
+          st.velY -= GRAVITY * dt;
+          playerMemory.y += st.velY * dt;
+          st.grounded = false;
+          st.airTime += dt;
+        }
+        if (playerMemory.y <= ground) {
+          playerMemory.y = ground;
+          st.velY = 0;
+          st.grounded = true;
+          st.airTime = 0;
+          skipWalls.current = false;
+        }
+      }
     }
-    legL.current?.rotation.set(swing, 0, 0);
-    legR.current?.rotation.set(-swing, 0, 0);
-    armL.current?.rotation.set(-swing * 0.8, 0, 0);
-    armR.current?.rotation.set(swing * 0.8, 0, 0);
 
-    // カメラ
-    const eye = playerMemory.y + EYE + (CROUCH_EYE - EYE) * st.crouchBlend;
+    // 近くのドア・窓を操作対象にする。開いた窓なら出られるかも調べる
+    const doors = useDoors.getState();
+    if (!action.current) {
+      const spot = nearestOpening(house, playerMemory.x, playerMemory.z, playerMemory.y);
+      doors.setTarget(spot?.id ?? null);
+      let climb: 'ok' | 'narrow' | 'high' | null = null;
+      if (spot?.kind === 'window' && isDoorOpen(spot.id)) {
+        const o = house.openings.find((p) => p.id === spot.id);
+        const pass = o ? windowPassage(house, o, playerMemory.x, playerMemory.z, playerMemory.y) : null;
+        if (pass) climb = pass.ok ? (Math.hypot(playerMemory.x - pass.x, playerMemory.z - pass.z) <= CLIMB_REACH ? 'ok' : null) : pass.reason;
+      }
+      doors.setClimb(climb, false);
+    } else {
+      doors.setClimb(null, true);
+    }
+
+    // ---- 体の動き ----
+    const r = rig.current;
+    const hspeed = climbPose ? 0 : Math.hypot(st.vx, st.vz);
+    let turn = playerMemory.bodyYaw - yawBefore;
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+    let lookYaw = playerMemory.yaw - playerMemory.bodyYaw;
+    lookYaw = Math.atan2(Math.sin(lookYaw), Math.cos(lookYaw));
+    if (Math.abs(lookYaw) > 1.8) lookYaw = 0; // 真後ろを見ているときは振り向かない
+    let hands: [THREE.Vector3, THREE.Vector3] | null = null;
+    if (climbPose?.hands && action.current) {
+      const pass = action.current.plan.passage;
+      // 壁に沿った向き（窓の幅方向）
+      const ax = -pass.nz;
+      const az = pass.nx;
+      if (climbPose.hands === 'sill') {
+        const s = Math.min(0.22, pass.width / 2 - 0.05);
+        hands = [
+          new THREE.Vector3(pass.x - ax * s - pass.nx * 0.04, pass.sillY + 0.02, pass.z - az * s - pass.nz * 0.04),
+          new THREE.Vector3(pass.x + ax * s - pass.nx * 0.04, pass.sillY + 0.02, pass.z + az * s - pass.nz * 0.04),
+        ];
+      } else {
+        const s = pass.width / 2 - 0.02;
+        const hy = pass.sillY + Math.min(0.7, pass.height - 0.15);
+        hands = [
+          new THREE.Vector3(pass.x - ax * s, hy, pass.z - az * s),
+          new THREE.Vector3(pass.x + ax * s, hy, pass.z + az * s),
+        ];
+      }
+      // 体から見た左右に合わせる（体の左 = 正面 -Z から見て -X）
+      const right = new THREE.Vector3(Math.cos(playerMemory.bodyYaw), 0, -Math.sin(playerMemory.bodyYaw));
+      if (hands[0].clone().sub(hands[1]).dot(right) > 0) hands.reverse();
+    }
+    if (r.root) {
+      r.root.position.set(playerMemory.x, playerMemory.y, playerMemory.z);
+      r.root.rotation.y = playerMemory.bodyYaw;
+      r.root.visible = v === 'third';
+    }
+    const landed = poseRig(r, smooth.current, {
+      dt: frameDt,
+      time: clock.elapsedTime,
+      speed: hspeed * (st.grounded ? 1 : 0),
+      running,
+      crouch: climbPose ? climbPose.crouch : st.crouch ? 1 : 0,
+      air: climbPose ? climbPose.air : !st.grounded,
+      velY: st.velY,
+      turnRate: turn / Math.max(frameDt, 1e-3),
+      lookYaw: climbPose ? 0 : lookYaw,
+      lookPitch: climbPose ? -climbPose.lookDown : Math.max(playerMemory.pitch - THIRD_PITCH, -0.6),
+      hands,
+      tuck: climbPose ? climbPose.tuck : 0,
+      perch: climbPose ? climbPose.perch : 0,
+    });
+    if (landed > 0) {
+      // 高いところからの着地：土ぼこり・音・カメラの揺れ
+      const d = dust.current;
+      d.life = 1;
+      d.strength = landed;
+      d.origin.set(playerMemory.x, playerMemory.y + 0.02, playerMemory.z);
+      st.shake = 0.12 * landed;
+      playLandSound(landed);
+    }
+    updateDust(frameDt);
+
+    // ---- カメラ ----
+    const head = new THREE.Vector3();
+    if (r.head) r.head.getWorldPosition(head);
+    else head.set(playerMemory.x, playerMemory.y + 1.5, playerMemory.z);
+    st.shake = Math.max(0, st.shake - frameDt * 0.35);
+    const shakeY = st.shake * Math.sin(clock.elapsedTime * 55);
+    const eye = head.y + 0.1 + shakeY;
     const cp = Math.cos(playerMemory.pitch);
     const dir = new THREE.Vector3(-sinY * cp, Math.sin(playerMemory.pitch), -cosY * cp);
     if (v === 'first') {
@@ -269,47 +442,48 @@ export function Player() {
     }
   });
 
-  const skin = plainMaterial('#e8c4a0', 'none', { roughness: 0.7 });
-  const shirt = plainMaterial('#3e6fa8', 'none', { roughness: 0.8 });
-  const pants = plainMaterial('#2f3540', 'none', { roughness: 0.85 });
-  const hair = plainMaterial('#2a221d', 'none', { roughness: 0.9 });
-  const shoe = plainMaterial('#1c1c1e', 'none', { roughness: 0.6 });
+  const tmpMatrix = useRef(new THREE.Object3D());
+  function updateDust(dt: number) {
+    const d = dust.current;
+    const ring = dustRing.current;
+    const puffs = dustPuffs.current;
+    if (!ring || !puffs) return;
+    if (d.life <= 0) {
+      ring.visible = false;
+      puffs.visible = false;
+      return;
+    }
+    d.life = Math.max(0, d.life - dt * 1.4);
+    const age = 1 - d.life;
+    const s = 0.5 + d.strength;
+    ring.visible = true;
+    ring.position.copy(d.origin);
+    ring.scale.setScalar((0.25 + age * 1.3) * s);
+    (ring.material as THREE.MeshBasicMaterial).opacity = 0.45 * d.life;
+    puffs.visible = true;
+    const o = tmpMatrix.current;
+    d.dirs.forEach((dir, i) => {
+      const travel = (1 - Math.exp(-age * 3)) * s;
+      o.position.set(d.origin.x + dir.x * travel, d.origin.y + 0.05 + dir.y * travel * 0.6 - age * age * 0.2, d.origin.z + dir.z * travel);
+      o.scale.setScalar((0.06 + age * 0.14) * s);
+      o.updateMatrix();
+      puffs.setMatrixAt(i, o.matrix);
+    });
+    puffs.instanceMatrix.needsUpdate = true;
+    (puffs.material as THREE.MeshBasicMaterial).opacity = 0.55 * d.life;
+  }
 
-  // 体は -Z が正面
   return (
-    <group ref={body}>
-      {[-1, 1].map((side) => (
-        <group key={`leg${side}`} ref={side < 0 ? legL : legR} position={[side * 0.1, 0.86, 0]}>
-          <mesh position={[0, -0.41, 0]} material={pants} castShadow>
-            <boxGeometry args={[0.15, 0.82, 0.17]} />
-          </mesh>
-          <mesh position={[0, -0.82, -0.04]} material={shoe} castShadow>
-            <boxGeometry args={[0.15, 0.08, 0.26]} />
-          </mesh>
-        </group>
-      ))}
-      <mesh position={[0, 1.15, 0]} material={shirt} castShadow>
-        <boxGeometry args={[0.42, 0.6, 0.23]} />
+    <>
+      <AvatarModel rig={rig} />
+      <mesh ref={dustRing} rotation-x={-Math.PI / 2} visible={false}>
+        <ringGeometry args={[0.7, 1, 40]} />
+        <meshBasicMaterial color="#cdbfa6" transparent opacity={0} depthWrite={false} />
       </mesh>
-      {[-1, 1].map((side) => (
-        <group key={`arm${side}`} ref={side < 0 ? armL : armR} position={[side * 0.27, 1.42, 0]}>
-          <mesh position={[0, -0.24, 0]} material={shirt} castShadow>
-            <boxGeometry args={[0.11, 0.48, 0.13]} />
-          </mesh>
-          <mesh position={[0, -0.55, 0]} material={skin} castShadow>
-            <boxGeometry args={[0.09, 0.16, 0.1]} />
-          </mesh>
-        </group>
-      ))}
-      <mesh position={[0, 1.49, 0]} material={skin}>
-        <cylinderGeometry args={[0.05, 0.06, 0.08, 10]} />
-      </mesh>
-      <mesh position={[0, 1.62, 0]} material={skin} castShadow>
-        <sphereGeometry args={[0.12, 20, 16]} />
-      </mesh>
-      <mesh position={[0, 1.67, 0.02]} scale={[1.05, 0.8, 1.05]} material={hair} castShadow>
-        <sphereGeometry args={[0.125, 20, 12, 0, Math.PI * 2, 0, Math.PI / 1.7]} />
-      </mesh>
-    </group>
+      <instancedMesh ref={dustPuffs} args={[undefined, undefined, DUST_COUNT]} visible={false}>
+        <sphereGeometry args={[1, 10, 8]} />
+        <meshBasicMaterial color="#d8cdb8" transparent opacity={0} depthWrite={false} />
+      </instancedMesh>
+    </>
   );
 }

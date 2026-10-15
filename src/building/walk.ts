@@ -1,11 +1,13 @@
 // プレイヤーが歩くときの当たり判定（描画に依存しない純粋な計算）
 // - 足もとの高さ：地面、床、階段（坂として扱う）
-// - 壁：ドアの開口だけ通り抜けられる
+// - 壁：開いたドアと掃き出し窓だけ通り抜けられる。腰高の窓はよじ登って越える
+// - 窓：開いた窓から出入りできるか（窓枠の高さ・すき間の大きさ）
 // - 家具：床に置いた箱として押し返す
 import { furnitureBounds, getFurniture, getOpening } from '../catalog';
 import { GRID, STAIR_LENGTH, STORY_HEIGHT, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import { stairFootprint, stairHoles } from './rules';
-import type { House, StairPart, WallPart } from './types';
+import type { OpeningDef } from '../catalog';
+import type { House, OpeningPart, StairPart, WallPart } from './types';
 
 export const PLAYER = {
   radius: 0.25,
@@ -69,13 +71,38 @@ export function surfaceHeight(house: House, x: number, z: number, y: number): nu
   return best;
 }
 
+/** 窓・ドアの枠の太さ（描画と同じ値） */
+export const OPENING_FRAME = 0.045;
+
+/** 歩きモードで開け閉めできる建具か（FIX窓・高窓は開かない） */
+export function isOperable(def: OpeningDef): boolean {
+  return def.kind === 'door' || def.style === 'slidingWindow' || def.style === 'casement';
+}
+
+/**
+ * 開けたときに空くすき間（開口の中心からの距離 m）。
+ * 引き違い窓は左の障子が右へすべるので左半分だけ空く。
+ */
+export function openGap(def: OpeningDef): [number, number] {
+  const inner = def.width - OPENING_FRAME * 2;
+  if (def.style === 'slidingWindow') return [-inner / 2, -0.03];
+  return [-inner / 2, inner / 2];
+}
+
+/** 開いていれば、歩いてそのまま通れる建具（ドアと掃き出し窓） */
+function walkThrough(def: OpeningDef): boolean {
+  return def.kind === 'door' || (isOperable(def) && def.sill <= PLAYER.maxStep);
+}
+
 /** 壁を、通り抜けられる（開いている）ドアの部分を除いた区間に分ける（壁の始点からの距離 m） */
 function solidSpans(house: House, w: WallPart, length: number, isOpen: (id: string) => boolean): [number, number][] {
   const gaps = house.openings
-    .filter((o) => o.wallId === w.id && o.kind === 'door' && isOpen(o.id))
+    .filter((o) => o.wallId === w.id && isOpen(o.id) && walkThrough(getOpening(o.type)))
     .map((o) => {
       const d = getOpening(o.type);
-      return [o.offset - d.width / 2, o.offset + d.width / 2] as [number, number];
+      if (d.kind === 'door') return [o.offset - d.width / 2, o.offset + d.width / 2] as [number, number];
+      const [lo, hi] = openGap(d);
+      return [o.offset + lo, o.offset + hi] as [number, number];
     })
     .sort((a, b) => a[0] - b[0]);
   const spans: [number, number][] = [];
@@ -181,6 +208,7 @@ export function resolveCollisions(
 
 export interface DoorSpot {
   id: string;
+  kind: OpeningPart['kind'];
   x: number;
   z: number;
   /** プレイヤーが壁のどちら側にいるか（壁の左法線 = ローカル +Z 側なら 1） */
@@ -188,11 +216,11 @@ export interface DoorSpot {
   distance: number;
 }
 
-/** プレイヤーの近く（同じ階）で操作できるドアのうち一番近いもの */
-export function nearestDoor(house: House, x: number, z: number, feetY: number, reach = 1.5): DoorSpot | null {
+/** プレイヤーの近く（同じ階）で開け閉めできるドア・窓のうち一番近いもの */
+export function nearestOpening(house: House, x: number, z: number, feetY: number, reach = 1.5): DoorSpot | null {
   let best: DoorSpot | null = null;
   for (const o of house.openings) {
-    if (o.kind !== 'door') continue;
+    if (!isOperable(getOpening(o.type))) continue;
     const w = house.walls.find((ww) => ww.id === o.wallId);
     if (!w) continue;
     const y0 = floorY(w.level);
@@ -205,7 +233,60 @@ export function nearestDoor(house: House, x: number, z: number, feetY: number, r
     const distance = Math.hypot(x - cx, z - cz);
     if (distance > reach || (best && best.distance <= distance)) continue;
     const side = (x - cx) * -dz + (z - cz) * dx >= 0 ? 1 : -1;
-    best = { id: o.id, x: cx, z: cz, side, distance };
+    best = { id: o.id, kind: o.kind, x: cx, z: cz, side, distance };
   }
   return best;
+}
+
+/** ドアだけを探す（以前の呼び名） */
+export function nearestDoor(house: House, x: number, z: number, feetY: number, reach = 1.5): DoorSpot | null {
+  const doorsOnly = { ...house, openings: house.openings.filter((o) => o.kind === 'door') };
+  return nearestOpening(doorsOnly, x, z, feetY, reach);
+}
+
+export interface WindowPassage {
+  /** すき間の中心（壁の厚みの真ん中、窓台の上）のワールド座標 */
+  x: number;
+  z: number;
+  sillY: number;
+  /** プレイヤーのいる側から反対側へ向かう水平の単位ベクトル */
+  nx: number;
+  nz: number;
+  /** すき間の幅と高さ（m） */
+  width: number;
+  height: number;
+  /** 窓台の高さ（足もとから m） */
+  climb: number;
+  /** 出入りできるか。できないときは理由 */
+  ok: boolean;
+  reason: 'narrow' | 'high' | null;
+}
+
+/** 体が通れるすき間の最小寸法（肩幅・しゃがんだ高さ） */
+export const WINDOW_MIN = { width: 0.4, height: 0.85, climb: 1.5 };
+
+/**
+ * 窓（腰高窓）を乗り越えて反対側へ出るための情報。
+ * 掃き出し窓は歩いて通れるので対象外（null）。
+ */
+export function windowPassage(house: House, o: OpeningPart, x: number, z: number, feetY: number): WindowPassage | null {
+  const def = getOpening(o.type);
+  if (o.kind !== 'window' || !isOperable(def) || def.sill <= PLAYER.maxStep) return null;
+  const w = house.walls.find((ww) => ww.id === o.wallId);
+  if (!w) return null;
+  const len = Math.hypot(w.x1 - w.x0, w.z1 - w.z0);
+  const dx = (w.x1 - w.x0) / len;
+  const dz = (w.z1 - w.z0) / len;
+  const [lo, hi] = openGap(def);
+  const mid = o.offset + (lo + hi) / 2;
+  const cx = w.x0 * GRID + dx * mid;
+  const cz = w.z0 * GRID + dz * mid;
+  // 左法線 (-dz, dx)。プレイヤーがいる側の反対へ向かう
+  const side = (x - cx) * -dz + (z - cz) * dx >= 0 ? 1 : -1;
+  const sillY = floorY(w.level) + def.sill + OPENING_FRAME;
+  const width = hi - lo;
+  const height = def.height - OPENING_FRAME * 2;
+  const climb = sillY - feetY;
+  const reason = width < WINDOW_MIN.width || height < WINDOW_MIN.height ? 'narrow' : climb > WINDOW_MIN.climb || climb < -0.3 ? 'high' : null;
+  return { x: cx, z: cz, sillY, nx: dz * side, nz: -dx * side, width, height, climb, ok: reason === null, reason };
 }

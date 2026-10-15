@@ -107,3 +107,68 @@ export function playDoorSound(opening: boolean, sliding: boolean) {
     latch(a, t + 0.42);
   }
 }
+
+/** 窓の開け閉め：引き違いは「スーッ」と軽い「カチャ」、すべり出しは「カチャ」と小さなきしみ */
+export function playWindowSound(opening: boolean, sliding: boolean) {
+  const a = audio();
+  if (!a) return;
+  const t = a.currentTime + 0.01;
+  if (sliding) {
+    if (opening) latch(a, t, 0.12);
+    slide(a, t + (opening ? 0.04 : 0), 0.45);
+    if (!opening) latch(a, t + 0.44, 0.14);
+    return;
+  }
+  latch(a, t, 0.18);
+  creak(a, t + 0.05, 0.3);
+}
+
+/** 服がこすれる「ザッ」（よじ登るとき） */
+export function playClimbSound() {
+  const a = audio();
+  if (!a) return;
+  const t = a.currentTime + 0.01;
+  for (const [at, len] of [[0, 0.18], [0.32, 0.22]] as const) {
+    const src = a.createBufferSource();
+    src.buffer = noiseBuffer(a, len);
+    const band = a.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 1400;
+    band.Q.value = 0.8;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t + at);
+    g.gain.exponentialRampToValueAtTime(0.09, t + at + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + at + len);
+    src.connect(band).connect(g).connect(a.destination);
+    src.start(t + at);
+  }
+}
+
+/** 着地の「ドスッ」と砂利の音。strength は 0..1（高いところから落ちるほど大きい） */
+export function playLandSound(strength: number) {
+  const a = audio();
+  if (!a) return;
+  const t = a.currentTime + 0.01;
+  const s = Math.min(Math.max(strength, 0.15), 1);
+  const osc = a.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(95, t);
+  osc.frequency.exponentialRampToValueAtTime(38, t + 0.2);
+  const g = a.createGain();
+  g.gain.setValueAtTime(0.55 * s, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+  osc.connect(g).connect(a.destination);
+  osc.start(t);
+  osc.stop(t + 0.3);
+  const src = a.createBufferSource();
+  src.buffer = noiseBuffer(a, 0.3);
+  const low = a.createBiquadFilter();
+  low.type = 'lowpass';
+  low.frequency.value = 2200;
+  const ng = a.createGain();
+  ng.gain.setValueAtTime(0.0001, t);
+  ng.gain.exponentialRampToValueAtTime(0.16 * s, t + 0.02);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+  src.connect(low).connect(ng).connect(a.destination);
+  src.start(t);
+}

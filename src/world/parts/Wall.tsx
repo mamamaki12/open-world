@@ -88,7 +88,7 @@ export function Wall({ wall, openings, outside }: Props) {
     <group position={[wall.x0 * GRID, floorY(wall.level), wall.z0 * GRID]} rotation={[0, angle, 0]}>
       <mesh geometry={geometry} material={materials} castShadow receiveShadow {...handlers} {...openingHandlers} />
       {openings.map((o) => (
-        <Opening key={o.id} opening={o} />
+        <Opening key={o.id} opening={o} outside={outside === -1 ? -1 : 1} />
       ))}
     </group>
   );

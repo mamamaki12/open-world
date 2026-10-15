@@ -72,12 +72,73 @@ function Sash({ w, h, x, z, color, highlight }: { w: number; h: number; x: numbe
 
 const OPEN_SECONDS = 0.6;
 const SWING_ANGLE = Math.PI * 0.5;
+const CASEMENT_ANGLE = Math.PI * 0.36;
 
 /** 0..1 をなめらかに（動き出しと止まりをゆっくり） */
 const ease = (t: number) => t * t * (3 - 2 * t);
 
-/** 扉の動き：swing = 蝶番で回る、slide = 横にすべる。null なら動かない（親子ドアの子扉など） */
-type Motion = { id: string; kind: 'swing' } | { id: string; kind: 'slide'; distance: number } | null;
+/**
+ * 建具の動き。null なら動かない（親子ドアの子扉など）
+ * - swing：蝶番で回る（プレイヤーから遠ざかる側へ）
+ * - slide：横にすべる（引き戸・引き違い窓）
+ * - outward：外へ押し出して開く（すべり出し窓）。outside は外側（ローカル +Z なら 1）
+ */
+type Motion =
+  | { id: string; kind: 'swing' }
+  | { id: string; kind: 'slide'; distance: number }
+  | { id: string; kind: 'outward'; outside: 1 | -1 }
+  | null;
+
+/** 歩きモードで開いた建具を、毎フレーム開いた位置・角度へ近づける */
+function useOpenAnimation(motion: Motion, baseX: number, hingeSide: 1 | -1) {
+  const mover = useRef<THREE.Group>(null);
+  const progress = useRef(0);
+  useFrame((_, dt) => {
+    if (!motion || !mover.current) return;
+    const dir = useDoors.getState().open[motion.id];
+    const goal = dir !== undefined && useGame.getState().mode === 'walk' ? 1 : 0;
+    if (goal === progress.current) return;
+    const step = Math.min(dt, 0.1) / OPEN_SECONDS;
+    progress.current = goal > progress.current ? Math.min(goal, progress.current + step) : Math.max(goal, progress.current - step);
+    const e = ease(progress.current);
+    if (motion.kind === 'swing') {
+      // プレイヤーから遠ざかる向きに開く。閉じる途中も最後に開いた向きを使う
+      if (dir !== undefined) mover.current.userData.dir = dir;
+      const d = (mover.current.userData.dir as number | undefined) ?? 1;
+      // d は扉が向かう側（壁のローカル +Z なら 1）。+Z 側へ振るには負の回転
+      mover.current.rotation.y = -e * SWING_ANGLE * d * hingeSide;
+    } else if (motion.kind === 'outward') {
+      mover.current.rotation.y = -e * CASEMENT_ANGLE * motion.outside * hingeSide;
+    } else {
+      mover.current.position.x = baseX + e * motion.distance;
+    }
+  });
+  return mover;
+}
+
+/** 動く建具：回るものは蝶番の位置を軸にする（handleSide の反対側が蝶番） */
+function Moving({ motion, x, w, handleSide, children }: {
+  motion: Motion;
+  x: number;
+  w: number;
+  handleSide: 1 | -1;
+  children: ReactNode;
+}) {
+  const mover = useOpenAnimation(motion, x, handleSide);
+  if (motion?.kind === 'swing' || motion?.kind === 'outward') {
+    const hingeX = x - (handleSide * w) / 2;
+    return (
+      <group ref={mover} position={[hingeX, 0, 0]}>
+        <group position={[(handleSide * w) / 2, 0, 0]}>{children}</group>
+      </group>
+    );
+  }
+  return (
+    <group ref={mover} position={[x, 0, 0]}>
+      {children}
+    </group>
+  );
+}
 
 /** ドアの扉（パネル＋取っ手、縦長のガラススリットつきも）。歩きモードで開いたドアは動かす */
 function DoorLeaf({ w, h, x, color, handleSide, slit, highlight, motion = null }: {
@@ -90,38 +151,10 @@ function DoorLeaf({ w, h, x, color, handleSide, slit, highlight, motion = null }
   highlight: Highlight;
   motion?: Motion;
 }) {
-  const mover = useRef<THREE.Group>(null);
-  const progress = useRef(0);
-  useFrame((_, dt) => {
-    if (!motion || !mover.current) return;
-    const dir = useDoors.getState().open[motion.id];
-    const goal = dir !== undefined && useGame.getState().mode === 'walk' ? 1 : 0;
-    const step = Math.min(dt, 0.1) / OPEN_SECONDS;
-    progress.current = goal > progress.current ? Math.min(goal, progress.current + step) : Math.max(goal, progress.current - step);
-    const e = ease(progress.current);
-    if (motion.kind === 'swing') {
-      // プレイヤーから遠ざかる向きに開く。閉じる途中も最後に開いた向きを使う
-      if (dir !== undefined) mover.current.userData.dir = dir;
-      const d = (mover.current.userData.dir as number | undefined) ?? 1;
-      // d は扉が向かう側（壁のローカル +Z なら 1）。+Z 側へ振るには負の回転
-      mover.current.rotation.y = -e * SWING_ANGLE * d * handleSide;
-    } else {
-      mover.current.position.x = x + e * motion.distance;
-    }
-  });
-  const hingeX = x - (handleSide * w) / 2;
-  const leaf = <DoorPanel w={w} h={h} color={color} handleSide={handleSide} slit={slit} highlight={highlight} />;
-  if (motion?.kind === 'swing') {
-    return (
-      <group ref={mover} position={[hingeX, 0, 0]}>
-        <group position={[(handleSide * w) / 2, 0, 0]}>{leaf}</group>
-      </group>
-    );
-  }
   return (
-    <group ref={mover} position={[x, 0, 0]}>
-      {leaf}
-    </group>
+    <Moving motion={motion} x={x} w={w} handleSide={handleSide}>
+      <DoorPanel w={w} h={h} color={color} handleSide={handleSide} slit={slit} highlight={highlight} />
+    </Moving>
   );
 }
 
@@ -149,7 +182,7 @@ function DoorPanel({ w, h, color, handleSide, slit, highlight }: {
   );
 }
 
-export function Opening({ opening }: { opening: OpeningPart }) {
+export function Opening({ opening, outside = 1 }: { opening: OpeningPart; outside?: 1 | -1 }) {
   const { highlight: partHighlight, handlers } = usePart({ kind: 'opening', id: opening.id });
   const targeted = useDoors((s) => s.target === opening.id);
   const walking = useGame((s) => s.mode === 'walk');
@@ -171,7 +204,10 @@ export function Opening({ opening }: { opening: OpeningPart }) {
         <>
           <Frame w={w} h={h} color={sash} highlight={highlight} />
           <group position={[0, FRAME, 0]}>
-            <Sash w={sw} h={innerH} x={-inner / 4 + 0.015} z={0.02} color={sash} highlight={highlight} />
+            {/* 左の障子が右へすべって、左半分が空く */}
+            <Moving motion={{ id: opening.id, kind: 'slide', distance: inner / 2 - 0.03 }} x={-inner / 4 + 0.015} w={sw} handleSide={1}>
+              <Sash w={sw} h={innerH} x={0} z={0.02} color={sash} highlight={highlight} />
+            </Moving>
             <Sash w={sw} h={innerH} x={inner / 4 - 0.015} z={-0.02} color={sash} highlight={highlight} />
           </group>
         </>
@@ -179,14 +215,24 @@ export function Opening({ opening }: { opening: OpeningPart }) {
       break;
     }
     case 'casement':
+      body = (
+        <>
+          <Frame w={w} h={h} color={sash} highlight={highlight} />
+          <group position={[0, FRAME, 0]}>
+            {/* 縦すべり出し：左側を軸に外へ押し出す */}
+            <Moving motion={{ id: opening.id, kind: 'outward', outside }} x={0} w={inner} handleSide={1}>
+              <Sash w={inner} h={innerH} x={0} z={0} color={sash} highlight={highlight} />
+              <Box size={[0.02, 0.12, 0.03]} pos={[inner / 2 - 0.05, innerH / 2, -0.035 * outside]} color="#9a9ea3" highlight={highlight} metal />
+            </Moving>
+          </group>
+        </>
+      );
+      break;
     case 'fix':
       body = (
         <>
           <Frame w={w} h={h} color={sash} highlight={highlight} />
           <Glass w={inner} h={innerH} pos={[0, h / 2, 0]} />
-          {def.style === 'casement' && (
-            <Box size={[0.02, 0.12, 0.03]} pos={[inner / 2 - 0.05, h / 2, -0.05]} color="#9a9ea3" highlight={highlight} metal />
-          )}
         </>
       );
       break;
@@ -247,19 +293,19 @@ export function Opening({ opening }: { opening: OpeningPart }) {
   return (
     <group position={[opening.offset, def.sill, 0]} {...handlers}>
       {body}
-      {focused && <FocusGlow width={w} />}
+      {focused && <FocusGlow width={w} y={-def.sill} />}
     </group>
   );
 }
 
-/** 操作できるドアの足もとで、ゆっくり明滅する光の輪 */
-function FocusGlow({ width }: { width: number }) {
+/** 操作できるドア・窓の足もと（床の上）で、ゆっくり明滅する光の輪 */
+function FocusGlow({ width, y }: { width: number; y: number }) {
   const mat = useRef<THREE.MeshBasicMaterial>(null);
   useFrame(({ clock }) => {
     if (mat.current) mat.current.opacity = 0.35 + Math.sin(clock.elapsedTime * 4) * 0.2;
   });
   return (
-    <mesh position={[0, 0.015, 0]} rotation-x={-Math.PI / 2} scale={[width * 0.9, 1.1, 1]}>
+    <mesh position={[0, y + 0.015, 0]} rotation-x={-Math.PI / 2} scale={[width * 0.9, 1.1, 1]}>
       <ringGeometry args={[0.42, 0.5, 48]} />
       <meshBasicMaterial ref={mat} color="#ffb347" transparent opacity={0.4} depthWrite={false} />
     </mesh>
