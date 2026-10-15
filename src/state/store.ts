@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { removePart, removeParts } from '../building/rules';
 import { emptyHouse } from '../building/types';
+import { materialGroup, moveBuildingGroup } from '../building/groups';
 import type { Finish, House, FloorKind, PartRef, RoofType, StairRail, WallHeight } from '../building/types';
 
 /** build：建築モード（俯瞰で建てる） / walk：歩きモード（プレイヤーを動かす） */
@@ -58,7 +59,7 @@ export const INITIAL_DEFAULTS: Defaults = {
   wallHeight: 'full',
   furnitureType: 'sofa',
   furnitureRotation: 0,
-  nameplateText: '山田',
+  nameplateText: '',
 };
 
 const HISTORY_LIMIT = 200;
@@ -76,6 +77,9 @@ interface GameState {
   /** いま置こうとしている階（マウスの下の面から自動で決まる。プレビューとマス目の高さに使う） */
   activeLevel: number;
   selection: PartRef | null;
+  groupSelection: boolean;
+  setGroupSelection: (enabled: boolean) => void;
+  moveSelection: (dx: number, dz: number) => void;
   /** 削除ツールで「まとめて選んで消す」にしているか */
   eraseMulti: boolean;
   /** まとめて消すために選んだパーツ */
@@ -123,6 +127,15 @@ export const useGame = create<GameState>((set, get) => ({
   tool: 'select',
   activeLevel: 0,
   selection: null,
+  groupSelection: true,
+  setGroupSelection: (groupSelection) => set({ groupSelection }),
+  moveSelection: (dx, dz) => {
+    const s = get();
+    if (!s.selection) return;
+    const result = moveBuildingGroup(s.house, materialGroup(s.house, s.selection, s.groupSelection), dx, dz);
+    if (result.error) return s.notify(result.error);
+    s.commit(result.house);
+  },
   eraseMulti: false,
   marked: [],
   defaults: INITIAL_DEFAULTS,
@@ -161,7 +174,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({ dragBase: null });
       return;
     }
-    set({ dragBase: null, past: [...past, dragBase].slice(-HISTORY_LIMIT), future: [] });
+    set({ dragBase: null, past: [...past, dragBase].slice(-HISTORY_LIMIT), future: [], lastCommit: null });
   },
   replaceHouse: (next) => {
     get().commit(next);
@@ -208,3 +221,4 @@ export const useGame = create<GameState>((set, get) => ({
     set({ overlay });
   },
 }));
+
