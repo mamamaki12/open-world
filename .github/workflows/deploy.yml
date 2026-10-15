@@ -7,6 +7,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_run:
+    workflows: [Merge after CI]
+    types: [completed]
 
 permissions:
   contents: read
@@ -19,10 +22,12 @@ concurrency:
 
 jobs:
   build:
-    if: github.event.repository.has_pages
+    if: github.event.repository.has_pages && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 20
