@@ -270,6 +270,7 @@ export function removePart(house: House, ref: PartRef): House {
         ...house,
         walls: house.walls.filter((p) => p.id !== ref.id),
         openings: house.openings.filter((o) => o.wallId !== ref.id),
+        furniture: house.furniture.filter((f) => f.wallMount?.wallId !== ref.id),
       };
     case 'opening':
       return { ...house, openings: house.openings.filter((p) => p.id !== ref.id) };
