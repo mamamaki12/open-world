@@ -83,7 +83,12 @@ function VoiceNotice() {
       off();
     };
   }, []);
-  if (status === 'ok' || status === 'loading') return null;
+  if (status === 'ok' || status === 'loading') {
+    // iPhone・iPad はマナーモードだと音が小さくなったり消えたりすることがある
+    const ios = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+    if (!ios || isMuted()) return null;
+    return <div className="casino-voice-note subtle">🔈 実況の声が聞こえないときは、マナーモードを切って音量を上げてください。</div>;
+  }
   return (
     <div className="casino-voice-note" role="status">
       {status === 'unsupported'

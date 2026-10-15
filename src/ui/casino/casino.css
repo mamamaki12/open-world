@@ -380,14 +380,17 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
   font-size: 12px;
 }
 
-/* レース映像（3D）：スマホでは文字を小さくして、映像を隠しすぎないようにする */
+/* レース映像（3D）：文字は映像の上下の帯に出して、コースを隠さない */
 .race-screen { background: #9cc3e0; }
+.race-clock { margin-left: auto; }
 @media (max-width: 640px) {
-  .race-hud { left: 6px; top: 6px; gap: 6px; padding: 3px 7px; font-size: 11px; flex-wrap: wrap; max-width: calc(100% - 160px); }
-  .race-clock { font-size: 12px; }
-  .race-screen canvas.race-mini { right: 6px; top: 6px; transform: scale(0.85); transform-origin: top right; }
-  .race-calls { padding: 4px 8px; }
+  .race-hud { gap: 6px; padding: 4px 8px; font-size: 12px; }
+  .race-title { display: none; }
+  .race-clock { font-size: 13px; }
+  .race-screen canvas.race-mini { right: 4px; top: 4px; transform: scale(0.7); transform-origin: top right; opacity: 0.9; }
+  .race-calls { min-height: 40px; padding: 5px 9px; }
   .race-calls .now { font-size: 13px; }
   .race-calls .prev { display: none; }
   .race-bell { font-size: 20px; }
 }
+.casino-voice-note.subtle { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.18); color: #e8e2cf; }

@@ -99,15 +99,19 @@ function Blob({ w, h, y = 0.02 }: { w: number; h: number; y?: number }) {
 }
 
 /** 頭の上の番号の札（画面の上で同じ大きさに見える） */
-export function NumberTag({ no, bg, fg, y }: { no: number; bg: string; fg: string; y: number }) {
+export function NumberTag({ no, bg, fg, y, sim, i }: { no: number; bg: string; fg: string; y: number; sim: MutableRefObject<RaceSim>; i: number }) {
   const tex = useMemo(() => numberTexture(no, bg, fg), [no, bg, fg]);
   const ref = useRef<THREE.Sprite>(null);
   useFrame(({ camera, size }) => {
     const sp = ref.current;
     if (!sp) return;
     const fov = (camera as THREE.PerspectiveCamera).fov ?? 40;
-    const k = (22 / size.height) * 2 * Math.tan((fov * Math.PI) / 360);
+    // スマホの小さな画面では札を小さくし、重なって読めなくならないよう上位5つだけ出す（全体の順位は下の帯）
+    const narrow = size.width < 560;
+    const k = ((narrow ? 17 : 22) / size.height) * 2 * Math.tan((fov * Math.PI) / 360);
     sp.scale.set(k, k, 1);
+    const s = sim.current;
+    sp.visible = !s.overview && (!narrow || s.standings.indexOf(i) < 5);
   });
   return (
     <sprite ref={ref} position={[0, y, 0]} renderOrder={10}>
@@ -255,7 +259,7 @@ export function Horse({ course, sim, i, coat, cap, silk, sleeve, no }: {
           <meshStandardMaterial color={cap} roughness={0.3} />
         </mesh>
       </group>
-      <NumberTag no={no} bg="#ffffff" fg="#222" y={3.1} />
+      <NumberTag no={no} bg="#ffffff" fg="#222" y={3.1} sim={sim} i={i} />
     </group>
   );
 }
@@ -386,7 +390,7 @@ export function Cyclist({ course, sim, i, color, no, tag, pacer = false }: {
       <mesh geometry={SPHERE} position={[0.52, 1.32, 0]} scale={[0.15, 0.13, 0.13]}>
         <meshStandardMaterial color={pacer ? '#f2f2f2' : color} roughness={0.25} metalness={0.1} />
       </mesh>
-      {tag && <NumberTag no={no} bg={tag.bg} fg={tag.fg} y={2.1} />}
+      {tag && <NumberTag no={no} bg={tag.bg} fg={tag.fg} y={2.1} sim={sim} i={i} />}
     </group>
   );
 }
@@ -480,7 +484,7 @@ export function Boat({ course, sim, i, color, no, tag }: {
           <meshStandardMaterial color="#d33" roughness={0.3} />
         </mesh>
       </group>
-      <NumberTag no={no} bg={tag.bg} fg={tag.fg} y={2.4} />
+      <NumberTag no={no} bg={tag.bg} fg={tag.fg} y={2.4} sim={sim} i={i} />
     </group>
   );
 }

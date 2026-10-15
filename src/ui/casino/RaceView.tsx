@@ -271,20 +271,21 @@ export function RaceView({ race, motion, order, onDone }: Props) {
   const cfg = RACES[race.kind];
   return (
     <div className="race-view">
+      <div className="race-hud">
+        <b>{race.venue} {race.no}R</b>
+        <span className="race-title">{race.name}　{race.surface ?? ''}{race.distance}m</span>
+        <span className="race-clock">{hud.clock}</span>
+        <span className="race-remain">{hud.remain}</span>
+      </div>
       <div className="race-screen" ref={wrapRef}>
         <Race3D race={race} course={motion.course} sim={sim} height={height} />
         <canvas className="race-mini" ref={miniRef} aria-hidden />
-        <div className="race-hud">
-          <b>{race.venue} {race.no}R</b> {race.name}　{race.surface ?? ''}{race.distance}m
-          <span className="race-clock">{hud.clock}</span>
-          <span className="race-remain">{hud.remain}</span>
-        </div>
         {hud.bell && <div className="race-bell">🔔 打鐘</div>}
-        <div className="race-calls">
-          {calls.slice(0, 2).map((c, k) => (
-            <div key={c.key} className={k === 0 ? 'now' : 'prev'}>{c.text}</div>
-          ))}
-        </div>
+      </div>
+      <div className="race-calls" aria-live="polite">
+        {calls.slice(0, 2).map((c, k) => (
+          <div key={c.key} className={k === 0 ? 'now' : 'prev'}>{c.text}</div>
+        ))}
       </div>
       <div className="race-strip">
         <span className="muted">{hud.remain === 'ゴール' ? '入線順' : '通過順'}</span>
