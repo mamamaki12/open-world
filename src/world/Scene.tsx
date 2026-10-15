@@ -22,9 +22,8 @@ export function Scene() {
   // カジノ・不動産のメニューを開いている間は、後ろの世界の描画を止めて軽くする
   const paused = useGame((s) => s.overlay !== null);
   const walking = mode === 'walk';
-  const eraseMulti = useGame((s) => s.eraseMulti);
-  /** 置くツールを持っている（歩きモードでも建てられる）。まとめて消すときも左ドラッグは範囲選択に使う */
-  const placing = tool !== 'select' && (tool !== 'erase' || eraseMulti);
+  /** 置くツールか削除ツールを持っている（歩きモードでも建てられる）。削除ツールの左ドラッグは範囲選択に使う */
+  const placing = tool !== 'select';
   const building = !walking && placing;
 
   return (
