@@ -26,7 +26,6 @@ export function venueFixtures(kind:Venue) {
 }
 export function venueAction(kind:Venue,x:number,z:number):VenueAction|null {
   const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
-  if(Math.abs(x-cx)<2&&z<b.z0+2.1)return {id:'exit',label:'外へ出る',x:0,z:-(b.z1-b.z0)/2+1};
   return VENUE_ACTIONS[kind].map(a=>({...a,d:Math.hypot(x-cx-a.x,z-cz-a.z)})).filter(a=>a.d<1.65).sort((a,b)=>a.d-b.d)[0]??null;
 }
 export function resolveVenue(kind:Venue,p:{x:number;z:number},radius=.25) {
@@ -38,4 +37,30 @@ export function resolveVenue(kind:Venue,p:{x:number;z:number},radius=.25) {
     const q=[{x:x0,z,d:x-x0},{x:x1,z,d:x1-x},{x,z:z0,d:z-z0},{x,z:z1,d:z1-z}].sort((a,b)=>a.d-b.d)[0];x=q.x;z=q.z;
   }
   return {x,z};
+}
+
+export const VENUE_KINDS:Venue[]=['casino','estate','dealer'];
+/** 各店の入口（正面 z0 の壁にある引き戸）。x は中心、width は通れる幅。 */
+export const VENUE_DOORS:Record<Venue,{x:number;width:number;height:number}>={
+  casino:{x:CASINO.door.x,width:CASINO.door.width,height:CASINO.door.height},
+  estate:{x:ESTATE.door.x,width:ESTATE.door.width,height:2.6},
+  dealer:{x:(DEALER.x0+DEALER.x1)/2,width:2.2,height:2.6},
+};
+/** 入口の壁の厚み（z0 から内側へ） */
+export const VENUE_WALL=.25;
+export const venueDoorId=(kind:Venue)=>'venue:'+kind;
+/** 店の壁の内側にいる店 */
+export function venueAt(x:number,z:number):Venue|null {
+  return VENUE_KINDS.find(k=>{const b=VENUES[k];return x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1;})??null;
+}
+/** 入口の扉の前（外側でも内側でも）に立っている店 */
+export function venueDoorAt(x:number,z:number,y=0):Venue|null {
+  if(Math.abs(y)>=.6)return null;
+  return VENUE_KINDS.find(k=>{const d=VENUE_DOORS[k],z0=VENUES[k].z0;return Math.abs(x-d.x)<d.width/2+.6&&z>z0-2.4&&z<z0+2.2;})??null;
+}
+/** 開いた入口の中（壁の厚みの部分）にいれば、入口の幅に収めた位置を返す。いなければ null */
+export function throughDoorway(kind:Venue,p:{x:number;z:number},radius=.25) {
+  const d=VENUE_DOORS[kind],z0=VENUES[kind].z0;
+  if(p.z<z0-radius-.05||p.z>z0+VENUE_WALL+radius||Math.abs(p.x-d.x)>=d.width/2)return null;
+  return {x:Math.max(d.x-d.width/2+radius,Math.min(d.x+d.width/2-radius,p.x)),z:p.z};
 }

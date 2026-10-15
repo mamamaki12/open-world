@@ -9,14 +9,14 @@ import { touchGesture } from '../state/gestures';
 import { useInteraction } from '../state/interaction';
 import { useVehicles } from '../state/vehicles';
 import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract, resolveParkedCars } from './vehicleLogic';
-import { useVenue, enterVenue, exitVenue } from '../state/venue';
-import { resolveVenue } from '../building/venues';
+import { useVenue } from '../state/venue';
+import { resolveVenue, throughDoorway, VENUE_KINDS, venueDoorId } from '../building/venues';
 import { DEALER } from '../building/dealer';
 import { useSeating } from '../state/seating';
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
 import type { ClimbPlan } from '../building/climb';
-import { atCasinoDoor, atEstateDoor, resolveLandmarks } from '../building/landmarks';
+import { resolveLandmarks } from '../building/landmarks';
 import { PLAYER, ceilingHeight, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, windowPassage } from '../building/walk';
 import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
@@ -88,7 +88,6 @@ export function interact() {
     return;
   }
   if (useGame.getState().mode === 'walk' && vehicleInteract(playerMemory)) return;
-  if (enterCasino() || enterEstate()) return;
   if (useDoors.getState().climbing) return;
   const seat = seating.target;
   if (seat) {
@@ -101,20 +100,6 @@ export function interact() {
   toggleTargetDoor();
 }
 
-/** カジノの入口の前なら中へ入る（カジノの画面を開く）。入れたら true */
-export function enterCasino(): boolean {
-  if (useGame.getState().mode !== 'walk' || !atCasinoDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y)) return false;
-  enterVenue('casino',playerMemory);
-  return true;
-}
-
-/** 不動産屋の店舗前でだけ入れる。 */
-export function enterEstate(): boolean {
-  if (useGame.getState().mode !== 'walk' || !atEstateDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y)) return false;
-  enterVenue('estate',playerMemory);
-  return true;
-}
-
 /** 持っている土地へワープする：その土地を画面に出し、歩きモードなら土地の前の道に立つ */
 export function warpToLot(id: string) {
   const game = useGame.getState();
@@ -122,7 +107,7 @@ export function warpToLot(id: string) {
   const lot = eco.lots.find((l) => l.id === id);
   if (!lot) return;
   parkVehicle();
-  useVenue.setState({inside:null,outside:null});
+  useVenue.setState({inside:null});
   useSeating.setState({ seated: null, target: null, returnTo: null });
   game.setOverlay(null);
   eco.switchLot(id);
@@ -139,6 +124,12 @@ export function warpToLot(id: string) {
 function resolveTown(p: { x: number; z: number }, feetY: number, height: number) {
   const s = useEconomy.getState();
   const site = civicOffset(s);
+  // 開いた店の入口は、そのまま歩いて通り抜けられる
+  for(const kind of VENUE_KINDS){
+    if(!isDoorOpen(venueDoorId(kind)))continue;
+    const d=throughDoorway(kind,{x:p.x-site.x,z:p.z-site.z});
+    if(d)return {x:d.x+site.x,z:d.z+site.z};
+  }
   const inside=useVenue.getState().inside;
   if(inside){const q=resolveVenue(inside,{x:p.x-site.x,z:p.z-site.z});return {x:q.x+site.x,z:q.z+site.z};}
   const c = resolveLandmarks({ x: p.x - site.x, z: p.z - site.z });
@@ -215,7 +206,7 @@ export function Player() {
     const cam = camera as THREE.PerspectiveCamera;
     const saved = { pos: cam.position.clone(), quat: cam.quaternion.clone(), fov: cam.fov };
     return () => {
-      if(useVenue.getState().inside)exitVenue(playerMemory);
+      useVenue.setState({inside:null});
       cam.position.copy(saved.pos);
       cam.quaternion.copy(saved.quat);
       cam.fov = saved.fov;
@@ -558,8 +549,6 @@ export function Player() {
         if (pass) climb = pass.ok ? (Math.hypot(playerMemory.x - pass.x, playerMemory.z - pass.z) <= CLIMB_REACH ? 'ok' : null) : pass.reason;
       }
       doors.setClimb(climb, false);
-      doors.setAtCasino(atCasinoDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y));
-      doors.setAtEstate(atEstateDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y));
     } else {
       doors.setClimb(null, true);
     }
@@ -649,8 +638,9 @@ export function Player() {
         raycaster.current.set(focus, dir.clone().negate());
         raycaster.current.far = dist;
         const hit = raycaster.current.intersectObjects(blockers, true).find((h) => {
-          const m = (h.object as THREE.Mesh).material as THREE.Material;
-          return !(m && m.transparent);
+          const mat = (h.object as THREE.Mesh).material as THREE.Material | THREE.Material[];
+          const m = Array.isArray(mat) ? mat[h.face?.materialIndex ?? 0] : mat;
+          return !(m && (m.transparent || !m.visible));
         });
         if (hit) dist = Math.max(0.4, hit.distance - 0.2);
       }

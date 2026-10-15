@@ -25,4 +25,10 @@ describe('vehicle motion',()=>{
     for(let i=0;i<30;i++){integrateDrive(f,{throttle:1,steering:1,brake:false},.05,d,()=>false);integrateDrive(r,{throttle:-1,steering:1,brake:false},.05,d,()=>false);}
     expect(f.yaw).toBeLessThan(0);expect(r.yaw).toBeGreaterThan(0);expect(r.speed).toBeGreaterThanOrEqual(-d.reverseSpeed);
   });
+  it('steers less at speed so the car is easy to control',()=>{
+    const d=CARS[2],slow=pose(),fast={...pose(),speed:14};
+    for(let i=0;i<40;i++){integrateDrive(slow,{throttle:0,steering:1,brake:false},.05,d,()=>false);integrateDrive(fast,{throttle:1,steering:1,brake:false},.05,d,()=>false);}
+    expect(Math.abs(fast.steer)).toBeLessThan(Math.abs(slow.steer)/2);
+    expect(fast.steer).toBeGreaterThan(0);
+  });
 });
