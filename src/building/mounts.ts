@@ -1,6 +1,6 @@
 import { getOpening } from '../catalog';
-import { GRID, WALL_THICKNESS, floorY } from './dimensions';
-import { wallDir, wallHeight, wallLength } from './rules';
+import { GRID, WALL_THICKNESS } from './dimensions';
+import { wallDir, wallBaseY, wallHeight, wallLength } from './rules';
 import type { FurniturePart, House, WallPart } from './types';
 
 const HALF_WIDTH = 0.17, HALF_HEIGHT = 0.065;
@@ -10,7 +10,7 @@ export function nameplateMount(house: House, wall: WallPart, point: { x: number;
   if (length < HALF_WIDTH * 2 + 0.08 || height < HALF_HEIGHT * 2 + 0.08) return null;
   const raw = (point.x - wall.x0 * GRID) * dx + (point.z - wall.z0 * GRID) * dz;
   const offset = Math.max(HALF_WIDTH + 0.04, Math.min(length - HALF_WIDTH - 0.04, Math.round(raw / 0.05) * 0.05));
-  const h = Math.max(HALF_HEIGHT + 0.04, Math.min(height - HALF_HEIGHT - 0.04, Math.round((point.y - floorY(wall.level)) / 0.05) * 0.05));
+  const h = Math.max(HALF_HEIGHT + 0.04, Math.min(height - HALF_HEIGHT - 0.04, Math.round((point.y - wallBaseY(wall)) / 0.05) * 0.05));
   if (house.openings.some(o => {
     if (o.wallId !== wall.id) return false;
     const def = getOpening(o.type);
@@ -29,6 +29,6 @@ export function mountedTransform(house: House, mount: NonNullable<FurniturePart[
   const distance = WALL_THICKNESS / 2 + 0.0125 + 0.003;
   return { x: wall.x0 * GRID + dx * mount.offset + nx * distance,
     z: wall.z0 * GRID + dz * mount.offset + nz * distance,
-    y: floorY(wall.level) + mount.height - 1.6,
+    y: wallBaseY(wall) + mount.height - 1.6,
     rotation: Math.atan2(nx, nz) * 180 / Math.PI, level: wall.level };
 }
