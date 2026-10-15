@@ -22,6 +22,7 @@ import type { Motion } from '../../economy/raceMotion';
 import { useEconomy } from '../../state/economy';
 import { useGame } from '../../state/store';
 import { RaceView, runnerColor } from './RaceView';
+import { RaceMoney } from './RaceMoney';
 import { PrintedTickets, TicketMachine } from './TicketMachine';
 
 /** 種類ごとに、いま出走表に出ているレース（タブを切り替えても残す） */
@@ -92,7 +93,8 @@ export function RaceGame({ kind }: { kind: RaceKind }) {
   return (
     <div className="game race">
       <RaceHeader race={race} />
-      {phase !== 'card' && result && <RaceView race={race} motion={result.motion} order={result.order} onDone={onDone} />}
+      {phase === 'card' && tickets.length > 0 && <RaceMoney spent={tickets.reduce((s,t)=>s+t.stake,0)} />}
+      {phase !== 'card' && result && <RaceView race={race} motion={result.motion} order={result.order} onDone={onDone} ticketPanel={<RaceTickets race={race} probs={probs} tickets={tickets} />} />}
       {phase === 'done' && result && <ResultBoard race={race} probs={probs} result={result} tickets={tickets} onNext={next} />}
       {phase === 'card' && (
         <>
@@ -250,6 +252,7 @@ function ResultBoard({
   const speed = race.distance / motion.winTime;
   return (
     <div className="result-board">
+      <RaceMoney spent={spent} payout={total} />
       <section className="card">
         <div className="card-title">
           着順（確定）{result.kimarite && <span className="kimarite">決まり手：{result.kimarite}</span>}
@@ -302,15 +305,20 @@ function ResultBoard({
             })}
           </tbody>
         </table>
-        {tickets.length > 0 && (
-          <p>
-            買った {yen(spent)} → 払い戻し <b className={total > 0 ? 'plus big' : 'minus'}>{yen(total)}</b>
-          </p>
-        )}
+
         <button className="btn primary" onClick={onNext}>
           次のレースへ
         </button>
       </section>
     </div>
   );
+}
+
+/** 全画面のレース内にも置くので、映像を止めずに買い目を見られる。 */
+export function RaceTickets({race,probs,tickets}:{race:Race;probs:Probs;tickets:Ticket[]}) {
+  if(!tickets.length)return <p>このレースの券は購入していません。</p>;
+  return <><RaceMoney spent={tickets.reduce((s,t)=>s+t.stake,0)}/><PrintedTickets race={race} probs={probs} tickets={tickets}/>
+    <details className="race-all-tickets"><summary>全ての買い目・金額（{tickets.length}通り）</summary><ul>
+    {tickets.map((t,i)=><li key={i}><b>{RACES[race.kind].betNames[t.type]}</b> {comboLabel(race,t.type,t.combo)} <span>{yen(t.stake)} · {comboOdds(race,probs,t.type,t.combo)?.toFixed(1)}倍</span></li>)}
+    </ul></details></>;
 }
