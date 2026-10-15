@@ -47,7 +47,7 @@ export function HouseView() {
       {house.roofs.filter((r) => roofVisible(r.level)).map((r) => (
         <Roof key={r.id} roof={r} />
       ))}
-      {!walking && <PreviewView />}
+      <PreviewView />
     </group>
   );
 }

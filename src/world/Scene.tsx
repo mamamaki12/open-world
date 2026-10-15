@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W, floorY } from '../building/dimensions';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
+import { BuildCamera } from './BuildCamera';
 import { DebugBridge } from './DebugBridge';
 import { HouseView } from './HouseView';
 import { PlacementController } from './PlacementController';
@@ -19,7 +20,9 @@ export function Scene() {
   const select = useGame((s) => s.select);
   const dragging = useInteraction((s) => s.furnitureDrag !== null);
   const walking = mode === 'walk';
-  const building = !walking && tool !== 'select' && tool !== 'erase';
+  /** 置くツールを持っている（歩きモードでも建てられる） */
+  const placing = tool !== 'select' && tool !== 'erase';
+  const building = !walking && placing;
 
   return (
     <Canvas
@@ -62,28 +65,33 @@ export function Scene() {
       </directionalLight>
 
       <Ground />
-      {building && <LevelGrid />}
+      {placing && <LevelGrid />}
       <HouseView />
-      {walking ? <Player /> : <PlacementController />}
+      {walking && <Player />}
+      <PlacementController />
       {import.meta.env.DEV && <DebugBridge />}
 
-      {!walking && (
+      {/* 歩きモード中も消さずに止めておく（戻ったときに見ていた場所を保つ） */}
       <OrbitControls
         makeDefault
         target={CENTER}
-        enabled={!dragging}
+        enabled={!walking && !dragging}
         enableDamping
         dampingFactor={0.12}
-        minDistance={3}
-        maxDistance={90}
-        maxPolarAngle={Math.PI / 2 - 0.04}
+        minDistance={1.2}
+        maxDistance={120}
+        maxPolarAngle={Math.PI / 2 - 0.02}
+        // 移動は地面と平行に。ズームはマウスのある場所へ寄る
+        screenSpacePanning={false}
+        zoomToCursor
+        panSpeed={1.2}
         mouseButtons={{
           LEFT: building ? (-1 as THREE.MOUSE) : THREE.MOUSE.ROTATE,
           MIDDLE: THREE.MOUSE.PAN,
           RIGHT: building ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
         }}
       />
-      )}
+      <BuildCamera />
     </Canvas>
   );
 }
