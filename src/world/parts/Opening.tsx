@@ -1,11 +1,12 @@
 // 窓・ドアの建具。親（壁）のローカル座標で、X = 壁の長さ方向、Z = 厚み方向
-import { useRef } from 'react';
+import { createContext, useContext, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { getOpening } from '../../catalog';
+import { getOpening, getSashType } from '../../catalog';
+import type { SashTypeDef } from '../../catalog';
 import type { OpeningPart } from '../../building/types';
-import { glassMaterial, plainMaterial } from '../materials';
+import { finishMaterial, glassMaterial, plainMaterial } from '../materials';
 import type { Highlight } from '../materials';
 import { useDoors } from '../../state/doors';
 import { useGame } from '../../state/store';
@@ -14,15 +15,26 @@ import { usePart } from './usePart';
 const FRAME = 0.045;
 const DEPTH = 0.08;
 
-function Box({ size, pos, color, highlight, metal = false }: {
+/** 枠と障子の質感（サッシの種類で変わる） */
+const SashLook = createContext<SashTypeDef>(getSashType(undefined));
+
+function Box({ size, pos, color, highlight, metal = false, sash = false }: {
   size: [number, number, number];
   pos: [number, number, number];
   color: string;
   highlight: Highlight;
   metal?: boolean;
+  /** サッシの種類の質感を使う */
+  sash?: boolean;
 }) {
+  const look = useContext(SashLook);
+  const material = sash
+    ? look.material
+      ? finishMaterial({ material: look.material, color }, highlight)
+      : plainMaterial(color, highlight, { roughness: look.roughness, metalness: look.metalness })
+    : plainMaterial(color, highlight, metal ? { roughness: 0.35, metalness: 0.6 } : { roughness: 0.55 });
   return (
-    <mesh position={pos} castShadow receiveShadow material={plainMaterial(color, highlight, metal ? { roughness: 0.35, metalness: 0.6 } : { roughness: 0.55 })}>
+    <mesh position={pos} castShadow receiveShadow material={material}>
       <boxGeometry args={size} />
     </mesh>
   );
@@ -48,10 +60,10 @@ function Frame({ w, h, color, highlight, depth = DEPTH, z = 0, bottom = true }: 
 }) {
   return (
     <>
-      <Box size={[w, FRAME, depth]} pos={[0, h - FRAME / 2, z]} color={color} highlight={highlight} metal />
-      {bottom && <Box size={[w, FRAME, depth]} pos={[0, FRAME / 2, z]} color={color} highlight={highlight} metal />}
-      <Box size={[FRAME, h, depth]} pos={[-w / 2 + FRAME / 2, h / 2, z]} color={color} highlight={highlight} metal />
-      <Box size={[FRAME, h, depth]} pos={[w / 2 - FRAME / 2, h / 2, z]} color={color} highlight={highlight} metal />
+      <Box size={[w, FRAME, depth]} pos={[0, h - FRAME / 2, z]} color={color} highlight={highlight} sash />
+      {bottom && <Box size={[w, FRAME, depth]} pos={[0, FRAME / 2, z]} color={color} highlight={highlight} sash />}
+      <Box size={[FRAME, h, depth]} pos={[-w / 2 + FRAME / 2, h / 2, z]} color={color} highlight={highlight} sash />
+      <Box size={[FRAME, h, depth]} pos={[w / 2 - FRAME / 2, h / 2, z]} color={color} highlight={highlight} sash />
     </>
   );
 }
@@ -61,10 +73,10 @@ function Sash({ w, h, x, z, color, highlight }: { w: number; h: number; x: numbe
   const f = 0.035;
   return (
     <group position={[x, 0, z]}>
-      <Box size={[w, f, 0.03]} pos={[0, h - f / 2, 0]} color={color} highlight={highlight} metal />
-      <Box size={[w, f, 0.03]} pos={[0, f / 2, 0]} color={color} highlight={highlight} metal />
-      <Box size={[f, h, 0.03]} pos={[-w / 2 + f / 2, h / 2, 0]} color={color} highlight={highlight} metal />
-      <Box size={[f, h, 0.03]} pos={[w / 2 - f / 2, h / 2, 0]} color={color} highlight={highlight} metal />
+      <Box size={[w, f, 0.03]} pos={[0, h - f / 2, 0]} color={color} highlight={highlight} sash />
+      <Box size={[w, f, 0.03]} pos={[0, f / 2, 0]} color={color} highlight={highlight} sash />
+      <Box size={[f, h, 0.03]} pos={[-w / 2 + f / 2, h / 2, 0]} color={color} highlight={highlight} sash />
+      <Box size={[f, h, 0.03]} pos={[w / 2 - f / 2, h / 2, 0]} color={color} highlight={highlight} sash />
       <Glass w={w - f * 2} h={h - f * 2} pos={[0, h / 2, 0]} />
     </group>
   );
@@ -192,6 +204,7 @@ export function Opening({ opening, outside = 1 }: { opening: OpeningPart; outsid
   const swing: Motion = { id: opening.id, kind: 'swing' };
   const { width: w, height: h } = def;
   const sash = opening.sashColor;
+  const sashLook = getSashType(opening.sash);
   const panel = opening.panelColor;
   const inner = w - FRAME * 2;
   const innerH = h - FRAME * 2;
@@ -292,7 +305,7 @@ export function Opening({ opening, outside = 1 }: { opening: OpeningPart; outsid
 
   return (
     <group position={[opening.offset, def.sill, 0]} {...handlers}>
-      {body}
+      <SashLook.Provider value={sashLook}>{body}</SashLook.Provider>
       {focused && <FocusGlow width={w} y={-def.sill} />}
     </group>
   );

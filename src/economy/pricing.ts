@@ -1,5 +1,6 @@
 // 建築費の見積もり、改築の差額、家の査定（品質係数）。描画から独立した計算。
 import prices from '../catalog/prices.json';
+import { getSashType } from '../catalog';
 import { GRID, WALL_HEIGHT } from '../building/dimensions';
 import { wallLength, wallOutsideSide } from '../building/rules';
 import type { House } from '../building/types';
@@ -20,9 +21,11 @@ export const STRUCTURE = {
   roof: 15000,
   /** 階段1つ */
   stair: 400000,
+  /** 階段1つの踏み板・蹴込み板の面積（m²）。木部の素材の単価をかける */
+  stairFinishArea: 5,
 };
 
-const materialPrice = (id: string) => MATERIAL_PRICE[id] ?? 8000;
+export const materialPrice = (id: string) => MATERIAL_PRICE[id] ?? 8000;
 export const openingPrice = (type: string) => OPENING_PRICE[type] ?? 80000;
 export const furniturePrice = (type: string) => FURNITURE_PRICE[type] ?? 50000;
 
@@ -63,10 +66,10 @@ export function partCosts(house: House): PartCost[] {
     out.push({ category: 'wall', id: w.id, cost: face * (STRUCTURE.wall + finishUnit), key: JSON.stringify(w) });
   }
   for (const o of house.openings) {
-    out.push({ category: 'opening', id: o.id, cost: openingPrice(o.type), key: JSON.stringify(o) });
+    out.push({ category: 'opening', id: o.id, cost: openingPrice(o.type) * getSashType(o.sash).priceRate, key: JSON.stringify(o) });
   }
   for (const s of house.stairs) {
-    out.push({ category: 'stair', id: s.id, cost: STRUCTURE.stair, key: JSON.stringify(s) });
+    out.push({ category: 'stair', id: s.id, cost: STRUCTURE.stair + STRUCTURE.stairFinishArea * materialPrice(s.finish.material), key: JSON.stringify(s) });
   }
   for (const r of house.roofs) {
     const w = Math.abs(r.x1 - r.x0) * GRID + 2 * r.overhang;

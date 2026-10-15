@@ -19,7 +19,24 @@ export type Pattern =
   | 'planks'
   | 'tatami'
   | 'tile'
-  | 'grain';
+  | 'grain'
+  | 'sidingV'
+  | 'stone'
+  | 'concrete'
+  | 'clapboard'
+  | 'herringbone'
+  | 'wideplank'
+  | 'marble'
+  | 'mosaic'
+  | 'border'
+  | 'shingle'
+  | 'spanish'
+  | 'flatTile'
+  | 'bigTile'
+  | 'ryukyu'
+  | 'alc'
+  | 'solar'
+  | 'turf';
 
 export interface MaterialDef {
   id: string;
@@ -30,6 +47,20 @@ export interface MaterialDef {
   metalness: number;
   bump: number;
   colors: string[];
+  /** 選ぶときに出す一言 */
+  note?: string;
+}
+
+export interface SashTypeDef {
+  id: string;
+  name: string;
+  note: string;
+  /** 窓・ドアの値段にかける倍率 */
+  priceRate: number;
+  roughness: number;
+  metalness: number;
+  /** 木目などの模様を出すときの素材ID（色はサッシの色を使う） */
+  material?: string;
 }
 
 export type OpeningStyle =
@@ -77,11 +108,17 @@ export const MATERIALS = materialsData.materials as MaterialDef[];
 export const OPENINGS = openingsData.types as OpeningDef[];
 export const SASH_COLORS = openingsData.sashColors as NamedColor[];
 export const PANEL_COLORS = openingsData.panelColors as NamedColor[];
+export const SASH_TYPES = openingsData.sashTypes as SashTypeDef[];
 export const FURNITURE = furnitureData.types as FurnitureDef[];
 
 const materialById = new Map(MATERIALS.map((m) => [m.id, m]));
 const openingById = new Map(OPENINGS.map((o) => [o.id, o]));
 const furnitureById = new Map(FURNITURE.map((f) => [f.id, f]));
+
+/** サッシの種類（古いセーブには無いのでアルミとして扱う） */
+export function getSashType(id: string | undefined): SashTypeDef {
+  return SASH_TYPES.find((t) => t.id === id) ?? SASH_TYPES[0];
+}
 
 export function getMaterial(id: string): MaterialDef {
   return materialById.get(id) ?? MATERIALS[0];
