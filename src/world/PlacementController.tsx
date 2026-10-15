@@ -74,6 +74,10 @@ export function PlacementController() {
       eraseFrom = null;
       tap = null;
       activeTouch = null;
+      if (useInteraction.getState().furnitureDrag) {
+        useInteraction.getState().setFurnitureDrag(null);
+        useGame.getState().endDrag();
+      }
       useInteraction.getState().setPreview(null);
     };
 
@@ -197,7 +201,7 @@ export function PlacementController() {
       const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
-      if (e.pointerType === 'touch' && (g.tool === 'stair' || g.tool === 'furniture')) {
+      if (g.tool === 'furniture' || (e.pointerType === 'touch' && g.tool === 'stair')) {
         tap = { x: e.clientX, y: e.clientY };
         updatePreview(e);
         return;
@@ -248,6 +252,10 @@ export function PlacementController() {
             ...(getFurniture(g.defaults.furnitureType).label ? { label: g.defaults.nameplateText } : {}),
           };
           g.commit({ ...g.house, furniture: [...g.house.furniture, item] });
+          useInteraction.setState({ ignorePartClickUntil: Date.now() + 100 });
+          g.setTool('select');
+          g.select({ kind: 'furniture', id: item.id });
+          ui.setPreview(null);
           break;
         }
       }
@@ -257,6 +265,7 @@ export function PlacementController() {
       if (e.pointerType === 'touch' && activeTouch !== e.pointerId && !useInteraction.getState().furnitureDrag) return;
       const drag = useInteraction.getState().furnitureDrag;
       if (drag) {
+        if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 5) return;
         const g = useGame.getState();
         const item = g.house.furniture.find((f) => f.id === drag.id);
         if (!item) return;
@@ -271,6 +280,14 @@ export function PlacementController() {
     };
 
     const onUp = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch' && tap) {
+        const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
+        tap = null;
+        const surface = pickSurface(e);
+        const p = groundPoint(e, surface);
+        if (!moved && p) place(e, p, surface);
+        return;
+      }
       if (e.pointerType === 'touch') {
         const mine = activeTouch === e.pointerId;
         touches.delete(e.pointerId);
@@ -398,3 +415,4 @@ export function PlacementController() {
 
   return null;
 }
+

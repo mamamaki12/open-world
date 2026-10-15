@@ -16,9 +16,7 @@ export interface Hole {
  * 壁の形。ローカル座標で X = 壁の長さ方向（0..length）、Y = 高さ、Z = 厚み（中心0）。
  * 窓・ドアの穴を開ける。マテリアルのグループ：0 = +Z面, 1 = -Z面, 2 = 小口（端・穴の内側）
  */
-export function wallGeometry(length: number, height: number, thickness: number, holes: Hole[], extend: number) {
-  const xs = -extend;
-  const xe = length + extend;
+export function wallGeometry(length: number, height: number, thickness: number, holes: Hole[], extend: number, xs = -extend, xe = length + extend) {
   const shape = new THREE.Shape();
   shape.moveTo(xs, 0);
   const floorHoles = holes.filter((h) => h.bottom <= 0.001).sort((a, b) => a.lo - b.lo);
@@ -201,3 +199,4 @@ function worldUV(geo: THREE.BufferGeometry) {
   }
   geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 }
+

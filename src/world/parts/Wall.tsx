@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { getOpening } from '../../catalog';
 import { GRID, WALL_THICKNESS, floorY } from '../../building/dimensions';
-import { canPlaceOpening, newId, snapOpeningOffset, wallHeight, wallLength } from '../../building/rules';
+import { canPlaceOpening, newId, snapOpeningOffset, wallHeight, wallLength, wallOutsideSide } from '../../building/rules';
 import type { OpeningPart, WallPart } from '../../building/types';
 import { useGame } from '../../state/store';
 import { useInteraction } from '../../state/interaction';
@@ -20,24 +20,40 @@ interface Props {
 export function Wall({ wall, openings, outside }: Props) {
   const { highlight, handlers } = usePart({ kind: 'wall', id: wall.id });
   const tool = useGame((s) => s.tool);
+  const house = useGame((s) => s.house);
   const length = wallLength(wall);
   const height = wallHeight(wall);
   const angle = -Math.atan2(wall.z1 - wall.z0, wall.x1 - wall.x0);
 
   const holesKey = openings.map((o) => `${o.type}@${o.offset}`).join(',');
-  const geometry = useMemo(() => {
-    const holes = openings.map((o) => {
-      const def = getOpening(o.type);
-      return { lo: o.offset - def.width / 2, hi: o.offset + def.width / 2, bottom: def.sill, top: def.sill + def.height };
+  // 床の形が途中で変わる長い壁も、1マスごとに内外を判定する。
+  const segments = useMemo(() => {
+    const count = Math.max(1, Math.ceil(length / GRID));
+    return Array.from({ length: count }, (_, i) => {
+      const start = i * GRID;
+      const end = Math.min(length, (i + 1) * GRID);
+      const dx = (wall.x1 - wall.x0) / (length / GRID);
+      const dz = (wall.z1 - wall.z0) / (length / GRID);
+      const part = { ...wall, x0: wall.x0 + dx * start / GRID, z0: wall.z0 + dz * start / GRID,
+        x1: wall.x0 + dx * end / GRID, z1: wall.z0 + dz * end / GRID };
+      const extend = WALL_THICKNESS / 2 - 0.002;
+      const lo = i === 0 ? -extend : 0;
+      const hi = end - start + (i === count - 1 ? extend : 0);
+      const holes = openings.map((o) => {
+        const def = getOpening(o.type);
+        return { lo: Math.max(lo, o.offset - def.width / 2 - start),
+          hi: Math.min(hi, o.offset + def.width / 2 - start), bottom: def.sill, top: def.sill + def.height };
+      }).filter((h) => h.hi > h.lo);
+      return { start, outside: wallOutsideSide(house, part),
+        geometry: wallGeometry(end - start, height, WALL_THICKNESS, holes, 0, lo, hi) };
     });
-    // 端は厚みの半分だけ伸ばして角をふさぐ（わずかに短くして面のちらつきを防ぐ）
-    return wallGeometry(length, height, WALL_THICKNESS, holes, WALL_THICKNESS / 2 - 0.002);
-  }, [length, height, holesKey]);
+  }, [length, height, holesKey, wall, house.floors]);
+  useEffect(() => () => segments.forEach((segment) => segment.geometry.dispose()), [segments]);
 
   const ext = finishMaterial(wall.exterior, highlight);
   const int = finishMaterial(wall.interior, highlight);
-  const materials =
-    outside === 1 ? [ext, int, int] : outside === -1 ? [int, ext, int] : outside === 0 ? [int, int, int] : [ext, ext, ext];
+  const materialsFor = (side: Props['outside']) =>
+    side === 1 ? [ext, int, ext] : side === -1 ? [int, ext, ext] : side === 0 ? [int, int, int] : [ext, ext, ext];
 
   const openingTool = tool === 'door' || tool === 'window';
   /** 壁の上の点に、いまのドア・窓を付けるとしたときのプレビュー */
@@ -94,10 +110,14 @@ export function Wall({ wall, openings, outside }: Props) {
 
   return (
     <group position={[wall.x0 * GRID, floorY(wall.level), wall.z0 * GRID]} rotation={[0, angle, 0]}>
-      <mesh geometry={geometry} material={materials} castShadow receiveShadow {...handlers} {...openingHandlers} />
+      {segments.map((segment, i) => (
+        <mesh key={i} position={[segment.start, 0, 0]} geometry={segment.geometry}
+          material={materialsFor(segment.outside)} castShadow receiveShadow {...handlers} {...openingHandlers} />
+      ))}
       {openings.map((o) => (
         <Opening key={o.id} opening={o} outside={outside === -1 ? -1 : 1} />
       ))}
     </group>
   );
 }
+

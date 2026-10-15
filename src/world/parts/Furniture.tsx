@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { getFurniture } from '../../catalog';
 import type { FurnitureDef, Paint } from '../../catalog';
 import { furnitureBaseY } from '../../building/rules';
+import { floorY } from '../../building/dimensions';
 import type { FurniturePart } from '../../building/types';
 import { useGame } from '../../state/store';
 import { useInteraction } from '../../state/interaction';
@@ -84,17 +85,21 @@ export function FurnitureModel({ def, color, label, highlight = 'none' }: { def:
 }
 
 export function Furniture({ item }: { item: FurniturePart }) {
-  const { highlight, handlers, selected } = usePart({ kind: 'furniture', id: item.id });
+  const { highlight, handlers } = usePart({ kind: 'furniture', id: item.id });
   const def = getFurniture(item.type);
   const tool = useGame((s) => s.tool);
   const baseY = useGame((s) => furnitureBaseY(s.house, item));
 
   // 選択中の家具はドラッグで動かせる
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
-    if (tool !== 'select' || !selected || e.button !== 0) return;
+    const game = useGame.getState();
+    if (tool !== 'select' || game.mode !== 'build' || e.button !== 0) return;
     e.stopPropagation();
-    useGame.getState().beginDrag();
-    useInteraction.getState().setFurnitureDrag({ id: item.id, dx: e.point.x - item.x, dz: e.point.z - item.z });
+    game.select({ kind: 'furniture', id: item.id });
+    const point = e.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -floorY(item.level)), new THREE.Vector3());
+    if (!point) return;
+    game.beginDrag();
+    useInteraction.getState().setFurnitureDrag({ id: item.id, dx: point.x - item.x, dz: point.z - item.z, startX: e.clientX, startY: e.clientY });
   };
 
   return (
@@ -108,4 +113,5 @@ export function Furniture({ item }: { item: FurniturePart }) {
     </group>
   );
 }
+
 

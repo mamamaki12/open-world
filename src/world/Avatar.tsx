@@ -52,6 +52,8 @@ export interface PoseInput {
   /** 水平の速さ（m/s） */
   speed: number;
   running: boolean;
+  /** 着座時の腰の高さ（足元の基準面から） */
+  seated?: number;
   /** しゃがみ（0..1 の目標。なめらかさはこちらで付ける） */
   crouch: number;
   /** 空中にいるか、上下の速さ */
@@ -167,6 +169,7 @@ export function poseRig(rig: Rig, sm: Smooth, input: PoseInput): number {
   const bob = gait * (0.02 + 0.012 * spd) * Math.sin(p) ** 2;
   let hipY = THREE.MathUtils.lerp(STAND_HIP, CROUCH_HIP, crouch) - bob - land * 0.32;
   hipY = THREE.MathUtils.lerp(hipY, PERCH_HIP, sm.perch);
+  if (input.seated !== undefined) hipY = input.seated;
   hipY -= air * 0.04;
   rig.hips.position.y = hipY;
   rig.hips.rotation.y = -Math.sin(p) * 0.07 * gait;
@@ -197,6 +200,11 @@ export function poseRig(rig: Rig, sm: Smooth, input: PoseInput): number {
     // 足首：足の裏を地面と平行に。蹴り出しでつま先を少し下げる
     const toe = gait * 0.25 * Math.max(0, -Math.cos(pi)) * Math.max(0, -Math.sin(pi));
     rig.ankle[i]?.rotation.set(-(thigh + knee) + toe + air * 0.25, 0, -side * 0.12 * crouch);
+    if (input.seated !== undefined) {
+      rig.thigh[i]?.rotation.set(Math.PI / 2, 0, side * 0.06);
+      rig.knee[i]?.rotation.set(-Math.PI / 2, 0, 0);
+      rig.ankle[i]?.rotation.set(0, 0, 0);
+    }
   }
 
   // ---- 上半身 ----
@@ -342,3 +350,4 @@ export function AvatarModel({ rig, children }: { rig: MutableRefObject<Rig>; chi
     </group>
   );
 }
+

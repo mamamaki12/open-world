@@ -137,7 +137,7 @@ export function floorCovers(house: House, level: number, x: number, z: number, r
   const gx = x / GRID;
   const gz = z / GRID;
   return house.floors.some(
-    (f) => f.level === level && !(roomsOnly && f.kind === 'terrace') && gx > f.x0 && gx < f.x1 && gz > f.z0 && gz < f.z1,
+      (f) => f.level === level && !(roomsOnly && f.kind === 'terrace') && gx >= f.x0 && gx < f.x1 && gz >= f.z0 && gz < f.z1,
   );
 }
 
@@ -333,3 +333,4 @@ export function openingSpan(o: OpeningPart): { lo: number; hi: number } {
 }
 
 export const HALF_WALL = WALL_THICKNESS / 2;
+
