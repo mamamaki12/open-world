@@ -28,9 +28,11 @@ export function FinishPicker({ label, category, value, onChange }: {
         <span className="mat-text">
           <span className="mat-name">{current.name}</span>
           {current.note && <small className="mat-note">{current.note}</small>}
-          <small className="mat-price">{yen(materialPrice(current.id))}/m²</small>
+          <span className="mat-foot">
+            <small className="mat-price">{yen(materialPrice(current.id))}/m²</small>
+            <span className="mat-toggle">{open ? '閉じる ▴' : `${mats.length}種から選ぶ ▾`}</span>
+          </span>
         </span>
-        <span className="mat-toggle">{open ? '閉じる' : `${mats.length}種から選ぶ`}</span>
       </button>
       {open && (
         <div className="mat-grid">
