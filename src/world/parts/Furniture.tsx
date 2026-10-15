@@ -5,6 +5,7 @@ import type { FurnitureDef, Paint } from '../../catalog';
 import { furnitureBaseY } from '../../building/rules';
 import { mountedTransform } from '../../building/mounts';
 import type { FurniturePart } from '../../building/types';
+import { useDoors } from '../../state/doors';
 import { useGame } from '../../state/store';
 import { plainMaterial } from '../materials';
 import type { Highlight } from '../materials';
@@ -64,7 +65,7 @@ function LabelPlane({ text, plate, size, pos }: { text: string; plate: string; s
   );
 }
 
-export function FurnitureModel({ def, color, label, highlight = 'none' }: { def: FurnitureDef; color: string; label?: string; highlight?: Highlight }) {
+export function FurnitureModel({ def, color, label, highlight = 'none', open = false }: { def: FurnitureDef; color: string; label?: string; highlight?: Highlight; open?: boolean }) {
   return (
     <>
       {def.label && label && <LabelPlane text={label} plate={color} size={def.label.size} pos={def.label.pos} />}
@@ -72,7 +73,7 @@ export function FurnitureModel({ def, color, label, highlight = 'none' }: { def:
         const paint = p.paint === 'main' ? { color, roughness: 0.7 } : PAINT[p.paint];
         const mat = plainMaterial(paint.color, highlight, { roughness: paint.roughness, metalness: paint.metalness });
         return (
-          <mesh key={i} position={p.pos} scale={p.shape === 'sphere' ? p.size : [1, 1, 1]} material={mat} castShadow receiveShadow>
+          <mesh key={i} position={open && def.id === 'garage-shutter' && i >= 3 ? [p.pos[0], p.pos[1] + 2.55, p.pos[2]] : p.pos} scale={p.shape === 'sphere' ? p.size : [1, 1, 1]} material={mat} castShadow receiveShadow>
             {p.shape === 'box' && <boxGeometry args={p.size} />}
             {p.shape === 'cylinder' && <cylinderGeometry args={[p.size[0] / 2, p.size[0] / 2.4, p.size[1], 20]} />}
             {p.shape === 'sphere' && <sphereGeometry args={[0.5, 20, 14]} />}
@@ -88,6 +89,7 @@ export function Furniture({ item }: { item: FurniturePart }) {
   const def = getFurniture(item.type);
   const tool = useGame((s) => s.tool);
   const house = useHouseData();
+  const shutterOpen = useDoors(s => item.type === 'garage-shutter' && item.id in s.open);
   const baseY = furnitureBaseY(house, item);
   const mounted = item.wallMount ? mountedTransform(house, item.wallMount) : null;
 
@@ -97,7 +99,7 @@ export function Furniture({ item }: { item: FurniturePart }) {
       rotation={[0, ((mounted?.rotation ?? item.rotation) * Math.PI) / 180, 0]}
       {...handlers}
     >
-      <FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} />
+      <FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} open={shutterOpen} />
       {item.type === 'nameplate' && (tool === 'select' || tool === 'erase') && (
         <mesh position={[0, 1.6, 0.025]}>
           <boxGeometry args={[0.46, 0.28, 0.055]} />
