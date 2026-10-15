@@ -5,7 +5,7 @@ import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapFurniture, sna
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
-import { FloorKindButtons, NameplateInput, RoofTypeButtons, Slider, StairRailButtons, WallHeightButtons } from './ToolOptions';
+import { FloorKindButtons, NameplateInput, RoofTypeButtons, Slider, StairRailButtons, StairShapeButtons, WallHeightButtons } from './ToolOptions';
 import { patchPart } from './edit';
 import { materialGroup, movableBuilding } from '../building/groups';
 import { mountedTransform, nameplateMount } from '../building/mounts';
@@ -199,6 +199,11 @@ function StairInspector({ stair: s }: { stair: StairPart }) {
   };
   return (
     <>
+      <StairShapeButtons value={s.shape} onChange={(shape) => {
+        const err = canPlaceStair(house, { ...s, shape }, s.id);
+        if (err) return notify(err);
+        patchPart('stair', s.id, { shape });
+      }} />
       <StairRailButtons value={s.rail} onChange={(rail) => patchPart('stair', s.id, { rail })} />
       <FinishPicker label="踏み板" category="wood" value={s.finish} onChange={(finish) => patchPart('stair', s.id, { finish })} />
       <button className="btn" onClick={rotate}>
