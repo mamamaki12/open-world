@@ -32,6 +32,13 @@ export function methodsOf(type: BetType): Method[] {
 export function machineCombos(race: Race, type: BetType, method: Method, cols: number[][]): number[][] {
   const { k, ordered } = BET_SHAPE[type];
   if (method === 'nagashi') return expandCombos(race, type, 'nagashi', cols);
+  if (type === 'bracket' && method === 'normal') {
+    // 枠連の通常は 1つ目・2つ目の枠を1つずつ。同じ枠（ゾロ目）は2人以上いる枠だけ
+    const [a, b] = [cols[0]?.[0], cols[1]?.[0]];
+    if (a === undefined || b === undefined) return [];
+    if (a === b && race.runners.filter((r) => r.frame === a).length < 2) return [];
+    return [[Math.min(a, b), Math.max(a, b)]];
+  }
   if (method === 'box') return expandCombos(race, type, 'normal', ordered ? Array.from({ length: k }, () => cols[0] ?? []) : [cols[0] ?? []]);
   if (method === 'normal' && !ordered && k > 1 && (cols[0]?.length ?? 0) !== k) return [];
   return expandCombos(race, type, 'normal', cols);
@@ -43,8 +50,26 @@ function pickRows(type: BetType, method: Method): { label: string; single: boole
   if (k === 1) return [{ label: '選択', single: false }];
   if (method === 'nagashi') return [{ label: ordered ? '軸（1着）' : '軸', single: true }, { label: '相手', single: false }];
   if (method === 'box') return [{ label: '選択', single: false }];
+  if (method === 'normal' && type === 'bracket') return [{ label: '1つ目の枠', single: true }, { label: '2つ目の枠', single: true }];
   if (method === 'normal' && !ordered) return [{ label: `${k}つ選択`, single: false }];
   return Array.from({ length: k }, (_, i) => ({ label: `${i + 1}着`, single: method === 'normal' }));
+}
+
+/** まだ買い目ができていないとき、あと何を選べばよいか */
+function pickHint(type: BetType, method: Method, cols: number[][]): string {
+  const { k } = BET_SHAPE[type];
+  const n = (r: number) => cols[r]?.length ?? 0;
+  if (k === 1) return '番号を1つ以上選んでください';
+  if (type === 'bracket' && method === 'normal') {
+    const [a, b] = [cols[0]?.[0], cols[1]?.[0]];
+    if (a !== undefined && a === b) return `${a}枠は1人だけなので、同じ枠どうし（${a}-${a}）は買えません`;
+    return '1つ目と2つ目の枠を1つずつ選んでください（2人以上いる枠は同じ枠どうしも買えます）';
+  }
+  if (method === 'nagashi') return n(0) === 0 ? '軸を1つ選んでください' : `相手を${k - 1}つ以上選んでください`;
+  if (method === 'box') return `${k}つ以上選んでください`;
+  if (method === 'formation') return `着順ごとに1つ以上選んでください（同じ番号どうしの組は除きます）`;
+  if (!BET_SHAPE[type].ordered) return `ちょうど${k}つ選んでください`;
+  return '着順ごとに1つずつ、違う番号を選んでください';
 }
 
 const METHOD_HELP: Record<Method, string> = {
@@ -83,7 +108,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
   const stake = (parseInt(digits || '0', 10) || 0) * 100;
   const cartTotal = cart.reduce((a, c) => a + c.combos.length * c.stake, 0);
   const choices = isBracket
-    ? [...new Set(race.runners.map((r) => r.frame))].sort((a, b) => a - b).map((f) => ({ id: f, no: f, frame: f, name: '' }))
+    ? [...new Set(race.runners.map((r) => r.frame))].sort((a, b) => a - b).map((f) => ({ id: f, no: f, frame: f, name: race.runners.filter((r) => r.frame === f).map((r) => r.no).join('・') + '番' }))
     : race.runners.map((r) => ({ id: r.index, no: r.no, frame: r.frame, name: r.name }));
 
   const press = () => sfxChip();
@@ -113,7 +138,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
       cs.map((c, k) => {
         if (k !== row) return c;
         if (rows[row]?.single) return c[0] === id ? [] : [id];
-        if (method === 'normal' && !shape.ordered && shape.k > 1 && !c.includes(id) && c.length >= shape.k) return c;
+        if (method === 'normal' && !isBracket && !shape.ordered && shape.k > 1 && !c.includes(id) && c.length >= shape.k) return c;
         return c.includes(id) ? c.filter((x) => x !== id) : [...c, id].sort((a, b) => a - b);
       }),
     );
@@ -242,7 +267,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
                             <span className="tm-num-no" style={{ background: col.bg, color: col.fg }}>
                               {ch.no}
                             </span>
-                            {!isBracket && <span className="tm-num-name">{ch.name}</span>}
+                            <span className="tm-num-name">{ch.name}</span>
                             {single !== null && <span className="tm-num-odds">{single.toFixed(1)}</span>}
                           </button>
                         );
@@ -250,6 +275,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
                     </div>
                   </div>
                 ))}
+                {combos.length === 0 && <p className="tm-hint">{pickHint(type, method, cols)}</p>}
                 <div className="tm-count">
                   組み合わせ <b>{combos.length}</b> 通り
                   <button className="tm-link" onClick={() => setShowOdds(!showOdds)}>

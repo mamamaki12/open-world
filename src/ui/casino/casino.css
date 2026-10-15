@@ -585,7 +585,7 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
 /* 出てきた券：紙の馬券・車券・舟券 */
 .printed { margin: 10px 0; }
 .printed-title { font-weight: 800; margin-bottom: 6px; }
-.printed-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.printed-list { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
 .ticket { --tk: #00704a; position: relative; width: 210px; color: #1d1f22; font-size: 13px;
   background: repeating-linear-gradient(135deg, #fbfdfb 0 6px, #f1f7f3 6px 12px); border: 1px solid #c6cfc9;
   border-top: 6px solid var(--tk); border-radius: 3px; padding: 8px 10px 6px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
@@ -632,3 +632,4 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
   .ticket { width: calc(50% - 5px); min-width: 160px; }
 }
 @media (prefers-reduced-motion: reduce) { .ticket { animation: none; } }
+.tm-hint { margin: 4px 0 0; padding: 6px 10px; background: #fff7d6; border: 1px solid #e8c650; border-radius: 6px; font-size: 13px; font-weight: 700; color: #6b5200; }
