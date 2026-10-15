@@ -106,6 +106,8 @@ export interface FurniturePart {
   color: string;
   /** 表札の文字 */
   label?: string;
+  /** 壁付け表札の取付先。壁の移動にも追従する。heightは壁の足元から文字中心までの高さ。 */
+  wallMount?: { wallId: string; offset: number; height: number; side: 1 | -1 };
 }
 
 export interface House {
@@ -128,3 +130,4 @@ export interface PartRef {
 export function emptyHouse(): House {
   return { version: 1, floors: [], walls: [], openings: [], stairs: [], roofs: [], furniture: [] };
 }
+
