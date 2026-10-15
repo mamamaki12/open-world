@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getFurniture } from '../catalog';
-import { GRID, LOT_D, LOT_W, floorY } from '../building/dimensions';
+import { GRID, LOT_D, LOT_W, MAX_LEVEL, floorY } from '../building/dimensions';
 import {
   axisAlignedSegment,
   canPlaceFloor,
@@ -159,7 +159,14 @@ export function PlacementController() {
         const rect = cellRect(start, cellAt(p));
         if (g.tool === 'floor') {
           const err = canPlaceFloor(g.house, g.activeLevel, rect);
-          if (err) return g.notify(err);
+          if (err) {
+            // 上の階に張るつもりで、階を切り替え忘れていることが多い
+            const upper = g.activeLevel + 1;
+            if (upper <= MAX_LEVEL && canPlaceFloor(g.house, upper, rect) === null && err === 'すでに床があります') {
+              return g.notify(`${upper}階にはもう床があります。${upper + 1}階の床は、画面下の「作業する階」で ${upper + 1}階 を選ぶ（キー ${upper + 1}）と張れます`);
+            }
+            return g.notify(err);
+          }
           g.commit({ ...g.house, floors: [...g.house.floors, { id: newId('floor'), level: g.activeLevel, ...rect, finish: g.defaults.floor }] });
         } else {
           const err = canPlaceRoof(g.house, g.activeLevel, rect);
