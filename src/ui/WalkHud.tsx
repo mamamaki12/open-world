@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { useDoors } from '../state/doors';
 import { getOpening } from '../catalog';
 import { useGame } from '../state/store';
-import { enterCasino, toggleTargetDoor } from '../world/Player';
+import { useSeating } from '../state/seating';
+import { enterCasino, interact } from '../world/Player';
 import { useTouchDevice } from './useTouchDevice';
 
 const KEYS: [string, string][] = [
@@ -11,10 +12,9 @@ const KEYS: [string, string][] = [
   ['A / D', '左へ / 右へ（横歩き）'],
   ['Shift', '押している間は走る'],
   ['Space', 'ジャンプ（開いた窓の前では窓から出る）'],
-  ['C', 'しゃがむ / 立つ'],
   ['Q', '一人称 ⇄ 三人称'],
   ['R', 'カメラを背中側に戻す'],
-  ['F / E', 'ドア・窓を開ける / 閉める、カジノに入る'],
+  ['F / E', 'ドア・窓の開閉、座る / 立つ、カジノに入る'],
   ['マウス', 'クリックで視点操作（Esc で解除）'],
   ['ホイール', 'カメラの距離（三人称）'],
   ['M', '町の地図（持っている土地へワープ）'],
@@ -33,6 +33,8 @@ function loadShowKeys() {
 }
 
 export function WalkHud() {
+  const seat = useSeating((s) => s.target);
+  const seated = useSeating((s) => s.seated);
   const view = useGame((s) => s.view);
   const toggleView = useGame((s) => s.toggleView);
   const target = useDoors((s) => s.target);
@@ -65,7 +67,7 @@ export function WalkHud() {
   return (
     <>
       {view === 'first' && !holding && <div className="crosshair" />}
-      {atCasino && !overlay && (
+      {atCasino && !seated && !overlay && (
         <div className="door-prompts">
           <button
             className="door-prompt casino"
@@ -79,17 +81,17 @@ export function WalkHud() {
           </button>
         </div>
       )}
-      {target && !climbing && !atCasino && (
+      {(target || seat || seated) && !climbing && (!atCasino || seated) && (
         <div className="door-prompts">
           <button
             className="door-prompt"
             onClick={(e) => {
               e.currentTarget.blur();
-              toggleTargetDoor();
+              interact();
             }}
           >
             <kbd>F</kbd>
-            {targetOpen ? `${noun}を閉める` : `${noun}を開ける`}
+            {seated ? '立つ' : seat ? '座る' : targetOpen ? `${noun}を閉める` : `${noun}を開ける`}
           </button>
           {climb === 'ok' && !touch && (
             <div className="door-prompt passive">
@@ -123,7 +125,7 @@ export function WalkHud() {
             <span><b>WASD</b> 歩く</span>
             <span><b>Shift</b> 走る</span>
             <span><b>Space</b> ジャンプ</span>
-            <span><b>F</b> 開ける</span>
+            <span><b>F</b> 開ける・座る</span>
           </p>
         ) : (
         <table className="keys">
@@ -154,3 +156,4 @@ export function WalkHud() {
     </>
   );
 }
+
