@@ -32,7 +32,7 @@ export function HouseView() {
     <>
       <group name="house">
         {house.floors.map((f) => (
-          <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} stairwells={stairHoles(house, f.level + 1)} />
+          <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} stairwells={stairHoles(house, f.level + 1)} roofs={house.roofs.filter((r) => r.level === f.level)} />
         ))}
         {house.walls.map((w) => (
           <Wall key={w.id} wall={w} openings={openingsByWall.get(w.id) ?? []} outside={wallOutsideSide(house, w)} />
