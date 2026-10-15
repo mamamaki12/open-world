@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { getOpening } from '../../catalog';
 import { GRID, WALL_THICKNESS, floorY } from '../../building/dimensions';
@@ -11,6 +11,7 @@ import { wallGeometry } from '../geometry';
 import { usePart } from './usePart';
 import { Opening } from './Opening';
 import { nameplateMount, mountedTransform } from '../../building/mounts';
+import { HouseScope, useHouseData } from '../HouseScope';
 
 interface Props {
   wall: WallPart;
@@ -21,8 +22,9 @@ interface Props {
 export function Wall({ wall, openings, outside }: Props) {
   const { highlight, handlers } = usePart({ kind: 'wall', id: wall.id });
   const tool = useGame((s) => s.tool);
+  const foreign = !!useContext(HouseScope).activate;
   const placingNameplate = useGame((s) => s.tool === 'furniture' && s.defaults.furnitureType === 'nameplate');
-  const house = useGame((s) => s.house);
+  const house = useHouseData();
   const length = wallLength(wall);
   const height = wallHeight(wall);
   const angle = -Math.atan2(wall.z1 - wall.z0, wall.x1 - wall.x0);
@@ -57,7 +59,7 @@ export function Wall({ wall, openings, outside }: Props) {
   const materialsFor = (side: Props['outside']) =>
     side === 1 ? [ext, int, ext] : side === -1 ? [int, ext, ext] : side === 0 ? [int, int, int] : [ext, ext, ext];
 
-  const openingTool = tool === 'door' || tool === 'window';
+  const openingTool = !foreign && (tool === 'door' || tool === 'window');
   /** 壁の上の点に、いまのドア・窓を付けるとしたときのプレビュー */
   const previewAt = (point: { x: number; z: number }) => {
     const { defaults, house } = useGame.getState();
@@ -116,7 +118,7 @@ export function Wall({ wall, openings, outside }: Props) {
     useInteraction.getState().setPreview(mount ? { kind: 'nameplate', mount } : null);
     return mount;
   };
-  const nameplateHandlers = placingNameplate ? {
+  const nameplateHandlers = placingNameplate && !foreign ? {
     onPointerMove: (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); previewNameplate(e); },
     onPointerOut: () => {
       const p = useInteraction.getState().preview;
