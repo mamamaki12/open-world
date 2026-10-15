@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { yen } from '../../economy/money';
 import {
-  BET_SHAPE,
   NUMBER_COLORS,
   RACES,
   comboLabel,
@@ -10,7 +9,6 @@ import {
   comboProb,
   computeProbs,
   drawOrder,
-  expandCombos,
   makeRace,
   payoutPer100,
   placeCount,
@@ -18,13 +16,13 @@ import {
   ticketPayout,
   winningCombos,
 } from '../../economy/race';
-import type { BetType, BuyMethod, Probs, Race, RaceKind, Ticket } from '../../economy/race';
+import type { Probs, Race, RaceKind, Ticket } from '../../economy/race';
 import { boatKimarite, makeMotion, marginLabel, raceTime } from '../../economy/raceMotion';
 import type { Motion } from '../../economy/raceMotion';
 import { useEconomy } from '../../state/economy';
 import { useGame } from '../../state/store';
-import { BetInput } from './BetInput';
 import { RaceView, runnerColor } from './RaceView';
+import { PrintedTickets, TicketMachine } from './TicketMachine';
 
 /** 種類ごとに、いま出走表に出ているレース（タブを切り替えても残す） */
 const current: Partial<Record<RaceKind, Race>> = {};
@@ -99,8 +97,8 @@ export function RaceGame({ kind }: { kind: RaceKind }) {
       {phase === 'card' && (
         <>
           <RaceCard race={race} probs={probs} />
-          <BetSlipBuilder race={race} probs={probs} onBuy={(ts) => setTickets((cur) => [...cur, ...ts])} />
-          <Purchased race={race} probs={probs} tickets={tickets} />
+          <TicketMachine race={race} probs={probs} onBuy={(ts) => setTickets((cur) => [...cur, ...ts])} />
+          <PrintedTickets race={race} probs={probs} tickets={tickets} />
           <div className="row">
             <button className="btn primary big-btn" onClick={start}>
               {tickets.length ? '発走！ レースを観る' : `${cfg.ticket}を買わずにレースを観る`}
@@ -220,197 +218,6 @@ function RaceCard({ race, probs }: { race: Race; probs: Probs }) {
         </table>
       </div>
     </>
-  );
-}
-
-const HELP: Record<BetType, string> = {
-  win: '1着を当てる',
-  place: '',
-  bracket: '1着・2着の枠番の組み合わせを当てる（順不同）',
-  quinella: '1着・2着の組み合わせを当てる（順不同）',
-  wide: '3着以内に入る2つを当てる（順不同）',
-  exacta: '1着・2着を順番どおりに当てる',
-  trio: '1着・2着・3着の組み合わせを当てる（順不同）',
-  trifecta: '1着・2着・3着を順番どおりに当てる',
-};
-
-function BetSlipBuilder({ race, probs, onBuy }: { race: Race; probs: Probs; onBuy: (t: Ticket[]) => void }) {
-  const cfg = RACES[race.kind];
-  const [type, setType] = useState<BetType>(cfg.bets[0]);
-  const [method, setMethod] = useState<BuyMethod>('normal');
-  const [cols, setCols] = useState<number[][]>([[], [], []]);
-  const [unit, setUnit] = useState(1000);
-  const notify = useGame((s) => s.notify);
-  const shape = BET_SHAPE[type];
-  const isBracket = type === 'bracket';
-  const rows = isBracket
-    ? [...new Set(race.runners.map((r) => r.frame))].map((f) => ({ id: f, frame: f }))
-    : race.runners.map((r) => ({ id: r.index, frame: r.frame }));
-
-  const columnNames: string[] =
-    shape.k === 1
-      ? ['選択']
-      : method === 'nagashi'
-        ? [shape.ordered ? '軸（1着）' : '軸', '相手']
-        : shape.ordered
-          ? Array.from({ length: shape.k }, (_, i) => `${i + 1}着`)
-          : ['選択'];
-
-  const combos = useMemo(() => expandCombos(race, type, method, cols), [race, type, method, cols]);
-  const stake = Math.floor(unit / 100) * 100;
-  const total = combos.length * stake;
-
-  const reset = (t: BetType, m: BuyMethod) => {
-    setType(t);
-    setMethod(BET_SHAPE[t].k === 1 ? 'normal' : m);
-    setCols([[], [], []]);
-  };
-  const toggle = (col: number, id: number) => {
-    setCols((cs) =>
-      cs.map((c, k) => {
-        if (k !== col) return c;
-        if (method === 'nagashi' && col === 0) return c[0] === id ? [] : [id];
-        return c.includes(id) ? c.filter((x) => x !== id) : [...c, id].sort((a, b) => a - b);
-      }),
-    );
-  };
-  const buy = () => {
-    if (!combos.length || stake <= 0) return;
-    const label = `${cfg.title} ${race.venue}${race.no}R ${cfg.betNames[type]} ${combos.length}点`;
-    if (!useEconomy.getState().placeBet(total, label)) return notify('所持金が足りません');
-    onBuy(combos.map((combo) => ({ type, combo, stake })));
-    setCols([[], [], []]);
-  };
-
-  const popular = useMemo(() => popularCombos(race, probs, type, 8), [race, probs, type]);
-  const help = type === 'place' ? `${placeCount(race)}着以内に入るかを当てる` : HELP[type];
-
-  return (
-    <section className="card bet-builder">
-      <div className="card-title">投票（{cfg.ticket}を買う）</div>
-      <div className="field-label">券種</div>
-      <div className="seg wrap">
-        {cfg.bets.map((b) => (
-          <button key={b} className={b === type ? 'on' : ''} onClick={() => reset(b, method)}>
-            {cfg.betNames[b]}
-          </button>
-        ))}
-      </div>
-      <p className="muted">
-        {help}。払戻率 {Math.round((cfg.payout[type] ?? 0) * 1000) / 10}%
-      </p>
-      {shape.k > 1 && (
-        <>
-          <div className="field-label">買い方</div>
-          <div className="seg">
-            <button className={method === 'normal' ? 'on' : ''} onClick={() => reset(type, 'normal')}>
-              {shape.ordered ? '通常・フォーメーション' : '通常・ボックス'}
-            </button>
-            <button className={method === 'nagashi' ? 'on' : ''} onClick={() => reset(type, 'nagashi')}>
-              ながし
-            </button>
-          </div>
-          <p className="muted">
-            {method === 'nagashi'
-              ? shape.ordered
-                ? '軸を1着に決め、相手から残りの着順を全部の並びで買います。'
-                : '軸を1つ決め、相手との組み合わせを全部買います。'
-              : shape.ordered
-                ? '着順ごとに選びます。1つずつ選べば通常、複数選ぶとフォーメーション（全部の掛け合わせ）。'
-                : `${shape.k}つ選べば通常、それより多く選ぶとボックス（選んだ中の組み合わせ全部）。`}
-          </p>
-        </>
-      )}
-      <div className="table-scroll">
-        <table className="ledger mark-sheet">
-          <thead>
-            <tr>
-              <th>{isBracket ? '枠番' : cfg.numberName}</th>
-              {!isBracket && <th>{race.kind === 'horse' ? '馬名' : '選手'}</th>}
-              {columnNames.map((c) => (
-                <th key={c} className="center">
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>{isBracket ? <FrameBadge frame={row.frame} /> : <NumberBadge race={race} i={row.id} />}</td>
-                {!isBracket && <td className="runner-name">{race.runners[row.id].name}</td>}
-                {columnNames.map((_, col) => {
-                  const on = cols[col].includes(row.id);
-                  return (
-                    <td key={col} className="center">
-                      <button className={`mark-cell${on ? ' on' : ''}`} onClick={() => toggle(col, row.id)} aria-pressed={on}>
-                        {on ? '●' : ''}
-                      </button>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="field-label">1点あたりの金額（100円単位）</div>
-      <BetInput value={unit} onChange={setUnit} />
-      <p>
-        <b>{combos.length}</b> 点 × {yen(stake)} = <b className="big">{yen(total)}</b>
-      </p>
-      {combos.length > 0 && (
-        <div className="combo-list">
-          {combos.slice(0, 40).map((c) => {
-            const o = comboOdds(race, probs, type, c);
-            return (
-              <span key={c.join('-')} className="combo">
-                {comboLabel(race, type, c)} <small>{o ? `${o.toFixed(1)}倍` : '―'}</small>
-              </span>
-            );
-          })}
-          {combos.length > 40 && <span className="muted">ほか {combos.length - 40} 点</span>}
-        </div>
-      )}
-      <button className="btn primary" disabled={!combos.length || stake <= 0} onClick={buy}>
-        この内容で買う（{yen(total)}）
-      </button>
-      <details className="popular">
-        <summary>{cfg.betNames[type]}の人気順オッズ</summary>
-        <table className="ledger compact">
-          <tbody>
-            {popular.map(({ combo }, k) => (
-              <tr key={combo.join('-')}>
-                <td>{k + 1}番人気</td>
-                <td>{comboLabel(race, type, combo)}</td>
-                <td className="num">{comboOdds(race, probs, type, combo)?.toFixed(1)}倍</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </details>
-    </section>
-  );
-}
-
-function Purchased({ race, probs, tickets }: { race: Race; probs: Probs; tickets: Ticket[] }) {
-  const cfg = RACES[race.kind];
-  if (!tickets.length) return null;
-  const total = tickets.reduce((a, t) => a + t.stake, 0);
-  return (
-    <section className="card">
-      <div className="card-title">
-        購入した{cfg.ticket}（{tickets.length}点・{yen(total)}）
-      </div>
-      <div className="combo-list">
-        {tickets.map((t, k) => (
-          <span key={k} className="combo">
-            {cfg.betNames[t.type]} {comboLabel(race, t.type, t.combo)} {yen(t.stake)}
-            <small>{comboOdds(race, probs, t.type, t.combo)?.toFixed(1)}倍</small>
-          </span>
-        ))}
-      </div>
-    </section>
   );
 }
 
