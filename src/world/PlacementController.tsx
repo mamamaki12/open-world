@@ -74,6 +74,10 @@ export function PlacementController() {
       eraseFrom = null;
       tap = null;
       activeTouch = null;
+      if (useInteraction.getState().furnitureDrag) {
+        useInteraction.getState().setFurnitureDrag(null);
+        useGame.getState().endDrag();
+      }
       useInteraction.getState().setPreview(null);
     };
 
@@ -248,6 +252,9 @@ export function PlacementController() {
             ...(getFurniture(g.defaults.furnitureType).label ? { label: g.defaults.nameplateText } : {}),
           };
           g.commit({ ...g.house, furniture: [...g.house.furniture, item] });
+          g.setTool('select');
+          g.select({ kind: 'furniture', id: item.id });
+          ui.setPreview(null);
           break;
         }
       }
@@ -257,6 +264,7 @@ export function PlacementController() {
       if (e.pointerType === 'touch' && activeTouch !== e.pointerId && !useInteraction.getState().furnitureDrag) return;
       const drag = useInteraction.getState().furnitureDrag;
       if (drag) {
+        if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 5) return;
         const g = useGame.getState();
         const item = g.house.furniture.find((f) => f.id === drag.id);
         if (!item) return;
@@ -398,3 +406,4 @@ export function PlacementController() {
 
   return null;
 }
+
