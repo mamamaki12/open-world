@@ -11,6 +11,8 @@ import { Inspector } from './Inspector';
 import { ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
+import { DealerPanel } from './DealerPanel';
+import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
 import { MapPanel } from './MapPanel';
@@ -78,6 +80,9 @@ export function App() {
           <ControlsHelp />
         </>
       )}
+      {walking && <WorldActionHud />}
+      {overlay === 'dealer' && <DealerPanel />}
+      {overlay === 'land' && <LandPurchasePanel />}
       {overlay === 'estate' && <EstatePanel />}
       {overlay === 'casino' && <CasinoPanel />}
       {overlay === 'map' && <MapPanel />}
