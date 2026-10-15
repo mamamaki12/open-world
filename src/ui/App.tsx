@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MAX_LEVEL, levelName } from '../building/dimensions';
 import { canPlaceStair } from '../building/rules';
 import { sampleHouse } from '../building/sample';
 import { emptyHouse } from '../building/types';
@@ -61,12 +60,9 @@ export function App() {
         <>
           <WalkHud />
           {holding && (
-            <>
-              <div className="side left">
-                <ToolOptions />
-              </div>
-              <LevelBar />
-            </>
+            <div className="side left">
+              <ToolOptions />
+            </div>
           )}
           <ControlsHelp />
         </>
@@ -78,7 +74,6 @@ export function App() {
           <div className="side right">
             <Inspector />
           </div>
-          <LevelBar />
           <ControlsHelp />
         </>
       )}
@@ -257,44 +252,6 @@ function TopBar() {
   );
 }
 
-function LevelBar() {
-  const level = useGame((s) => s.activeLevel);
-  const showAll = useGame((s) => s.showAll);
-  const setLevel = useGame((s) => s.setLevel);
-  const setShowAll = useGame((s) => s.setShowAll);
-  const walking = useGame((s) => s.mode === 'walk');
-  const levels = Array.from({ length: MAX_LEVEL + 1 }, (_, i) => i);
-  return (
-    <div className="levelbar">
-      <span className="levelbar-label">作業する階<span className="kbd-hint">（Z / X）</span></span>
-      {levels
-        .slice()
-        .reverse()
-        .map((l) => (
-          <button
-            key={l}
-            className={`tool${level === l ? ' on' : ''}`}
-            onClick={(e) => {
-              e.currentTarget.blur();
-              setLevel(l);
-              if (!walking) setShowAll(false);
-            }}
-          >
-            {levelName(l)}
-          </button>
-        ))}
-      {walking ? (
-        <span className="levelbar-label auto-hint">階を移動すると自動で切り替わります</span>
-      ) : (
-        <label className="check">
-          <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
-          <span className="btn-label">上の階と</span>屋根も表示
-        </label>
-      )}
-    </div>
-  );
-}
-
 function SaveMenu() {
   const [open, setOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -465,17 +422,6 @@ function useKeyboard() {
       if (e.key === 'Escape') {
         s.select(null);
         s.setTool('select');
-        return;
-      }
-      // Z：下の階 / X：上の階
-      if (e.code === 'KeyZ' || e.code === 'PageDown' || e.code === 'KeyX' || e.code === 'PageUp') {
-        const up = e.code === 'KeyX' || e.code === 'PageUp';
-        const next = Math.min(Math.max(s.activeLevel + (up ? 1 : -1), 0), MAX_LEVEL);
-        if (next !== s.activeLevel) {
-          s.setLevel(next);
-          if (!walking) s.setShowAll(false);
-          s.notify(`作業する階：${levelName(next)}`);
-        }
         return;
       }
       if (walking) {

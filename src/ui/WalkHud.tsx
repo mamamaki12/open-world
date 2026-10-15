@@ -97,7 +97,7 @@ export function WalkHud() {
           </button>
         </div>
         {holding ? (
-          <p className="info">建てるツールを持っています。いまいる階に置けます。1 か Esc で手ぶらに戻ります。</p>
+          <p className="info">建てるツールを持っています。マウスで指した場所（地面・床・壁の上）に置けます。1 か Esc で手ぶらに戻ります。</p>
         ) : (
         <table className="keys">
           <tbody>

@@ -36,9 +36,24 @@ function rectsOverlap(a: Rect, b: Rect): boolean {
 
 // ---- 床・屋根 ----
 
+/** 下の階の壁が、四角の中か縁にかかっているか（上の階の床・屋根を支えられるか） */
+export function wallsUnder(house: House, level: number, r: Rect): boolean {
+  return house.walls.some((w) => {
+    if (w.level !== level) return false;
+    const x0 = Math.min(w.x0, w.x1);
+    const x1 = Math.max(w.x0, w.x1);
+    const z0 = Math.min(w.z0, w.z1);
+    const z1 = Math.max(w.z0, w.z1);
+    // 角で点だけ接しているものは数えない
+    return x0 <= r.x1 && x1 >= r.x0 && z0 <= r.z1 && z1 >= r.z0 && ((x1 > r.x0 && x0 < r.x1) || (z1 > r.z0 && z0 < r.z1));
+  });
+}
+
+/** 床は地面の上（1階）か、下の階の壁の上（2階以上）に張れる */
 export function canPlaceFloor(house: House, level: number, r: Rect): string | null {
   if (!rectInsideLot(r)) return '土地の外には置けません';
   if (house.floors.some((f) => f.level === level && rectsOverlap(f, r))) return 'すでに床があります';
+  if (level > 0 && !wallsUnder(house, level - 1, r)) return '床は地面の上か、壁の上に張れます';
   return null;
 }
 

@@ -1,10 +1,11 @@
 // 床・壁・屋根・階段・家具を置く操作と、家具のドラッグ移動。
-// 今いる階の床の高さの水平面に対してマウス位置を求め、マス目に吸着させる。
+// 置く階は決めておかず、マウスの下にあるもの（地面・床・壁の上）から自動で決める。
+// その面の高さの水平面に対してマウス位置を求め、マス目に吸着させる。
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getFurniture } from '../catalog';
-import { GRID, LOT_D, LOT_W, MAX_LEVEL, floorY } from '../building/dimensions';
+import { BASE_HEIGHT, GRID, LOT_D, LOT_W, MAX_LEVEL, STORY_HEIGHT, floorY } from '../building/dimensions';
 import {
   axisAlignedSegment,
   canPlaceFloor,
@@ -14,15 +15,36 @@ import {
   newId,
   normalizeRect,
   snapFurniture,
+  wallsUnder,
 } from '../building/rules';
 import type { Rect } from '../building/rules';
+import type { House } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
+/** 床を張る階：マウスの下の面の階から上へ順に、張れる階を探す（1階の床の上でドラッグしても2階の床になる） */
+function floorLevel(house: House, surface: number, rect: Rect): number {
+  for (let l = surface; l <= MAX_LEVEL; l++) if (canPlaceFloor(house, l, rect) === null) return l;
+  return surface;
+}
+
+/** 屋根を載せる階：範囲の下に壁がある一番上の階。壁がなければマウスの下の面の高さ */
+function roofLevel(house: House, surface: number, rect: Rect): number {
+  for (let l = MAX_LEVEL; l >= 0; l--) if (wallsUnder(house, l, rect) && canPlaceRoof(house, l, rect) === null) return l;
+  return Math.max(0, surface - 1);
+}
+
+/** 当たったメッシュが、見えている不透明なものか（プレビューやガラスは除く） */
+function solid(o: THREE.Object3D): boolean {
+  const m = (o as THREE.Mesh).material;
+  if (!m) return false;
+  return (Array.isArray(m) ? m : [m]).some((x) => !x.transparent || x.opacity >= 0.99);
+}
+
 export function PlacementController() {
-  const { gl, camera } = useThree();
+  const { gl, camera, scene } = useThree();
   /** 歩きながら建てるとき、マウスを動かさなくても体の移動に合わせてプレビューを追従させる */
   const refresh = useRef<(() => void) | null>(null);
 
@@ -31,6 +53,8 @@ export function PlacementController() {
     const raycaster = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
     let dragStart: { x: number; z: number } | null = null;
+    /** ドラッグを始めたときの面の階（ドラッグ中は変えない） */
+    let dragSurface = 0;
     // 指で触っているもの。2本目が触れたら、置く操作をやめてカメラの操作にゆずる
     const touches = new Set<number>();
     /** 置く操作をしている指（マウスなら null） */
@@ -52,6 +76,18 @@ export function PlacementController() {
       const hit = new THREE.Vector3();
       return raycaster.ray.intersectPlane(plane, hit) ? hit : null;
     };
+    /** マウスの下にある面の階。地面なら0、床の上ならその階、壁の上なら一つ上の階 */
+    const pickSurface = (e: PointerEvent): number => {
+      const r = el.getBoundingClientRect();
+      ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      raycaster.setFromCamera(ndc, camera);
+      const house = scene.getObjectByName('house');
+      const hit = house ? raycaster.intersectObject(house, true).find((h) => solid(h.object)) : undefined;
+      const ground = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
+      if (!hit || (ground && ground.distanceTo(raycaster.ray.origin) < hit.distance)) return 0;
+      return clamp(Math.floor((hit.point.y - BASE_HEIGHT + 0.15) / STORY_HEIGHT), 0, MAX_LEVEL);
+    };
+    const surfaceAt = (e: PointerEvent) => (dragStart ? dragSurface : pickSurface(e));
     const cellAt = (p: THREE.Vector3) => ({
       x: clamp(Math.floor(p.x / GRID), 0, LOT_W - 1),
       z: clamp(Math.floor(p.z / GRID), 0, LOT_D - 1),
@@ -73,32 +109,38 @@ export function PlacementController() {
       lastPointer = e;
       const g = useGame.getState();
       const ui = useInteraction.getState();
-      const p = groundPoint(e, g.activeLevel);
+      const surface = surfaceAt(e);
+      const p = groundPoint(e, surface);
       if (!p) return;
       switch (g.tool) {
         case 'floor':
         case 'roof': {
           const c = cellAt(p);
           const rect = dragStart ? cellRect(dragStart, c) : cellRect(c, c);
+          const level = g.tool === 'floor' ? floorLevel(g.house, surface, rect) : roofLevel(g.house, surface, rect);
+          g.setLevel(level);
           const valid =
-            (g.tool === 'floor' ? canPlaceFloor(g.house, g.activeLevel, rect) : canPlaceRoof(g.house, g.activeLevel, rect)) === null;
+            (g.tool === 'floor' ? canPlaceFloor(g.house, level, rect) : canPlaceRoof(g.house, level, rect)) === null;
           ui.setPreview({ kind: 'rect', rect, valid, tool: g.tool });
           break;
         }
         case 'wall': {
+          g.setLevel(surface);
           const q = pointAt(p);
           const seg = dragStart ? axisAlignedSegment(dragStart, q) : { x0: q.x, z0: q.z, x1: q.x, z1: q.z };
-          const valid = !dragStart || canPlaceWall(g.house, { level: g.activeLevel, ...seg }) === null;
+          const valid = !dragStart || canPlaceWall(g.house, { level: surface, ...seg }) === null;
           ui.setPreview({ kind: 'wall', ...seg, valid });
           break;
         }
         case 'stair': {
+          g.setLevel(surface);
           const c = cellAt(p);
-          const valid = canPlaceStair(g.house, { level: g.activeLevel, x: c.x, z: c.z, rot: ui.stairRot }) === null;
+          const valid = canPlaceStair(g.house, { level: surface, x: c.x, z: c.z, rot: ui.stairRot }) === null;
           ui.setPreview({ kind: 'stair', x: c.x, z: c.z, valid });
           break;
         }
         case 'furniture': {
+          g.setLevel(surface);
           ui.setPreview({ kind: 'furniture', ...snapFurniture(p.x, p.z) });
           break;
         }
@@ -113,32 +155,35 @@ export function PlacementController() {
         activeTouch = e.pointerId;
       }
       const g = useGame.getState();
-      const p = groundPoint(e, g.activeLevel);
+      const surface = pickSurface(e);
+      const p = groundPoint(e, surface);
       if (!p) return;
       if (e.pointerType === 'touch' && (g.tool === 'stair' || g.tool === 'furniture')) {
         tap = { x: e.clientX, y: e.clientY };
         updatePreview(e);
         return;
       }
-      place(e, p);
+      place(e, p, surface);
     };
 
-    const place = (e: PointerEvent, p: THREE.Vector3) => {
+    const place = (e: PointerEvent, p: THREE.Vector3, surface: number) => {
       const g = useGame.getState();
       const ui = useInteraction.getState();
       switch (g.tool) {
         case 'floor':
         case 'roof':
           dragStart = cellAt(p);
+          dragSurface = surface;
           updatePreview(e);
           break;
         case 'wall':
           dragStart = pointAt(p);
+          dragSurface = surface;
           updatePreview(e);
           break;
         case 'stair': {
           const c = cellAt(p);
-          const stair = { level: g.activeLevel, x: c.x, z: c.z, rot: ui.stairRot };
+          const stair = { level: surface, x: c.x, z: c.z, rot: ui.stairRot };
           const err = canPlaceStair(g.house, stair);
           if (err) return g.notify(err);
           g.commit({ ...g.house, stairs: [...g.house.stairs, { id: newId('stair'), ...stair, finish: g.defaults.stairFinish }] });
@@ -149,7 +194,7 @@ export function PlacementController() {
           const pos = snapFurniture(p.x, p.z);
           const item = {
             id: newId('furniture'),
-            level: g.activeLevel,
+            level: surface,
             type: g.defaults.furnitureType,
             ...pos,
             rotation: g.defaults.furnitureRotation,
@@ -188,8 +233,9 @@ export function PlacementController() {
           // 少しでも指を滑らせたら置かない（見回すつもりだったかもしれない）
           const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
           tap = null;
-          const p = groundPoint(e, useGame.getState().activeLevel);
-          if (!moved && p) place(e, p);
+          const surface = pickSurface(e);
+          const p = groundPoint(e, surface);
+          if (!moved && p) place(e, p, surface);
           return;
         }
       }
@@ -200,25 +246,21 @@ export function PlacementController() {
       }
       if (e.button !== 0 || !dragStart) return;
       const g = useGame.getState();
-      const p = groundPoint(e, g.activeLevel);
+      const surface = dragSurface;
+      const p = groundPoint(e, surface);
       const start = dragStart;
       dragStart = null;
       if (!p) return;
       if (g.tool === 'floor' || g.tool === 'roof') {
         const rect = cellRect(start, cellAt(p));
         if (g.tool === 'floor') {
-          const err = canPlaceFloor(g.house, g.activeLevel, rect);
-          if (err) {
-            // 上の階に張るつもりで、階を切り替え忘れていることが多い
-            const upper = g.activeLevel + 1;
-            if (upper <= MAX_LEVEL && canPlaceFloor(g.house, upper, rect) === null && err === 'すでに床があります') {
-              return g.notify(`${upper}階にはもう床があります。${upper + 1}階の床は、画面下の「作業する階」で ${upper + 1}階 を選ぶ（キー X）と張れます`);
-            }
-            return g.notify(err);
-          }
-          g.commit({ ...g.house, floors: [...g.house.floors, { id: newId('floor'), level: g.activeLevel, ...rect, finish: g.defaults.floor }] });
+          const level = floorLevel(g.house, surface, rect);
+          const err = canPlaceFloor(g.house, level, rect);
+          if (err) return g.notify(err);
+          g.commit({ ...g.house, floors: [...g.house.floors, { id: newId('floor'), level, ...rect, finish: g.defaults.floor }] });
         } else {
-          const err = canPlaceRoof(g.house, g.activeLevel, rect);
+          const level = roofLevel(g.house, surface, rect);
+          const err = canPlaceRoof(g.house, level, rect);
           if (err) return g.notify(err);
           const d = g.defaults;
           const axis = rect.x1 - rect.x0 >= rect.z1 - rect.z0 ? 'x' : 'z';
@@ -228,7 +270,7 @@ export function PlacementController() {
               ...g.house.roofs,
               {
                 id: newId('roof'),
-                level: g.activeLevel,
+                level,
                 ...rect,
                 type: d.roofType,
                 axis,
@@ -244,13 +286,13 @@ export function PlacementController() {
       } else if (g.tool === 'wall') {
         const seg = axisAlignedSegment(start, pointAt(p));
         if (seg.x0 === seg.x1 && seg.z0 === seg.z1) return;
-        const err = canPlaceWall(g.house, { level: g.activeLevel, ...seg });
+        const err = canPlaceWall(g.house, { level: surface, ...seg });
         if (err) return g.notify(err);
         g.commit({
           ...g.house,
           walls: [
             ...g.house.walls,
-            { id: newId('wall'), level: g.activeLevel, ...seg, exterior: g.defaults.wallExterior, interior: g.defaults.wallInterior },
+            { id: newId('wall'), level: surface, ...seg, exterior: g.defaults.wallExterior, interior: g.defaults.wallInterior },
           ],
         });
       }
@@ -280,7 +322,7 @@ export function PlacementController() {
       el.removeEventListener('pointerleave', onLeave);
       refresh.current = null;
     };
-  }, [gl, camera]);
+  }, [gl, camera, scene]);
 
   useFrame(() => {
     const g = useGame.getState();
