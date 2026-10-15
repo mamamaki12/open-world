@@ -19,6 +19,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch-hud .tool, .touch-cash { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 .touch-hud .tool:not(.on) { background: rgba(255,255,255,0.95); }
 .tool.icon { min-width: 38px; padding: 4px 8px; font-size: 17px; }
+.tool.icon.labeled { display: inline-flex; align-items: center; gap: 3px; padding: 4px 9px 4px 7px; }
+.tool.icon.labeled span { font-size: 12px; font-weight: 600; }
 .touch-cash {
   background: var(--panel); border-radius: 8px; padding: 7px 10px; font-weight: 700; font-size: 14px;
   font-variant-numeric: tabular-nums; white-space: nowrap;
@@ -83,7 +85,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* 操作の説明：上のバーのすぐ下に小さく */
 .touch .controls-help {
   top: calc(var(--hud-top) + 6px); bottom: auto; max-width: calc(100% - 200px);
-  white-space: normal; text-align: center; font-size: 11px; pointer-events: none;
+  white-space: normal; text-align: center; font-size: 11px; pointer-events: none; gap: 0 10px;
 }
 
 /* 階の切り替え */
@@ -173,6 +175,10 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .modal-head { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(10px + var(--safe-r)) 8px calc(10px + var(--safe-l)); }
 .touch .modal-tabs { flex-wrap: nowrap; overflow-x: auto; order: 10; flex: 1 0 100%; scrollbar-width: none; }
 .touch .modal-tabs .tool { flex: none; }
+/* 縦向きはタブを折り返して全部見せる（横にスクロールすると残りのタブに気づけない） */
+@media (orientation: portrait) {
+  .touch .modal-tabs, .touch .casino-modal .modal-tabs { flex-wrap: wrap; overflow-x: visible; }
+}
 .touch .modal-body { padding: 12px calc(12px + var(--safe-r)) 24px calc(12px + var(--safe-l)); -webkit-overflow-scrolling: touch; }
 .touch .bet-row { flex-wrap: wrap; }
 .touch .bet-row input { width: 100%; font-size: 16px; padding: 8px; }
@@ -191,6 +197,12 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .touch-cash { padding: 5px 9px; font-size: 13px; }
   .touch-hud { gap: 4px; }
   .touch-hud-row { flex-wrap: nowrap; }
+  /* 不動産屋・カジノ：横向きは縦が足りないので、タブを題名と同じ行に並べる */
+  .touch .modal-tabs, .touch .casino-modal .modal-tabs { order: 0; flex: 1 1 auto; }
+  .touch .modal-head { padding-top: calc(4px + env(safe-area-inset-top, 0px)); padding-bottom: 4px; gap: 6px; }
+  .touch .modal-title { font-size: 15px; }
+  .touch .modal-tabs .tool { min-height: 30px; padding: 3px 8px; font-size: 12px; }
+  .casino-modal .modal-head { padding-top: 12px; }
   .touch .controls-help { font-size: 10px; padding: 2px 8px; top: calc(6px + env(safe-area-inset-top, 0px)); max-width: calc(100% - 520px); }
 
   .touch-right { flex-direction: row-reverse; align-items: flex-start; gap: 8px; }

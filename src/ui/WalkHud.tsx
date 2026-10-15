@@ -21,6 +21,16 @@ const KEYS: [string, string][] = [
   ['Tab', '建築モードに戻る'],
 ];
 
+// キー一覧は場所をとるので、ふだんは畳んで主なキーだけ出す（開いたかどうかは覚えておく）
+const KEYS_OPEN = 'open-world:walk-keys-open';
+function loadShowKeys() {
+  try {
+    return localStorage.getItem(KEYS_OPEN) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function WalkHud() {
   const view = useGame((s) => s.view);
   const toggleView = useGame((s) => s.toggleView);
@@ -37,6 +47,15 @@ export function WalkHud() {
   const holding = useGame((s) => s.tool !== 'select');
   const touch = useTouchDevice();
   const [locked, setLocked] = useState(false);
+  const [showKeys, setShowKeys] = useState(loadShowKeys);
+  const toggleKeys = () => {
+    setShowKeys(!showKeys);
+    try {
+      localStorage.setItem(KEYS_OPEN, showKeys ? '0' : '1');
+    } catch {
+      // 保存できなくても表示の切り替えはできる
+    }
+  };
   useEffect(() => {
     const onChange = () => setLocked(document.pointerLockElement !== null);
     document.addEventListener('pointerlockchange', onChange);
@@ -98,6 +117,13 @@ export function WalkHud() {
         </div>
         {holding ? (
           <p className="info">建てるツールを持っています。マウスで指した場所（地面・床・壁の上）に置けます。1 か Esc で手ぶらに戻ります。</p>
+        ) : !showKeys ? (
+          <p className="keys-short">
+            <span><b>WASD</b> 歩く</span>
+            <span><b>Shift</b> 走る</span>
+            <span><b>Space</b> ジャンプ</span>
+            <span><b>F</b> 開ける</span>
+          </p>
         ) : (
         <table className="keys">
           <tbody>
@@ -111,6 +137,17 @@ export function WalkHud() {
         </table>
         )}
         {!locked && !holding && <p className="info">画面をクリックするとマウスで見回せます。ドラッグでも回せます。</p>}
+        {!holding && (
+          <button
+            className="link-btn"
+            onClick={(e) => {
+              e.currentTarget.blur();
+              toggleKeys();
+            }}
+          >
+            {showKeys ? 'キー一覧を閉じる ▴' : 'キー操作をすべて見る ▾'}
+          </button>
+        )}
       </div>
       )}
     </>
