@@ -44,6 +44,8 @@ export interface LandOffer {
   location: string;
   /** 土地の値段のぶれ（0.85〜1.2） */
   variance: number;
+  /** 町のどの区画か（src/economy/town.ts） */
+  plot?: number;
 }
 
 /** 不動産屋に並ぶ売り土地（毎日入れ替わる） */

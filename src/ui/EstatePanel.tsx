@@ -8,6 +8,7 @@ import { lotNumbers, useCurrentLot, useEconomy } from '../state/economy';
 import type { Lot } from '../state/economy';
 import { useGame } from '../state/store';
 import { Modal } from './Modal';
+import { warpToLot } from '../world/Player';
 
 type Tab = 'lot' | 'lots' | 'land' | 'market' | 'ledger';
 const TABS: { id: Tab; label: string }[] = [
@@ -189,7 +190,6 @@ function LotList() {
   const lots = useEconomy((s) => s.lots);
   const current = useEconomy((s) => s.currentLotId);
   const market = useEconomy((s) => s.market);
-  const switchLot = useEconomy((s) => s.switchLot);
   if (!lots.length) return <p>土地を持っていません。「土地を買う」から買えます。</p>;
   return (
     <table className="ledger">
@@ -209,7 +209,7 @@ function LotList() {
                 {l.id === current ? (
                   <span className="muted">表示中</span>
                 ) : (
-                  <button className="btn small" onClick={() => switchLot(l.id)}>この土地へ行く</button>
+                  <button className="btn small" onClick={() => warpToLot(l.id)}>この土地へ行く</button>
                 )}
               </td>
             </tr>

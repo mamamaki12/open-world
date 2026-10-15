@@ -13,6 +13,7 @@ import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
+import { MapPanel } from './MapPanel';
 import { BuildChip, MoneyBar, useEconomyClock } from './MoneyBar';
 import { BuildButton, BuildMenu } from './BuildMenu';
 import { yen } from '../economy/money';
@@ -79,6 +80,7 @@ export function App() {
       )}
       {overlay === 'estate' && <EstatePanel />}
       {overlay === 'casino' && <CasinoPanel />}
+      {overlay === 'map' && <MapPanel />}
       <Toast />
     </div>
   );
@@ -140,6 +142,9 @@ function TouchHud() {
       </div>
       <div className="touch-hud-row">
         <span className={`touch-cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
+        <button className="tool icon labeled" onClick={() => setOverlay('map')} aria-label="町の地図">
+          🗺<span>マップ</span>
+        </button>
         <button className="tool icon labeled" onClick={() => setOverlay('estate')} aria-label="不動産屋">
           🏠<span>不動産</span>
         </button>
@@ -428,6 +433,10 @@ function useKeyboard() {
         return;
       }
       if (ctrl) return;
+      if (e.code === 'KeyM') {
+        s.setOverlay('map');
+        return;
+      }
       const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
       if (digit) {
         const t = TOOLS.find((x) => x.key === digit[1]);

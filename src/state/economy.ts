@@ -8,6 +8,7 @@ import { DAY_SECONDS, dailyBill, getLocation, landOffers, landPrice, salePrice, 
 import type { LandOffer } from '../economy/market';
 import { appraiseBuilding, buildSeconds, estimateCost, renovationCost } from '../economy/pricing';
 import { yen } from '../economy/money';
+import { START_PLOT, assignPlots, freePlot, plotX } from '../economy/town';
 import { useGame } from './store';
 
 export const START_MONEY = 20_000_000;
@@ -36,6 +37,8 @@ export interface Lot {
   rented: boolean;
   /** 土地代と工事費の合計（もうけの計算用） */
   invested: number;
+  /** 町のどの区画にあるか（マップとワープに使う。src/economy/town.ts） */
+  plot?: number;
 }
 
 export interface Txn {
@@ -87,6 +90,19 @@ interface EconomyState extends EconomyData {
 let lotCounter = 0;
 const lotId = () => `lot-${Date.now().toString(36)}-${(++lotCounter).toString(36)}`;
 
+/** 売り土地に、持っている土地と重ならない区画を割り当てる（空きがない立地の売り土地は出さない） */
+export function placeOffers(offers: LandOffer[], lots: Lot[]): LandOffer[] {
+  const taken = new Set(lots.map((l) => l.plot).filter((p): p is number => typeof p === 'number'));
+  const out: LandOffer[] = [];
+  for (const o of offers) {
+    const plot = typeof o.plot === 'number' && !taken.has(o.plot) ? o.plot : freePlot(o.location, taken, Math.random);
+    if (plot === null) continue;
+    taken.add(plot);
+    out.push({ ...o, plot });
+  }
+  return out;
+}
+
 function initialData(): EconomyData {
   const first: Lot = {
     id: lotId(),
@@ -99,6 +115,7 @@ function initialData(): EconomyData {
     rented: false,
     // はじめの土地ももらい物ではなく、土地代ぶんを元手に数える（売ったときのもうけが正しく出るように）
     invested: 5_000_000,
+    plot: START_PLOT,
   };
   return {
     money: START_MONEY,
@@ -108,7 +125,7 @@ function initialData(): EconomyData {
     marketHistory: [1],
     lots: [first],
     currentLotId: first.id,
-    offers: landOffers(1, Math.random),
+    offers: placeOffers(landOffers(1, Math.random), [first]),
     ledger: [{ day: 1, label: 'はじめの所持金', amount: START_MONEY }],
     gamble: { bet: 0, won: 0 },
     job: null,
@@ -121,7 +138,10 @@ function load(): EconomyData {
     if (raw) {
       const d = JSON.parse(raw) as EconomyData;
       if (typeof d.money === 'number' && Array.isArray(d.lots) && d.lots.every((l) => l.built === null || isHouse(l.built))) {
-        return { ...initialData(), ...d, job: null };
+        // 区画のない古いセーブの土地・売り土地には、ここで区画を決める
+        const lots = assignPlots(d.lots);
+        const offers = placeOffers(Array.isArray(d.offers) ? d.offers : [], lots);
+        return { ...initialData(), ...d, lots, offers, job: null };
       }
     }
   } catch {
@@ -222,7 +242,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
         day += 1;
         market = stepMarket(market, Math.random);
         marketHistory = [...marketHistory, market].slice(-HISTORY_LIMIT);
-        offers = landOffers(day, Math.random);
+        offers = placeOffers(landOffers(day, Math.random), lots);
         let costs = 0;
         let rent = 0;
         for (const l of lots) {
@@ -324,6 +344,9 @@ export const useEconomy = create<EconomyState>((set, get) => {
       if (!offer) return 'その土地はもう売れてしまいました';
       const price = landPrice(offer.location, offer.variance, s.market);
       if (price > s.money) return `お金が足りません（${yen(price)}）`;
+      const taken = s.lots.map((l) => l.plot).filter((p): p is number => typeof p === 'number');
+      const plot = typeof offer.plot === 'number' && !taken.includes(offer.plot) ? offer.plot : freePlot(offer.location, taken);
+      if (plot === null) return 'この立地にはもう空いている区画がありません';
       const lot: Lot = {
         id: lotId(),
         name: `${offer.name}（${getLocation(offer.location).name}）`,
@@ -334,6 +357,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
         construction: null,
         rented: false,
         invested: price,
+        plot,
       };
       set({
         money: s.money - price,
@@ -376,4 +400,18 @@ export const useEconomy = create<EconomyState>((set, get) => {
 /** いまの土地 */
 export function useCurrentLot(): Lot | null {
   return useEconomy((s) => s.lots.find((l) => l.id === s.currentLotId) ?? null);
+}
+
+/** いま原点に置いて建てている区画（土地を持っていなければ、はじめの区画） */
+export function currentPlotOf(s: Pick<EconomyData, 'lots' | 'currentLotId'>): number {
+  return s.lots.find((l) => l.id === s.currentLotId)?.plot ?? START_PLOT;
+}
+
+/** 区画を 3D の世界のどこに描くか：いまの区画からの横のずれ（m） */
+export function plotOffset(plot: number, s: Pick<EconomyData, 'lots' | 'currentLotId'> = useEconomy.getState()): number {
+  return plotX(plot) - plotX(currentPlotOf(s));
+}
+
+export function useCurrentPlot(): number {
+  return useEconomy(currentPlotOf);
 }

@@ -356,3 +356,42 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
   font-size: 10.5px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em;
 }
 .mat-tile small { font-size: 10px; color: var(--muted); }
+
+/* ---- 町の地図 ---- */
+.map-modal .modal-tabs:empty { display: none; }
+.map-modal .modal-head .close { margin-left: auto; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; margin-bottom: 8px; align-items: center; }
+.map-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.map-legend .sw.owned { background: #2b6fd6; }
+.map-legend .sw.sale { background: #fff; border: 2px solid #c8372d; }
+.map-legend .sw.me { background: #ff8a00; border-radius: 50%; }
+.map-scroll { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--line); border-radius: 10px; background: #e9eadf; -webkit-overflow-scrolling: touch; }
+.town-map { display: block; font-family: inherit; }
+.map-district { font-size: 12px; font-weight: 700; fill: #4d5446; }
+.map-road { font-size: 10px; fill: #e6e6e6; }
+.map-cell rect { fill: rgba(255,255,255,0.35); stroke: rgba(0,0,0,0.12); stroke-dasharray: 3 3; }
+.map-cell.owned, .map-cell.sale, .map-cell.casino { cursor: pointer; }
+.map-cell.owned rect { fill: #2b6fd6; stroke: #1b4f9e; stroke-dasharray: none; }
+.map-cell.owned text { fill: #fff; }
+.map-cell.owned .map-house { fill: #fff; }
+.map-cell.sale rect { fill: #fff; stroke: #c8372d; stroke-width: 2; stroke-dasharray: none; }
+.map-cell.casino rect { fill: #7a1420; stroke: #c9a03c; stroke-width: 2; }
+.map-cell.picked rect { stroke: #ff8a00; stroke-width: 3.5; stroke-dasharray: none; }
+.map-cell:hover rect { filter: brightness(1.08); }
+.map-sale-text { font-size: 13px; font-weight: 700; fill: #c8372d; }
+.map-cell-name { font-size: 10px; font-weight: 600; fill: #333; }
+.map-cell-sub { font-size: 10px; fill: #555; }
+.map-casino-text { font-size: 12px; font-weight: 700; fill: #f2c64d; }
+.map-casino-sub { font-size: 10px; fill: #f2dca0; }
+.map-me circle { fill: #ff8a00; stroke: #fff; stroke-width: 2.5; }
+.map-me text { font-size: 10px; font-weight: 700; fill: #b35c00; paint-order: stroke; stroke: #fff; stroke-width: 3px; pointer-events: none; }
+.map-me { pointer-events: none; }
+.map-detail { margin-top: 10px; }
+.map-detail h3 { font-size: 15px; }
+.map-detail p { margin: 2px 0 8px; }
+.map-mylots { margin-top: 12px; }
+.map-mylots ul { list-style: none; margin: 4px 0 0; padding: 0; }
+.map-mylots li { display: flex; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--line); }
+.map-mylots li > .link-btn { flex: 1; text-align: left; font-size: 14px; }
+.map-mylots li.on { background: #eef4ff; }
+.map-mylots .here { font-size: 12px; }
