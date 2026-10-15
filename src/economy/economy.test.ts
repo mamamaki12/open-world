@@ -10,8 +10,21 @@ import {
 } from './casino';
 import { dailyBill, landPrice, salePrice, stepMarket } from './market';
 import { buildSeconds, estimateCost, quality, renovationCost } from './pricing';
-import { RACES, betHits, betOdds, computeOdds, makeRace, progressAt, runRace } from './race';
+import {
+  BET_SHAPE,
+  RACES,
+  comboOdds,
+  comboProb,
+  computeProbs,
+  drawOrder,
+  expandCombos,
+  horseFrames,
+  makeRace,
+  ticketHits,
+  winningCombos,
+} from './race';
 import type { RaceKind } from './race';
+import { distanceAt, makeCourse, makeMotion, pointAt } from './raceMotion';
 import { seeded } from './rng';
 
 const finish = { material: 'flooring', color: '#c8a57a' };
@@ -137,40 +150,102 @@ describe('カジノ', () => {
 
 describe('公営競技', () => {
   for (const kind of Object.keys(RACES) as RaceKind[]) {
-    it(`${RACES[kind].title}：オッズどおりに買い続けると払戻率くらいになる`, () => {
+    it(`${RACES[kind].title}：全券種の確率の合計が正しく、オッズどおりの払戻率になる`, () => {
       const race = makeRace(kind, 1, 42);
-      const odds = computeOdds(race);
-      const rng = seeded(7);
-      const cfg = RACES[kind];
-      // 1番人気の単勝（競輪は2車複）を買い続ける
-      const fav = odds.win.indexOf(Math.min(...odds.win));
-      const bet = cfg.bets.includes('win')
-        ? { kind: 'win' as const, picks: [fav] }
-        : { kind: 'quinella' as const, picks: [fav, odds.win.indexOf([...odds.win].sort((a, b) => a - b)[1])] };
-      const o = betOdds(odds, bet);
-      let back = 0;
-      const N = 6000;
-      for (let i = 0; i < N; i++) if (betHits(race, runRace(race, rng), bet)) back += o;
-      const rate = back / N;
-      expect(rate).toBeGreaterThan(cfg.payout[bet.kind] - 0.12);
-      expect(rate).toBeLessThan(cfg.payout[bet.kind] + 0.12);
+      const pr = computeProbs(race);
+      const idx = race.runners.map((r) => r.index);
+      const frames = [...new Set(race.runners.map((r) => r.frame))];
+      for (const type of RACES[kind].bets) {
+        const { k, ordered } = BET_SHAPE[type];
+        const all =
+          k === 1 ? idx.map((i) => [i]) : type === 'bracket' ? expandCombos(race, type, 'normal', [frames]) : expandCombos(race, type, 'normal', ordered ? Array(k).fill(idx) : [idx]);
+        const total = all.reduce((a, c) => a + comboProb(race, pr, type, c), 0);
+        // 当たりの数：複勝は placeCount 個、ワイドは3個、それ以外は1個
+        const hitsPerRace = type === 'place' ? pr.placeCount : type === 'wide' ? 3 : 1;
+        expect(total).toBeCloseTo(hitsPerRace, 6);
+        // どの買い目も、買い続けたときの戻りは払戻率以下（最低1.0倍の買い目を除く）
+        for (const c of all.slice(0, 200)) {
+          const p = comboProb(race, pr, type, c);
+          const o = comboOdds(race, pr, type, c);
+          if (o && o > 1) expect(p * o).toBeLessThanOrEqual(RACES[kind].payout[type]! + 1e-9);
+        }
+      }
+    });
+
+    it(`${RACES[kind].title}：着順の抽選がオッズの確率と一致する`, () => {
+      const race = makeRace(kind, 1, 7);
+      const pr = computeProbs(race);
+      const rng = seeded(3);
+      const wins = Array(race.runners.length).fill(0);
+      const N = 20000;
+      for (let i = 0; i < N; i++) wins[drawOrder(race, rng)[0]]++;
+      wins.forEach((w, i) => expect(Math.abs(w / N - pr.win[i])).toBeLessThan(0.015));
     });
   }
 
-  it('ボートは1号艇が勝ちやすい', () => {
-    let first = 0;
-    for (let s = 0; s < 40; s++) {
-      const odds = computeOdds(makeRace('boat', 1, s));
-      if (odds.win[0] === Math.min(...odds.win)) first++;
-    }
-    expect(first).toBeGreaterThan(18);
+  it('競馬の枠番は JRA と同じ割り振り', () => {
+    expect(horseFrames(8)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(horseFrames(10)).toEqual([1, 2, 3, 4, 5, 6, 7, 7, 8, 8]);
+    expect(horseFrames(18)).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8]);
   });
 
-  it('アニメーションの進み具合は 0 から 1', () => {
-    const run = runRace(makeRace('horse', 1, 3), seeded(1));
-    const sp = run.splits[0];
-    expect(progressAt(sp, 0)).toBe(0);
-    expect(progressAt(sp, 99)).toBe(1);
-    expect(progressAt(sp, sp[0])).toBeCloseTo(1 / sp.length, 5);
+  it('ボックス・フォーメーション・ながしの点数', () => {
+    const race = makeRace('horse', 1, 5);
+    expect(expandCombos(race, 'trifecta', 'normal', [[0, 1, 2], [0, 1, 2], [0, 1, 2]]).length).toBe(6);
+    expect(expandCombos(race, 'trio', 'normal', [[0, 1, 2, 3]]).length).toBe(4);
+    expect(expandCombos(race, 'quinella', 'nagashi', [[0], [1, 2, 3]]).length).toBe(3);
+    expect(expandCombos(race, 'trifecta', 'nagashi', [[0], [1, 2, 3]]).length).toBe(6);
+    expect(expandCombos(race, 'exacta', 'normal', [[0, 1], [2]]).length).toBe(2);
+  });
+
+  it('当たりの判定', () => {
+    const race = makeRace('boat', 1, 5);
+    const order = [2, 0, 4, 1, 3, 5];
+    expect(ticketHits(race, order, { type: 'trifecta', combo: [2, 0, 4] })).toBe(true);
+    expect(ticketHits(race, order, { type: 'trio', combo: [0, 2, 4] })).toBe(true);
+    expect(ticketHits(race, order, { type: 'exacta', combo: [0, 2] })).toBe(false);
+    expect(ticketHits(race, order, { type: 'wide', combo: [0, 4] })).toBe(true);
+    expect(ticketHits(race, order, { type: 'place', combo: [4] })).toBe(false); // ボートの複勝は2着まで
+    expect(winningCombos(race, order).filter((w) => w.type === 'wide').length).toBe(3);
+  });
+
+  it('ボートは1号艇が勝ちやすい', () => {
+    let sum = 0;
+    for (let s = 0; s < 40; s++) sum += computeProbs(makeRace('boat', 1, s)).win[0];
+    expect(sum / 40).toBeGreaterThan(0.35);
+    expect(sum / 40).toBeLessThan(0.7);
+  });
+
+  it('レースの動き：決めた着順どおりにゴールし、距離は増え続ける', () => {
+    for (const kind of Object.keys(RACES) as RaceKind[]) {
+      const race = makeRace(kind, 1, 11);
+      const order = drawOrder(race, seeded(2));
+      const m = makeMotion(race, order, seeded(4));
+      const finishOrder = race.runners.map((r) => r.index).sort((a, b) => m.finish[a] - m.finish[b]);
+      expect(finishOrder).toEqual(order);
+      for (const i of order) {
+        let prev = -Infinity;
+        for (let t = 0; t <= m.finish[i] + 5; t += 0.5) {
+          const d = distanceAt(m, i, t);
+          expect(d).toBeGreaterThanOrEqual(prev - 1e-6);
+          prev = d;
+        }
+        expect(distanceAt(m, i, m.finish[i])).toBeCloseTo(race.distance, 3);
+      }
+    }
+  });
+
+  it('コースの形：1周回ると元の位置に戻る', () => {
+    const c = makeCourse(makeRace('horse', 1, 1));
+    const a = pointAt(c, 10, 0);
+    const b = pointAt(c, 10 + c.circumference, 0);
+    expect(a.x).toBeCloseTo(b.x, 6);
+    expect(a.y).toBeCloseTo(b.y, 6);
+    // 周回上を少し進んだ点との距離は、進んだ距離とほぼ同じ（つながっている）
+    for (let p = 0; p < c.circumference; p += 37) {
+      const p1 = pointAt(c, p, 0);
+      const p2 = pointAt(c, p + 1, 0);
+      expect(Math.hypot(p2.x - p1.x, p2.y - p1.y)).toBeCloseTo(1, 1);
+    }
   });
 });

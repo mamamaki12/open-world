@@ -1,25 +1,30 @@
-// 競馬・競輪・ボートレース：出走表を見て買い目を選び、レースを観て払い戻しを受け取る
+// 競馬・競輪・ボートレース：出走表（出馬表）を見て、実際と同じ券種・買い方で投票し、レースを観て払い戻しを受け取る
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { yen } from '../../economy/money';
 import {
+  BET_SHAPE,
+  NUMBER_COLORS,
   RACES,
-  betOdds,
-  betPayout,
-  betPicksNeeded,
-  computeOdds,
+  comboLabel,
+  comboOdds,
+  comboProb,
+  computeProbs,
+  drawOrder,
+  expandCombos,
   makeRace,
-  progressAt,
-  runRace,
-  standingsAt,
+  payoutPer100,
+  placeCount,
+  popularCombos,
+  ticketPayout,
+  winningCombos,
 } from '../../economy/race';
-import type { BetKind, Race, RaceBet, RaceKind, RaceRun } from '../../economy/race';
+import type { BetType, BuyMethod, Probs, Race, RaceKind, Ticket } from '../../economy/race';
+import { boatKimarite, makeMotion, marginLabel, raceTime } from '../../economy/raceMotion';
+import type { Motion } from '../../economy/raceMotion';
 import { useEconomy } from '../../state/economy';
 import { useGame } from '../../state/store';
 import { BetInput } from './BetInput';
-
-const MARKS = ['◎', '○', '▲', '△', '✕'];
-/** レースを観る長さ（ミリ秒） */
-const SHOW_MS = 9000;
+import { RaceView, runnerColor } from './RaceView';
 
 /** 種類ごとに、いま出走表に出ているレース（タブを切り替えても残す） */
 const current: Partial<Record<RaceKind, Race>> = {};
@@ -31,252 +36,474 @@ function nextRace(kind: RaceKind): Race {
   return r;
 }
 
-type Phase = 'betting' | 'running' | 'done';
+type Phase = 'card' | 'running' | 'done';
+
+interface Result {
+  order: number[];
+  motion: Motion;
+  kimarite: string;
+}
 
 export function RaceGame({ kind }: { kind: RaceKind }) {
   const cfg = RACES[kind];
   const [race, setRace] = useState<Race>(() => current[kind] ?? nextRace(kind));
-  const odds = useMemo(() => computeOdds(race), [race]);
-  const [betKind, setBetKind] = useState<BetKind>(cfg.bets[0]);
-  const [picks, setPicks] = useState<number[]>([]);
-  const [stake, setStake] = useState(10_000);
-  const [slip, setSlip] = useState<RaceBet[]>([]);
-  const [phase, setPhase] = useState<Phase>('betting');
-  const [run, setRun] = useState<RaceRun | null>(null);
-  const [t, setT] = useState(0);
+  const probs = useMemo(() => computeProbs(race), [race]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [phase, setPhase] = useState<Phase>('card');
+  const [result, setResult] = useState<Result | null>(null);
   const pending = useRef<{ amount: number; label: string } | null>(null);
-  const raf = useRef(0);
   const notify = useGame((s) => s.notify);
 
-  useEffect(() => {
-    if (!current[kind]) current[kind] = race;
-  }, [kind, race]);
-  // 走る前に閉じたら買った券は返金する
+  // 走る前に閉じたら買った券は返金、レース中に閉じても払い戻しは受け取る
   const unraced = useRef(0);
-  unraced.current = phase === 'betting' ? slip.reduce((a, b) => a + b.stake, 0) : 0;
+  unraced.current = phase === 'card' ? tickets.reduce((a, t) => a + t.stake, 0) : 0;
   useEffect(
     () => () => {
-      cancelAnimationFrame(raf.current);
-      // レース中に閉じても払い戻しは受け取る
       if (pending.current) useEconomy.getState().collect(pending.current.amount, pending.current.label);
       if (unraced.current > 0) useEconomy.getState().collect(unraced.current, `${RACES[kind].title} 発売取り消し（返金）`);
     },
     [kind],
   );
 
-  const need = betPicksNeeded(betKind);
-  const ready = picks.length === need;
-  const pickOdds = ready ? betOdds(odds, { kind: betKind, picks }) : null;
-  const popularity = useMemo(() => {
-    const order = odds.win.map((_, i) => i).sort((a, b) => odds.win[a] - odds.win[b]);
-    const rank: number[] = [];
-    order.forEach((r, i) => (rank[r] = i + 1));
-    return rank;
-  }, [odds]);
-
-  const togglePick = (i: number) => {
-    if (phase !== 'betting') return;
-    setPicks((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i].slice(-need)));
-  };
-
-  const addBet = () => {
-    if (!ready || stake <= 0) return;
-    const label = `${cfg.title} ${race.venue}${race.no}R ${cfg.betNames[betKind]} ${picks.map((p) => p + 1).join(betKind === 'exacta' ? '→' : '-')}`;
-    if (!useEconomy.getState().placeBet(stake, label)) return notify('賭け金が所持金を超えています');
-    setSlip((s) => [...s, { kind: betKind, picks, stake }]);
-    setPicks([]);
-  };
-
   const start = () => {
-    const r = runRace(race, Math.random);
-    const total = slip.reduce((a, b) => a + betPayout(race, r, odds, b), 0);
+    const rng = Math.random;
+    const order = drawOrder(race, rng);
+    const motion = makeMotion(race, order, rng);
+    const total = tickets.reduce((a, t) => a + ticketPayout(race, probs, order, t), 0);
     pending.current = total > 0 ? { amount: total, label: `${cfg.title} ${race.venue}${race.no}R 払戻` } : null;
-    setRun(r);
+    setResult({ order, motion, kimarite: kind === 'boat' ? boatKimarite(order[0], rng) : '' });
     setPhase('running');
-    const finish = r.splits.map((s) => s.reduce((a, b) => a + b, 0));
-    const winner = Math.min(...finish);
-    const last = Math.max(...finish);
-    // 1着が 8 割くらいの時間でゴールするように
-    const scale = (winner / 0.82) / SHOW_MS;
-    const started = performance.now();
-    const loop = () => {
-      const now = (performance.now() - started) * scale;
-      setT(now);
-      if (now < last) raf.current = requestAnimationFrame(loop);
-      else {
-        setPhase('done');
-        if (pending.current) {
-          useEconomy.getState().collect(pending.current.amount, pending.current.label);
-          notify(`🎉 的中！ ${yen(pending.current.amount)} 払い戻し`);
-          pending.current = null;
-        }
-      }
-    };
-    raf.current = requestAnimationFrame(loop);
+  };
+
+  const onDone = () => {
+    setPhase('done');
+    if (pending.current) {
+      useEconomy.getState().collect(pending.current.amount, pending.current.label);
+      notify(`🎉 的中！ ${yen(pending.current.amount)} 払い戻し`);
+      pending.current = null;
+    }
   };
 
   const next = () => {
     setRace(nextRace(kind));
-    setSlip([]);
-    setPicks([]);
-    setRun(null);
-    setT(0);
-    setPhase('betting');
-  };
-
-  const standings = run ? standingsAt(run, t) : null;
-  const badge = (i: number) => {
-    const c = cfg.colors[i % cfg.colors.length];
-    return (
-      <span className="badge" style={{ background: c.bg, color: c.fg }}>
-        {i + 1}
-      </span>
-    );
+    setTickets([]);
+    setResult(null);
+    setPhase('card');
   };
 
   return (
     <div className="game race">
-      <div className="race-head">
-        <b>{race.venue} 第{race.no}レース</b>　{race.distance}　{cfg.runners}{kind === 'horse' ? '頭' : kind === 'boat' ? '艇' : '車'}立て
-      </div>
-
-      <div className={`track ${kind}`}>
-        {race.runners.map((r, i) => {
-          const p = run ? progressAt(run.splits[i], t) : 0;
-          return (
-            <div key={r.no} className="lane">
-              {badge(i)}
-              <div className="lane-track">
-                <span className="runner" style={{ left: `calc(${p * 100}% - ${p * 34}px)` }}>
-                  {cfg.icon}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        <div className="goal" />
-      </div>
-      {standings && (
-        <div className="standings">
-          {phase === 'done' ? '確定：' : '通過順：'}
-          {standings.slice(0, 5).map((i, k) => (
-            <span key={i}>
-              {k + 1}着 {badge(i)}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {phase === 'done' && run && <Results race={race} run={run} slip={slip} onNext={next} odds={odds} />}
-
-      {phase === 'betting' && (
+      <RaceHeader race={race} />
+      {phase !== 'card' && result && <RaceView race={race} motion={result.motion} order={result.order} onDone={onDone} />}
+      {phase === 'done' && result && <ResultBoard race={race} probs={probs} result={result} tickets={tickets} onNext={next} />}
+      {phase === 'card' && (
         <>
-          <table className="ledger entries">
-            <thead>
-              <tr>
-                <th>番</th>
-                <th>{kind === 'horse' ? '馬名' : '選手'}</th>
-                <th>予想</th>
-                <th className="num">単勝オッズ</th>
-                <th className="num">人気</th>
-              </tr>
-            </thead>
-            <tbody>
-              {race.runners.map((r, i) => {
-                const k = picks.indexOf(i);
-                return (
-                  <tr key={r.no} className={`pickable${k >= 0 ? ' on' : ''}`} onClick={() => togglePick(i)}>
-                    <td>{badge(i)}</td>
-                    <td>
-                      {r.name}
-                      {k >= 0 && need === 2 && <small className="pick-tag">{betKind === 'exacta' ? `${k + 1}着` : '選択'}</small>}
-                    </td>
-                    <td>{MARKS[r.form]}</td>
-                    <td className="num">{odds.win[i].toFixed(1)}</td>
-                    <td className="num">{popularity[i]}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div className="field-label">買い方</div>
-          <div className="seg">
-            {cfg.bets.map((b) => (
-              <button key={b} className={b === betKind ? 'on' : ''} onClick={() => { setBetKind(b); setPicks([]); }}>
-                {cfg.betNames[b]}
-              </button>
-            ))}
-          </div>
-          <p className="muted">{betHelp(kind, betKind)}　上の表から{need === 1 ? '1つ' : '2つ'}選んでください。</p>
-          <p>
-            買い目：<b>{picks.length ? picks.map((p) => p + 1).join(betKind === 'exacta' ? ' → ' : ' - ') : '—'}</b>
-            {pickOdds !== null && <>　オッズ <b className="big">{pickOdds.toFixed(1)}</b> 倍（当たれば {yen(Math.floor((stake * pickOdds) / 10) * 10)}）</>}
-          </p>
-          <BetInput value={stake} onChange={setStake} />
+          <RaceCard race={race} probs={probs} />
+          <BetSlipBuilder race={race} probs={probs} onBuy={(ts) => setTickets((cur) => [...cur, ...ts])} />
+          <Purchased race={race} probs={probs} tickets={tickets} />
           <div className="row">
-            <button className="btn primary" disabled={!ready || stake <= 0} onClick={addBet}>この{kind === 'horse' ? '馬券' : kind === 'boat' ? '舟券' : '車券'}を買う</button>
             <button className="btn primary big-btn" onClick={start}>
-              {slip.length ? 'レース開始！' : '買わずにレースを見る'}
+              {tickets.length ? '発走！ レースを観る' : `${cfg.ticket}を買わずにレースを観る`}
             </button>
           </div>
-          {slip.length > 0 && (
-            <ul className="slip">
-              {slip.map((b, i) => (
-                <li key={i}>
-                  {cfg.betNames[b.kind]} {b.picks.map((p) => p + 1).join(b.kind === 'exacta' ? '→' : '-')}　{yen(b.stake)}（{betOdds(odds, b).toFixed(1)}倍）
-                </li>
-              ))}
-            </ul>
-          )}
         </>
       )}
     </div>
   );
 }
 
-function Results({ race, run, slip, odds, onNext }: { race: Race; run: RaceRun; slip: RaceBet[]; odds: ReturnType<typeof computeOdds>; onNext: () => void }) {
+function RaceHeader({ race }: { race: Race }) {
   const cfg = RACES[race.kind];
-  const total = slip.reduce((a, b) => a + betPayout(race, run, odds, b), 0);
-  const spent = slip.reduce((a, b) => a + b.stake, 0);
-  const [a, b] = run.order;
   return (
-    <div className="card">
-      <div className="card-title">結果</div>
-      <table className="ledger compact">
-        <tbody>
-          {run.order.slice(0, 3).map((i, k) => (
-            <tr key={i}>
-              <td>{k + 1}着</td>
-              <td>{i + 1}番 {race.runners[i].name}</td>
-            </tr>
-          ))}
-          {cfg.bets.includes('win') && <tr><td>{cfg.betNames.win}</td><td>{a + 1}　{odds.win[a].toFixed(1)}倍</td></tr>}
-          <tr><td>{cfg.betNames.exacta}</td><td>{a + 1}→{b + 1}　{odds.exacta[a][b].toFixed(1)}倍</td></tr>
-          <tr><td>{cfg.betNames.quinella}</td><td>{Math.min(a, b) + 1}-{Math.max(a, b) + 1}　{odds.quinella[Math.min(a, b)][Math.max(a, b)].toFixed(1)}倍</td></tr>
-        </tbody>
-      </table>
-      {slip.length > 0 && (
-        <p>
-          買った {yen(spent)} → 払い戻し <b className={total > 0 ? 'plus big' : 'minus'}>{yen(total)}</b>
-        </p>
-      )}
-      <button className="btn primary" onClick={onNext}>次のレースへ</button>
+    <div className="race-head">
+      <b>
+        {race.venue} 第{race.no}レース　{race.name}
+      </b>
+      <span className="muted">
+        　{race.surface ?? ''}
+        {race.distance}m{race.laps ? `（${race.laps}周）` : ''}　{race.runners.length}
+        {cfg.unit}立て　{race.kind === 'horse' ? `馬場：${race.condition}` : race.condition}
+      </span>
     </div>
   );
 }
 
-function betHelp(kind: RaceKind, b: BetKind): string {
-  const place = RACES[kind].placeCount;
-  switch (b) {
-    case 'win':
-      return '1着を当てる。';
-    case 'place':
-      return `${place}着以内に入るかを当てる（当たりやすいが低配当）。`;
-    case 'quinella':
-      return '1着と2着の組み合わせを当てる（順番は問わない）。';
-    case 'exacta':
-      return '1着と2着を順番どおりに当てる（選んだ順が 1着→2着）。';
-    case 'wide':
-      return '選んだ2つがどちらも3着以内に入れば当たり。';
-  }
+/** 番号札（競馬は白地の馬番、競輪・ボートは番号の色） */
+function NumberBadge({ race, i }: { race: Race; i: number }) {
+  const r = race.runners[i];
+  const col = race.kind === 'horse' ? { bg: '#fff', fg: '#222' } : runnerColor(race, i);
+  return (
+    <span className="badge" style={{ background: col.bg, color: col.fg }}>
+      {r.no}
+    </span>
+  );
+}
+
+function FrameBadge({ frame }: { frame: number }) {
+  const col = NUMBER_COLORS[frame - 1];
+  return (
+    <span className="badge frame" style={{ background: col.bg, color: col.fg }}>
+      {frame}
+    </span>
+  );
+}
+
+function RaceCard({ race, probs }: { race: Race; probs: Probs }) {
+  const pc = placeCount(race);
+  const popularity = useMemo(() => {
+    const ord = probs.win.map((_, i) => i).sort((a, b) => probs.win[b] - probs.win[a]);
+    const rank: number[] = [];
+    ord.forEach((r, i) => (rank[r] = i + 1));
+    return rank;
+  }, [probs]);
+  const cfg = RACES[race.kind];
+  const infoKeys = Object.keys(race.runners[0].info).filter((k) => k !== '毛色');
+  const showWin = cfg.bets.includes('win');
+  return (
+    <>
+      {race.lines && (
+        <div className="lines">
+          <span className="muted">並び予想</span>
+          {race.lines.map((line, k) => (
+            <span key={k} className="line-group">
+              {line.map((no) => (
+                <NumberBadge key={no} race={race} i={race.runners.findIndex((r) => r.no === no)} />
+              ))}
+            </span>
+          ))}
+          <span className="muted">（同じラインは協力して走る。先頭が逃げ、2番手が番手）</span>
+        </div>
+      )}
+      <div className="table-scroll">
+        <table className="ledger entries">
+          <thead>
+            <tr>
+              {race.kind === 'horse' && <th>枠</th>}
+              <th>{cfg.numberName}</th>
+              <th>印</th>
+              <th>{race.kind === 'horse' ? '馬名' : '選手名'}</th>
+              {race.kind === 'horse' && <th>脚質</th>}
+              {infoKeys.map((k) => (
+                <th key={k}>{k}</th>
+              ))}
+              {showWin && <th className="num">単勝</th>}
+              {pc > 0 && <th className="num">複勝</th>}
+              <th className="num">人気</th>
+            </tr>
+          </thead>
+          <tbody>
+            {race.runners.map((r) => (
+              <tr key={r.no}>
+                {race.kind === 'horse' && (
+                  <td>
+                    <FrameBadge frame={r.frame} />
+                  </td>
+                )}
+                <td>
+                  <NumberBadge race={race} i={r.index} />
+                </td>
+                <td className="mark">{r.mark}</td>
+                <td className="runner-name">
+                  {r.name}
+                  {r.info['毛色'] && <small className="muted">（{r.info['毛色']}）</small>}
+                </td>
+                {race.kind === 'horse' && <td>{r.style}</td>}
+                {infoKeys.map((k) => (
+                  <td key={k}>{r.info[k]}</td>
+                ))}
+                {showWin && <td className="num">{comboOdds(race, probs, 'win', [r.index])?.toFixed(1)}</td>}
+                {pc > 0 && <td className="num">{comboOdds(race, probs, 'place', [r.index])?.toFixed(1)}</td>}
+                <td className="num">{popularity[r.index]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+const HELP: Record<BetType, string> = {
+  win: '1着を当てる',
+  place: '',
+  bracket: '1着・2着の枠番の組み合わせを当てる（順不同）',
+  quinella: '1着・2着の組み合わせを当てる（順不同）',
+  wide: '3着以内に入る2つを当てる（順不同）',
+  exacta: '1着・2着を順番どおりに当てる',
+  trio: '1着・2着・3着の組み合わせを当てる（順不同）',
+  trifecta: '1着・2着・3着を順番どおりに当てる',
+};
+
+function BetSlipBuilder({ race, probs, onBuy }: { race: Race; probs: Probs; onBuy: (t: Ticket[]) => void }) {
+  const cfg = RACES[race.kind];
+  const [type, setType] = useState<BetType>(cfg.bets[0]);
+  const [method, setMethod] = useState<BuyMethod>('normal');
+  const [cols, setCols] = useState<number[][]>([[], [], []]);
+  const [unit, setUnit] = useState(1000);
+  const notify = useGame((s) => s.notify);
+  const shape = BET_SHAPE[type];
+  const isBracket = type === 'bracket';
+  const rows = isBracket
+    ? [...new Set(race.runners.map((r) => r.frame))].map((f) => ({ id: f, frame: f }))
+    : race.runners.map((r) => ({ id: r.index, frame: r.frame }));
+
+  const columnNames: string[] =
+    shape.k === 1
+      ? ['選択']
+      : method === 'nagashi'
+        ? [shape.ordered ? '軸（1着）' : '軸', '相手']
+        : shape.ordered
+          ? Array.from({ length: shape.k }, (_, i) => `${i + 1}着`)
+          : ['選択'];
+
+  const combos = useMemo(() => expandCombos(race, type, method, cols), [race, type, method, cols]);
+  const stake = Math.floor(unit / 100) * 100;
+  const total = combos.length * stake;
+
+  const reset = (t: BetType, m: BuyMethod) => {
+    setType(t);
+    setMethod(BET_SHAPE[t].k === 1 ? 'normal' : m);
+    setCols([[], [], []]);
+  };
+  const toggle = (col: number, id: number) => {
+    setCols((cs) =>
+      cs.map((c, k) => {
+        if (k !== col) return c;
+        if (method === 'nagashi' && col === 0) return c[0] === id ? [] : [id];
+        return c.includes(id) ? c.filter((x) => x !== id) : [...c, id].sort((a, b) => a - b);
+      }),
+    );
+  };
+  const buy = () => {
+    if (!combos.length || stake <= 0) return;
+    const label = `${cfg.title} ${race.venue}${race.no}R ${cfg.betNames[type]} ${combos.length}点`;
+    if (!useEconomy.getState().placeBet(total, label)) return notify('所持金が足りません');
+    onBuy(combos.map((combo) => ({ type, combo, stake })));
+    setCols([[], [], []]);
+  };
+
+  const popular = useMemo(() => popularCombos(race, probs, type, 8), [race, probs, type]);
+  const help = type === 'place' ? `${placeCount(race)}着以内に入るかを当てる` : HELP[type];
+
+  return (
+    <section className="card bet-builder">
+      <div className="card-title">投票（{cfg.ticket}を買う）</div>
+      <div className="field-label">券種</div>
+      <div className="seg wrap">
+        {cfg.bets.map((b) => (
+          <button key={b} className={b === type ? 'on' : ''} onClick={() => reset(b, method)}>
+            {cfg.betNames[b]}
+          </button>
+        ))}
+      </div>
+      <p className="muted">
+        {help}。払戻率 {Math.round((cfg.payout[type] ?? 0) * 1000) / 10}%
+      </p>
+      {shape.k > 1 && (
+        <>
+          <div className="field-label">買い方</div>
+          <div className="seg">
+            <button className={method === 'normal' ? 'on' : ''} onClick={() => reset(type, 'normal')}>
+              {shape.ordered ? '通常・フォーメーション' : '通常・ボックス'}
+            </button>
+            <button className={method === 'nagashi' ? 'on' : ''} onClick={() => reset(type, 'nagashi')}>
+              ながし
+            </button>
+          </div>
+          <p className="muted">
+            {method === 'nagashi'
+              ? shape.ordered
+                ? '軸を1着に決め、相手から残りの着順を全部の並びで買います。'
+                : '軸を1つ決め、相手との組み合わせを全部買います。'
+              : shape.ordered
+                ? '着順ごとに選びます。1つずつ選べば通常、複数選ぶとフォーメーション（全部の掛け合わせ）。'
+                : `${shape.k}つ選べば通常、それより多く選ぶとボックス（選んだ中の組み合わせ全部）。`}
+          </p>
+        </>
+      )}
+      <div className="table-scroll">
+        <table className="ledger mark-sheet">
+          <thead>
+            <tr>
+              <th>{isBracket ? '枠番' : cfg.numberName}</th>
+              {!isBracket && <th>{race.kind === 'horse' ? '馬名' : '選手'}</th>}
+              {columnNames.map((c) => (
+                <th key={c} className="center">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id}>
+                <td>{isBracket ? <FrameBadge frame={row.frame} /> : <NumberBadge race={race} i={row.id} />}</td>
+                {!isBracket && <td className="runner-name">{race.runners[row.id].name}</td>}
+                {columnNames.map((_, col) => {
+                  const on = cols[col].includes(row.id);
+                  return (
+                    <td key={col} className="center">
+                      <button className={`mark-cell${on ? ' on' : ''}`} onClick={() => toggle(col, row.id)} aria-pressed={on}>
+                        {on ? '●' : ''}
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="field-label">1点あたりの金額（100円単位）</div>
+      <BetInput value={unit} onChange={setUnit} />
+      <p>
+        <b>{combos.length}</b> 点 × {yen(stake)} = <b className="big">{yen(total)}</b>
+      </p>
+      {combos.length > 0 && (
+        <div className="combo-list">
+          {combos.slice(0, 40).map((c) => {
+            const o = comboOdds(race, probs, type, c);
+            return (
+              <span key={c.join('-')} className="combo">
+                {comboLabel(race, type, c)} <small>{o ? `${o.toFixed(1)}倍` : '―'}</small>
+              </span>
+            );
+          })}
+          {combos.length > 40 && <span className="muted">ほか {combos.length - 40} 点</span>}
+        </div>
+      )}
+      <button className="btn primary" disabled={!combos.length || stake <= 0} onClick={buy}>
+        この内容で買う（{yen(total)}）
+      </button>
+      <details className="popular">
+        <summary>{cfg.betNames[type]}の人気順オッズ</summary>
+        <table className="ledger compact">
+          <tbody>
+            {popular.map(({ combo }, k) => (
+              <tr key={combo.join('-')}>
+                <td>{k + 1}番人気</td>
+                <td>{comboLabel(race, type, combo)}</td>
+                <td className="num">{comboOdds(race, probs, type, combo)?.toFixed(1)}倍</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
+    </section>
+  );
+}
+
+function Purchased({ race, probs, tickets }: { race: Race; probs: Probs; tickets: Ticket[] }) {
+  const cfg = RACES[race.kind];
+  if (!tickets.length) return null;
+  const total = tickets.reduce((a, t) => a + t.stake, 0);
+  return (
+    <section className="card">
+      <div className="card-title">
+        購入した{cfg.ticket}（{tickets.length}点・{yen(total)}）
+      </div>
+      <div className="combo-list">
+        {tickets.map((t, k) => (
+          <span key={k} className="combo">
+            {cfg.betNames[t.type]} {comboLabel(race, t.type, t.combo)} {yen(t.stake)}
+            <small>{comboOdds(race, probs, t.type, t.combo)?.toFixed(1)}倍</small>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ResultBoard({
+  race,
+  probs,
+  result,
+  tickets,
+  onNext,
+}: {
+  race: Race;
+  probs: Probs;
+  result: Result;
+  tickets: Ticket[];
+  onNext: () => void;
+}) {
+  const cfg = RACES[race.kind];
+  const { order, motion } = result;
+  const total = tickets.reduce((a, t) => a + ticketPayout(race, probs, order, t), 0);
+  const spent = tickets.reduce((a, t) => a + t.stake, 0);
+  const wins = useMemo(() => winningCombos(race, order), [race, order]);
+  const ranks = useMemo(
+    () =>
+      wins.map((w) => {
+        const p = comboProb(race, probs, w.type, w.combo);
+        return popularCombos(race, probs, w.type, 100000).filter((x) => x.p > p + 1e-12).length + 1;
+      }),
+    [race, probs, wins],
+  );
+  const speed = race.distance / motion.winTime;
+  return (
+    <div className="result-board">
+      <section className="card">
+        <div className="card-title">
+          着順（確定）{result.kimarite && <span className="kimarite">決まり手：{result.kimarite}</span>}
+        </div>
+        <table className="ledger compact">
+          <thead>
+            <tr>
+              <th>着</th>
+              <th>{cfg.numberName}</th>
+              <th>{race.kind === 'horse' ? '馬名' : '選手'}</th>
+              {race.kind !== 'keirin' && <th className="num">タイム</th>}
+              <th>{race.kind === 'boat' ? 'ST' : '着差'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.map((i, k) => (
+              <tr key={i}>
+                <td>{k + 1}</td>
+                <td>
+                  <NumberBadge race={race} i={i} />
+                </td>
+                <td>{race.runners[i].name}</td>
+                {race.kind !== 'keirin' && <td className="num">{raceTime(motion.finish[i])}</td>}
+                <td>
+                  {race.kind === 'boat'
+                    ? `.${String(Math.round(motion.st[i] * 100)).padStart(2, '0')}`
+                    : k === 0
+                      ? ''
+                      : marginLabel(race.kind, motion.gaps[k - 1], speed)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+      <section className="card">
+        <div className="card-title">払戻金（100円あたり）</div>
+        <table className="ledger compact payout-board">
+          <tbody>
+            {wins.map((w, k) => {
+              const o = comboOdds(race, probs, w.type, w.combo) ?? 0;
+              return (
+                <tr key={k}>
+                  <td>{cfg.betNames[w.type]}</td>
+                  <td>{comboLabel(race, w.type, w.combo)}</td>
+                  <td className="num">{payoutPer100(o).toLocaleString()}円</td>
+                  <td className="num muted">{ranks[k]}番人気</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {tickets.length > 0 && (
+          <p>
+            買った {yen(spent)} → 払い戻し <b className={total > 0 ? 'plus big' : 'minus'}>{yen(total)}</b>
+          </p>
+        )}
+        <button className="btn primary" onClick={onNext}>
+          次のレースへ
+        </button>
+      </section>
+    </div>
+  );
 }
