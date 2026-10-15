@@ -13,6 +13,7 @@ import {
   canPlaceStair,
   canPlaceWall,
   newId,
+  partsInRect,
   normalizeRect,
   snapFurniture,
 } from '../building/rules';
@@ -60,6 +61,8 @@ export function PlacementController() {
     let dragStart: { x: number; z: number } | null = null;
     /** ドラッグを始めたときの面の階（ドラッグ中は変えない） */
     let dragSurface = 0;
+    /** まとめて消す範囲のドラッグを始めた画面の位置（クリックとドラッグを見分ける） */
+    let eraseFrom: { x: number; y: number } | null = null;
     // 指で触っているもの。2本目が触れたら、置く操作をやめてカメラの操作にゆずる
     const touches = new Set<number>();
     /** 置く操作をしている指（マウスなら null） */
@@ -68,6 +71,7 @@ export function PlacementController() {
     let tap: { x: number; y: number } | null = null;
     const cancelTouch = () => {
       dragStart = null;
+      eraseFrom = null;
       tap = null;
       activeTouch = null;
       useInteraction.getState().setPreview(null);
@@ -144,6 +148,10 @@ export function PlacementController() {
       const p = groundPoint(e, surface);
       if (!p) return;
       switch (g.tool) {
+        case 'erase': {
+          if (dragStart && eraseFrom) ui.setPreview({ kind: 'rect', rect: cellRect(dragStart, cellAt(p)), valid: true, tool: 'erase' });
+          break;
+        }
         case 'floor':
         case 'roof': {
           const c = cellAt(p);
@@ -201,6 +209,13 @@ export function PlacementController() {
       const g = useGame.getState();
       const ui = useInteraction.getState();
       switch (g.tool) {
+        case 'erase':
+          // まとめて消す：何もない所からドラッグすると、その範囲のパーツを選ぶ（パーツのクリックは usePart が受ける）
+          if (!g.eraseMulti || g.mode === 'walk') break;
+          dragStart = cellAt(p);
+          dragSurface = surface;
+          eraseFrom = { x: e.clientX, y: e.clientY };
+          break;
         case 'floor':
         case 'roof':
           dragStart = cellAt(p);
@@ -282,6 +297,13 @@ export function PlacementController() {
       const p = groundPoint(e, surface);
       const start = dragStart;
       dragStart = null;
+      if (g.tool === 'erase') {
+        const from = eraseFrom;
+        eraseFrom = null;
+        useInteraction.getState().setPreview(null);
+        if (p && from && Math.hypot(e.clientX - from.x, e.clientY - from.y) > 8) g.addMarks(partsInRect(g.house, cellRect(start, cellAt(p))));
+        return;
+      }
       if (!p) return;
       if (g.tool === 'floor' || g.tool === 'roof') {
         const rect = cellRect(start, cellAt(p));

@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import type { Rect } from '../building/rules';
 
 export type Preview =
-  | { kind: 'rect'; rect: Rect; valid: boolean; tool: 'floor' | 'roof' }
+  | { kind: 'rect'; rect: Rect; valid: boolean; tool: 'floor' | 'roof' | 'erase' }
   | { kind: 'wall'; x0: number; z0: number; x1: number; z1: number; valid: boolean }
   | { kind: 'stair'; x: number; z: number; valid: boolean }
   | { kind: 'furniture'; x: number; z: number }

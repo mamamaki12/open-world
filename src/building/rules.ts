@@ -282,6 +282,38 @@ export function removePart(house: House, ref: PartRef): House {
   }
 }
 
+/** パーツをまとめて消す（1回の取り消しで戻せるよう、呼ぶ側で1回だけ commit する） */
+export function removeParts(house: House, refs: PartRef[]): House {
+  return refs.reduce((h, r) => removePart(h, r), house);
+}
+
+/**
+ * 上から見て四角い範囲（グリッド座標）にかかるパーツ。どの階のものも含む。
+ * 床・屋根・階段は範囲と重なるもの、壁は範囲にかかるもの、窓・ドア・家具は中心が範囲に入るもの
+ */
+export function partsInRect(house: House, r: Rect): PartRef[] {
+  const inside = (gx: number, gz: number) => gx >= r.x0 && gx <= r.x1 && gz >= r.z0 && gz <= r.z1;
+  const refs: PartRef[] = [];
+  for (const f of house.floors) if (rectsOverlap(f, r)) refs.push({ kind: 'floor', id: f.id });
+  for (const w of house.walls) {
+    const x0 = Math.min(w.x0, w.x1);
+    const x1 = Math.max(w.x0, w.x1);
+    const z0 = Math.min(w.z0, w.z1);
+    const z1 = Math.max(w.z0, w.z1);
+    if (x0 <= r.x1 && x1 >= r.x0 && z0 <= r.z1 && z1 >= r.z0) refs.push({ kind: 'wall', id: w.id });
+  }
+  for (const o of house.openings) {
+    const w = house.walls.find((ww) => ww.id === o.wallId);
+    if (!w) continue;
+    const { dx, dz } = wallDir(w);
+    if (inside(w.x0 + (dx * o.offset) / GRID, w.z0 + (dz * o.offset) / GRID)) refs.push({ kind: 'opening', id: o.id });
+  }
+  for (const s of house.stairs) if (rectsOverlap(stairFootprint(s), r)) refs.push({ kind: 'stair', id: s.id });
+  for (const rf of house.roofs) if (rectsOverlap(rf, r)) refs.push({ kind: 'roof', id: rf.id });
+  for (const f of house.furniture) if (inside(f.x / GRID, f.z / GRID)) refs.push({ kind: 'furniture', id: f.id });
+  return refs;
+}
+
 export function partExists(house: House, ref: PartRef): boolean {
   const list = {
     floor: house.floors,
