@@ -12,7 +12,6 @@ import { isDoorOpen, useDoors } from '../state/doors';
 import { currentPlotOf, civicOffset, lotHouse, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { saveVehicles, useVehicles } from '../state/vehicles';
-import type { OwnedCar } from '../state/vehicles';
 import { plotX, plotZ, TOWN_BOUNDS } from '../economy/town';
 import { touchMove } from '../state/touch';
 
@@ -112,8 +111,10 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   const throttle=paused?0:(key('KeyW','ArrowUp')?1:0)-(key('KeyS','ArrowDown')?1:0)||(!paused?touchMove.y:0);
   const steering=paused?0:(key('KeyD','ArrowRight')?1:0)-(key('KeyA','ArrowLeft')?1:0)||(!paused?touchMove.x:0);
   const o=origin();
+  const previousYaw=car.yaw;
   integrateDrive(car,{throttle,steering,brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
     carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id)));
+  p.yaw+=car.yaw-previousYaw;
   Object.assign(p,{x:car.x-o.x,y:0,z:car.z-o.z,bodyYaw:car.yaw});
   const first=useGame.getState().view==='first';
   if(first){
@@ -128,4 +129,17 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   }
   saveClock+=dt;if(saveClock>5){saveClock=0;saveVehicles();}
   return true;
+}
+
+/** 駐車中の車にも歩行者の体が埋まらないようにする。 */
+export function resolveParkedCars(p:{x:number;z:number},feetY:number){
+  const o=origin();let x=p.x+o.x,z=p.z+o.z;
+  for(const car of useVehicles.getState().cars){
+    const d=getCar(car.model)!;if(feetY>d.height)continue;
+    for(const c of carSamples(car,d)){
+      const dx=x-c.x,dz=z-c.z,dist=Math.hypot(dx,dz),min=d.width/2+.25;
+      if(dist<min){x=c.x+(dist>.0001?dx/dist:1)*min;z=c.z+(dist>.0001?dz/dist:0)*min;}
+    }
+  }
+  return {x:x-o.x,z:z-o.z};
 }
