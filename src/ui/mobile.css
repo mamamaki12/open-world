@@ -152,3 +152,8 @@
   .joystick { width: 116px; height: 116px; left: calc(16px + var(--safe-l)); bottom: calc(14px + var(--safe-b)); }
   .touch-actions { bottom: calc(14px + var(--safe-b)); }
 }
+
+/* 素材の見本：指で押しやすく、横幅が狭くても4列以上並ぶ */
+.touch .mat-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.touch .mat-tile-name { font-size: 11px; }
+.touch .mat-current { padding: 6px; }

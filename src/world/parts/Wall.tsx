@@ -82,6 +82,7 @@ export function Wall({ wall, openings, outside }: Props) {
             type,
             offset: p.offset,
             sashColor: s.defaults.sashColor,
+            ...(tool === 'window' ? { sash: s.defaults.sashType } : {}),
             panelColor: s.defaults.panelColor,
           };
           s.commit({ ...s.house, openings: [...s.house.openings, opening] });

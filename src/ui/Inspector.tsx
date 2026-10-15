@@ -4,7 +4,7 @@ import { GRID, levelName } from '../building/dimensions';
 import { canPlaceOpening, canPlaceStair, snapOpeningOffset, wallLength } from '../building/rules';
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
-import { FinishPicker, NamedSwatches, Swatches } from './FinishPicker';
+import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
 import { RoofTypeButtons, Slider } from './ToolOptions';
 import { patchPart } from './edit';
 
@@ -144,6 +144,7 @@ function OpeningInspector({ opening: o }: { opening: OpeningPart }) {
           </button>
         </div>
       </div>
+      {o.kind === 'window' && <SashPicker value={o.sash} color={o.sashColor} onChange={(sash) => patchPart('opening', o.id, { sash })} />}
       <NamedSwatches label="サッシ・枠の色" colors={SASH_COLORS} value={o.sashColor} onChange={(sashColor) => patchPart('opening', o.id, { sashColor })} />
       {o.kind === 'door' && (
         <NamedSwatches label="扉の色" colors={PANEL_COLORS} value={o.panelColor} onChange={(panelColor) => patchPart('opening', o.id, { panelColor })} />
