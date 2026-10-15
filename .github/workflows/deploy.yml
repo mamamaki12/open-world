@@ -46,5 +46,22 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Recover the orphaned deployment reported by Pages on 2026-10-15.
+      # This targets only that old version; later deployments are never cancelled.
+      - name: Clear orphaned Pages deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.request('POST /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}/cancel', {
+                ...context.repo,
+                pages_deployment_id: 'c06825dc1a9d2aa8a18ac765efc4abb64dd5bf9f'
+              });
+              core.info('Cancelled the orphaned Pages deployment.');
+              await new Promise(resolve => setTimeout(resolve, 10000));
+            } catch (error) {
+              if (![400, 404, 409, 422].includes(error.status)) throw error;
+              core.info('Old deployment cannot be cancelled: ' + error.message);
+            }
       - id: deployment
         uses: actions/deploy-pages@v4
