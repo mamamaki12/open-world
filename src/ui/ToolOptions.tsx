@@ -11,7 +11,7 @@ import { useTouchDevice } from './useTouchDevice';
 export const TOOL_HELP: Record<Tool, string> = {
   select: 'パーツをクリックして選ぶと、右のパネルで種類・素材・色を変えられます。選んだ家具はドラッグで動かせます。',
   floor: 'ドラッグで四角く床を張ります（1マス = 910mm）。「テラス」にすると屋外のウッドデッキになります。地面の上なら1階、1階の壁の上からドラッグすると2階の床になります。',
-  wall: 'マス目の線に沿ってドラッグして壁を立てます。床のない側が外壁になります。高さは半分の腰壁も選べます。',
+  wall: 'マス目の線に沿ってドラッグして壁を立てます。床のない側が外壁になります。高さは腰壁・地面から建つ塀・目隠し塀も選べます。',
   door: '壁の上にマウスを当てて、クリックでドアを付けます。',
   window: '壁の上にマウスを当てて、クリックで窓を付けます。',
   stair: '1階でクリックすると2階へ上がる階段を置きます（幅1マス × 長さ4マス）。R キーで向きを変えます。手すりは なし・左・右・両側 から選べます。',
@@ -24,7 +24,7 @@ export const TOOL_HELP: Record<Tool, string> = {
 const TOUCH_TOOL_HELP: Record<Tool, string> = {
   select: 'パーツをタップして選ぶと、この引き出しで種類・素材・色を変えられます。選んだ家具は指でなぞって動かせます。',
   floor: '指でなぞって四角く床を張ります（1マス = 910mm）。地面の上なら1階、1階の壁の上からなぞると2階の床になります。',
-  wall: 'マス目の線に沿って指でなぞって壁を立てます。床のない側が外壁になります。',
+  wall: 'マス目の線に沿って指でなぞって壁を立てます。床のない側が外壁になります。「塀」は地面から立ち上がります。',
   door: '壁をタップするとドアを付けます。',
   window: '壁をタップすると窓を付けます。',
   stair: '1階をタップすると2階へ上がる階段を置きます（幅1マス × 長さ4マス）。下のボタンで向きを変えます。',
@@ -132,7 +132,7 @@ export function ToolOptions() {
           )}
           {(
             [
-              ['庭・外（プール・花・表札など）', FURNITURE.filter((f) => f.category === 'outdoor')],
+              ['外構・ガレージ・庭', FURNITURE.filter((f) => f.category === 'outdoor')],
               ['家の中', FURNITURE.filter((f) => f.category !== 'outdoor')],
             ] as const
           ).map(([label, items]) => (
@@ -161,6 +161,7 @@ export function ToolOptions() {
       {touch && (tool === 'wall' || tool === 'floor') && <p className="info">真上から指の位置に合わせて配置します。2本指で移動・ズームできます。</p>}
       {tool === 'select' && <p className="info">床・壁・屋根・階段は同じ素材・色でまとめて移動できます。選択後、ドラッグまたは1マス移動ボタンを使ってください。</p>}
       {tool === 'furniture' && d.furnitureType === 'nameplate' && <p className="info">表示する文字を入力し、取り付けたい壁面をタップしてください。壁の手前側に固定します。</p>}
+      {tool === 'furniture' && getFurniture(d.furnitureType).grounded && <p className="info">地面基準のガレージ建材です。Rまたは向き変更で回転。車庫の入口は+Z側です。柱・壁・屋根・舗装を組み合わせて広げられます。</p>}
       {body}
     </div>
   );
@@ -230,13 +231,13 @@ export function FloorKindButtons({ value = 'room', onChange }: { value?: FloorKi
   );
 }
 
-const WALL_HEIGHT_NAMES: Record<WallHeight, string> = { full: 'ふつう 2,900mm', half: '半分 1,450mm' };
+const WALL_HEIGHT_NAMES: Record<WallHeight, string> = { full: '壁 2,900mm', half: '腰壁 1,450mm', fence: '塀 1,200mm（地面から）', privacyFence: '目隠し塀 1,800mm（地面から）' };
 
 export function WallHeightButtons({ value = 'full', onChange }: { value?: WallHeight; onChange: (h: WallHeight) => void }) {
   return (
     <div className="field">
-      <div className="field-label">壁の高さ</div>
-      <div className="seg">
+      <div className="field-label">壁・塀の種類</div>
+      <div className="choice-list">
         {(Object.keys(WALL_HEIGHT_NAMES) as WallHeight[]).map((h) => (
           <button key={h} className={h === value ? 'on' : ''} onClick={() => onChange(h)}>
             {WALL_HEIGHT_NAMES[h]}
