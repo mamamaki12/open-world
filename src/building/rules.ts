@@ -155,19 +155,88 @@ export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x
 }
 
 /**
+ * その階で壁に囲まれたマス（家の中）。土地の外から壁（高さのあるもの）を越えずにたどり着けないマスを 1 にする。
+ * 家は作り直すたびに新しいオブジェクトになるので、家ごとに覚えておく
+ */
+const enclosedCache = new WeakMap<House, Map<number, Uint8Array>>();
+function enclosedCells(house: House, level: number): Uint8Array {
+  let byLevel = enclosedCache.get(house);
+  if (!byLevel) enclosedCache.set(house, (byLevel = new Map()));
+  const hit = byLevel.get(level);
+  if (hit) return hit;
+  // 土地の周りに1マスの余白を付けた格子で、外側から塗りつぶす
+  const W = LOT_W + 2;
+  const D = LOT_D + 2;
+  const idx = (x: number, z: number) => (z + 1) * W + (x + 1);
+  // 縦の線 x=k の z..z+1 をふさぐ壁、横の線 z=k の x..x+1 をふさぐ壁
+  const vBlock = new Set<number>();
+  const hBlock = new Set<number>();
+  for (const w of house.walls) {
+    if (w.level !== level || wallHeight(w) !== WALL_HEIGHT) continue;
+    if (w.x0 === w.x1) for (let z = Math.min(w.z0, w.z1); z < Math.max(w.z0, w.z1); z++) vBlock.add(idx(w.x0, z));
+    else for (let x = Math.min(w.x0, w.x1); x < Math.max(w.x0, w.x1); x++) hBlock.add(idx(x, w.z0));
+  }
+  const seen = new Uint8Array(W * D);
+  const stack = [idx(-1, -1)];
+  seen[stack[0]] = 1;
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = (i % W) - 1;
+    const z = Math.floor(i / W) - 1;
+    const go = (nx: number, nz: number, blocked: boolean) => {
+      if (blocked || nx < -1 || nz < -1 || nx > LOT_W || nz > LOT_D) return;
+      const j = idx(nx, nz);
+      if (!seen[j]) {
+        seen[j] = 1;
+        stack.push(j);
+      }
+    };
+    go(x + 1, z, vBlock.has(idx(x + 1, z)));
+    go(x - 1, z, vBlock.has(idx(x, z)));
+    go(x, z + 1, hBlock.has(idx(x, z + 1)));
+    go(x, z - 1, hBlock.has(idx(x, z)));
+  }
+  const out = new Uint8Array(LOT_W * LOT_D);
+  for (let z = 0; z < LOT_D; z++) for (let x = 0; x < LOT_W; x++) if (!seen[idx(x, z)]) out[z * LOT_W + x] = 1;
+  byLevel.set(level, out);
+  return out;
+}
+
+/**
  * 壁のどちら側が屋外か。+1: 左側（進行方向に対して左＝ローカル+Z）が屋外、-1: 右側が屋外、
- * 0: 両側とも室内（間仕切り）、2: 両側とも屋外（塀のような壁）
+ * 0: 両側とも室内（間仕切り）、2: 両側とも屋外（塀のような壁）。
+ * 壁で囲まれた部屋があれば、その内側を室内とする（床が壁の外まではみ出していても外壁は外壁）。
+ * まだ囲まれていない作りかけの家では、床のある側を室内とする
  */
 export function wallOutsideSide(house: House, w: WallPart): 1 | -1 | 0 | 2 {
   if (w.height === 'fence' || w.height === 'privacyFence') return 2;
   const { dx, dz } = wallDir(w);
-  const mx = ((w.x0 + w.x1) / 2) * GRID;
-  const mz = ((w.z0 + w.z1) / 2) * GRID;
   const probe = GRID / 2;
-  // 左法線 (-dz, dx)
-  // テラスの側は屋外として扱う
-  const leftIn = floorCovers(house, w.level, mx - dz * probe, mz + dx * probe, true);
-  const rightIn = floorCovers(house, w.level, mx + dz * probe, mz - dx * probe, true);
+  const len = Math.round(Math.hypot(w.x1 - w.x0, w.z1 - w.z0));
+  const enclosed = enclosedCells(house, w.level);
+  // 囲まれていても、テラスの上は屋外
+  const inside = (x: number, z: number) => {
+    const cx = Math.floor(x / GRID);
+    const cz = Math.floor(z / GRID);
+    if (cx < 0 || cz < 0 || cx >= LOT_W || cz >= LOT_D || !enclosed[cz * LOT_W + cx]) return false;
+    return !house.floors.some((f) => f.level === w.level && f.kind === 'terrace' && cx >= f.x0 && cx < f.x1 && cz >= f.z0 && cz < f.z1);
+  };
+  let leftIn = false;
+  let rightIn = false;
+  // 壁に沿って1マスずつ、左右のマスを調べる（左法線 (-dz, dx)）
+  for (let i = 0; i < len; i++) {
+    const mx = (w.x0 + dx * (i + 0.5)) * GRID;
+    const mz = (w.z0 + dz * (i + 0.5)) * GRID;
+    leftIn ||= inside(mx - dz * probe, mz + dx * probe);
+    rightIn ||= inside(mx + dz * probe, mz - dx * probe);
+  }
+  if (!leftIn && !rightIn) {
+    // テラスの側は屋外として扱う
+    const mx = ((w.x0 + w.x1) / 2) * GRID;
+    const mz = ((w.z0 + w.z1) / 2) * GRID;
+    leftIn = floorCovers(house, w.level, mx - dz * probe, mz + dx * probe, true);
+    rightIn = floorCovers(house, w.level, mx + dz * probe, mz - dx * probe, true);
+  }
   if (leftIn && rightIn) return 0;
   if (leftIn) return -1;
   if (rightIn) return 1;

@@ -1,7 +1,7 @@
 // 右のパネル：選んだパーツの種類・素材・色・寸法を変える
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, getOpening, openingsOf } from '../catalog';
 import { GRID, floorY, levelName } from '../building/dimensions';
-import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapFurniture, snapOpeningOffset, wallLength } from '../building/rules';
+import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapFurniture, snapOpeningOffset, wallLength, wallOutsideSide } from '../building/rules';
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
@@ -43,6 +43,7 @@ export function Inspector() {
       body = (
         <>
           <p className="info">長さ {mm(wallLength(w))}</p>
+          {wallOutsideSide(house, w) === 0 && <p className="info">家の中の仕切りの壁なので、両面とも内装が見えます（外壁材は見えません）</p>}
           <WallHeightButtons
             value={w.height}
             onChange={(height) => {

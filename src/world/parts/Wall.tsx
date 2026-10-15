@@ -51,7 +51,7 @@ export function Wall({ wall, openings, outside }: Props) {
       return { start, outside: wallOutsideSide(house, part),
         geometry: wallGeometry(end - start, height, WALL_THICKNESS, holes, 0, lo, hi) };
     });
-  }, [length, height, holesKey, wall, house.floors]);
+  }, [length, height, holesKey, wall, house.floors, house.walls]);
   useEffect(() => () => segments.forEach((segment) => segment.geometry.dispose()), [segments]);
 
   const ext = finishMaterial(wall.exterior, highlight);
