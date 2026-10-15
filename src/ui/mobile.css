@@ -246,3 +246,38 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .mat-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
 .touch .mat-tile-name { font-size: 11px; }
 .touch .mat-current { padding: 6px; }
+
+/* 運転中は前方を空け、情報は左上・操作は右上と下端へ分ける。
+   横向きスマホは幅が640pxを超えるため .touch で判定する。 */
+.touch.driving .touch-hud,
+.touch.driving .touch-right,
+.touch.driving .controls-help { display: none; }
+.touch .drive-hud {
+  inset: 0; transform: none; padding: 0; border: 0; border-radius: 0;
+  background: none; box-shadow: none; text-align: left;
+}
+.touch .drive-dashboard {
+  position: absolute; top: calc(8px + env(safe-area-inset-top, 0px));
+  left: calc(8px + var(--safe-l)); width: 118px; padding: 7px 10px;
+  border: 1px solid #d4bd82; border-radius: 10px;
+  background: #101f2bec; box-shadow: 0 2px 8px #0004;
+}
+.touch .drive-model {
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11px; line-height: 1.3; color: #f1dfb4;
+}
+.touch .drive-speed { font-size: 30px; line-height: 1.1; white-space: nowrap; }
+.touch .drive-speed small { font-size: 11px; margin-left: 4px; }
+.touch .drive-keyboard-help, .touch .drive-key { display: none; }
+.touch .drive-actions {
+  position: absolute; top: calc(8px + env(safe-area-inset-top, 0px));
+  right: calc(8px + var(--safe-r)); display: flex; gap: 6px;
+}
+.touch .drive-actions button {
+  min-height: 44px; margin: 0; padding: 8px 10px; font-size: 12px;
+  border: 1px solid #d4bd82; box-shadow: 0 2px 8px #0004;
+}
+.touch .drive-actions button[aria-pressed=true] { background: #ffcf66; }
+@media (orientation: portrait) {
+  .touch .drive-actions { flex-direction: column; }
+}
