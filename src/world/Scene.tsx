@@ -38,7 +38,7 @@ export function Scene() {
         gl.shadowMap.type = THREE.PCFSoftShadowMap;
       }}
       onPointerMissed={(e) => {
-        if (e.button === 0 && useGame.getState().tool === 'select') select(null);
+        if (e.button === 0 && useGame.getState().tool === 'select' && Date.now() >= useInteraction.getState().ignorePartClickUntil) select(null);
       }}
     >
       <Sky sunPosition={SUN} turbidity={4} rayleigh={1.2} mieCoefficient={0.004} mieDirectionalG={0.85} />
