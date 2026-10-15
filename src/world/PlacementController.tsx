@@ -15,12 +15,12 @@ import {
   newId,
   partsInRect,
   normalizeRect,
-  snapFurniture,
 } from '../building/rules';
 import type { Rect } from '../building/rules';
 import type { House } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
+import { snapFurniturePlacement } from '../building/furnitureSnap';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
@@ -184,7 +184,7 @@ export function PlacementController() {
         }
         case 'furniture': {
           g.setLevel(surface);
-          ui.setPreview({ kind: 'furniture', ...snapFurniture(p.x, p.z) });
+          ui.setPreview({ kind: 'furniture', ...snapFurniturePlacement(g.house, { level: surface, type: g.defaults.furnitureType, rotation: g.defaults.furnitureRotation }, p.x, p.z, e.shiftKey) });
           break;
         }
       }
@@ -241,7 +241,7 @@ export function PlacementController() {
           break;
         }
         case 'furniture': {
-          const pos = snapFurniture(p.x, p.z);
+          const pos = snapFurniturePlacement(g.house, { level: surface, type: g.defaults.furnitureType, rotation: g.defaults.furnitureRotation }, p.x, p.z, e.shiftKey);
           const item = {
             id: newId('furniture'),
             level: surface,
@@ -271,7 +271,7 @@ export function PlacementController() {
         if (!item) return;
         const p = groundPoint(e, item.level);
         if (!p) return;
-        const pos = snapFurniture(p.x - drag.dx, p.z - drag.dz);
+        const pos = snapFurniturePlacement(g.house, item, p.x - drag.dx, p.z - drag.dz, e.shiftKey);
         if (pos.x === item.x && pos.z === item.z) return;
         g.dragTo({ ...g.house, furniture: g.house.furniture.map((f) => (f.id === item.id ? { ...f, ...pos } : f)) });
         return;
