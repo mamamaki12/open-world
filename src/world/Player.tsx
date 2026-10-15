@@ -5,6 +5,11 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { nearestSeat } from '../building/seating';
+import { useVehicles } from '../state/vehicles';
+import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract } from './vehicleLogic';
+import { useVenue, enterVenue, exitVenue } from '../state/venue';
+import { resolveVenue } from '../building/venues';
+import { DEALER } from '../building/dealer';
 import { useSeating } from '../state/seating';
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
@@ -80,6 +85,7 @@ export function interact() {
     useSeating.setState({ seated: null, returnTo: null });
     return;
   }
+  if (useGame.getState().mode === 'walk' && vehicleInteract(playerMemory)) return;
   if (enterCasino() || enterEstate()) return;
   if (useDoors.getState().climbing) return;
   const seat = seating.target;
@@ -96,14 +102,14 @@ export function interact() {
 /** カジノの入口の前なら中へ入る（カジノの画面を開く）。入れたら true */
 export function enterCasino(): boolean {
   if (useGame.getState().mode !== 'walk' || !atCasinoDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y)) return false;
-  useGame.getState().setOverlay('casino');
+  enterVenue('casino',playerMemory);
   return true;
 }
 
 /** 不動産屋の店舗前でだけ入れる。 */
 export function enterEstate(): boolean {
   if (useGame.getState().mode !== 'walk' || !atEstateDoor(playerMemory.x - civicOffset().x, playerMemory.z - civicOffset().z, playerMemory.y)) return false;
-  useGame.getState().setOverlay('estate');
+  enterVenue('estate',playerMemory);
   return true;
 }
 
@@ -113,6 +119,8 @@ export function warpToLot(id: string) {
   const eco = useEconomy.getState();
   const lot = eco.lots.find((l) => l.id === id);
   if (!lot) return;
+  parkVehicle();
+  useVenue.setState({inside:null,outside:null});
   useSeating.setState({ seated: null, target: null, returnTo: null });
   game.setOverlay(null);
   eco.switchLot(id);
@@ -129,8 +137,14 @@ export function warpToLot(id: string) {
 function resolveTown(p: { x: number; z: number }, feetY: number, height: number) {
   const s = useEconomy.getState();
   const site = civicOffset(s);
+  const inside=useVenue.getState().inside;
+  if(inside){const q=resolveVenue(inside,{x:p.x-site.x,z:p.z-site.z});return {x:q.x+site.x,z:q.z+site.z};}
   const c = resolveLandmarks({ x: p.x - site.x, z: p.z - site.z });
   let q = { x: c.x + site.x, z: c.z + site.z };
+  if (q.x > site.x+DEALER.x0-.25 && q.x < site.x+DEALER.x1+.25 && q.z > site.z+DEALER.z0-.25 && q.z < site.z+DEALER.z1+.25) {
+    const b={x0:site.x+DEALER.x0-.25,x1:site.x+DEALER.x1+.25,z0:site.z+DEALER.z0-.25,z1:site.z+DEALER.z1+.25};
+    q=[{x:b.x0,z:q.z,d:q.x-b.x0},{x:b.x1,z:q.z,d:b.x1-q.x},{x:q.x,z:b.z0,d:q.z-b.z0},{x:q.x,z:b.z1,d:b.z1-q.z}].sort((a,b)=>a.d-b.d)[0];
+  }
   // ほかの土地の家は中に入れない（入るときはその土地へワープする）
   for (const l of s.lots) {
     const other = lotHouse(l);
@@ -199,6 +213,7 @@ export function Player() {
     const cam = camera as THREE.PerspectiveCamera;
     const saved = { pos: cam.position.clone(), quat: cam.quaternion.clone(), fov: cam.fov };
     return () => {
+      if(useVenue.getState().inside)exitVenue(playerMemory);
       cam.position.copy(saved.pos);
       cam.quaternion.copy(saved.quat);
       cam.fov = saved.fov;
@@ -230,6 +245,7 @@ export function Player() {
     // 動作はキーと画面のボタン（スマホ）の両方から呼ぶ
     const jump = () => {
       const st = state.current;
+      if (useVehicles.getState().driving) return;
       if (!st.grounded || action.current || useSeating.getState().seated) return;
       // 開いた窓の前なら乗り越える。そうでなければジャンプ
       const pass = climbablePassage();
@@ -259,6 +275,7 @@ export function Player() {
       if (Object.values(WALK_KEYS).some((codes) => codes.includes(e.code))) e.preventDefault();
       if (e.repeat) return;
       keys.current.add(e.code);
+      if (e.code === 'KeyL') { const s=useVehicles.getState(); const car=s.cars.find(c=>c.id===s.driving); if(car)car.lights=!car.lights; }
       if (WALK_KEYS.jump.includes(e.code)) jump();
       if (WALK_KEYS.view.includes(e.code)) toggleView();
       if (WALK_KEYS.interact.includes(e.code)) interact();
@@ -377,6 +394,13 @@ export function Player() {
   }, [gl]);
 
   useFrame(({ clock }, rawDt) => {
+    refreshVehicleTarget(playerMemory);
+    if(useVenue.getState().inside && useGame.getState().tool!=='select')useGame.getState().setTool('select');
+    if (driveFrame(camera, keys.current, rawDt, playerMemory)) {
+      if (rig.current.root) rig.current.root.visible=false;
+      state.current.vx=0; state.current.vz=0; state.current.velY=0;
+      return;
+    }
     // 描画が遅い環境でも同じ速さで動くよう、細かい時間に分けて計算する
     const frameDt = Math.min(rawDt, 0.25);
     const steps = Math.max(1, Math.ceil(frameDt / 0.03));
@@ -618,7 +642,7 @@ export function Player() {
       const focus = new THREE.Vector3(playerMemory.x, eye - 0.1, playerMemory.z);
       let dist = playerMemory.distance;
       // 壁や屋根でカメラが埋もれないよう、手前に寄せる
-      const blockers = ['house', 'casino', 'estate', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
+      const blockers = ['house', 'casino', 'estate', 'dealer', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
       if (blockers.length) {
         raycaster.current.set(focus, dir.clone().negate());
         raycaster.current.far = dist;
