@@ -41,7 +41,7 @@ function rectsOverlap(a: Rect, b: Rect): boolean {
 export function wallsUnder(house: House, level: number, r: Rect): boolean {
   return house.walls.some((w) => {
     // 半分の高さの壁には床も屋根も載らない
-    if (w.level !== level || w.height === 'half') return false;
+    if (w.level !== level || (w.height && w.height !== 'full')) return false;
     const x0 = Math.min(w.x0, w.x1);
     const x1 = Math.max(w.x0, w.x1);
     const z0 = Math.min(w.z0, w.z1);
@@ -69,7 +69,12 @@ export function canPlaceRoof(house: House, level: number, r: Rect): string | nul
 
 /** 壁の高さ（m） */
 export function wallHeight(w: Pick<WallPart, 'height'>): number {
-  return w.height === 'half' ? WALL_HEIGHT / 2 : WALL_HEIGHT;
+  return w.height === 'fence' ? 1.2 : w.height === 'privacyFence' ? 1.8 : w.height === 'half' ? WALL_HEIGHT / 2 : WALL_HEIGHT;
+}
+
+/** 外構の塀は基礎の高さを足さず、地面から立てる。 */
+export function wallBaseY(w: Pick<WallPart, 'level' | 'height'>): number {
+  return w.height === 'fence' || w.height === 'privacyFence' ? 0 : floorY(w.level);
 }
 
 /** 壁の高さを変えたときに、付いている窓・ドアが収まるか */
@@ -143,7 +148,8 @@ export function floorCovers(house: House, level: number, x: number, z: number, r
 }
 
 /** 家具を置く高さ：その階の床の上。1階で床のない所（庭）なら地面 */
-export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x' | 'z'>): number {
+export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x' | 'z'> & { type?: string }): number {
+  if (f.type && getFurniture(f.type).grounded) return 0;
   if (f.level > 0 || floorCovers(house, 0, f.x, f.z)) return floorY(f.level);
   return 0;
 }
@@ -153,6 +159,7 @@ export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x
  * 0: 両側とも室内（間仕切り）、2: 両側とも屋外（塀のような壁）
  */
 export function wallOutsideSide(house: House, w: WallPart): 1 | -1 | 0 | 2 {
+  if (w.height === 'fence' || w.height === 'privacyFence') return 2;
   const { dx, dz } = wallDir(w);
   const mx = ((w.x0 + w.x1) / 2) * GRID;
   const mz = ((w.z0 + w.z1) / 2) * GRID;
