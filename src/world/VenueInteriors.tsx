@@ -50,7 +50,7 @@ function EstateInterior(){
     <Label text="まちの不動産" p={[0,2.6,3.7]} w={4} color="#286e6b"/>
     <Label text="F · 物件・家計簿の相談" p={[0,1.7,1.3]} w={3.5} h={.4} color="#286e6b"/>
     {[-3,3].map(x=><group key={x}><Round p={[x,.72,-.3]} r={.7} h={.08} c="#e9dbc2"/><Round p={[x,.35,-.3]} r={.08} h={.7} c="#6c777b"/><Chair x={x} z={-1.4}/><Chair x={x} z={.8} rot={Math.PI}/></group>)}
-    {[-1,1].flatMap(side=>[-1,0,1].map(n=><group key={side+','+n} position={[side*4.72,1.8,n*.95]} rotation-y={side*Math.PI/2}><Box p={[0,0,0]} s={[.75,1.05,.03]} c="#398b84"/><Box p={[0,-.1,-.03]} s={[.63,.7,.015]} c="#faf8e9"/>{[-1,0,1].map(i=><Box key={i} p={[i*.17,-.1,-.05]} s={[.015,.45,.015]} c="#9da99e"/>)}</group>)))}
+    {[-1,1].flatMap(side=>[-1,0,1].map(n=><group key={side+','+n} position={[side*4.72,1.8,n*.95]} rotation-y={side*Math.PI/2}><Box p={[0,0,0]} s={[.75,1.05,.03]} c="#398b84"/><Box p={[0,-.1,-.03]} s={[.63,.7,.015]} c="#faf8e9"/>{[-1,0,1].map(i=><Box key={i} p={[i*.17,-.1,-.05]} s={[.015,.45,.015]} c="#9da99e"/>)}</group>))}
     <Box p={[0,2.5,0]} s={[3,.06,.6]} c="#fff8e5"/><pointLight position={[0,2.5,0]} intensity={12} color="#fff0db" distance={12}/>
   </>;
 }
