@@ -40,7 +40,7 @@ export function RaceView({ race, motion, order, onDone }: Props) {
   const fullRef = useRef(full);
   fullRef.current = full;
   const sim = useRef<RaceSim>({ t: -PRE, dist: race.runners.map(() => 0), lat: race.runners.map(() => 0), standings: [], overview: false, pacer: null });
-  const [speed, setSpeed] = useState(4);
+  const [speed, setSpeed] = useState(2);
   const [overview, setOverview] = useState(false);
   const [calls, setCalls] = useState<Call[]>([]);
   const [hud, setHud] = useState<{ clock: string; remain: string; standings: number[]; bell: boolean }>({
