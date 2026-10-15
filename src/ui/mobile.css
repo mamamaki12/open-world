@@ -229,3 +229,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .touch-actions .touch-btn.small { width: 62px; height: 34px; font-size: 12px; }
   .touch-actions .jump { width: 70px; height: 70px; font-size: 14px; }
 }
+
+/* 素材の見本：指で押しやすく、横幅が狭くても4列以上並ぶ */
+.touch .mat-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.touch .mat-tile-name { font-size: 11px; }
+.touch .mat-current { padding: 6px; }

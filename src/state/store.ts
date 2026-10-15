@@ -20,6 +20,7 @@ export interface Defaults {
   doorType: string;
   windowType: string;
   sashColor: string;
+  sashType: string;
   panelColor: string;
   roofType: RoofType;
   roofPitch: number;
@@ -37,6 +38,7 @@ export const INITIAL_DEFAULTS: Defaults = {
   doorType: 'entrance',
   windowType: 'sliding',
   sashColor: '#b8bcc0',
+  sashType: 'alu',
   panelColor: '#5a3e2b',
   roofType: 'gable',
   roofPitch: 4,

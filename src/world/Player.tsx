@@ -7,7 +7,7 @@ import { BASE_HEIGHT, GRID, LOT_D, LOT_W, MAX_LEVEL, STORY_HEIGHT } from '../bui
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
 import type { ClimbPlan } from '../building/climb';
-import { PLAYER, nearestOpening, resolveCollisions, surfaceHeight, windowPassage } from '../building/walk';
+import { PLAYER, ceilingHeight, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, windowPassage } from '../building/walk';
 import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
@@ -394,9 +394,16 @@ export function Player() {
           const nx = playerMemory.x + st.vx * dt;
           const nz = playerMemory.z + st.vz * dt;
           // 窓から飛び出した直後は、通ってきた窓の壁に押し戻されないようにする
-          const next = skipWalls.current && st.airTime < 0.3
+          let next = skipWalls.current && st.airTime < 0.3
             ? { x: nx, z: nz }
             : resolveCollisions(house, { x: nx, z: nz }, playerMemory.y, height, isDoorOpen);
+          // 屋根の斜面に横からぶつかったら止まる（片方の向きだけなら沿って動く）。もう埋まっているときは抜け出せるようにする
+          const blocked = (q: { x: number; z: number }) => roofBlocks(house, q.x, q.z, playerMemory.y, height);
+          if (blocked(next) && !blocked(playerMemory)) {
+            const alongX = { x: next.x, z: playerMemory.z };
+            const alongZ = { x: playerMemory.x, z: next.z };
+            next = !blocked(alongX) ? alongX : !blocked(alongZ) ? alongZ : { x: playerMemory.x, z: playerMemory.z };
+          }
           playerMemory.x = Math.min(Math.max(next.x, -25), LOT_W * GRID + 25);
           playerMemory.z = Math.min(Math.max(next.z, -25), LOT_D * GRID + 25);
           // 三人称では進む向きへ体を回す
@@ -415,9 +422,19 @@ export function Player() {
           playerMemory.y = ground; // 段差を上る・階段を下りるときは地面に沿わせる
         } else {
           st.velY -= GRAVITY * dt;
+          const before = playerMemory.y;
           playerMemory.y += st.velY * dt;
           st.grounded = false;
           st.airTime += dt;
+          // 頭が屋根や上の階の床にぶつかったら、それ以上は上がらない
+          if (st.velY > 0) {
+            const height = st.crouch ? PLAYER.crouchHeight : PLAYER.height;
+            const ceil = ceilingHeight(house, playerMemory.x, playerMemory.z, before + height - 0.1);
+            if (playerMemory.y + height > ceil) {
+              playerMemory.y = Math.max(before, ceil - height);
+              st.velY = 0;
+            }
+          }
         }
         if (playerMemory.y <= ground) {
           playerMemory.y = ground;

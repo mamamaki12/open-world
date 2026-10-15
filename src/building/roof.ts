@@ -148,3 +148,38 @@ export const ROOF_TYPE_NAMES: Record<RoofPart['type'], string> = {
   shed: '片流れ',
   flat: '陸屋根',
 };
+
+/** 屋根の上面・下面の高さ（ワールドY）。(x, z) が屋根（軒の出を含む）の外なら null */
+export function roofHeightAt(roof: RoofPart, x: number, z: number): { top: number; bottom: number } | null {
+  const cx = ((roof.x0 + roof.x1) / 2) * GRID;
+  const cz = ((roof.z0 + roof.z1) / 2) * GRID;
+  const halfX = (Math.abs(roof.x1 - roof.x0) * GRID) / 2;
+  const halfZ = (Math.abs(roof.z1 - roof.z0) * GRID) / 2;
+  const axis = roof.type === 'hip' ? (halfX >= halfZ ? 'x' : 'z') : roof.axis;
+  const flipV = roof.flip ? -1 : 1;
+  // roofShape と同じローカル座標（u = 棟の向き、v = 棟に直交する向き）
+  const u = axis === 'x' ? x - cx : z - cz;
+  const v = (axis === 'x' ? z - cz : x - cx) * flipV;
+  const yTop = wallTopY(roof.level);
+  const flat = roof.type === 'flat';
+  const s = roof.pitch / 10;
+  const o = roof.overhang;
+  const A = (axis === 'x' ? halfX : halfZ) + o;
+  const B = (axis === 'x' ? halfZ : halfX) + o;
+  if (Math.abs(u) > A || Math.abs(v) > B) return null;
+  if (flat) return { top: yTop + FLAT_ROOF_THICKNESS, bottom: yTop };
+  const base = yTop - o * s;
+  let bottom: number;
+  switch (roof.type) {
+    case 'gable':
+      bottom = base + (B - Math.abs(v)) * s;
+      break;
+    case 'hip':
+      bottom = base + Math.min(B - Math.abs(v), A - Math.abs(u)) * s;
+      break;
+    default: // 片流れ（v = -B が低い側）
+      bottom = base + (v + B) * s;
+      break;
+  }
+  return { top: bottom + ROOF_THICKNESS, bottom };
+}

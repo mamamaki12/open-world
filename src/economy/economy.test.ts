@@ -26,6 +26,8 @@ import {
 import type { RaceKind } from './race';
 import { distanceAt, makeCourse, makeMotion, pointAt } from './raceMotion';
 import { seeded } from './rng';
+import prices from '../catalog/prices.json';
+import { MATERIALS, MATERIAL_CATEGORY_NAMES, SASH_TYPES } from '../catalog';
 
 const finish = { material: 'flooring', color: '#c8a57a' };
 const oneRoom = (): House => ({
@@ -63,6 +65,31 @@ describe('建築費', () => {
   it('工事の待ち時間は数十秒〜数分', () => {
     expect(buildSeconds(0)).toBe(15);
     expect(buildSeconds(1e10)).toBe(180);
+  });
+});
+
+describe('建材カタログ', () => {
+  it('どの素材にも値段・色・説明がある', () => {
+    const table = prices.materials as Record<string, number>;
+    for (const m of MATERIALS) {
+      expect(table[m.id], m.id).toBeGreaterThan(0);
+      expect(m.colors.length, m.id).toBeGreaterThan(0);
+      expect(m.note, m.id).toBeTruthy();
+      expect(MATERIAL_CATEGORY_NAMES[m.category], m.id).toBeTruthy();
+    }
+    expect(new Set(MATERIALS.map((m) => m.id)).size).toBe(MATERIALS.length);
+  });
+
+  it('サッシの種類で窓の値段が変わる（古いセーブはアルミ扱い）', () => {
+    const house = sampleHouse();
+    const window = house.openings.find((o) => o.kind === 'window')!;
+    const base = estimateCost(house).byCategory.opening;
+    expect(window.sash).toBeUndefined();
+    const resin = SASH_TYPES.find((t) => t.id === 'resin')!;
+    const upgraded: House = { ...house, openings: house.openings.map((o) => (o.id === window.id ? { ...o, sash: 'resin' } : o)) };
+    expect(estimateCost(upgraded).byCategory.opening).toBeGreaterThan(base);
+    expect(renovationCost(house, upgraded).byCategory.opening).toBeGreaterThan(0);
+    expect(resin.priceRate).toBeGreaterThan(1);
   });
 });
 
