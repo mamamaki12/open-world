@@ -16,6 +16,7 @@ const KEYS: [string, string][] = [
   ['F / E', 'ドア・窓を開ける / 閉める'],
   ['マウス', 'クリックで視点操作（Esc で解除）'],
   ['ホイール', 'カメラの距離（三人称）'],
+  ['2〜9', '建てるツールを持つ（その場で建てられる）'],
   ['Tab', '建築モードに戻る'],
 ];
 
@@ -30,6 +31,7 @@ export function WalkHud() {
   const opening = target ? house.openings.find((o) => o.id === target) : undefined;
   const noun = opening?.kind === 'window' ? '窓' : 'ドア';
   const patio = opening ? getOpening(opening.type).sill === 0 : false;
+  const holding = useGame((s) => s.tool !== 'select');
   const [locked, setLocked] = useState(false);
   useEffect(() => {
     const onChange = () => setLocked(document.pointerLockElement !== null);
@@ -38,7 +40,7 @@ export function WalkHud() {
   }, []);
   return (
     <>
-      {view === 'first' && <div className="crosshair" />}
+      {view === 'first' && !holding && <div className="crosshair" />}
       {target && !climbing && (
         <div className="door-prompts">
           <button
@@ -75,6 +77,9 @@ export function WalkHud() {
             {view === 'first' ? '一人称' : '三人称'}（Q で切替）
           </button>
         </div>
+        {holding ? (
+          <p className="info">建てるツールを持っています。いまいる階に置けます。1 か Esc で手ぶらに戻ります。</p>
+        ) : (
         <table className="keys">
           <tbody>
             {KEYS.map(([k, d]) => (
@@ -85,7 +90,8 @@ export function WalkHud() {
             ))}
           </tbody>
         </table>
-        {!locked && <p className="info">画面をクリックするとマウスで見回せます。ドラッグでも回せます。</p>}
+        )}
+        {!locked && !holding && <p className="info">画面をクリックするとマウスで見回せます。ドラッグでも回せます。</p>}
       </div>
     </>
   );

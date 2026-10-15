@@ -13,16 +13,17 @@ import { ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
 
+// ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
-  { id: 'select', label: '選択', key: 'V' },
-  { id: 'floor', label: '床', key: 'F' },
-  { id: 'wall', label: '壁', key: 'W' },
-  { id: 'door', label: 'ドア', key: 'D' },
-  { id: 'window', label: '窓', key: 'N' },
-  { id: 'stair', label: '階段', key: 'S' },
-  { id: 'roof', label: '屋根', key: 'T' },
-  { id: 'furniture', label: '家具', key: 'G' },
-  { id: 'erase', label: '削除', key: 'E' },
+  { id: 'select', label: '選択', key: '1' },
+  { id: 'floor', label: '床', key: '2' },
+  { id: 'wall', label: '壁', key: '3' },
+  { id: 'door', label: 'ドア', key: '4' },
+  { id: 'window', label: '窓', key: '5' },
+  { id: 'stair', label: '階段', key: '6' },
+  { id: 'roof', label: '屋根', key: '7' },
+  { id: 'furniture', label: '家具', key: '8' },
+  { id: 'erase', label: '削除', key: '9' },
 ];
 
 // 起動時：前回の自動セーブがあれば続きから、なければサンプルの家
@@ -32,12 +33,24 @@ export function App() {
   useKeyboard();
   useAutosave();
   const walking = useGame((s) => s.mode === 'walk');
+  const holding = useGame((s) => s.tool !== 'select');
   return (
     <div className="app">
       <Scene />
       <TopBar />
       {walking ? (
-        <WalkHud />
+        <>
+          <WalkHud />
+          {holding && (
+            <>
+              <div className="side left">
+                <ToolOptions />
+              </div>
+              <LevelBar />
+            </>
+          )}
+          <ControlsHelp />
+        </>
       ) : (
         <>
           <div className="side left">
@@ -78,30 +91,37 @@ function TopBar() {
   const canUndo = useGame((s) => s.past.length > 0);
   const canRedo = useGame((s) => s.future.length > 0);
   const walking = useGame((s) => s.mode === 'walk');
-  if (walking) {
-    return (
-      <div className="topbar">
-        <div className="brand">家づくり</div>
-        <ModeButton />
-      </div>
-    );
-  }
   return (
     <div className="topbar">
       <div className="brand">家づくり</div>
       <ModeButton />
       <div className="tools">
         {TOOLS.map((t) => (
-          <button key={t.id} className={`tool${tool === t.id ? ' on' : ''}`} onClick={() => setTool(t.id)} title={`ショートカット：${t.key}`}>
-            {t.label}
+          <button
+            key={t.id}
+            className={`tool${tool === t.id ? ' on' : ''}`}
+            onClick={(e) => {
+              e.currentTarget.blur(); // Space（ジャンプ）でボタンが押し直されないように
+              setTool(t.id);
+            }}
+            title={`ショートカット：${t.key}`}
+          >
+            <kbd className="key">{t.key}</kbd>
+            {walking && t.id === 'select' ? '手ぶら' : t.label}
           </button>
         ))}
       </div>
       <div className="tools">
-        <button className="tool" disabled={!canUndo} onClick={undo} title="Ctrl+Z">
+        <button className="tool" disabled={!canUndo} onClick={(e) => {
+            e.currentTarget.blur();
+            undo();
+          }} title="Ctrl+Z">
           ↶ 取り消し
         </button>
-        <button className="tool" disabled={!canRedo} onClick={redo} title="Ctrl+Y">
+        <button className="tool" disabled={!canRedo} onClick={(e) => {
+            e.currentTarget.blur();
+            redo();
+          }} title="Ctrl+Y">
           ↷ やり直し
         </button>
       </div>
@@ -115,10 +135,11 @@ function LevelBar() {
   const showAll = useGame((s) => s.showAll);
   const setLevel = useGame((s) => s.setLevel);
   const setShowAll = useGame((s) => s.setShowAll);
+  const walking = useGame((s) => s.mode === 'walk');
   const levels = Array.from({ length: MAX_LEVEL + 1 }, (_, i) => i);
   return (
     <div className="levelbar">
-      <span className="levelbar-label">作業する階</span>
+      <span className="levelbar-label">作業する階（Z / X）</span>
       {levels
         .slice()
         .reverse()
@@ -126,18 +147,23 @@ function LevelBar() {
           <button
             key={l}
             className={`tool${level === l ? ' on' : ''}`}
-            onClick={() => {
+            onClick={(e) => {
+              e.currentTarget.blur();
               setLevel(l);
-              setShowAll(false);
+              if (!walking) setShowAll(false);
             }}
           >
             {levelName(l)}
           </button>
         ))}
-      <label className="check">
-        <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
-        上の階と屋根も表示
-      </label>
+      {walking ? (
+        <span className="levelbar-label">階を移動すると自動で切り替わります</span>
+      ) : (
+        <label className="check">
+          <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
+          上の階と屋根も表示
+        </label>
+      )}
     </div>
   );
 }
@@ -226,12 +252,20 @@ function SaveMenu() {
 
 function ControlsHelp() {
   const tool = useGame((s) => s.tool);
+  const walking = useGame((s) => s.mode === 'walk');
   const building = tool !== 'select' && tool !== 'erase';
-  return (
-    <div className="controls-help">
-      {building ? '右ドラッグ：回転　中ドラッグ / Shift+右ドラッグ：移動' : '左ドラッグ：回転　右ドラッグ：移動'}　ホイール：ズーム　Ctrl+Z：取り消し
-    </div>
-  );
+  let text: string;
+  if (walking) {
+    text =
+      tool === 'select'
+        ? '数字キー 2〜9：建てるツールを持つ'
+        : `左クリック：${tool === 'erase' ? '消す' : '置く'}　右ドラッグ：見回す　WASD：歩く　1 / Esc：手ぶらに戻る`;
+  } else {
+    text = `WASD / 矢印：移動　Q / E：回る　${
+      building ? '右ドラッグ：回転　中ドラッグ / Shift+右ドラッグ：移動' : '左ドラッグ：回転　右ドラッグ：移動'
+    }　ホイール：ズーム`;
+  }
+  return <div className="controls-help">{text}</div>;
 }
 
 function Toast() {
@@ -273,8 +307,8 @@ function useKeyboard() {
         s.setMode(s.mode === 'walk' ? 'build' : 'walk');
         return;
       }
-      // 歩きモードのキーはプレイヤー側で受ける
-      if (s.mode === 'walk') return;
+      // 歩く・カメラを動かすキー（WASD など）はプレイヤー側・カメラ側で受ける
+      const walking = s.mode === 'walk';
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -288,13 +322,42 @@ function useKeyboard() {
         return;
       }
       if (ctrl) return;
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        s.deleteSelected();
+      const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
+      if (digit) {
+        const t = TOOLS.find((x) => x.key === digit[1]);
+        if (t) s.setTool(t.id);
         return;
       }
       if (e.key === 'Escape') {
         s.select(null);
         s.setTool('select');
+        return;
+      }
+      // Z：下の階 / X：上の階
+      if (e.code === 'KeyZ' || e.code === 'PageDown' || e.code === 'KeyX' || e.code === 'PageUp') {
+        const up = e.code === 'KeyX' || e.code === 'PageUp';
+        const next = Math.min(Math.max(s.activeLevel + (up ? 1 : -1), 0), MAX_LEVEL);
+        if (next !== s.activeLevel) {
+          s.setLevel(next);
+          if (!walking) s.setShowAll(false);
+          s.notify(`作業する階：${levelName(next)}`);
+        }
+        return;
+      }
+      if (walking) {
+        // 歩きながらでも、置く前の階段・家具の向きは R で変えられる
+        if (e.code === 'KeyR') {
+          if (s.tool === 'stair') {
+            const ui = useInteraction.getState();
+            ui.setStairRot(((ui.stairRot + 1) % 4) as 0 | 1 | 2 | 3);
+          } else if (s.tool === 'furniture') {
+            s.setDefaults({ furnitureRotation: (s.defaults.furnitureRotation + 90) % 360 });
+          }
+        }
+        return;
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        s.deleteSelected();
         return;
       }
       const sel = s.selection;
@@ -333,13 +396,6 @@ function useKeyboard() {
         }
         return;
       }
-      if (e.key === '1' || e.key === '2') {
-        s.setLevel(Number(e.key) - 1);
-        s.setShowAll(false);
-        return;
-      }
-      const tool = TOOLS.find((t) => t.key === e.key.toUpperCase());
-      if (tool) s.setTool(tool.id);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

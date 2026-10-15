@@ -1,7 +1,7 @@
 // 床・壁・屋根・階段・家具を置く操作と、家具のドラッグ移動。
 // 今いる階の床の高さの水平面に対してマウス位置を求め、マス目に吸着させる。
-import { useEffect } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getFurniture } from '../catalog';
 import { GRID, LOT_D, LOT_W, MAX_LEVEL, floorY } from '../building/dimensions';
@@ -23,6 +23,8 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), h
 
 export function PlacementController() {
   const { gl, camera } = useThree();
+  /** 歩きながら建てるとき、マウスを動かさなくても体の移動に合わせてプレビューを追従させる */
+  const refresh = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const el = gl.domElement;
@@ -51,7 +53,12 @@ export function PlacementController() {
       return { ...r, x1: r.x1 + 1, z1: r.z1 + 1 };
     };
 
+    let lastPointer: PointerEvent | null = null;
+    refresh.current = () => {
+      if (lastPointer) updatePreview(lastPointer);
+    };
     const updatePreview = (e: PointerEvent) => {
+      lastPointer = e;
       const g = useGame.getState();
       const ui = useInteraction.getState();
       const p = groundPoint(e, g.activeLevel);
@@ -163,7 +170,7 @@ export function PlacementController() {
             // 上の階に張るつもりで、階を切り替え忘れていることが多い
             const upper = g.activeLevel + 1;
             if (upper <= MAX_LEVEL && canPlaceFloor(g.house, upper, rect) === null && err === 'すでに床があります') {
-              return g.notify(`${upper}階にはもう床があります。${upper + 1}階の床は、画面下の「作業する階」で ${upper + 1}階 を選ぶ（キー ${upper + 1}）と張れます`);
+              return g.notify(`${upper}階にはもう床があります。${upper + 1}階の床は、画面下の「作業する階」で ${upper + 1}階 を選ぶ（キー X）と張れます`);
             }
             return g.notify(err);
           }
@@ -209,6 +216,7 @@ export function PlacementController() {
     };
 
     const onLeave = () => {
+      lastPointer = null;
       if (!dragStart && !useInteraction.getState().furnitureDrag) useInteraction.getState().setPreview(null);
     };
 
@@ -221,8 +229,14 @@ export function PlacementController() {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointerleave', onLeave);
+      refresh.current = null;
     };
   }, [gl, camera]);
+
+  useFrame(() => {
+    const g = useGame.getState();
+    if (g.mode === 'walk' && g.tool !== 'select' && g.tool !== 'erase') refresh.current?.();
+  });
 
   // ツールを持ち替えたらプレビューを消す
   const tool = useGame((s) => s.tool);

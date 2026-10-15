@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { GRID, LOT_D, LOT_W } from '../building/dimensions';
+import { BASE_HEIGHT, GRID, LOT_D, LOT_W, MAX_LEVEL, STORY_HEIGHT } from '../building/dimensions';
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
 import type { ClimbPlan } from '../building/climb';
@@ -80,6 +80,16 @@ function climbablePassage(): WindowPassage | null {
   return pass;
 }
 
+/** 歩きながら建てるツールを持っているか（選択ツール = 手ぶら） */
+export function isBuilding() {
+  return useGame.getState().tool !== 'select';
+}
+
+/** 立っている高さから、いまいる階を求める */
+function levelAt(y: number) {
+  return Math.min(Math.max(Math.floor((y - BASE_HEIGHT + 0.4) / STORY_HEIGHT), 0), MAX_LEVEL);
+}
+
 interface Action {
   plan: ClimbPlan;
   t: number;
@@ -107,6 +117,7 @@ export function Player() {
   const keys = useRef(new Set<string>());
   const state = useRef({ velY: 0, vx: 0, vz: 0, grounded: true, crouch: false, airTime: 0, lastYaw: 0, shake: 0 });
   const action = useRef<Action | null>(null);
+  const playerLevel = useRef(-1);
   /** 窓から飛び出した直後：通ってきた窓の壁に押し戻されないよう、少しの間だけ壁の当たり判定を切る */
   const skipWalls = useRef(false);
   const raycaster = useRef(new THREE.Raycaster());
@@ -169,7 +180,9 @@ export function Player() {
         playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
       }
       if (WALK_KEYS.interact.includes(e.code)) toggleTargetDoor();
-      if (WALK_KEYS.resetCamera.includes(e.code)) {
+      // 階段・家具を持っているときの R は向きを変える（App 側で処理）
+      const tool = useGame.getState().tool;
+      if (WALK_KEYS.resetCamera.includes(e.code) && tool !== 'stair' && tool !== 'furniture') {
         playerMemory.yaw = playerMemory.bodyYaw;
         playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
       }
@@ -183,6 +196,11 @@ export function Player() {
       playerMemory.pitch = Math.min(Math.max(playerMemory.pitch - dy * 0.0028, -1.25), 1.25);
     };
     const onMouseDown = (e: MouseEvent) => {
+      // 建てるツールを持っているときは、左クリックで置き、右ドラッグで見回す
+      if (isBuilding()) {
+        if (e.button === 2) dragging = true;
+        return;
+      }
       if (e.button !== 0) return;
       dragging = true;
       // クリックでマウスを固定して視点操作（使えない環境ではドラッグで視点を回す）
@@ -197,6 +215,11 @@ export function Player() {
     const onMouseMove = (e: MouseEvent) => {
       if (document.pointerLockElement === el || dragging) look(e.movementX, e.movementY);
     };
+    const onContextMenu = (e: MouseEvent) => e.preventDefault();
+    // ツールを持ったらマウスの固定を外す（カーソルで置く場所を指すため）
+    const unsubTool = useGame.subscribe((s, prev) => {
+      if (s.tool !== prev.tool && s.tool !== 'select' && document.pointerLockElement === el) document.exitPointerLock();
+    });
     const onWheel = (e: WheelEvent) => {
       playerMemory.distance = Math.min(Math.max(playerMemory.distance + e.deltaY * 0.004, 1.6), 9);
     };
@@ -208,7 +231,10 @@ export function Player() {
     window.addEventListener('mouseup', onMouseUp);
     window.addEventListener('mousemove', onMouseMove);
     el.addEventListener('wheel', onWheel, { passive: true });
+    el.addEventListener('contextmenu', onContextMenu);
     return () => {
+      unsubTool();
+      el.removeEventListener('contextmenu', onContextMenu);
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('blur', onBlur);
@@ -330,6 +356,13 @@ export function Player() {
           skipWalls.current = false;
         }
       }
+    }
+
+    // 作業する階は、いまいる階に合わせる（Z / X で一時的に変えられる）
+    const lv = levelAt(playerMemory.y);
+    if (lv !== playerLevel.current) {
+      playerLevel.current = lv;
+      if (useGame.getState().activeLevel !== lv) useGame.getState().setLevel(lv);
     }
 
     // 近くのドア・窓を操作対象にする。開いた窓なら出られるかも調べる

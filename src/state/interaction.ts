@@ -20,11 +20,14 @@ interface InteractionState {
   setFurnitureDrag: (d: InteractionState['furnitureDrag']) => void;
 }
 
-export const useInteraction = create<InteractionState>((set) => ({
+export const useInteraction = create<InteractionState>((set, get) => ({
   preview: null,
   stairRot: 0,
   furnitureDrag: null,
-  setPreview: (preview) => set({ preview }),
+  // 毎フレーム呼ばれても、中身が変わらなければ描き直さない
+  setPreview: (preview) => {
+    if (JSON.stringify(preview) !== JSON.stringify(get().preview)) set({ preview });
+  },
   setStairRot: (stairRot) => set({ stairRot }),
   setFurnitureDrag: (furnitureDrag) => set({ furnitureDrag }),
 }));

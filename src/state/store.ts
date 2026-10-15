@@ -137,7 +137,8 @@ export const useGame = create<GameState>((set, get) => ({
     set({ selection: null });
   },
 
-  setMode: (mode) => set({ mode, selection: null }),
+  // 歩きモードに入るときは手ぶら（選択ツール）から始める
+  setMode: (mode) => set({ mode, selection: null, tool: mode === 'walk' ? 'select' : get().tool }),
   toggleView: () => set({ view: get().view === 'third' ? 'first' : 'third' }),
   setTool: (tool) => set({ tool, selection: tool === 'select' ? get().selection : null }),
   setLevel: (level) => set({ activeLevel: level, selection: null }),

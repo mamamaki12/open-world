@@ -14,7 +14,8 @@ export function usePart(ref: PartRef) {
   const walking = useGame((s) => s.mode === 'walk');
   const selected = useGame((s) => s.selection?.kind === ref.kind && s.selection.id === ref.id);
   const [hover, setHover] = useState(false);
-  const interactive = !walking && (tool === 'select' || tool === 'erase');
+  // 歩きモードでは選択はせず、削除ツールだけ効く
+  const interactive = walking ? tool === 'erase' : tool === 'select' || tool === 'erase';
 
   const highlight: Highlight = selected ? 'selected' : hover && interactive ? (tool === 'erase' ? 'erase' : 'hover') : 'none';
 

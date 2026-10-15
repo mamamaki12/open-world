@@ -21,8 +21,11 @@ export function HouseView() {
 
   // 歩きモードでは家全体を見せる
   const visible = (level: number) => walking || showAll || level <= activeLevel;
+  // 今の階の屋根は、中を作る道具（床・壁・ドア・窓・階段・家具）を持っている間だけ隠す。
+  // 選択・削除・屋根ツールでは見せる（置いた屋根を選んで直せるように）
+  const insideTool = tool !== 'roof' && tool !== 'select' && tool !== 'erase';
   const roofVisible = (level: number) =>
-    walking || showAll || level < activeLevel || (tool === 'roof' && level === activeLevel);
+    walking || showAll || level < activeLevel || (level === activeLevel && !insideTool);
 
   const openingsByWall = useMemo(() => {
     const m = new Map<string, House['openings']>();
@@ -47,7 +50,7 @@ export function HouseView() {
       {house.roofs.filter((r) => roofVisible(r.level)).map((r) => (
         <Roof key={r.id} roof={r} />
       ))}
-      {!walking && <PreviewView />}
+      <PreviewView />
     </group>
   );
 }
