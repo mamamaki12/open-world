@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
 import { GRID, MAX_LEVEL, WALL_HEIGHT, WALL_THICKNESS, floorY } from '../building/dimensions';
-import { furnitureBaseY, stairHoles, wallHeight, wallLength, wallOutsideSide } from '../building/rules';
+import { furnitureBaseY, stairHoles, wallBaseY, wallHeight, wallLength, wallOutsideSide } from '../building/rules';
 import type { House } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
@@ -117,7 +117,7 @@ function PreviewView() {
       const angle = -Math.atan2(preview.z1 - preview.z0, preview.x1 - preview.x0);
       const h = wallHeight({ height: defaults.wallHeight });
       return (
-        <mesh position={[cx, y + h / 2, cz]} rotation={[0, angle, 0]} material={preview.valid ? okMat : badMat}>
+        <mesh position={[cx, wallBaseY({ level, height: defaults.wallHeight }) + h / 2, cz]} rotation={[0, angle, 0]} material={preview.valid ? okMat : badMat}>
           <boxGeometry args={[len + WALL_THICKNESS, h, WALL_THICKNESS + 0.02]} />
         </mesh>
       );
@@ -137,7 +137,7 @@ function PreviewView() {
       const def = getFurniture(defaults.furnitureType);
       const fp = furnitureFootprint(def);
       return (
-        <group position={[preview.x, furnitureBaseY(house, { level, x: preview.x, z: preview.z }), preview.z]} rotation={[0, (defaults.furnitureRotation * Math.PI) / 180, 0]}>
+        <group position={[preview.x, furnitureBaseY(house, { level, type: defaults.furnitureType, x: preview.x, z: preview.z }), preview.z]} rotation={[0, (defaults.furnitureRotation * Math.PI) / 180, 0]}>
           <FurnitureModel def={def} color={def.colors[0]} label={defaults.nameplateText} />
           <mesh position={[0, 0.01, 0]} material={okMat}>
             <boxGeometry args={[fp.w, 0.02, fp.d]} />
@@ -154,7 +154,7 @@ function PreviewView() {
       const len = wallLength(wall);
       const offset = Math.min(preview.offset, len);
       return (
-        <group position={[wall.x0 * GRID, floorY(wall.level), wall.z0 * GRID]} rotation={[0, angle, 0]}>
+        <group position={[wall.x0 * GRID, wallBaseY(wall), wall.z0 * GRID]} rotation={[0, angle, 0]}>
           <mesh position={[offset, def.sill + def.height / 2, 0]} material={preview.valid ? okMat : badMat}>
             <boxGeometry args={[def.width, def.height, WALL_THICKNESS + 0.06]} />
           </mesh>

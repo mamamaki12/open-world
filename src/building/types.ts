@@ -38,7 +38,7 @@ export interface WallPart {
   height?: WallHeight;
 }
 
-export type WallHeight = 'full' | 'half';
+export type WallHeight = 'full' | 'half' | 'fence' | 'privacyFence';
 
 export type OpeningKind = 'door' | 'window';
 

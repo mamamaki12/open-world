@@ -1,8 +1,8 @@
 import { useContext, useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { getOpening } from '../../catalog';
-import { GRID, WALL_THICKNESS, floorY } from '../../building/dimensions';
-import { canPlaceOpening, newId, snapOpeningOffset, wallHeight, wallLength, wallOutsideSide } from '../../building/rules';
+import { GRID, WALL_THICKNESS } from '../../building/dimensions';
+import { canPlaceOpening, newId, snapOpeningOffset, wallBaseY, wallHeight, wallLength, wallOutsideSide } from '../../building/rules';
 import type { OpeningPart, WallPart } from '../../building/types';
 import { useGame } from '../../state/store';
 import { useInteraction } from '../../state/interaction';
@@ -141,7 +141,7 @@ export function Wall({ wall, openings, outside }: Props) {
   } : {};
 
   return (
-    <group position={[wall.x0 * GRID, floorY(wall.level), wall.z0 * GRID]} rotation={[0, angle, 0]}>
+    <group position={[wall.x0 * GRID, wallBaseY(wall), wall.z0 * GRID]} rotation={[0, angle, 0]}>
       {segments.map((segment, i) => (
         <mesh key={i} position={[segment.start, 0, 0]} geometry={segment.geometry}
           material={materialsFor(segment.outside)} castShadow receiveShadow {...handlers} {...openingHandlers} {...nameplateHandlers} />

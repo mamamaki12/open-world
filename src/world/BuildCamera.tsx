@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
+import { GRID, LOT_W, LOT_D, floorY } from '../building/dimensions';
+import { touchGesture, reservesTouch } from '../state/gestures';
 import { touchCamera } from '../state/touch';
 import { useTouchDevice } from '../ui/useTouchDevice';
 import { currentPlotOf, useEconomy } from '../state/economy';
@@ -26,6 +28,7 @@ const TURN_SPEED = 1.6;
 
 export function BuildCamera() {
   const camera = useThree((s) => s.camera);
+  const gl = useThree(s=>s.gl);
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null;
   const keys = useRef(new Set<string>());
   const touch = useTouchDevice();
@@ -69,6 +72,20 @@ export function BuildCamera() {
       window.removeEventListener('blur', onBlur);
     };
   }, []);
+
+  useEffect(()=>{
+    if(!controls)return;
+    const down=(event:PointerEvent)=>{
+      if(event.pointerType!=='touch')return;
+      const g=useGame.getState(),r=gl.domElement.getBoundingClientRect(),ray=new THREE.Raycaster();
+      ray.setFromCamera(new THREE.Vector2((event.clientX-r.left)/r.width*2-1,-(event.clientY-r.top)/r.height*2+1),camera);
+      const p=ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-floorY(g.activeLevel)),new THREE.Vector3());
+      touchGesture.reserved=reservesTouch(g.tool,g.mode,g.eraseMulti,!!p&&p.x>=0&&p.x<=LOT_W*GRID&&p.z>=0&&p.z<=LOT_D*GRID);
+      controls.touches.ONE=touchGesture.reserved?(-1 as THREE.TOUCH):THREE.TOUCH.ROTATE;
+    };
+    gl.domElement.addEventListener('pointerdown',down,true);
+    return()=>gl.domElement.removeEventListener('pointerdown',down,true);
+  },[camera,controls,gl]);
 
   const walking = useGame((s) => s.mode === 'walk');
 

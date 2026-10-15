@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useDoors } from '../state/doors';
 import { getOpening } from '../catalog';
 import { useGame } from '../state/store';
+import { useVehicles } from '../state/vehicles';
 import { useSeating } from '../state/seating';
 import { interact } from '../world/Player';
 import { useTouchDevice } from './useTouchDevice';
@@ -65,6 +66,8 @@ export function WalkHud() {
     document.addEventListener('pointerlockchange', onChange);
     return () => document.removeEventListener('pointerlockchange', onChange);
   }, []);
+  const vehicleAction = useVehicles(s => s.driving !== null || s.target !== null);
+  if (vehicleAction) return null;
   return (
     <>
       {view === 'first' && !holding && <div className="crosshair" />}

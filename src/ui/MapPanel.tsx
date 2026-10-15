@@ -6,14 +6,15 @@ import { useCurrentPlot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { playerMemory, warpToLot } from '../world/Player';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
+import { DEALER } from '../building/dealer';
 import { CASINO, ESTATE } from '../building/landmarks';
 import { Modal } from './Modal';
 
 const SCALE = 3.2, PAD = 28;
 const sx = (x: number) => PAD + (x - TOWN_BOUNDS.x0 + 12) * SCALE;
 const sy = (z: number) => PAD + (z - TOWN_BOUNDS.z0 + 12) * SCALE;
-const WIDTH = sx(TOWN_BOUNDS.x1 + 14) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 30) + PAD;
-type Pick = { kind: 'plot'; plot: number } | { kind: 'casino' | 'estate' } | null;
+const WIDTH = sx(TOWN_BOUNDS.x1 + 35) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 35) + PAD;
+type Pick = { kind: 'plot'; plot: number } | { kind: 'casino' | 'estate' | 'dealer' } | null;
 
 export function MapPanel() {
   const close = useGame(s => s.setOverlay), walking = useGame(s => s.mode === 'walk');
@@ -31,7 +32,7 @@ export function MapPanel() {
   const mz = plotZ(here) + (walking ? playerMemory.z : LOT_D * GRID / 2);
   return <Modal title="🗺 町の地図" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="map-modal">
     <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span><span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span></div>
-    <p className="info">{BLOCK_COLUMNS * BLOCK_ROWS}ブロック・各4区画の住宅街です。南側にカジノと不動産屋があります。</p>
+    <p className="info">{BLOCK_COLUMNS * BLOCK_ROWS}ブロック・各4区画の住宅街です。南側にカジノ・不動産屋・カーディーラーがあります。</p>
     <div className="map-scroll" style={{ maxHeight: '55vh', overflow: 'auto' }}>
       <svg width="100%" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} style={{ minWidth: 560, display: 'block', background: '#e7ebdf', borderRadius: 10 }} role="img" aria-label="8ブロックに32区画が並ぶ町の地図">
         {TOWN_ROADS.map((road, i) => <g key={i}>
@@ -51,7 +52,7 @@ export function MapPanel() {
             <text x={sx(plotX(plot) + LOT_W * GRID / 2)} y={sy(plotZ(plot) + 16)} textAnchor="middle" fontSize={6} fill="#78877c">BLOCK {String(blockOf(plot) + 1).padStart(2, '0')} · {plot - FIRST_PLOT + 1}</text>
           </g>;
         })}
-        {[{ kind: 'casino' as const, box: CASINO, label: 'GRAND STRIP' }, { kind: 'estate' as const, box: ESTATE, label: '不動産屋' }].map(({ kind, box, label }) => <g key={kind} role="button" tabIndex={0} aria-label={label} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind }); }}>
+        {[{ kind: 'casino' as const, box: CASINO, label: 'GRAND STRIP' }, { kind: 'estate' as const, box: ESTATE, label: '不動産屋' }, { kind: 'dealer' as const, box: DEALER, label: '車販売' }].map(({ kind, box, label }) => <g key={kind} role="button" tabIndex={0} aria-label={label} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind }); }}>
           <rect x={sx(CIVIC_SITE.x + box.x0)} y={sy(CIVIC_SITE.z + box.z0)} width={(box.x1 - box.x0) * SCALE} height={(box.z1 - box.z0) * SCALE} rx={3} fill={kind === 'casino' ? '#755743' : '#34777a'} stroke={pick?.kind === kind ? '#f6bf4d' : '#fff9'} strokeWidth={2} />
           <text x={sx(CIVIC_SITE.x + (box.x0 + box.x1) / 2)} y={sy(CIVIC_SITE.z + (box.z0 + box.z1) / 2)} textAnchor="middle" fontSize={kind === 'casino' ? 8 : 7} fill="#fff">{label}</text>
         </g>)}
@@ -61,8 +62,8 @@ export function MapPanel() {
     </div>
     <div className="map-detail card">
       {selectedLot ? <><h3>{selectedLot.name}</h3><p className="muted">{getLocation(selectedLot.location).name}・{selectedLot.construction ? '工事中' : selectedLot.built ? '家あり' : '土地'}</p><button className="btn primary" onClick={() => warpToLot(selectedLot.id)}>{selectedLot.id === currentId ? 'この家の前に戻る' : 'この家へワープ'}</button></>
-      : selectedOffer ? <><h3>売り土地：{selectedOffer.name}</h3><p>価格 {yen(landPrice(selectedOffer.location, selectedOffer.variance, market))}</p><p className="info">購入は南側の不動産屋でお手続きください。</p></>
-      : pick?.kind === 'casino' || pick?.kind === 'estate' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : 'まちの不動産'}</h3><p>住宅街の南側にあります。店舗の入口でFキー（スマホは入場ボタン）を押してください。</p></>
+      : selectedOffer ? <><h3>売り土地：{selectedOffer.name}</h3><p>価格 {yen(landPrice(selectedOffer.location, selectedOffer.variance, market))}</p><p className="info">看板の前でFを押すと、この土地を購入できます。不動産屋でも購入できます。</p></>
+      : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : 'まちの不動産'}</h3><p>住宅街の南側にあります。店舗の入口でFキー（スマホは入場ボタン）を押してください。</p></>
       : <p className="muted">地図の家・土地・店舗を選んでください。</p>}
     </div>
     <section className="map-mylots"><div className="card-title">あなたの家・土地（{lots.length}）</div><ul>

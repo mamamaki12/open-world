@@ -1,6 +1,8 @@
 // スマホ・タブレット用の画面ボタン：歩きモードのスティックと動作ボタン、建築モードのカメラボタン
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { useVehicles } from '../state/vehicles';
+import { driveButtons } from '../world/vehicleLogic';
 import { useDoors } from '../state/doors';
 import { useGame } from '../state/store';
 import { RUN_THRESHOLD, touchCamera, touchMove, walkActions } from '../state/touch';
@@ -95,6 +97,8 @@ function HoldButton({ className, onHold, children, label }: { className?: string
 }
 
 export function TouchWalkControls() {
+  const driving = useVehicles(s=>s.driving);
+  useEffect(()=>()=>{driveButtons.brake=false;},[]);
   const view = useGame((s) => s.view);
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
@@ -108,9 +112,9 @@ export function TouchWalkControls() {
         <TapButton className="small" onTap={() => walkActions.toggleView()}>
           {view === 'first' ? '一人称' : '三人称'}
         </TapButton>
-        <TapButton className={`jump${climb === 'ok' && !climbing ? ' climb' : ''}`} onTap={() => walkActions.jump()}>
+        {driving ? <HoldButton label="ブレーキ" className="jump" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton> : <TapButton className={`jump${climb === 'ok' && !climbing ? ' climb' : ''}`} onTap={() => walkActions.jump()}>
           {climb === 'ok' && !climbing ? '窓から出る' : 'ジャンプ'}
-        </TapButton>
+        </TapButton>}
       </div>
     </div>
   );

@@ -8,7 +8,7 @@
 import { furnitureBounds, getFurniture, getOpening } from '../catalog';
 import { GRID, SLAB_THICKNESS, STAIR_RAIL_HEIGHT, STORY_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import { roofHeightAt } from './roof';
-import { furnitureBaseY, stairHoles, wallHeight } from './rules';
+import { furnitureBaseY, stairHoles, wallBaseY, wallHeight } from './rules';
 import { stairHeightFraction, stairLocalRails, stairWorldGrid } from './stairs';
 import type { OpeningDef } from '../catalog';
 import type { House, OpeningPart, StairPart, WallPart } from './types';
@@ -168,7 +168,7 @@ export function resolveCollisions(
   const headY = feetY + height;
   for (let iter = 0; iter < 3; iter++) {
     for (const w of house.walls) {
-      const wy0 = floorY(w.level);
+      const wy0 = wallBaseY(w);
       const wy1 = wy0 + wallHeight(w);
       // 足が壁の上端より上（段差で越えられる高さも含む）か、頭が壁の下なら当たらない
       if (feetY >= wy1 - 0.05 || headY <= wy0 + PLAYER.maxStep) continue;
@@ -222,7 +222,12 @@ export function resolveCollisions(
     }
     for (const f of house.furniture) {
       const y0 = furnitureBaseY(house, f);
-      const b = furnitureBounds(getFurniture(f.type));
+      const def = getFurniture(f.type);
+      const bounds = def.collisionParts ? def.parts.filter((p,i) => !(f.type === 'garage-shutter' && isOpen(f.id) && i >= 3) && y0 + p.pos[1] - p.size[1] / 2 < headY && y0 + p.pos[1] + p.size[1] / 2 > feetY).map(p => ({
+        minX: p.pos[0] - p.size[0] / 2, maxX: p.pos[0] + p.size[0] / 2,
+        minZ: p.pos[2] - p.size[2] / 2, maxZ: p.pos[2] + p.size[2] / 2, top: p.pos[1] + p.size[1] / 2,
+      })) : [furnitureBounds(def)];
+      for (const b of bounds) {
       if (b.top < 0.1) continue; // ラグなどは踏める
       if (feetY >= y0 + b.top - 0.05 || headY <= y0) continue;
       const a = (f.rotation * Math.PI) / 180;
@@ -261,6 +266,7 @@ export function resolveCollisions(
       // ローカル → ワールド（+a 回転）
       x = f.x + nlx * cos + nlz * sin;
       z = f.z - nlx * sin + nlz * cos;
+      }
     }
   }
   return { x, z };
@@ -283,7 +289,7 @@ export function nearestOpening(house: House, x: number, z: number, feetY: number
     if (!isOperable(getOpening(o.type))) continue;
     const w = house.walls.find((ww) => ww.id === o.wallId);
     if (!w) continue;
-    const y0 = floorY(w.level);
+    const y0 = wallBaseY(w);
     if (feetY < y0 - PLAYER.maxStep - 0.05 || feetY > y0 + 1.0) continue;
     const len = Math.hypot(w.x1 - w.x0, w.z1 - w.z0);
     const dx = (w.x1 - w.x0) / len;
@@ -343,7 +349,7 @@ export function windowPassage(house: House, o: OpeningPart, x: number, z: number
   const cz = w.z0 * GRID + dz * mid;
   // 左法線 (-dz, dx)。プレイヤーがいる側の反対へ向かう
   const side = (x - cx) * -dz + (z - cz) * dx >= 0 ? 1 : -1;
-  const sillY = floorY(w.level) + def.sill + OPENING_FRAME;
+  const sillY = wallBaseY(w) + def.sill + OPENING_FRAME;
   const width = hi - lo;
   const height = def.height - OPENING_FRAME * 2;
   const climb = sillY - feetY;

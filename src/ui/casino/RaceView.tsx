@@ -1,5 +1,6 @@
 // レース映像：3Dのレース場を中継カメラのように追いかけて映す。実況（声つき）、残り距離、通過順、全体図つき
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { NUMBER_COLORS, RACES } from '../../economy/race';
 import type { Race } from '../../economy/race';
 import { PACK, Packer, courseP, distanceAt, pointAt, raceTime } from '../../economy/raceMotion';
@@ -23,6 +24,7 @@ interface Props {
   motion: Motion;
   order: number[];
   onDone: () => void;
+  ticketPanel?: ReactNode;
 }
 
 interface Call {
@@ -30,7 +32,8 @@ interface Call {
   key: number;
 }
 
-export function RaceView({ race, motion, order, onDone }: Props) {
+export function RaceView({ race, motion, order, onDone, ticketPanel }: Props) {
+  const [showTickets, setShowTickets] = useState(false);
   const miniRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(300);
@@ -320,7 +323,9 @@ export function RaceView({ race, motion, order, onDone }: Props) {
         <span className="race-title">{race.name}　{race.surface ?? ''}{race.distance}m</span>
         <span className="race-clock">{hud.clock}</span>
         <span className="race-remain">{hud.remain}</span>
+        {ticketPanel && <button className="race-tickets-toggle" aria-expanded={showTickets} onClick={()=>setShowTickets(!showTickets)}>🎟 購入した券を見る</button>}
       </div>
+      {showTickets && <section className="race-ticket-drawer" aria-label="購入した券"><button className="btn small" onClick={()=>setShowTickets(false)}>閉じる</button>{ticketPanel}</section>}
       <div className="race-screen" ref={wrapRef}>
         <Race3D race={race} course={motion.course} sim={sim} height={full ? '100%' : height} />
         <button className="race-full-btn" onClick={() => setFull(!full)} aria-label={full ? '全画面をやめる' : '全画面で見る'}>

@@ -103,6 +103,9 @@ export interface FurnitureDef {
   name: string;
   /** outdoor：庭・外構に置くもの（プール・花など）。省略は家の中の家具 */
   category?: 'outdoor';
+  /** 外構・ガレージ部材は地面基準。部品ごとの衝突判定で車庫の内部を通れる。 */
+  grounded?: boolean;
+  collisionParts?: boolean;
   /** 文字を書く面（表札）。pos は面の中心、size は幅・高さ（m）。+Z 向き */
   label?: { pos: [number, number, number]; size: [number, number] };
   colors: string[];

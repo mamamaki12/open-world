@@ -1,150 +1,2743 @@
 {
   "types": [
-    { "id": "bed-double", "name": "ベッド（ダブル）", "colors": ["#e9e4da", "#9aa7b3", "#c9b8a4", "#5d6670"],
+    {
+      "id": "bed-double",
+      "name": "ベッド（ダブル）",
+      "colors": [
+        "#e9e4da",
+        "#9aa7b3",
+        "#c9b8a4",
+        "#5d6670"
+      ],
       "parts": [
-        { "shape": "box", "size": [1.44, 0.3, 2.06], "pos": [0, 0.15, 0], "paint": "wood" },
-        { "shape": "box", "size": [1.4, 0.22, 1.98], "pos": [0, 0.41, 0.02], "paint": "main" },
-        { "shape": "box", "size": [1.44, 0.9, 0.06], "pos": [0, 0.45, -1.0], "paint": "wood" },
-        { "shape": "box", "size": [0.55, 0.12, 0.35], "pos": [-0.35, 0.58, -0.75], "paint": "white" },
-        { "shape": "box", "size": [0.55, 0.12, 0.35], "pos": [0.35, 0.58, -0.75], "paint": "white" }
-      ] },
-    { "id": "bed-single", "name": "ベッド（シングル）", "colors": ["#e9e4da", "#9aa7b3", "#c9b8a4", "#5d6670"],
+        {
+          "shape": "box",
+          "size": [
+            1.44,
+            0.3,
+            2.06
+          ],
+          "pos": [
+            0,
+            0.15,
+            0
+          ],
+          "paint": "wood"
+        },
+        {
+          "shape": "box",
+          "size": [
+            1.4,
+            0.22,
+            1.98
+          ],
+          "pos": [
+            0,
+            0.41,
+            0.02
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            1.44,
+            0.9,
+            0.06
+          ],
+          "pos": [
+            0,
+            0.45,
+            -1
+          ],
+          "paint": "wood"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.55,
+            0.12,
+            0.35
+          ],
+          "pos": [
+            -0.35,
+            0.58,
+            -0.75
+          ],
+          "paint": "white"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.55,
+            0.12,
+            0.35
+          ],
+          "pos": [
+            0.35,
+            0.58,
+            -0.75
+          ],
+          "paint": "white"
+        }
+      ]
+    },
+    {
+      "id": "bed-single",
+      "name": "ベッド（シングル）",
+      "colors": [
+        "#e9e4da",
+        "#9aa7b3",
+        "#c9b8a4",
+        "#5d6670"
+      ],
       "parts": [
-        { "shape": "box", "size": [1.0, 0.3, 2.06], "pos": [0, 0.15, 0], "paint": "wood" },
-        { "shape": "box", "size": [0.97, 0.22, 1.98], "pos": [0, 0.41, 0.02], "paint": "main" },
-        { "shape": "box", "size": [1.0, 0.9, 0.06], "pos": [0, 0.45, -1.0], "paint": "wood" },
-        { "shape": "box", "size": [0.6, 0.12, 0.35], "pos": [0, 0.58, -0.75], "paint": "white" }
-      ] },
-    { "id": "sofa", "name": "ソファ（3人掛け）", "colors": ["#7d8a96", "#b9ab97", "#4f5b52", "#8a4f3d", "#3b3d42"],
+        {
+          "shape": "box",
+          "size": [
+            1,
+            0.3,
+            2.06
+          ],
+          "pos": [
+            0,
+            0.15,
+            0
+          ],
+          "paint": "wood"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.97,
+            0.22,
+            1.98
+          ],
+          "pos": [
+            0,
+            0.41,
+            0.02
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            1,
+            0.9,
+            0.06
+          ],
+          "pos": [
+            0,
+            0.45,
+            -1
+          ],
+          "paint": "wood"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.6,
+            0.12,
+            0.35
+          ],
+          "pos": [
+            0,
+            0.58,
+            -0.75
+          ],
+          "paint": "white"
+        }
+      ]
+    },
+    {
+      "id": "sofa",
+      "name": "ソファ（3人掛け）",
+      "colors": [
+        "#7d8a96",
+        "#b9ab97",
+        "#4f5b52",
+        "#8a4f3d",
+        "#3b3d42"
+      ],
       "parts": [
-        { "shape": "box", "size": [2.0, 0.2, 0.9], "pos": [0, 0.15, 0], "paint": "main" },
-        { "shape": "box", "size": [1.7, 0.18, 0.7], "pos": [0, 0.34, 0.08], "paint": "main" },
-        { "shape": "box", "size": [2.0, 0.5, 0.2], "pos": [0, 0.5, -0.35], "paint": "main" },
-        { "shape": "box", "size": [0.15, 0.4, 0.9], "pos": [-0.925, 0.45, 0], "paint": "main" },
-        { "shape": "box", "size": [0.15, 0.4, 0.9], "pos": [0.925, 0.45, 0], "paint": "main" },
-        { "shape": "box", "size": [1.9, 0.05, 0.8], "pos": [0, 0.025, 0], "paint": "dark" }
-      ] },
-    { "id": "dining", "name": "ダイニングテーブル", "colors": ["#c8a57a", "#7c5534", "#4e3626", "#e8e3da"],
+        {
+          "shape": "box",
+          "size": [
+            2,
+            0.2,
+            0.9
+          ],
+          "pos": [
+            0,
+            0.15,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            1.7,
+            0.18,
+            0.7
+          ],
+          "pos": [
+            0,
+            0.34,
+            0.08
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            2,
+            0.5,
+            0.2
+          ],
+          "pos": [
+            0,
+            0.5,
+            -0.35
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.15,
+            0.4,
+            0.9
+          ],
+          "pos": [
+            -0.925,
+            0.45,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.15,
+            0.4,
+            0.9
+          ],
+          "pos": [
+            0.925,
+            0.45,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            1.9,
+            0.05,
+            0.8
+          ],
+          "pos": [
+            0,
+            0.025,
+            0
+          ],
+          "paint": "dark"
+        }
+      ]
+    },
+    {
+      "id": "dining",
+      "name": "ダイニングテーブル",
+      "colors": [
+        "#c8a57a",
+        "#7c5534",
+        "#4e3626",
+        "#e8e3da"
+      ],
       "parts": [
-        { "shape": "box", "size": [1.6, 0.04, 0.85], "pos": [0, 0.7, 0], "paint": "main" },
-        { "shape": "box", "size": [0.06, 0.68, 0.06], "pos": [-0.72, 0.34, -0.35], "paint": "main" },
-        { "shape": "box", "size": [0.06, 0.68, 0.06], "pos": [0.72, 0.34, -0.35], "paint": "main" },
-        { "shape": "box", "size": [0.06, 0.68, 0.06], "pos": [-0.72, 0.34, 0.35], "paint": "main" },
-        { "shape": "box", "size": [0.06, 0.68, 0.06], "pos": [0.72, 0.34, 0.35], "paint": "main" }
-      ] },
-    { "id": "chair", "name": "チェア", "colors": ["#c8a57a", "#7c5534", "#2f3133", "#e8e3da"],
+        {
+          "shape": "box",
+          "size": [
+            1.6,
+            0.04,
+            0.85
+          ],
+          "pos": [
+            0,
+            0.7,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.06,
+            0.68,
+            0.06
+          ],
+          "pos": [
+            -0.72,
+            0.34,
+            -0.35
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.06,
+            0.68,
+            0.06
+          ],
+          "pos": [
+            0.72,
+            0.34,
+            -0.35
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.06,
+            0.68,
+            0.06
+          ],
+          "pos": [
+            -0.72,
+            0.34,
+            0.35
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.06,
+            0.68,
+            0.06
+          ],
+          "pos": [
+            0.72,
+            0.34,
+            0.35
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "chair",
+      "name": "チェア",
+      "colors": [
+        "#c8a57a",
+        "#7c5534",
+        "#2f3133",
+        "#e8e3da"
+      ],
       "parts": [
-        { "shape": "box", "size": [0.44, 0.04, 0.44], "pos": [0, 0.43, 0], "paint": "main" },
-        { "shape": "box", "size": [0.44, 0.4, 0.04], "pos": [0, 0.65, -0.2], "paint": "main" },
-        { "shape": "box", "size": [0.04, 0.42, 0.04], "pos": [-0.19, 0.21, -0.19], "paint": "main" },
-        { "shape": "box", "size": [0.04, 0.42, 0.04], "pos": [0.19, 0.21, -0.19], "paint": "main" },
-        { "shape": "box", "size": [0.04, 0.42, 0.04], "pos": [-0.19, 0.21, 0.19], "paint": "main" },
-        { "shape": "box", "size": [0.04, 0.42, 0.04], "pos": [0.19, 0.21, 0.19], "paint": "main" }
-      ] },
-    { "id": "tv", "name": "テレビボード＋テレビ", "colors": ["#4e3626", "#c8a57a", "#efedea", "#2f3133"],
+        {
+          "shape": "box",
+          "size": [
+            0.44,
+            0.04,
+            0.44
+          ],
+          "pos": [
+            0,
+            0.43,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.44,
+            0.4,
+            0.04
+          ],
+          "pos": [
+            0,
+            0.65,
+            -0.2
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.42,
+            0.04
+          ],
+          "pos": [
+            -0.19,
+            0.21,
+            -0.19
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.42,
+            0.04
+          ],
+          "pos": [
+            0.19,
+            0.21,
+            -0.19
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.42,
+            0.04
+          ],
+          "pos": [
+            -0.19,
+            0.21,
+            0.19
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.42,
+            0.04
+          ],
+          "pos": [
+            0.19,
+            0.21,
+            0.19
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "tv",
+      "name": "テレビボード＋テレビ",
+      "colors": [
+        "#4e3626",
+        "#c8a57a",
+        "#efedea",
+        "#2f3133"
+      ],
       "parts": [
-        { "shape": "box", "size": [1.8, 0.4, 0.42], "pos": [0, 0.2, 0], "paint": "main" },
-        { "shape": "box", "size": [1.23, 0.72, 0.05], "pos": [0, 0.86, -0.05], "paint": "black" },
-        { "shape": "box", "size": [0.3, 0.1, 0.2], "pos": [0, 0.45, -0.05], "paint": "black" }
-      ] },
-    { "id": "desk", "name": "デスク", "colors": ["#c8a57a", "#7c5534", "#efedea", "#2f3133"],
+        {
+          "shape": "box",
+          "size": [
+            1.8,
+            0.4,
+            0.42
+          ],
+          "pos": [
+            0,
+            0.2,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            1.23,
+            0.72,
+            0.05
+          ],
+          "pos": [
+            0,
+            0.86,
+            -0.05
+          ],
+          "paint": "black"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.3,
+            0.1,
+            0.2
+          ],
+          "pos": [
+            0,
+            0.45,
+            -0.05
+          ],
+          "paint": "black"
+        }
+      ]
+    },
+    {
+      "id": "desk",
+      "name": "デスク",
+      "colors": [
+        "#c8a57a",
+        "#7c5534",
+        "#efedea",
+        "#2f3133"
+      ],
       "parts": [
-        { "shape": "box", "size": [1.2, 0.03, 0.6], "pos": [0, 0.715, 0], "paint": "main" },
-        { "shape": "box", "size": [0.04, 0.7, 0.58], "pos": [-0.58, 0.35, 0], "paint": "main" },
-        { "shape": "box", "size": [0.04, 0.7, 0.58], "pos": [0.58, 0.35, 0], "paint": "main" }
-      ] },
-    { "id": "shelf", "name": "本棚", "colors": ["#c8a57a", "#7c5534", "#efedea", "#2f3133"],
+        {
+          "shape": "box",
+          "size": [
+            1.2,
+            0.03,
+            0.6
+          ],
+          "pos": [
+            0,
+            0.715,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.7,
+            0.58
+          ],
+          "pos": [
+            -0.58,
+            0.35,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.7,
+            0.58
+          ],
+          "pos": [
+            0.58,
+            0.35,
+            0
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "shelf",
+      "name": "本棚",
+      "colors": [
+        "#c8a57a",
+        "#7c5534",
+        "#efedea",
+        "#2f3133"
+      ],
       "parts": [
-        { "shape": "box", "size": [0.9, 1.8, 0.03], "pos": [0, 0.9, -0.14], "paint": "main" },
-        { "shape": "box", "size": [0.03, 1.8, 0.3], "pos": [-0.435, 0.9, 0], "paint": "main" },
-        { "shape": "box", "size": [0.03, 1.8, 0.3], "pos": [0.435, 0.9, 0], "paint": "main" },
-        { "shape": "box", "size": [0.9, 0.03, 0.3], "pos": [0, 0.015, 0], "paint": "main" },
-        { "shape": "box", "size": [0.9, 0.03, 0.3], "pos": [0, 0.45, 0], "paint": "main" },
-        { "shape": "box", "size": [0.9, 0.03, 0.3], "pos": [0, 0.9, 0], "paint": "main" },
-        { "shape": "box", "size": [0.9, 0.03, 0.3], "pos": [0, 1.35, 0], "paint": "main" },
-        { "shape": "box", "size": [0.9, 0.03, 0.3], "pos": [0, 1.785, 0], "paint": "main" },
-        { "shape": "box", "size": [0.7, 0.28, 0.2], "pos": [-0.05, 1.05, 0.02], "paint": "accent" },
-        { "shape": "box", "size": [0.5, 0.26, 0.2], "pos": [0.1, 0.6, 0.02], "paint": "accent" }
-      ] },
-    { "id": "kitchen", "name": "キッチン（I型）", "colors": ["#efedea", "#2f3133", "#7c5534", "#5d6670"],
+        {
+          "shape": "box",
+          "size": [
+            0.9,
+            1.8,
+            0.03
+          ],
+          "pos": [
+            0,
+            0.9,
+            -0.14
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.03,
+            1.8,
+            0.3
+          ],
+          "pos": [
+            -0.435,
+            0.9,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.03,
+            1.8,
+            0.3
+          ],
+          "pos": [
+            0.435,
+            0.9,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.9,
+            0.03,
+            0.3
+          ],
+          "pos": [
+            0,
+            0.015,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.9,
+            0.03,
+            0.3
+          ],
+          "pos": [
+            0,
+            0.45,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.9,
+            0.03,
+            0.3
+          ],
+          "pos": [
+            0,
+            0.9,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.9,
+            0.03,
+            0.3
+          ],
+          "pos": [
+            0,
+            1.35,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.9,
+            0.03,
+            0.3
+          ],
+          "pos": [
+            0,
+            1.785,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.7,
+            0.28,
+            0.2
+          ],
+          "pos": [
+            -0.05,
+            1.05,
+            0.02
+          ],
+          "paint": "accent"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.5,
+            0.26,
+            0.2
+          ],
+          "pos": [
+            0.1,
+            0.6,
+            0.02
+          ],
+          "paint": "accent"
+        }
+      ]
+    },
+    {
+      "id": "kitchen",
+      "name": "キッチン（I型）",
+      "colors": [
+        "#efedea",
+        "#2f3133",
+        "#7c5534",
+        "#5d6670"
+      ],
       "parts": [
-        { "shape": "box", "size": [2.55, 0.82, 0.62], "pos": [0, 0.41, 0], "paint": "main" },
-        { "shape": "box", "size": [2.57, 0.03, 0.65], "pos": [0, 0.835, 0], "paint": "counter" },
-        { "shape": "box", "size": [0.7, 0.02, 0.4], "pos": [-0.6, 0.85, 0.02], "paint": "steel" },
-        { "shape": "box", "size": [0.6, 0.02, 0.45], "pos": [0.7, 0.85, 0.02], "paint": "black" },
-        { "shape": "box", "size": [2.55, 0.7, 0.35], "pos": [0, 1.95, -0.135], "paint": "main" }
-      ] },
-    { "id": "fridge", "name": "冷蔵庫", "colors": ["#e8e8e6", "#9aa0a6", "#2f3133"],
+        {
+          "shape": "box",
+          "size": [
+            2.55,
+            0.82,
+            0.62
+          ],
+          "pos": [
+            0,
+            0.41,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            2.57,
+            0.03,
+            0.65
+          ],
+          "pos": [
+            0,
+            0.835,
+            0
+          ],
+          "paint": "counter"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.7,
+            0.02,
+            0.4
+          ],
+          "pos": [
+            -0.6,
+            0.85,
+            0.02
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.6,
+            0.02,
+            0.45
+          ],
+          "pos": [
+            0.7,
+            0.85,
+            0.02
+          ],
+          "paint": "black"
+        },
+        {
+          "shape": "box",
+          "size": [
+            2.55,
+            0.7,
+            0.35
+          ],
+          "pos": [
+            0,
+            1.95,
+            -0.135
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "fridge",
+      "name": "冷蔵庫",
+      "colors": [
+        "#e8e8e6",
+        "#9aa0a6",
+        "#2f3133"
+      ],
       "parts": [
-        { "shape": "box", "size": [0.68, 1.82, 0.7], "pos": [0, 0.91, 0], "paint": "main" }
-      ] },
-    { "id": "bath", "name": "ユニットバス（浴槽）", "colors": ["#f4f4f2", "#dfe6ea", "#e8dfd2", "#5d6670"],
+        {
+          "shape": "box",
+          "size": [
+            0.68,
+            1.82,
+            0.7
+          ],
+          "pos": [
+            0,
+            0.91,
+            0
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "bath",
+      "name": "ユニットバス（浴槽）",
+      "colors": [
+        "#f4f4f2",
+        "#dfe6ea",
+        "#e8dfd2",
+        "#5d6670"
+      ],
       "parts": [
-        { "shape": "box", "size": [1.6, 0.55, 0.8], "pos": [0, 0.275, 0], "paint": "main" },
-        { "shape": "box", "size": [1.4, 0.04, 0.6], "pos": [0, 0.53, 0], "paint": "white" },
-        { "shape": "box", "size": [0.08, 0.3, 0.08], "pos": [0.65, 0.7, -0.33], "paint": "steel" }
-      ] },
-    { "id": "toilet", "name": "トイレ", "colors": ["#f4f4f2", "#e8e3da", "#2f3133"],
+        {
+          "shape": "box",
+          "size": [
+            1.6,
+            0.55,
+            0.8
+          ],
+          "pos": [
+            0,
+            0.275,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            1.4,
+            0.04,
+            0.6
+          ],
+          "pos": [
+            0,
+            0.53,
+            0
+          ],
+          "paint": "white"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.08,
+            0.3,
+            0.08
+          ],
+          "pos": [
+            0.65,
+            0.7,
+            -0.33
+          ],
+          "paint": "steel"
+        }
+      ]
+    },
+    {
+      "id": "toilet",
+      "name": "トイレ",
+      "colors": [
+        "#f4f4f2",
+        "#e8e3da",
+        "#2f3133"
+      ],
       "parts": [
-        { "shape": "box", "size": [0.38, 0.4, 0.5], "pos": [0, 0.2, 0.08], "paint": "main" },
-        { "shape": "box", "size": [0.4, 0.05, 0.46], "pos": [0, 0.42, 0.1], "paint": "white" },
-        { "shape": "box", "size": [0.42, 0.42, 0.2], "pos": [0, 0.6, -0.22], "paint": "main" }
-      ] },
-    { "id": "plant", "name": "観葉植物", "colors": ["#4f7a45", "#6c8f4e", "#3d5e3a"],
+        {
+          "shape": "box",
+          "size": [
+            0.38,
+            0.4,
+            0.5
+          ],
+          "pos": [
+            0,
+            0.2,
+            0.08
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.4,
+            0.05,
+            0.46
+          ],
+          "pos": [
+            0,
+            0.42,
+            0.1
+          ],
+          "paint": "white"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.42,
+            0.42,
+            0.2
+          ],
+          "pos": [
+            0,
+            0.6,
+            -0.22
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "plant",
+      "name": "観葉植物",
+      "colors": [
+        "#4f7a45",
+        "#6c8f4e",
+        "#3d5e3a"
+      ],
       "parts": [
-        { "shape": "cylinder", "size": [0.32, 0.38, 0.32], "pos": [0, 0.19, 0], "paint": "white" },
-        { "shape": "sphere", "size": [0.6, 0.75, 0.6], "pos": [0, 0.85, 0], "paint": "main" },
-        { "shape": "cylinder", "size": [0.04, 0.4, 0.04], "pos": [0, 0.45, 0], "paint": "wood" }
-      ] },
-    { "id": "rug", "name": "ラグ", "colors": ["#b9ab97", "#7d8a96", "#8a4f3d", "#e9e4da"],
+        {
+          "shape": "cylinder",
+          "size": [
+            0.32,
+            0.38,
+            0.32
+          ],
+          "pos": [
+            0,
+            0.19,
+            0
+          ],
+          "paint": "white"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.6,
+            0.75,
+            0.6
+          ],
+          "pos": [
+            0,
+            0.85,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "cylinder",
+          "size": [
+            0.04,
+            0.4,
+            0.04
+          ],
+          "pos": [
+            0,
+            0.45,
+            0
+          ],
+          "paint": "wood"
+        }
+      ]
+    },
+    {
+      "id": "rug",
+      "name": "ラグ",
+      "colors": [
+        "#b9ab97",
+        "#7d8a96",
+        "#8a4f3d",
+        "#e9e4da"
+      ],
       "parts": [
-        { "shape": "box", "size": [2.0, 0.015, 1.4], "pos": [0, 0.0075, 0], "paint": "main" }
-      ] },
-    { "id": "pool", "name": "プール", "category": "outdoor", "colors": ["#e8e6e0", "#cfd6dc", "#d9cbb5", "#9aa3a8"],
+        {
+          "shape": "box",
+          "size": [
+            2,
+            0.015,
+            1.4
+          ],
+          "pos": [
+            0,
+            0.0075,
+            0
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "pool",
+      "name": "プール",
+      "category": "outdoor",
+      "colors": [
+        "#e8e6e0",
+        "#cfd6dc",
+        "#d9cbb5",
+        "#9aa3a8"
+      ],
       "parts": [
-        { "shape": "box", "size": [4.0, 0.3, 0.2], "pos": [0, 0.15, -0.9], "paint": "main" },
-        { "shape": "box", "size": [4.0, 0.3, 0.2], "pos": [0, 0.15, 0.9], "paint": "main" },
-        { "shape": "box", "size": [0.2, 0.3, 1.6], "pos": [-1.9, 0.15, 0], "paint": "main" },
-        { "shape": "box", "size": [0.2, 0.3, 1.6], "pos": [1.9, 0.15, 0], "paint": "main" },
-        { "shape": "box", "size": [3.6, 0.24, 1.6], "pos": [0, 0.12, 0], "paint": "water" },
-        { "shape": "cylinder", "size": [0.04, 0.6, 0.04], "pos": [1.65, 0.45, -0.3], "paint": "steel" },
-        { "shape": "cylinder", "size": [0.04, 0.6, 0.04], "pos": [1.65, 0.45, 0.3], "paint": "steel" }
-      ] },
-    { "id": "flowerbed", "name": "花壇", "category": "outdoor", "colors": ["#e0465a", "#f2c230", "#f08fb3", "#f5f2ea", "#8a63c9"],
+        {
+          "shape": "box",
+          "size": [
+            4,
+            0.3,
+            0.2
+          ],
+          "pos": [
+            0,
+            0.15,
+            -0.9
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            4,
+            0.3,
+            0.2
+          ],
+          "pos": [
+            0,
+            0.15,
+            0.9
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.2,
+            0.3,
+            1.6
+          ],
+          "pos": [
+            -1.9,
+            0.15,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.2,
+            0.3,
+            1.6
+          ],
+          "pos": [
+            1.9,
+            0.15,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.6,
+            0.24,
+            1.6
+          ],
+          "pos": [
+            0,
+            0.12,
+            0
+          ],
+          "paint": "water"
+        },
+        {
+          "shape": "cylinder",
+          "size": [
+            0.04,
+            0.6,
+            0.04
+          ],
+          "pos": [
+            1.65,
+            0.45,
+            -0.3
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "cylinder",
+          "size": [
+            0.04,
+            0.6,
+            0.04
+          ],
+          "pos": [
+            1.65,
+            0.45,
+            0.3
+          ],
+          "paint": "steel"
+        }
+      ]
+    },
+    {
+      "id": "flowerbed",
+      "name": "花壇",
+      "category": "outdoor",
+      "colors": [
+        "#e0465a",
+        "#f2c230",
+        "#f08fb3",
+        "#f5f2ea",
+        "#8a63c9"
+      ],
       "parts": [
-        { "shape": "box", "size": [1.8, 0.3, 0.6], "pos": [0, 0.15, 0], "paint": "stone" },
-        { "shape": "box", "size": [1.7, 0.04, 0.5], "pos": [0, 0.31, 0], "paint": "soil" },
-        { "shape": "sphere", "size": [0.5, 0.28, 0.4], "pos": [-0.6, 0.42, 0], "paint": "green" },
-        { "shape": "sphere", "size": [0.5, 0.3, 0.4], "pos": [0, 0.43, 0], "paint": "green" },
-        { "shape": "sphere", "size": [0.5, 0.28, 0.4], "pos": [0.6, 0.42, 0], "paint": "green" },
-        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [-0.7, 0.58, -0.12], "paint": "main" },
-        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [-0.45, 0.58, 0.1], "paint": "main" },
-        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [-0.2, 0.58, -0.08], "paint": "main" },
-        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [0.05, 0.58, 0.12], "paint": "main" },
-        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [0.3, 0.58, -0.1], "paint": "main" },
-        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [0.55, 0.58, 0.08], "paint": "main" },
-        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [0.75, 0.58, -0.05], "paint": "main" }
-      ] },
-    { "id": "flowerpot", "name": "花の鉢植え", "category": "outdoor", "colors": ["#e0465a", "#f2c230", "#f08fb3", "#f5f2ea", "#8a63c9"],
+        {
+          "shape": "box",
+          "size": [
+            1.8,
+            0.3,
+            0.6
+          ],
+          "pos": [
+            0,
+            0.15,
+            0
+          ],
+          "paint": "stone"
+        },
+        {
+          "shape": "box",
+          "size": [
+            1.7,
+            0.04,
+            0.5
+          ],
+          "pos": [
+            0,
+            0.31,
+            0
+          ],
+          "paint": "soil"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.5,
+            0.28,
+            0.4
+          ],
+          "pos": [
+            -0.6,
+            0.42,
+            0
+          ],
+          "paint": "green"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.5,
+            0.3,
+            0.4
+          ],
+          "pos": [
+            0,
+            0.43,
+            0
+          ],
+          "paint": "green"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.5,
+            0.28,
+            0.4
+          ],
+          "pos": [
+            0.6,
+            0.42,
+            0
+          ],
+          "paint": "green"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.13,
+            0.11,
+            0.13
+          ],
+          "pos": [
+            -0.7,
+            0.58,
+            -0.12
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.13,
+            0.11,
+            0.13
+          ],
+          "pos": [
+            -0.45,
+            0.58,
+            0.1
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.13,
+            0.11,
+            0.13
+          ],
+          "pos": [
+            -0.2,
+            0.58,
+            -0.08
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.13,
+            0.11,
+            0.13
+          ],
+          "pos": [
+            0.05,
+            0.58,
+            0.12
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.13,
+            0.11,
+            0.13
+          ],
+          "pos": [
+            0.3,
+            0.58,
+            -0.1
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.13,
+            0.11,
+            0.13
+          ],
+          "pos": [
+            0.55,
+            0.58,
+            0.08
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.13,
+            0.11,
+            0.13
+          ],
+          "pos": [
+            0.75,
+            0.58,
+            -0.05
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "flowerpot",
+      "name": "花の鉢植え",
+      "category": "outdoor",
+      "colors": [
+        "#e0465a",
+        "#f2c230",
+        "#f08fb3",
+        "#f5f2ea",
+        "#8a63c9"
+      ],
       "parts": [
-        { "shape": "cylinder", "size": [0.34, 0.32, 0.34], "pos": [0, 0.16, 0], "paint": "terracotta" },
-        { "shape": "sphere", "size": [0.4, 0.26, 0.4], "pos": [0, 0.42, 0], "paint": "green" },
-        { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [-0.08, 0.55, -0.06], "paint": "main" },
-        { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0.09, 0.55, -0.04], "paint": "main" },
-        { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0, 0.55, 0.09], "paint": "main" },
-        { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0.02, 0.55, -0.01], "paint": "main" }
-      ] },
-    { "id": "nameplate-post", "name": "門柱と表札", "category": "outdoor", "colors": ["#f2efe8", "#2f2a26", "#b8a07a", "#c9c5bb"],
-      "label": { "pos": [0, 0.95, 0.161], "size": [0.34, 0.12] },
+        {
+          "shape": "cylinder",
+          "size": [
+            0.34,
+            0.32,
+            0.34
+          ],
+          "pos": [
+            0,
+            0.16,
+            0
+          ],
+          "paint": "terracotta"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.4,
+            0.26,
+            0.4
+          ],
+          "pos": [
+            0,
+            0.42,
+            0
+          ],
+          "paint": "green"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.11,
+            0.1,
+            0.11
+          ],
+          "pos": [
+            -0.08,
+            0.55,
+            -0.06
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.11,
+            0.1,
+            0.11
+          ],
+          "pos": [
+            0.09,
+            0.55,
+            -0.04
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.11,
+            0.1,
+            0.11
+          ],
+          "pos": [
+            0,
+            0.55,
+            0.09
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "sphere",
+          "size": [
+            0.11,
+            0.1,
+            0.11
+          ],
+          "pos": [
+            0.02,
+            0.55,
+            -0.01
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "nameplate-post",
+      "name": "門柱と表札",
+      "category": "outdoor",
+      "colors": [
+        "#f2efe8",
+        "#2f2a26",
+        "#b8a07a",
+        "#c9c5bb"
+      ],
+      "label": {
+        "pos": [
+          0,
+          0.95,
+          0.161
+        ],
+        "size": [
+          0.34,
+          0.12
+        ]
+      },
       "parts": [
-        { "shape": "box", "size": [0.5, 1.2, 0.3], "pos": [0, 0.6, 0], "paint": "stone" },
-        { "shape": "box", "size": [0.38, 0.15, 0.02], "pos": [0, 0.95, 0.15], "paint": "main" },
-        { "shape": "box", "size": [0.56, 0.06, 0.36], "pos": [0, 1.23, 0], "paint": "dark" }
-      ] },
-    { "id": "nameplate", "name": "表札（壁付け）", "category": "outdoor", "colors": ["#f2efe8", "#2f2a26", "#b8a07a", "#5a4030"],
-      "label": { "pos": [0, 1.6, 0.0135], "size": [0.3, 0.1] },
+        {
+          "shape": "box",
+          "size": [
+            0.5,
+            1.2,
+            0.3
+          ],
+          "pos": [
+            0,
+            0.6,
+            0
+          ],
+          "paint": "stone"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.38,
+            0.15,
+            0.02
+          ],
+          "pos": [
+            0,
+            0.95,
+            0.15
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.56,
+            0.06,
+            0.36
+          ],
+          "pos": [
+            0,
+            1.23,
+            0
+          ],
+          "paint": "dark"
+        }
+      ]
+    },
+    {
+      "id": "nameplate",
+      "name": "表札（壁付け）",
+      "category": "outdoor",
+      "colors": [
+        "#f2efe8",
+        "#2f2a26",
+        "#b8a07a",
+        "#5a4030"
+      ],
+      "label": {
+        "pos": [
+          0,
+          1.6,
+          0.0135
+        ],
+        "size": [
+          0.3,
+          0.1
+        ]
+      },
       "parts": [
-        { "shape": "box", "size": [0.34, 0.13, 0.025], "pos": [0, 1.6, 0], "paint": "main" }
-      ] }
+        {
+          "shape": "box",
+          "size": [
+            0.34,
+            0.13,
+            0.025
+          ],
+          "pos": [
+            0,
+            1.6,
+            0
+          ],
+          "paint": "main"
+        }
+      ]
+    },
+    {
+      "id": "garage-paving",
+      "name": "ガレージ：土間コンクリート 3×6m",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [
+            3,
+            0.06,
+            6
+          ],
+          "pos": [
+            0,
+            0.03,
+            0
+          ],
+          "paint": "stone"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.06,
+            0.005,
+            5
+          ],
+          "pos": [
+            1.2,
+            0.063,
+            0
+          ],
+          "paint": "white"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.06,
+            0.005,
+            5
+          ],
+          "pos": [
+            -1.2,
+            0.063,
+            0
+          ],
+          "paint": "white"
+        }
+      ],
+      "category": "outdoor",
+      "grounded": true,
+      "collisionParts": true,
+      "colors": [
+        "#9ca4ac",
+        "#383f45",
+        "#eeeae0",
+        "#765a40"
+      ]
+    },
+    {
+      "id": "garage-wall",
+      "name": "ガレージ：鋼板壁 3m",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [
+            3,
+            2.5,
+            0.1
+          ],
+          "pos": [
+            0,
+            1.25,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.07,
+            2.5,
+            0.16
+          ],
+          "pos": [
+            -1.45,
+            1.25,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.07,
+            2.5,
+            0.16
+          ],
+          "pos": [
+            0,
+            1.25,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.07,
+            2.5,
+            0.16
+          ],
+          "pos": [
+            1.45,
+            1.25,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            -1.4,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            -1.2,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            -0.9999999999999999,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            -0.7999999999999998,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            -0.5999999999999999,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            -0.3999999999999999,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            -0.19999999999999973,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            2.220446049250313e-16,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            0.20000000000000018,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            0.40000000000000013,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            0.6000000000000001,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            0.8000000000000003,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            1.0000000000000004,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            1.2000000000000002,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.025,
+            2.4,
+            0.03
+          ],
+          "pos": [
+            1.4000000000000004,
+            1.25,
+            0.065
+          ],
+          "paint": "steel"
+        }
+      ],
+      "category": "outdoor",
+      "grounded": true,
+      "collisionParts": true,
+      "colors": [
+        "#9ca4ac",
+        "#383f45",
+        "#eeeae0",
+        "#765a40"
+      ]
+    },
+    {
+      "id": "garage-column",
+      "name": "ガレージ：柱 2.6m",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [
+            0.14,
+            2.6,
+            0.14
+          ],
+          "pos": [
+            0,
+            1.3,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.3,
+            0.08,
+            0.3
+          ],
+          "pos": [
+            0,
+            0.04,
+            0
+          ],
+          "paint": "stone"
+        }
+      ],
+      "category": "outdoor",
+      "grounded": true,
+      "collisionParts": true,
+      "colors": [
+        "#9ca4ac",
+        "#383f45",
+        "#eeeae0",
+        "#765a40"
+      ]
+    },
+    {
+      "id": "garage-roof",
+      "name": "ガレージ：折板屋根 3×6m",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [
+            3,
+            0.12,
+            6
+          ],
+          "pos": [
+            0,
+            2.66,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.08,
+            0.18,
+            5.8
+          ],
+          "pos": [
+            -1.3,
+            2.52,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.08,
+            0.18,
+            5.8
+          ],
+          "pos": [
+            1.3,
+            2.52,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            -1.4,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            -1.17,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            -0.94,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            -0.7099999999999999,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            -0.47999999999999987,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            -0.24999999999999978,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            -0.019999999999999796,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            0.2100000000000002,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            0.44000000000000017,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            0.6700000000000004,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            0.9000000000000004,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            1.1300000000000003,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.04,
+            6
+          ],
+          "pos": [
+            1.3600000000000003,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        }
+      ],
+      "category": "outdoor",
+      "grounded": true,
+      "collisionParts": true,
+      "colors": [
+        "#9ca4ac",
+        "#383f45",
+        "#eeeae0",
+        "#765a40"
+      ]
+    },
+    {
+      "id": "garage-carport",
+      "name": "ガレージ：カーポート一式 3.6×6m",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [
+            0.14,
+            2.6,
+            0.14
+          ],
+          "pos": [
+            -1.65,
+            1.3,
+            -2.5
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.14,
+            2.6,
+            0.14
+          ],
+          "pos": [
+            -1.65,
+            1.3,
+            2.5
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.14,
+            2.6,
+            0.14
+          ],
+          "pos": [
+            1.65,
+            1.3,
+            -2.5
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.14,
+            2.6,
+            0.14
+          ],
+          "pos": [
+            1.65,
+            1.3,
+            2.5
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.6,
+            0.12,
+            6
+          ],
+          "pos": [
+            0,
+            2.66,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            -1.65,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            -1.415,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            -1.18,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            -0.945,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            -0.71,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            -0.4750000000000001,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            -0.24,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            -0.004999999999999893,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            0.22999999999999998,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            0.46499999999999986,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            0.6999999999999997,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            0.935,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            1.17,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            1.4049999999999998,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.04,
+            0.05,
+            6
+          ],
+          "pos": [
+            1.6400000000000001,
+            2.74,
+            0
+          ],
+          "paint": "steel"
+        }
+      ],
+      "category": "outdoor",
+      "grounded": true,
+      "collisionParts": true,
+      "colors": [
+        "#9ca4ac",
+        "#383f45",
+        "#eeeae0",
+        "#765a40"
+      ]
+    },
+    {
+      "id": "garage-shutter",
+      "name": "ガレージ：開閉シャッター（F）幅3m",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [
+            0.12,
+            2.6,
+            0.18
+          ],
+          "pos": [
+            -1.58,
+            1.3,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.12,
+            2.6,
+            0.18
+          ],
+          "pos": [
+            1.58,
+            1.3,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.3,
+            0.3,
+            0.34
+          ],
+          "pos": [
+            0,
+            2.68,
+            0
+          ],
+          "paint": "steel"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            0.065,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            0.19,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            0.315,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            0.44,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            0.565,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            0.69,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            0.815,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            0.94,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            1.065,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            1.19,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            1.315,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            1.44,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            1.565,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            1.69,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            1.815,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            1.94,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            2.065,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            2.19,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            2.315,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            3.04,
+            0.12,
+            0.07
+          ],
+          "pos": [
+            0,
+            2.44,
+            0
+          ],
+          "paint": "main"
+        },
+        {
+          "shape": "box",
+          "size": [
+            0.4,
+            0.04,
+            0.05
+          ],
+          "pos": [
+            0,
+            0.75,
+            0.07
+          ],
+          "paint": "black"
+        }
+      ],
+      "category": "outdoor",
+      "grounded": true,
+      "collisionParts": true,
+      "colors": [
+        "#9ca4ac",
+        "#383f45",
+        "#eeeae0",
+        "#765a40"
+      ]
+    }
   ]
 }
