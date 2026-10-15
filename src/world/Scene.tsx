@@ -9,6 +9,8 @@ import { DebugBridge } from './DebugBridge';
 import { HouseView } from './HouseView';
 import { PlacementController } from './PlacementController';
 import { Player } from './Player';
+import { VenueInteriors } from './VenueInteriors';
+import { CarFleet } from './CarFleet';
 import { Town } from './Town';
 
 const CENTER: [number, number, number] = [(LOT_W * GRID) / 2, 0, (LOT_D * GRID) / 2];
@@ -69,6 +71,8 @@ export function Scene() {
 
       <Ground />
       <Town />
+      <CarFleet />
+      <VenueInteriors />
       {placing && <LevelGrid />}
       <HouseView />
       {walking && <Player />}
