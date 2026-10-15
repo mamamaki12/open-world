@@ -44,6 +44,8 @@ export interface OpeningPart {
   offset: number;
   sashColor: string;
   panelColor: string;
+  /** サッシの種類（catalog/openings.json の sashTypes）。無ければアルミ */
+  sash?: string;
 }
 
 /** 階段（直階段）。幅1マス × 長さ4マス。level から level+1 へ上がる */

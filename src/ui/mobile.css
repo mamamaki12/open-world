@@ -1,33 +1,88 @@
 /* スマホ・タブレット（指で操作する端末）の画面。.app.touch のときだけ効く */
+/* iPhone の Safari は横向きにすると文字を勝手に大きくするので止める（横向きでボタンが折り返していた原因） */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .app { --top-h: 60px; --hud-top: 60px; --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); }
 .app canvas { touch-action: none; }
 .touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .touch button { touch-action: manipulation; }
 .touch .kbd-hint, .touch .tool .key, .touch .door-prompt kbd { display: none; }
 
-/* 上のバー：1段目にモード・取り消し・セーブ、2段目にツールを横スクロールで */
-.touch .topbar {
-  top: calc(6px + env(safe-area-inset-top, 0px)); left: calc(6px + var(--safe-l)); right: calc(6px + var(--safe-r));
-  gap: 6px; padding: 6px; row-gap: 6px;
-}
-.touch .brand { display: none; }
-.touch .tool { padding: 7px 12px; font-size: 14px; min-height: 36px; }
-.touch .topbar .tool-list {
-  order: 10; flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
-  -webkit-overflow-scrolling: touch; margin: 0 -2px; padding: 0 2px;
-}
-.touch .topbar .tool-list::-webkit-scrollbar { display: none; }
-.touch .topbar .tool-list .tool { flex: none; }
+/* 上のバーは出さず、左上にモード・取り消し・セーブと所持金を小さく並べる */
+.touch .tool { padding: 7px 12px; font-size: 14px; min-height: 36px; white-space: nowrap; }
 .touch .btn-label { display: none; }
-.touch .topbar .history .tool { min-width: 42px; font-size: 18px; padding: 4px 10px; }
-.touch .save { margin-left: auto; }
-.touch .save-menu { width: min(300px, calc(100vw - 24px)); }
+.touch-hud {
+  position: absolute; top: calc(6px + env(safe-area-inset-top, 0px)); left: calc(6px + var(--safe-l));
+  max-width: calc(100% - 100px - var(--safe-l) - var(--safe-r));
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px; z-index: 3;
+}
+.touch-hud-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.touch-hud .tool, .touch-cash { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.touch-hud .tool:not(.on) { background: rgba(255,255,255,0.95); }
+.tool.icon { min-width: 38px; padding: 4px 8px; font-size: 17px; }
+.touch-cash {
+  background: var(--panel); border-radius: 8px; padding: 7px 10px; font-weight: 700; font-size: 14px;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.touch-cash.minus { color: var(--danger); }
+.touch-hud .chip { font-size: 12px; padding: 5px 10px; min-height: 32px; }
+.touch .save { margin: 0; position: static; }
+.touch .save-menu {
+  position: fixed; left: calc(8px + var(--safe-l)); top: calc(var(--hud-top) + 6px); right: auto;
+  width: min(320px, calc(100vw - 16px)); max-height: calc(100dvh - var(--hud-top) - 16px); overflow-y: auto; z-index: 40;
+}
 .touch .save-menu .btn { padding: 8px 12px; font-size: 14px; }
+
+/* 右上：建築メニューを開く「建てる」ボタンと、その下にカメラのボタン */
+.touch-right {
+  position: absolute; top: calc(6px + env(safe-area-inset-top, 0px)); right: calc(6px + var(--safe-r));
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px; z-index: 3;
+}
+.build-fab {
+  width: 74px; height: 74px; border: 0; border-radius: 22px; padding: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: linear-gradient(160deg, #ffb347, #f08a1c); color: #fff; font-weight: 800;
+  box-shadow: 0 4px 14px rgba(240, 138, 28, 0.45), 0 0 0 3px rgba(255,255,255,0.85);
+}
+.build-fab.holding { background: linear-gradient(160deg, #4d86ff, #2a6cff); box-shadow: 0 4px 14px rgba(42,108,255,0.45), 0 0 0 3px rgba(255,255,255,0.85); }
+.build-fab:active { transform: scale(0.95); }
+.build-fab-icon { font-size: 30px; line-height: 1; }
+.build-fab-label { font-size: 13px; line-height: 1.1; }
+
+/* 建築メニュー：下から大きく開く。道具はアイコン付きのカード、下に種類・素材・色（たくさん並んでもスクロールできる） */
+.touch .build-menu-overlay { z-index: 25; padding: 0; display: flex; align-items: flex-end; justify-content: center; }
+.build-menu {
+  width: min(720px, 100%); max-height: 90dvh; max-height: 90vh; display: flex; flex-direction: column;
+  background: #fbfaf7; border-radius: 18px 18px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,0.3); overflow: hidden;
+  padding-bottom: var(--safe-b);
+}
+.build-menu-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 10px calc(14px + var(--safe-r)) 10px calc(16px + var(--safe-l)); border-bottom: 1px solid var(--line); background: #fff;
+}
+.build-menu-title { font-weight: 800; font-size: 18px; }
+.build-menu-done { min-width: 88px; padding: 9px 16px; font-size: 15px; border-radius: 10px; }
+.build-menu-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px calc(12px + var(--safe-r)) 18px calc(12px + var(--safe-l)); }
+.build-menu-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tool-card {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px 8px;
+  border: 2px solid var(--line); background: #fff; border-radius: 14px; text-align: center;
+}
+.tool-card.on { border-color: var(--accent); background: #eef3ff; box-shadow: 0 0 0 1px var(--accent); }
+.tool-card-icon { font-size: 30px; line-height: 1.1; }
+.tool-card-name { font-weight: 700; font-size: 15px; }
+.tool-card-desc { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.build-menu-options { margin-top: 14px; }
+.build-menu-options .panel { box-shadow: none; background: transparent; padding: 0; }
+.build-menu-options .levelbar {
+  position: static; transform: none; justify-content: flex-start; margin-bottom: 12px;
+  background: #fff; border: 1px solid var(--line); box-shadow: none;
+}
+
 .touch .toast { top: calc(var(--hud-top) + 8px); max-width: calc(100% - 24px); text-align: center; z-index: 30; }
 
 /* 操作の説明：上のバーのすぐ下に小さく */
 .touch .controls-help {
-  top: calc(var(--hud-top) + 6px); bottom: auto; max-width: calc(100% - 80px);
+  top: calc(var(--hud-top) + 6px); bottom: auto; max-width: calc(100% - 200px);
   white-space: normal; text-align: center; font-size: 11px; pointer-events: none;
 }
 
@@ -72,12 +127,10 @@
 .touch-top .sheet { max-width: 420px; }
 .touch-top .sheet-body { max-height: 30vh; }
 
-/* 建築モードのカメラボタン（右端の縦並び） */
-.touch-camera {
-  position: absolute; right: calc(8px + var(--safe-r)); top: calc(var(--hud-top) + 34px);
-  display: grid; grid-template-columns: 44px; gap: 8px; z-index: 1;
-}
+/* 建築モードのカメラボタン（「建てる」の下に縦並び） */
+.touch-camera { display: grid; grid-template-columns: 44px; gap: 8px; }
 .touch-camera .touch-btn { width: 44px; height: 44px; font-size: 20px; }
+.touch-btn { width: 44px; height: 44px; font-size: 20px; }
 .touch-btn {
   width: 48px; height: 48px; border-radius: 50%; border: 0; display: grid; place-items: center;
   background: rgba(250, 249, 246, 0.9); color: var(--ink); font-size: 22px; font-weight: 700;
@@ -114,13 +167,7 @@
 .touch .door-prompts { bottom: calc(150px + var(--safe-b)); }
 .touch .door-prompt { padding: 12px 20px; }
 
-/* お金のバーと、不動産屋・カジノのメニュー（お金の仕組みが入ったとき用） */
-.touch .moneybar {
-  top: calc(var(--top-h) + 6px); max-width: calc(100% - 12px); overflow-x: auto; scrollbar-width: none; padding: 4px 6px;
-}
-.touch .moneybar .tool { padding: 5px 10px; min-height: 34px; flex: none; }
-.touch .money .cash { font-size: 15px; }
-.touch .moneybar::-webkit-scrollbar { display: none; }
+/* 不動産屋・カジノのメニューは全画面で */
 .touch .overlay { padding: 0; align-items: stretch; }
 .touch .modal { width: 100%; max-height: none; height: 100%; border-radius: 0; padding-bottom: var(--safe-b); }
 .touch .modal-head { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(10px + var(--safe-r)) 8px calc(10px + var(--safe-l)); }
@@ -137,18 +184,53 @@
   .touch .ledger { font-size: 12px; }
 }
 
-/* 横向き：高さが足りないので、上の表示は横に並べ、ドアのボタンはスティックと動作ボタンの間に */
+/* 横向き：iPhone は高さが 330px ほどしかなく、左右にノッチの余白もあるので、全部を小さく詰める */
 @media (orientation: landscape) and (max-height: 500px) {
-  .touch .topbar { flex-wrap: nowrap; }
-  .touch .topbar .tool-list { order: 0; flex: 1 1 auto; min-width: 0; margin: 0; }
-  .touch .topbar .history .tool { min-width: 38px; padding: 4px 8px; }
-  .touch-top { flex-direction: row; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
-  .touch-top .sheet { width: 300px; }
-  .touch-top .sheet-body { max-height: 50vh; }
-  .touch .door-prompts { bottom: calc(16px + var(--safe-b)); }
-  .touch-dock { flex-direction: row; align-items: flex-end; justify-content: center; }
-  .touch-dock .sheet { max-width: 380px; }
-  .sheet-body { max-height: 45vh; max-height: calc(100dvh - var(--hud-top) - 110px); }
-  .joystick { width: 116px; height: 116px; left: calc(16px + var(--safe-l)); bottom: calc(14px + var(--safe-b)); }
-  .touch-actions { bottom: calc(14px + var(--safe-b)); }
+  .touch .tool { min-height: 32px; padding: 4px 9px; font-size: 13px; }
+  .tool.icon { min-width: 34px; padding: 2px 6px; font-size: 16px; }
+  .touch-cash { padding: 5px 9px; font-size: 13px; }
+  .touch-hud { gap: 4px; }
+  .touch-hud-row { flex-wrap: nowrap; }
+  .touch .controls-help { font-size: 10px; padding: 2px 8px; top: calc(6px + env(safe-area-inset-top, 0px)); max-width: calc(100% - 520px); }
+
+  .touch-right { flex-direction: row-reverse; align-items: flex-start; gap: 8px; }
+  .build-fab { width: 62px; height: 62px; border-radius: 18px; }
+  .build-fab-icon { font-size: 24px; }
+  .build-fab-label { font-size: 12px; }
+  .touch-camera { grid-template-columns: 38px 38px; gap: 6px; }
+  .touch-camera .touch-btn { width: 38px; height: 38px; font-size: 17px; }
+
+  .touch .build-menu-overlay { align-items: stretch; }
+  .build-menu { width: 100%; max-height: none; height: 100%; border-radius: 0; }
+  .build-menu-head { padding-top: 6px; padding-bottom: 6px; }
+  .build-menu-done { padding: 6px 14px; }
+  .build-menu-body { display: flex; gap: 14px; overflow: hidden; flex: 1; min-height: 0; padding-top: 8px; padding-bottom: 8px; }
+  .build-menu-tools { flex: 0 0 44%; grid-template-columns: repeat(3, 1fr); align-content: start; overflow-y: auto; gap: 6px; }
+  .tool-card { padding: 6px 2px; gap: 0; }
+  .tool-card-icon { font-size: 22px; }
+  .tool-card-name { font-size: 13px; }
+  .tool-card-desc { display: none; }
+  .build-menu-options { flex: 1; margin-top: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  .touch-dock { flex-direction: row; align-items: flex-end; justify-content: center; gap: 6px; bottom: calc(4px + var(--safe-b)); }
+  .touch-dock .levelbar { flex-wrap: nowrap; flex: none; }
+  .touch .levelbar .tool { min-height: 30px; padding: 3px 10px; }
+  .touch-dock .levelbar-label, .touch-top .levelbar-label { display: none; }
+  .touch-dock .sheet { max-width: 360px; flex: 1 1 auto; }
+  .sheet-head { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+  .sheet-body { max-height: 45vh; max-height: calc(100dvh - var(--hud-top) - 90px); }
+
+  .touch-top { top: calc(var(--hud-top) + 6px); }
+  .touch .door-prompts { bottom: calc(10px + var(--safe-b)); }
+  .touch .door-prompt { padding: 8px 14px; font-size: 14px; }
+  .joystick { width: 104px; height: 104px; left: calc(14px + var(--safe-l)); bottom: calc(10px + var(--safe-b)); }
+  .joystick-knob { width: 46px; height: 46px; }
+  .touch-actions { right: calc(12px + var(--safe-r)); bottom: calc(10px + var(--safe-b)); gap: 6px; }
+  .touch-actions .touch-btn.small { width: 62px; height: 34px; font-size: 12px; }
+  .touch-actions .jump { width: 70px; height: 70px; font-size: 14px; }
 }
+
+/* 素材の見本：指で押しやすく、横幅が狭くても4列以上並ぶ */
+.touch .mat-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.touch .mat-tile-name { font-size: 11px; }
+.touch .mat-current { padding: 6px; }

@@ -10,9 +10,12 @@ interface DoorsState {
   climb: 'ok' | 'narrow' | 'high' | null;
   /** 窓を乗り越えている最中 */
   climbing: boolean;
+  /** カジノの入口の前に立っている */
+  atCasino: boolean;
   toggle: (id: string, dir: 1 | -1) => boolean;
   setTarget: (id: string | null) => void;
   setClimb: (climb: DoorsState['climb'], climbing: boolean) => void;
+  setAtCasino: (v: boolean) => void;
   closeAll: () => void;
 }
 
@@ -21,6 +24,7 @@ export const useDoors = create<DoorsState>((set, get) => ({
   target: null,
   climb: null,
   climbing: false,
+  atCasino: false,
   toggle: (id, dir) => {
     const open = { ...get().open };
     const nowOpen = !(id in open);
@@ -35,7 +39,10 @@ export const useDoors = create<DoorsState>((set, get) => ({
   setClimb: (climb, climbing) => {
     if (get().climb !== climb || get().climbing !== climbing) set({ climb, climbing });
   },
-  closeAll: () => set({ open: {}, target: null, climb: null, climbing: false }),
+  setAtCasino: (atCasino) => {
+    if (get().atCasino !== atCasino) set({ atCasino });
+  },
+  closeAll: () => set({ open: {}, target: null, climb: null, climbing: false, atCasino: false }),
 }));
 
 export const isDoorOpen = (id: string) => id in useDoors.getState().open;

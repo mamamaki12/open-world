@@ -5,7 +5,7 @@ import type { RoofType } from '../building/types';
 import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
-import { FinishPicker, NamedSwatches } from './FinishPicker';
+import { FinishPicker, NamedSwatches, SashPicker } from './FinishPicker';
 import { useTouchDevice } from './useTouchDevice';
 
 export const TOOL_HELP: Record<Tool, string> = {
@@ -76,6 +76,7 @@ export function ToolOptions() {
               ))}
             </div>
           </div>
+          {kind === 'window' && <SashPicker value={d.sashType} color={d.sashColor} onChange={(sashType) => set({ sashType })} />}
           <NamedSwatches label="サッシ・枠の色" colors={SASH_COLORS} value={d.sashColor} onChange={(sashColor) => set({ sashColor })} />
           {kind === 'door' && (
             <NamedSwatches label="扉の色" colors={PANEL_COLORS} value={d.panelColor} onChange={(panelColor) => set({ panelColor })} />

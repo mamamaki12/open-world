@@ -10,14 +10,28 @@
     { "id": "patio", "kind": "window", "name": "掃き出し窓", "width": 1.69, "height": 2.03, "sill": 0, "style": "slidingWindow" },
     { "id": "casement", "kind": "window", "name": "縦すべり出し窓", "width": 0.41, "height": 1.17, "sill": 0.9, "style": "casement" },
     { "id": "fix", "kind": "window", "name": "FIX窓", "width": 0.78, "height": 0.78, "sill": 1.3, "style": "fix" },
-    { "id": "high", "kind": "window", "name": "高窓（横長）", "width": 1.69, "height": 0.37, "sill": 1.95, "style": "fix" }
+    { "id": "high", "kind": "window", "name": "高窓（横長）", "width": 1.69, "height": 0.37, "sill": 1.95, "style": "fix" },
+    { "id": "casement-tall", "kind": "window", "name": "縦すべり出し窓（縦長）", "width": 0.41, "height": 1.97, "sill": 0.2, "style": "casement" },
+    { "id": "big-fix", "kind": "window", "name": "大開口FIX窓", "width": 1.69, "height": 1.97, "sill": 0.2, "style": "fix" },
+    { "id": "jimado", "kind": "window", "name": "地窓（足元の横長）", "width": 1.69, "height": 0.47, "sill": 0.1, "style": "fix" }
+  ],
+  "sashTypes": [
+    { "id": "alu", "name": "アルミサッシ", "note": "軽くて安い。断熱性はふつう", "priceRate": 1, "roughness": 0.35, "metalness": 0.6 },
+    { "id": "alu-resin", "name": "アルミ樹脂複合サッシ", "note": "外はアルミ、内は樹脂。いまの定番", "priceRate": 1.3, "roughness": 0.45, "metalness": 0.35 },
+    { "id": "resin", "name": "樹脂サッシ", "note": "結露しにくく断熱性が高い", "priceRate": 1.5, "roughness": 0.6, "metalness": 0 },
+    { "id": "resin-triple", "name": "樹脂サッシ（トリプルガラス）", "note": "ガラス3枚で最高クラスの断熱", "priceRate": 1.9, "roughness": 0.6, "metalness": 0 },
+    { "id": "wood", "name": "木製サッシ", "note": "木のぬくもりと高い断熱。手入れが必要", "priceRate": 2.2, "roughness": 0.6, "metalness": 0, "material": "oak" }
   ],
   "sashColors": [
     { "name": "シルバー", "hex": "#b8bcc0" },
     { "name": "ブラック", "hex": "#26282b" },
     { "name": "ホワイト", "hex": "#f1f1ef" },
     { "name": "ブロンズ", "hex": "#5a4636" },
-    { "name": "ステン", "hex": "#8e9296" }
+    { "name": "ステン", "hex": "#8e9296" },
+    { "name": "シャイングレー", "hex": "#6f7377" },
+    { "name": "ダークブラウン", "hex": "#3b2c22" },
+    { "name": "ナチュラル木目", "hex": "#c8a57a" },
+    { "name": "チーク木目", "hex": "#7b4f2f" }
   ],
   "panelColors": [
     { "name": "ウォルナット", "hex": "#5a3e2b" },
@@ -25,6 +39,9 @@
     { "name": "ナチュラル", "hex": "#c8a57a" },
     { "name": "ホワイト", "hex": "#efedea" },
     { "name": "ブラック", "hex": "#2a2b2d" },
-    { "name": "ネイビー", "hex": "#2d3b52" }
+    { "name": "ネイビー", "hex": "#2d3b52" },
+    { "name": "グレージュ", "hex": "#a69d92" },
+    { "name": "オリーブ", "hex": "#5f6b4a" },
+    { "name": "ワインレッド", "hex": "#6b2a2e" }
   ]
 }
