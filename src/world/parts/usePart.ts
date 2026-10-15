@@ -5,6 +5,7 @@ import type { ThreeEvent } from '@react-three/fiber';
 import { removePart } from '../../building/rules';
 import type { PartRef } from '../../building/types';
 import { useGame } from '../../state/store';
+import { useInteraction } from '../../state/interaction';
 import type { Highlight } from '../materials';
 
 /** カメラを回したドラッグの終わりをクリックと見なさないための閾値（px） */
@@ -25,6 +26,7 @@ export function usePart(ref: PartRef) {
     ? {
         onClick: (e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
+          if (Date.now() < useInteraction.getState().ignorePartClickUntil) return;
           if (e.delta > CLICK_SLOP) return;
           const s = useGame.getState();
           if (s.tool === 'erase' && s.eraseMulti) {
@@ -46,3 +48,4 @@ export function usePart(ref: PartRef) {
 
   return { highlight, handlers, selected };
 }
+
