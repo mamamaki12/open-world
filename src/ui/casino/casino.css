@@ -560,9 +560,11 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
   border: 1px solid #7d848b; color: #1d1f22; background: linear-gradient(#fff, #dfe2e5); box-shadow: 0 3px 0 #7d848b; }
 .tm-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #7d848b; }
 .tm-btn:disabled { opacity: 0.4; cursor: default; }
+/* 買うものがないときは、薄い赤ではなく押せないグレーのボタンにする */
+.tm-btn.buy:disabled { opacity: 1; background: #d5d9dd; color: #8a9097; border-color: #b3b9bf; box-shadow: 0 3px 0 #b3b9bf; }
 .tm-btn.cancel { background: linear-gradient(#ffe066, #f2c200); border-color: #b08c00; box-shadow: 0 3px 0 #b08c00; }
 .tm-btn.go { background: linear-gradient(#ff8a3d, #e05a00); color: #fff; border-color: #a34100; box-shadow: 0 3px 0 #a34100; }
-.tm-btn.buy { width: 100%; background: linear-gradient(#ff4b4b, #c80000); color: #fff; border-color: #8a0000; box-shadow: 0 3px 0 #8a0000; font-size: 18px; }
+.tm-btn.buy { box-sizing: border-box; width: auto; align-self: stretch; background: linear-gradient(#ff4b4b, #c80000); color: #fff; border-color: #8a0000; box-shadow: 0 3px 0 #8a0000; font-size: 18px; }
 .tm-side { display: flex; flex-direction: column; gap: 6px; background: #f6f7f8; border: 6px solid #25292d; border-radius: 8px; padding: 0 0 8px; }
 .tm-side > :not(.tm-side-title) { margin-left: 8px; margin-right: 8px; }
 .tm-side-title { background: #3a3f44; color: #fff; font-weight: 800; padding: 6px 10px; }
