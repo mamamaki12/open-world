@@ -1,6 +1,6 @@
 // カジノの3Dで使う絵（キャンバスに描いてテクスチャにする）。同じ絵は作り直さずに使い回す
 import * as THREE from 'three';
-import { SLOT_FACES, WHEEL_ORDER, cardName, rouletteColor } from '../../../economy/casino';
+import { WHEEL_ORDER, cardName, rouletteColor } from '../../../economy/casino';
 import type { SlotSymbol } from '../../../economy/casino';
 
 const cache = new Map<string, THREE.CanvasTexture>();
@@ -20,7 +20,6 @@ function canvasTexture(key: string, w: number, h: number, draw: (g: CanvasRender
 }
 
 const SERIF = 'Georgia, "Times New Roman", serif';
-const EMOJI = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 
 /** 1つの絵柄を、(0,0) を中心に size の大きさで描く */
 function drawSymbol(g: CanvasRenderingContext2D, s: SlotSymbol, size: number) {
@@ -47,10 +46,143 @@ function drawSymbol(g: CanvasRenderingContext2D, s: SlotSymbol, size: number) {
     g.font = `900 ${h * 0.72}px ${SERIF}`;
     g.fillText('BAR', 0, h * 0.04);
   } else {
-    g.font = `${size * 0.82}px ${EMOJI}`;
-    g.fillText(SLOT_FACES[s], 0, size * 0.05);
+    // 絵文字は端末によって出なかったり薄くなったりするので、果物とベルは自分で描く
+    g.save();
+    g.globalAlpha = 1;
+    g.scale(size / 100, size / 100);
+    DRAW_FRUIT[s](g);
+    g.restore();
   }
 }
+
+/** 縁取り付きで塗る */
+function paint(g: CanvasRenderingContext2D, fill: string | CanvasGradient, stroke = '#2a1408', width = 3) {
+  g.fillStyle = fill;
+  g.fill();
+  g.lineWidth = width;
+  g.strokeStyle = stroke;
+  g.stroke();
+}
+
+function shine(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, rot = -0.6) {
+  g.beginPath();
+  g.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
+  g.fillStyle = 'rgba(255,255,255,0.7)';
+  g.fill();
+}
+
+/** 100×100 の枠（中心が 0,0）に描く */
+const DRAW_FRUIT: Record<'bell' | 'melon' | 'cherry' | 'lemon', (g: CanvasRenderingContext2D) => void> = {
+  bell(g) {
+    const grad = g.createLinearGradient(-40, 0, 40, 0);
+    grad.addColorStop(0, '#c98a00');
+    grad.addColorStop(0.35, '#ffe46b');
+    grad.addColorStop(1, '#b07400');
+    // 上のつまみ
+    g.beginPath();
+    g.arc(0, -40, 7, 0, Math.PI * 2);
+    paint(g, grad);
+    // 本体（すそが広がった形）
+    g.beginPath();
+    g.moveTo(0, -36);
+    g.bezierCurveTo(-26, -36, -28, -10, -30, 10);
+    g.quadraticCurveTo(-32, 24, -42, 28);
+    g.lineTo(42, 28);
+    g.quadraticCurveTo(32, 24, 30, 10);
+    g.bezierCurveTo(28, -10, 26, -36, 0, -36);
+    g.closePath();
+    paint(g, grad);
+    // 下のふちと、中の玉
+    g.beginPath();
+    g.roundRect(-44, 26, 88, 9, 4);
+    paint(g, grad);
+    g.beginPath();
+    g.arc(0, 40, 8, 0, Math.PI * 2);
+    paint(g, '#8a5a00');
+    shine(g, -14, -14, 5, 14, 0.25);
+  },
+  melon(g) {
+    // スイカの切り口（半月）
+    g.beginPath();
+    g.moveTo(-46, -12);
+    g.arc(0, -12, 46, 0, Math.PI, false);
+    g.closePath();
+    paint(g, '#1f8a2e');
+    g.beginPath();
+    g.moveTo(-40, -12);
+    g.arc(0, -12, 40, 0, Math.PI, false);
+    g.closePath();
+    g.fillStyle = '#e9f5d0';
+    g.fill();
+    g.beginPath();
+    g.moveTo(-35, -12);
+    g.arc(0, -12, 35, 0, Math.PI, false);
+    g.closePath();
+    g.fillStyle = '#ec2f45';
+    g.fill();
+    // 種
+    g.fillStyle = '#1a1010';
+    for (const [x, y] of [[-20, -2], [-6, 6], [8, 6], [22, -2], [-12, 14], [2, 18], [14, 13]]) {
+      g.beginPath();
+      g.ellipse(x, y, 2.6, 4.2, x * 0.02, 0, Math.PI * 2);
+      g.fill();
+    }
+    // 皮のしま模様
+    g.strokeStyle = '#0d5a1a';
+    g.lineWidth = 2.5;
+    for (let a = 0.35; a < Math.PI; a += 0.42) {
+      g.beginPath();
+      g.moveTo(Math.cos(a) * 40, -12 + Math.sin(a) * 40);
+      g.lineTo(Math.cos(a) * 46, -12 + Math.sin(a) * 46);
+      g.stroke();
+    }
+  },
+  cherry(g) {
+    // 茎と葉
+    g.strokeStyle = '#3d6b12';
+    g.lineWidth = 4;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(-20, 16);
+    g.quadraticCurveTo(-12, -20, 8, -40);
+    g.moveTo(22, 20);
+    g.quadraticCurveTo(18, -14, 8, -40);
+    g.stroke();
+    g.beginPath();
+    g.ellipse(22, -38, 16, 7, -0.4, 0, Math.PI * 2);
+    paint(g, '#4caf2a', '#245c10', 2.5);
+    // 実（2つ）
+    for (const [x, y] of [[-20, 24], [22, 28]]) {
+      const grad = g.createRadialGradient(x - 6, y - 6, 2, x, y, 20);
+      grad.addColorStop(0, '#ff6b7a');
+      grad.addColorStop(1, '#a8001c');
+      g.beginPath();
+      g.arc(x, y, 18, 0, Math.PI * 2);
+      paint(g, grad, '#4a0010');
+      shine(g, x - 7, y - 7, 3.5, 6);
+    }
+  },
+  lemon(g) {
+    const grad = g.createRadialGradient(-10, -10, 4, 0, 0, 48);
+    grad.addColorStop(0, '#fff59a');
+    grad.addColorStop(1, '#e8b400');
+    g.beginPath();
+    g.moveTo(-46, 0);
+    g.quadraticCurveTo(-42, -8, -36, -12);
+    g.bezierCurveTo(-24, -34, 24, -34, 36, -12);
+    g.quadraticCurveTo(42, -8, 46, 0);
+    g.quadraticCurveTo(42, 8, 36, 12);
+    g.bezierCurveTo(24, 34, -24, 34, -36, 12);
+    g.quadraticCurveTo(-42, 8, -46, 0);
+    g.closePath();
+    paint(g, grad, '#8a6200');
+    // 葉
+    g.beginPath();
+    g.ellipse(-30, -26, 12, 5, 0.6, 0, Math.PI * 2);
+    paint(g, '#4caf2a', '#245c10', 2);
+    shine(g, -14, -12, 6, 12, 1.1);
+  },
+};
 
 /**
  * スロットのリールの帯。円柱の周りに巻くので、絵柄は90度回して横に並べる
@@ -68,10 +200,10 @@ export function reelTexture(strip: SlotSymbol[], key: string) {
       g.rotate(Math.PI / 2);
       drawSymbol(g, s, cell * 0.92);
       g.restore();
-      // 絵柄の区切りの細い線
-      g.fillStyle = 'rgba(0,0,0,0.06)';
-      g.fillRect(i * cell, 0, 2, tall);
     });
+    // 絵柄の区切りの細い線
+    g.fillStyle = 'rgba(0,0,0,0.06)';
+    strip.forEach((_, i) => g.fillRect(i * cell, 0, 2, tall));
   });
 }
 
