@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getFurniture } from '../catalog';
-import { BASE_HEIGHT, GRID, LOT_D, LOT_W, MAX_LEVEL, STORY_HEIGHT, floorY } from '../building/dimensions';
+import { BASE_HEIGHT, GRID, LOT_D, LOT_W, MAX_LEVEL, STORY_HEIGHT } from '../building/dimensions';
 import {
   axisAlignedSegment,
   canPlaceFloor,
@@ -21,6 +21,8 @@ import type { House } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { snapFurniturePlacement } from '../building/furnitureSnap';
+import { moveBuildingGroup } from '../building/groups';
+import { placementPoint } from './placementRay';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
@@ -74,6 +76,12 @@ export function PlacementController() {
       eraseFrom = null;
       tap = null;
       activeTouch = null;
+      const game = useGame.getState();
+      if (game.dragBase) game.dragTo(game.dragBase);
+      if (useInteraction.getState().buildingDrag) {
+        useInteraction.setState({ buildingDrag: null });
+        useGame.getState().endDrag();
+      }
       if (useInteraction.getState().furnitureDrag) {
         useInteraction.getState().setFurnitureDrag(null);
         useGame.getState().endDrag();
@@ -82,12 +90,7 @@ export function PlacementController() {
     };
 
     const groundPoint = (e: PointerEvent, level: number) => {
-      const r = el.getBoundingClientRect();
-      ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-      raycaster.setFromCamera(ndc, camera);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -floorY(level));
-      const hit = new THREE.Vector3();
-      return raycaster.ray.intersectPlane(plane, hit) ? hit : null;
+      return placementPoint(camera, el.getBoundingClientRect(), e.clientX, e.clientY, level);
     };
     /** マウスの下にある面の階。地面なら0、床の上ならその階、壁の上なら一つ上の階 */
     const pickSurface = (e: PointerEvent): number => {
@@ -137,8 +140,17 @@ export function PlacementController() {
       return 1;
     };
     /** 置く位置を読む面の階。ドラッグ中は始めたときの面のまま */
-    const surfaceAt = (e: PointerEvent) =>
-      dragStart ? dragSurface : useGame.getState().tool === 'roof' ? roofSurface(e) : pickSurface(e);
+    const surfaceAt = (e: PointerEvent) => {
+      if (dragStart) return dragSurface;
+      const g = useGame.getState();
+      if (g.tool === 'roof') return roofSurface(e);
+      const surface = pickSurface(e);
+      if (g.tool !== 'floor') return surface;
+      const p = groundPoint(e, surface);
+      if (!p) return surface;
+      const cell = cellAt(p);
+      return floorLevel(g.house, surface, cellRect(cell, cell));
+    };
 
     let lastPointer: PointerEvent | null = null;
     refresh.current = () => {
@@ -148,6 +160,7 @@ export function PlacementController() {
       lastPointer = e;
       const g = useGame.getState();
       const ui = useInteraction.getState();
+      if (g.tool === 'furniture' && g.defaults.furnitureType === 'nameplate') return;
       const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
@@ -160,7 +173,7 @@ export function PlacementController() {
         case 'roof': {
           const c = cellAt(p);
           const rect = dragStart ? cellRect(dragStart, c) : cellRect(c, c);
-          const level = g.tool === 'floor' ? floorLevel(g.house, surface, rect) : surface - 1;
+          const level = g.tool === 'floor' ? surface : surface - 1;
           g.setLevel(level);
           const valid =
             (g.tool === 'floor' ? canPlaceFloor(g.house, level, rect) : canPlaceRoof(g.house, level, rect)) === null;
@@ -192,6 +205,7 @@ export function PlacementController() {
 
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
+      if (useGame.getState().tool === 'furniture' && useGame.getState().defaults.furnitureType === 'nameplate') return;
       if (e.pointerType === 'touch') {
         touches.add(e.pointerId);
         if (touches.size > 1) return cancelTouch();
@@ -262,6 +276,20 @@ export function PlacementController() {
     };
 
     const onMove = (e: PointerEvent) => {
+      const building = useInteraction.getState().buildingDrag;
+      if (building) {
+        if (Math.hypot(e.clientX - building.startX, e.clientY - building.startY) < 5) return;
+        const game = useGame.getState();
+        if (!game.dragBase) return;
+        const p = groundPoint(e, building.level);
+        if (!p) return;
+        const dx = Math.round((p.x - building.x) / GRID), dz = Math.round((p.z - building.z) / GRID);
+        if (dx === building.dx && dz === building.dz) return;
+        const result = moveBuildingGroup(game.dragBase, building.refs, dx, dz);
+        useInteraction.setState({ buildingDrag: { ...building, dx, dz, error: result.error } });
+        if (!result.error) game.dragTo(result.house);
+        return;
+      }
       if (e.pointerType === 'touch' && activeTouch !== e.pointerId && !useInteraction.getState().furnitureDrag) return;
       const drag = useInteraction.getState().furnitureDrag;
       if (drag) {
@@ -280,6 +308,15 @@ export function PlacementController() {
     };
 
     const onUp = (e: PointerEvent) => {
+      const building = useInteraction.getState().buildingDrag;
+      if (building) {
+        touches.delete(e.pointerId);
+        activeTouch = null;
+        useInteraction.setState({ buildingDrag: null, ignorePartClickUntil: Date.now() + 100 });
+        useGame.getState().endDrag();
+        if (building.error) useGame.getState().notify(building.error);
+        return;
+      }
       if (e.pointerType !== 'touch' && tap) {
         const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
         tap = null;
@@ -329,7 +366,7 @@ export function PlacementController() {
       if (g.tool === 'floor' || g.tool === 'roof') {
         const rect = cellRect(start, cellAt(p));
         if (g.tool === 'floor') {
-          const level = floorLevel(g.house, surface, rect);
+          const level = surface;
           const err = canPlaceFloor(g.house, level, rect);
           if (err) return g.notify(err);
           const terrace = g.defaults.floorKind === 'terrace';
@@ -384,7 +421,7 @@ export function PlacementController() {
 
     const onCancel = (e: PointerEvent) => {
       touches.delete(e.pointerId);
-      if (activeTouch === e.pointerId) cancelTouch();
+      if (activeTouch === e.pointerId || useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag) cancelTouch();
     };
 
     el.addEventListener('pointerdown', onDown);
