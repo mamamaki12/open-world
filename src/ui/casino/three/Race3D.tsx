@@ -438,7 +438,7 @@ function Wakes({ c, sim, n }: { c: Course; sim: MutableRefObject<RaceSim>; n: nu
   const v = useMemo(() => new THREE.Vector3(), []);
   const sc = useMemo(() => new THREE.Vector3(), []);
   const col = useMemo(() => new THREE.Color(), []);
-  const disc = useMemo(() => new THREE.CircleGeometry(0.6, 10).rotateX(-Math.PI / 2), []);
+  const disc = useMemo(() => new THREE.CircleGeometry(0.5, 10).rotateX(-Math.PI / 2), []);
   useFrame(() => {
     const s = sim.current;
     const mesh = ref.current;
@@ -452,7 +452,7 @@ function Wakes({ c, sim, n }: { c: Course; sim: MutableRefObject<RaceSim>; n: nu
     for (let i = 0; i < n; i++) {
       const d0 = last.current[i];
       const d1 = s.dist[i];
-      const steps = Math.min(40, Math.floor((d1 - d0) / 0.9));
+      const steps = Math.min(60, Math.floor((d1 - d0) / 0.6));
       for (let k = 1; k <= steps; k++) {
         const d = d0 + ((d1 - d0) * k) / steps;
         const pt = pointAt(c, courseP(c, d), s.lat[i]);
@@ -475,7 +475,7 @@ function Wakes({ c, sim, n }: { c: Course; sim: MutableRefObject<RaceSim>; n: nu
       v.z += p.z;
       m.compose(v, q, sc.set(1.1, 1, 0.5 + a * 1.6));
       mesh.setMatrixAt(k, m);
-      const b = (1 - a) ** 1.5 * 0.85;
+      const b = (1 - a) ** 2 * 0.5;
       mesh.setColorAt(k, col.setRGB(b, b, b));
       if (++k >= MAX) break;
     }
@@ -606,8 +606,9 @@ function BroadcastCamera({ c, race, sim }: { c: Course; race: Race; sim: Mutable
     let tgt: THREE.Vector3;
     if (s.overview) {
       const span = c.straight + 2 * (c.radius + c.width);
-      pos = new THREE.Vector3(0, span * 0.62, span * 0.42);
-      tgt = new THREE.Vector3(0, 0, 0);
+      // 手前にスタンドが入るように、少し手前から見下ろす
+      pos = new THREE.Vector3(0, span * 0.5, span * 0.78);
+      tgt = new THREE.Vector3(0, 0, c.radius * 0.35);
     } else {
       const front = s.standings.slice(0, Math.min(4, s.standings.length));
       let x = 0;
@@ -663,7 +664,7 @@ function silkOf(name: string) {
   return { silk: SILKS[h % SILKS.length], sleeve: SILKS[(h >>> 4) % SILKS.length] };
 }
 
-export function Race3D({ race, course, sim, height }: { race: Race; course: Course; sim: MutableRefObject<RaceSim>; height: number }) {
+export function Race3D({ race, course, sim, height }: { race: Race; course: Course; sim: MutableRefObject<RaceSim>; height: number | string }) {
   const color = (i: number) => {
     const r = race.runners[i];
     return NUMBER_COLORS[(race.kind === 'horse' ? r.frame : r.no) - 1] ?? NUMBER_COLORS[0];

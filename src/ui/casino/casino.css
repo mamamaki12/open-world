@@ -394,3 +394,30 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
   .race-bell { font-size: 20px; }
 }
 .casino-voice-note.subtle { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.18); color: #e8e2cf; }
+
+/* 全画面のレース映像 */
+.race-full-btn {
+  position: absolute; left: 8px; bottom: 8px; z-index: 2;
+  border: 1px solid rgba(255,255,255,0.5); border-radius: 8px; padding: 5px 10px;
+  background: rgba(0,0,0,0.55); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.race-view.full {
+  position: fixed; inset: 0; z-index: 1000; margin: 0; padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  background: #0d1218; gap: 4px; height: 100dvh; box-sizing: border-box;
+}
+.race-view.full .race-screen { flex: 1; min-height: 0; border-radius: 6px; }
+.race-view.full .race-3d { height: 100%; }
+.race-view.full .race-calls { min-height: 0; }
+.race-view.full .race-strip { flex-wrap: nowrap; overflow-x: auto; color: #ddd; }
+.race-view.full .race-controls { color: #ddd; flex-wrap: nowrap; overflow-x: auto; }
+.race-view.full .race-controls .muted:last-child { display: none; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .race-view.full .race-calls .prev { display: none; }
+  .race-view.full .race-calls { padding: 3px 8px; }
+  .race-view.full .race-calls .now { font-size: 13px; }
+  .race-view.full .race-hud { padding: 2px 8px; font-size: 12px; }
+}
+.race-view.full .race-strip > *, .race-view.full .race-controls > * { flex-shrink: 0; white-space: nowrap; }
+.race-view.full .race-controls > .muted:first-child { display: none; }
+.race-view.full .race-strip .badge { background: #fff; color: #222; }
+.race-view.full .race-controls .btn { color: #222; }

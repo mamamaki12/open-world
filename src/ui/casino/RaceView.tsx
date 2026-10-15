@@ -34,6 +34,11 @@ export function RaceView({ race, motion, order, onDone }: Props) {
   const miniRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(300);
+  const viewRef = useRef<HTMLDivElement>(null);
+  // 全画面：スマホではレースが始まると自動で全画面になり、ゴールのあと結果を見せるときに戻る
+  const [full, setFull] = useState(() => typeof window !== 'undefined' && (window.innerWidth < 700 || window.innerHeight < 500));
+  const fullRef = useRef(full);
+  fullRef.current = full;
   const sim = useRef<RaceSim>({ t: -PRE, dist: race.runners.map(() => 0), lat: race.runners.map(() => 0), standings: [], overview: false, pacer: null });
   const [speed, setSpeed] = useState(4);
   const [overview, setOverview] = useState(false);
@@ -256,6 +261,7 @@ export function RaceView({ race, motion, order, onDone }: Props) {
 
       if (t > lastFinish + 2 && !finished) {
         finished = true;
+        if (fullRef.current) setFull(false);
         doneRef.current();
       }
       raf = requestAnimationFrame(frame);
@@ -268,9 +274,43 @@ export function RaceView({ race, motion, order, onDone }: Props) {
     };
   }, [race, motion, order]);
 
+  // 使える端末では本物の全画面（ブラウザの枠も消える）。iPhone は画面いっぱいに広げて代わりにする
+  useEffect(() => {
+    const el = viewRef.current;
+    if (!el) return;
+    const doc = document as Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => void };
+    const fe = el as unknown as { requestFullscreen?: () => Promise<void>; webkitRequestFullscreen?: () => Promise<void> };
+    const req = fe.requestFullscreen ?? fe.webkitRequestFullscreen;
+    const current = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+    if (full && !current && req) {
+      Promise.resolve()
+        .then(() => req.call(el))
+        .then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> })?.lock?.('landscape'))
+        .catch(() => undefined);
+    } else if (!full && current === el) {
+      (doc.exitFullscreen ?? doc.webkitExitFullscreen)?.call(doc);
+    }
+    const onChange = () => {
+      if (!(doc.fullscreenElement ?? doc.webkitFullscreenElement) && fullRef.current && req) setFull(false);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
+    };
+  }, [full]);
+  useEffect(
+    () => () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element };
+      if ((doc.fullscreenElement ?? doc.webkitFullscreenElement) === viewRef.current) void document.exitFullscreen?.().catch(() => undefined);
+    },
+    [],
+  );
+
   const cfg = RACES[race.kind];
   return (
-    <div className="race-view">
+    <div className={`race-view${full ? ' full' : ''}`} ref={viewRef}>
       <div className="race-hud">
         <b>{race.venue} {race.no}R</b>
         <span className="race-title">{race.name}　{race.surface ?? ''}{race.distance}m</span>
@@ -278,7 +318,10 @@ export function RaceView({ race, motion, order, onDone }: Props) {
         <span className="race-remain">{hud.remain}</span>
       </div>
       <div className="race-screen" ref={wrapRef}>
-        <Race3D race={race} course={motion.course} sim={sim} height={height} />
+        <Race3D race={race} course={motion.course} sim={sim} height={full ? '100%' : height} />
+        <button className="race-full-btn" onClick={() => setFull(!full)} aria-label={full ? '全画面をやめる' : '全画面で見る'}>
+          {full ? '✕ 戻る' : '⛶ 全画面'}
+        </button>
         <canvas className="race-mini" ref={miniRef} aria-hidden />
         {hud.bell && <div className="race-bell">🔔 打鐘</div>}
       </div>
