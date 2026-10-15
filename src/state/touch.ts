@@ -12,13 +12,11 @@ export const touchCamera = { turn: 0, zoom: 0 };
 /** 歩きモードの動作ボタン。Player が表示されている間だけ中身が入る */
 export const walkActions: {
   jump: () => void;
-  /** しゃがむ ⇄ 立つ。しゃがんだら true */
-  crouch: () => boolean;
   toggleView: () => void;
   resetCamera: () => void;
 } = {
   jump: () => undefined,
-  crouch: () => false,
   toggleView: () => undefined,
   resetCamera: () => undefined,
 };
+
