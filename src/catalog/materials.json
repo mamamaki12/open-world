@@ -1,0 +1,49 @@
+{
+  "categories": {
+    "exterior": "外壁材",
+    "interior": "内装（壁紙）",
+    "roof": "屋根材",
+    "floor": "床材",
+    "wood": "木部"
+  },
+  "materials": [
+    { "id": "siding", "name": "窯業系サイディング（横張り）", "category": "exterior", "pattern": "siding", "roughness": 0.8, "metalness": 0, "bump": 0.015,
+      "colors": ["#f2efe8", "#d9d2c3", "#a59c8c", "#6e6a64", "#3b3d40", "#8a5a44"] },
+    { "id": "tile", "name": "外壁タイル", "category": "exterior", "pattern": "brick", "roughness": 0.7, "metalness": 0, "bump": 0.02,
+      "colors": ["#e8e2d6", "#c9b9a0", "#9c7b5e", "#6b5546", "#4a4a4a", "#b0563f"] },
+    { "id": "stucco", "name": "塗り壁（そとん壁風）", "category": "exterior", "pattern": "stucco", "roughness": 0.95, "metalness": 0, "bump": 0.01,
+      "colors": ["#f4f1ea", "#e6dccb", "#cfc2a8", "#b8b2a7", "#8d8a84", "#d8c3a5"] },
+    { "id": "woodboard", "name": "木の羽目板（縦張り）", "category": "exterior", "pattern": "boardV", "roughness": 0.75, "metalness": 0, "bump": 0.02,
+      "colors": ["#c49a6c", "#a0754d", "#7a5535", "#4f3a2a", "#2f2a26", "#d8c09a"] },
+    { "id": "galvalume", "name": "ガルバリウム鋼板（角波）", "category": "exterior", "pattern": "rib", "roughness": 0.4, "metalness": 0.6, "bump": 0.02,
+      "colors": ["#2c2e31", "#5d6166", "#9aa0a6", "#e1e3e4", "#3a4a5c", "#5b3b2e"] },
+
+    { "id": "wallpaper", "name": "ビニールクロス", "category": "interior", "pattern": "fabric", "roughness": 0.9, "metalness": 0, "bump": 0.004,
+      "colors": ["#f7f5f0", "#efe9df", "#e3e7ea", "#dfe8dc", "#f0e0d8", "#5a5d61"] },
+    { "id": "plaster", "name": "珪藻土", "category": "interior", "pattern": "stucco", "roughness": 0.95, "metalness": 0, "bump": 0.008,
+      "colors": ["#f3efe6", "#e8dfcf", "#d9cdb7", "#cfd3cf"] },
+    { "id": "woodpanel", "name": "板張り", "category": "interior", "pattern": "boardV", "roughness": 0.7, "metalness": 0, "bump": 0.01,
+      "colors": ["#d8b98f", "#b88b5c", "#8a6240", "#e8d8bf"] },
+
+    { "id": "kawara", "name": "瓦", "category": "roof", "pattern": "kawara", "roughness": 0.5, "metalness": 0.1, "bump": 0.04,
+      "colors": ["#3d4148", "#5a5f66", "#6b4a3a", "#8a8d90", "#2a2c30"] },
+    { "id": "slate", "name": "スレート（コロニアル）", "category": "roof", "pattern": "slate", "roughness": 0.75, "metalness": 0, "bump": 0.025,
+      "colors": ["#2f3133", "#4b4f54", "#5c4436", "#3f4a3d", "#344255"] },
+    { "id": "standing", "name": "ガルバリウム立平葺き", "category": "roof", "pattern": "seam", "roughness": 0.35, "metalness": 0.65, "bump": 0.02,
+      "colors": ["#2c2e31", "#6a6e73", "#a8adb2", "#3a4a5c", "#5b3b2e"] },
+    { "id": "sheet", "name": "防水シート（陸屋根）", "category": "roof", "pattern": "stucco", "roughness": 0.9, "metalness": 0, "bump": 0.005,
+      "colors": ["#8f9294", "#b3b5b5", "#6f7173"] },
+
+    { "id": "flooring", "name": "フローリング", "category": "floor", "pattern": "planks", "roughness": 0.45, "metalness": 0, "bump": 0.006,
+      "colors": ["#c8a57a", "#a77b52", "#7c5534", "#e0c9a6", "#5a4030", "#b9b2a6"] },
+    { "id": "tatami", "name": "畳", "category": "floor", "pattern": "tatami", "roughness": 0.85, "metalness": 0, "bump": 0.01,
+      "colors": ["#c7c48a", "#b5b07a", "#d7cf9a"] },
+    { "id": "floortile", "name": "タイル", "category": "floor", "pattern": "tile", "roughness": 0.3, "metalness": 0, "bump": 0.01,
+      "colors": ["#e9e6df", "#c9c4ba", "#8b8780", "#3f3f3f"] },
+    { "id": "carpet", "name": "カーペット", "category": "floor", "pattern": "fabric", "roughness": 1, "metalness": 0, "bump": 0.006,
+      "colors": ["#8a8178", "#5d6a78", "#b8a998", "#6b7a5f"] },
+
+    { "id": "oak", "name": "オーク材", "category": "wood", "pattern": "grain", "roughness": 0.55, "metalness": 0, "bump": 0.004,
+      "colors": ["#c8a57a", "#a77b52", "#7c5534", "#4e3626", "#e8e3da"] }
+  ]
+}
