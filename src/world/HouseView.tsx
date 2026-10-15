@@ -16,11 +16,12 @@ export function HouseView() {
   const house = useGame((s) => s.house);
   const tool = useGame((s) => s.tool);
   const walking = useGame((s) => s.mode === 'walk');
+  const editingFurniture = useGame((s) => s.selection?.kind === 'furniture');
 
   // 家はいつも全部見せる。屋根だけは、建築モードで中を作る道具（床・壁・ドア・窓・階段・家具）を
   // 持っている間は隠して、壁の上や2階を触れるようにする。選択・削除・屋根ツールでは見せる
   const insideTool = tool !== 'roof' && tool !== 'select' && tool !== 'erase';
-  const showRoofs = walking || !insideTool;
+  const showRoofs = walking || (!insideTool && !editingFurniture);
 
   return (
     <>
@@ -152,3 +153,4 @@ function PreviewView() {
     }
   }
 }
+
