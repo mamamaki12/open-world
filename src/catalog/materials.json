@@ -61,6 +61,8 @@
     {"id": "big-tile", "name": "大判タイル（600×1200）", "category": "floor", "pattern": "bigTile", "roughness": 0.35, "metalness": 0, "bump": 0.006, "colors": ["#ece9e2", "#cfcac0", "#a7a39b", "#6a6762", "#3a3a3a"], "note": "目地が少なくホテルのような床"},
     {"id": "mortar", "name": "モルタル（土間）", "category": "floor", "pattern": "stucco", "roughness": 0.8, "metalness": 0, "bump": 0.01, "colors": ["#b5b3ad", "#9c9a95", "#c9c6be", "#8a8883"], "note": "玄関や土間のシンプルな床"},
     {"id": "cork", "name": "コルクタイル", "category": "floor", "pattern": "tile", "roughness": 0.9, "metalness": 0, "bump": 0.012, "colors": ["#c49a6c", "#a77b52", "#d8b98f"], "note": "やわらかく暖かい。子ども部屋に"},
+    {"id": "deck", "name": "ウッドデッキ", "category": "floor", "pattern": "wideplank", "roughness": 0.8, "metalness": 0, "bump": 0.014, "colors": ["#8a6447", "#a77b52", "#6b4a33", "#9c9488", "#c49a6c"], "note": "屋外のテラス向け。雨に強い樹脂木・ハードウッド"},
+    {"id": "terrace-tile", "name": "テラスタイル", "category": "floor", "pattern": "bigTile", "roughness": 0.75, "metalness": 0, "bump": 0.01, "colors": ["#c9c3b6", "#a8a196", "#8c8478", "#d9d2c4"], "note": "屋外用の滑りにくい石目のタイル"},
 
     {"id": "oak", "name": "オーク材", "category": "wood", "pattern": "grain", "roughness": 0.55, "metalness": 0, "bump": 0.004, "colors": ["#c8a57a", "#a77b52", "#7c5534", "#4e3626", "#e8e3da"], "note": "かたくて丈夫な定番の木"},
     {"id": "walnut", "name": "ウォルナット", "category": "wood", "pattern": "grain", "roughness": 0.5, "metalness": 0, "bump": 0.004, "colors": ["#5a3e2b", "#6e4c35", "#4a3224", "#7d5a40"], "note": "深い茶色の高級な木"},

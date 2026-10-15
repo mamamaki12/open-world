@@ -99,6 +99,40 @@
     { "id": "rug", "name": "ラグ", "colors": ["#b9ab97", "#7d8a96", "#8a4f3d", "#e9e4da"],
       "parts": [
         { "shape": "box", "size": [2.0, 0.015, 1.4], "pos": [0, 0.0075, 0], "paint": "main" }
+      ] },
+    { "id": "pool", "name": "プール", "category": "outdoor", "colors": ["#e8e6e0", "#cfd6dc", "#d9cbb5", "#9aa3a8"],
+      "parts": [
+        { "shape": "box", "size": [4.0, 0.3, 0.2], "pos": [0, 0.15, -0.9], "paint": "main" },
+        { "shape": "box", "size": [4.0, 0.3, 0.2], "pos": [0, 0.15, 0.9], "paint": "main" },
+        { "shape": "box", "size": [0.2, 0.3, 1.6], "pos": [-1.9, 0.15, 0], "paint": "main" },
+        { "shape": "box", "size": [0.2, 0.3, 1.6], "pos": [1.9, 0.15, 0], "paint": "main" },
+        { "shape": "box", "size": [3.6, 0.24, 1.6], "pos": [0, 0.12, 0], "paint": "water" },
+        { "shape": "cylinder", "size": [0.04, 0.6, 0.04], "pos": [1.65, 0.45, -0.3], "paint": "steel" },
+        { "shape": "cylinder", "size": [0.04, 0.6, 0.04], "pos": [1.65, 0.45, 0.3], "paint": "steel" }
+      ] },
+    { "id": "flowerbed", "name": "花壇", "category": "outdoor", "colors": ["#e0465a", "#f2c230", "#f08fb3", "#f5f2ea", "#8a63c9"],
+      "parts": [
+        { "shape": "box", "size": [1.8, 0.3, 0.6], "pos": [0, 0.15, 0], "paint": "stone" },
+        { "shape": "box", "size": [1.7, 0.04, 0.5], "pos": [0, 0.31, 0], "paint": "soil" },
+        { "shape": "sphere", "size": [0.5, 0.28, 0.4], "pos": [-0.6, 0.42, 0], "paint": "green" },
+        { "shape": "sphere", "size": [0.5, 0.3, 0.4], "pos": [0, 0.43, 0], "paint": "green" },
+        { "shape": "sphere", "size": [0.5, 0.28, 0.4], "pos": [0.6, 0.42, 0], "paint": "green" },
+        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [-0.7, 0.58, -0.12], "paint": "main" },
+        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [-0.45, 0.58, 0.1], "paint": "main" },
+        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [-0.2, 0.58, -0.08], "paint": "main" },
+        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [0.05, 0.58, 0.12], "paint": "main" },
+        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [0.3, 0.58, -0.1], "paint": "main" },
+        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [0.55, 0.58, 0.08], "paint": "main" },
+        { "shape": "sphere", "size": [0.13, 0.11, 0.13], "pos": [0.75, 0.58, -0.05], "paint": "main" }
+      ] },
+    { "id": "flowerpot", "name": "花の鉢植え", "category": "outdoor", "colors": ["#e0465a", "#f2c230", "#f08fb3", "#f5f2ea", "#8a63c9"],
+      "parts": [
+        { "shape": "cylinder", "size": [0.34, 0.32, 0.34], "pos": [0, 0.16, 0], "paint": "terracotta" },
+        { "shape": "sphere", "size": [0.4, 0.26, 0.4], "pos": [0, 0.42, 0], "paint": "green" },
+        { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [-0.08, 0.55, -0.06], "paint": "main" },
+        { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0.09, 0.55, -0.04], "paint": "main" },
+        { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0, 0.55, 0.09], "paint": "main" },
+        { "shape": "sphere", "size": [0.11, 0.1, 0.11], "pos": [0.02, 0.55, -0.01], "paint": "main" }
       ] }
   ]
 }

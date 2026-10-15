@@ -18,7 +18,11 @@ export interface FloorPart {
   x1: number;
   z1: number;
   finish: Finish;
+  /** terrace：屋外のテラス（ウッドデッキなど）。省略は部屋の床 */
+  kind?: FloorKind;
 }
+
+export type FloorKind = 'room' | 'terrace';
 
 /** 壁。グリッド線に沿った直線（x方向かz方向） */
 export interface WallPart {
@@ -61,11 +65,11 @@ export interface StairPart {
   /** 0: +z方向へ上る, 1: +x, 2: -z, 3: -x */
   rot: 0 | 1 | 2 | 3;
   finish: Finish;
-  /** 手すりの側（上る向きに見て）。省略は左 */
+  /** 手すりの付き方（上る向きに見て）。省略は左 */
   rail?: StairRail;
 }
 
-export type StairRail = 'left' | 'right';
+export type StairRail = 'left' | 'right' | 'both' | 'none';
 
 export type RoofType = 'gable' | 'hip' | 'shed' | 'flat';
 

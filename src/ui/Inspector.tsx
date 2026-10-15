@@ -5,7 +5,7 @@ import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapOpeningOffset,
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
 import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
-import { RoofTypeButtons, Slider, StairRailButtons, WallHeightButtons } from './ToolOptions';
+import { FloorKindButtons, RoofTypeButtons, Slider, StairRailButtons, WallHeightButtons } from './ToolOptions';
 import { patchPart } from './edit';
 
 const mm = (m: number) => `${Math.round(m * 1000).toLocaleString()}mm`;
@@ -22,12 +22,13 @@ export function Inspector() {
     case 'floor': {
       const f = house.floors.find((p) => p.id === selection.id);
       if (!f) return null;
-      title = `床（${levelName(f.level)}）`;
+      title = `${f.kind === 'terrace' ? 'テラス' : '床'}（${levelName(f.level)}）`;
       body = (
         <>
           <p className="info">
             {mm((f.x1 - f.x0) * GRID)} × {mm((f.z1 - f.z0) * GRID)}（{(((f.x1 - f.x0) * (f.z1 - f.z0)) / 2).toFixed(1)}畳）
           </p>
+          <FloorKindButtons value={f.kind} onChange={(kind) => patchPart('floor', f.id, { kind })} />
           <FinishPicker label="床材" category="floor" value={f.finish} onChange={(finish) => patchPart('floor', f.id, { finish })} />
         </>
       );
@@ -172,8 +173,8 @@ function StairInspector({ stair: s }: { stair: StairPart }) {
   };
   return (
     <>
-      <FinishPicker label="踏み板" category="wood" value={s.finish} onChange={(finish) => patchPart('stair', s.id, { finish })} />
       <StairRailButtons value={s.rail} onChange={(rail) => patchPart('stair', s.id, { rail })} />
+      <FinishPicker label="踏み板" category="wood" value={s.finish} onChange={(finish) => patchPart('stair', s.id, { finish })} />
       <button className="btn" onClick={rotate}>
         向きを変える
       </button>

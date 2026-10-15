@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GRID, STORY_HEIGHT, floorY } from './dimensions';
 import { sampleHouse } from './sample';
-import { stairRailX } from './rules';
+import { stairRailXs } from './rules';
 import type { House, StairPart } from './types';
 import { LEAP_DROP, climbDuration, climbFrame, planClimb } from './climb';
-import { PLAYER, ceilingHeight, nearestDoor, nearestOpening, resolveCollisions, roofBlocks, stairRail, surfaceHeight, windowPassage } from './walk';
+import { PLAYER, ceilingHeight, nearestDoor, nearestOpening, resolveCollisions, roofBlocks, stairRails, surfaceHeight, windowPassage } from './walk';
 
 const house = sampleHouse();
 
@@ -206,7 +206,7 @@ describe('階段の手すり', () => {
     furniture: [],
     stairs: [{ id: 's', level: 0, x: 5, z: 5, rot, finish: { material: 'oak', color: '#a77b52' }, rail }],
   });
-  const railX = 5.5 * GRID + stairRailX('left'); // 上る向き(+z)に見て左 = +x
+  const railX = 5.5 * GRID + stairRailXs('left')[0]; // 上る向き(+z)に見て左 = +x
 
   it('階段の途中で手すりの外へは出られない', () => {
     const feet = floorY(0) + STORY_HEIGHT / 2;
@@ -219,7 +219,7 @@ describe('階段の手すり', () => {
 
   it('手すりのない側はふさがない', () => {
     const feet = floorY(0) + STORY_HEIGHT / 2;
-    const start = { x: 5.5 * GRID - stairRailX('left'), z: 7 * GRID };
+    const start = { x: 5.5 * GRID - stairRailXs('left')[0], z: 7 * GRID };
     expect(resolveCollisions(only(undefined), start, feet, PLAYER.height)).toEqual(start);
   });
 
@@ -227,16 +227,28 @@ describe('階段の手すり', () => {
     const feet = floorY(0) + STORY_HEIGHT / 2;
     const leftSide = { x: railX, z: 7 * GRID };
     expect(resolveCollisions(only('right'), leftSide, feet, PLAYER.height)).toEqual(leftSide);
-    const rightX = 5.5 * GRID + stairRailX('right');
+    const rightX = 5.5 * GRID + stairRailXs('right')[0];
     const p = resolveCollisions(only('right'), { x: rightX, z: 7 * GRID }, feet, PLAYER.height);
     expect(Math.abs(p.x - rightX)).toBeGreaterThan(PLAYER.radius);
   });
 
   it('向きを変えた階段でも手すりの位置が合う', () => {
     // rot 1：+x へ上る。上る向きに見て左は -z
-    const r = stairRail({ ...only('left', 1).stairs[0] });
-    expect(r.az).toBeCloseTo(5.5 * GRID - stairRailX('left'));
+    const [r] = stairRails({ ...only('left', 1).stairs[0] });
+    expect(r.az).toBeCloseTo(5.5 * GRID - stairRailXs('left')[0]);
     expect(r.bx - r.ax).toBeCloseTo(4 * GRID);
+  });
+
+  it('手すりなしは両側とも出られ、両側はどちらにも出られない', () => {
+    const feet = floorY(0) + STORY_HEIGHT / 2;
+    const leftX = 5.5 * GRID + stairRailXs('left')[0];
+    const rightX = 5.5 * GRID + stairRailXs('right')[0];
+    for (const x of [leftX, rightX]) {
+      const start = { x, z: 7 * GRID };
+      expect(resolveCollisions(only('none'), start, feet, PLAYER.height)).toEqual(start);
+      expect(Math.abs(resolveCollisions(only('both'), start, feet, PLAYER.height).x - x)).toBeGreaterThan(PLAYER.radius);
+    }
+    expect(stairRails(only('none').stairs[0])).toEqual([]);
   });
 
   it('階段の高いほうの下は、手すりに当たらずくぐれる', () => {

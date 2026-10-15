@@ -288,7 +288,9 @@ export function PlacementController() {
           const level = floorLevel(g.house, surface, rect);
           const err = canPlaceFloor(g.house, level, rect);
           if (err) return g.notify(err);
-          g.commit({ ...g.house, floors: [...g.house.floors, { id: newId('floor'), level, ...rect, finish: g.defaults.floor }] });
+          const terrace = g.defaults.floorKind === 'terrace';
+          const floor = { id: newId('floor'), level, ...rect, finish: terrace ? g.defaults.terrace : g.defaults.floor, ...(terrace ? { kind: 'terrace' as const } : {}) };
+          g.commit({ ...g.house, floors: [...g.house.floors, floor] });
         } else {
           // 屋根は、ドラッグを始めたときにカーソルが読んでいた壁の上端に載る
           const level = surface - 1;

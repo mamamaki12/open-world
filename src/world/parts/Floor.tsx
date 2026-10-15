@@ -19,6 +19,7 @@ export function Floor({ floor, holes, stairwells, roofs }: { floor: FloorPart; h
   const holesKey = key(holes);
   const wellsKey = key(stairwells);
   const roofsKey = key(roofs);
+  const terrace = floor.kind === 'terrace';
   const { top, body, ceiling } = useMemo(() => {
     const strips = floorStrips(floor, holes);
     const y = floorY(floor.level);
@@ -28,11 +29,13 @@ export function Floor({ floor, holes, stairwells, roofs }: { floor: FloorPart; h
     return {
       top: floorTopGeometry(strips, y + 0.003),
       body: floorBodyGeometry(strips, bottom, y),
-      ceiling: floorTopGeometry(floorStrips(floor, stairwells, roofs), ceilingY, true),
+      // テラスは屋外なので天井を張らない
+      ceiling: terrace ? null : floorTopGeometry(floorStrips(floor, stairwells, roofs), ceilingY, true),
     };
-  }, [floor.x0, floor.z0, floor.x1, floor.z1, floor.level, holesKey, wellsKey, roofsKey]);
+  }, [floor.x0, floor.z0, floor.x1, floor.z1, floor.level, holesKey, wellsKey, roofsKey, terrace]);
 
-  const bodyColor = floor.level === 0 ? '#a7a49d' : '#f2f1ee';
+  // テラスの側面は木の幕板、部屋の床は1階が基礎のコンクリート、2階がスラブ
+  const bodyColor = terrace ? '#6e5240' : floor.level === 0 ? '#a7a49d' : '#f2f1ee';
   return (
     <group {...handlers}>
       {top && <mesh geometry={top} material={finishMaterial(floor.finish, highlight)} receiveShadow />}

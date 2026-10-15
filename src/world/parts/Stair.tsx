@@ -1,5 +1,5 @@
 import { GRID, STAIR_LENGTH, STAIR_RAIL_HEIGHT, STAIR_RISERS, STAIR_WIDTH, STORY_HEIGHT, floorY } from '../../building/dimensions';
-import { stairRailX } from '../../building/rules';
+import { stairRailXs } from '../../building/rules';
 import type { StairPart } from '../../building/types';
 import { finishMaterial, plainMaterial } from '../materials';
 import { usePart } from './usePart';
@@ -56,9 +56,11 @@ function StairBody({ finish, rail: railSide, ghost, highlight = 'none' }: { fini
           <boxGeometry args={[0.035, 0.25, diag]} />
         </mesh>
       ))}
-      <mesh position={[stairRailX(railSide), STORY_HEIGHT / 2 + STAIR_RAIL_HEIGHT, z0 + len / 2]} rotation={[Math.PI / 2 - slope, 0, 0]} material={rail}>
-        <cylinderGeometry args={[0.02, 0.02, diag, 8]} />
-      </mesh>
+      {stairRailXs(railSide).map((x) => (
+        <mesh key={x} position={[x, STORY_HEIGHT / 2 + STAIR_RAIL_HEIGHT, z0 + len / 2]} rotation={[Math.PI / 2 - slope, 0, 0]} material={rail}>
+          <cylinderGeometry args={[0.02, 0.02, diag, 8]} />
+        </mesh>
+      ))}
     </group>
   );
 }

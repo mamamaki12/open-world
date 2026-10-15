@@ -87,7 +87,9 @@ export interface NamedColor {
   hex: string;
 }
 
-export type Paint = 'main' | 'wood' | 'white' | 'black' | 'dark' | 'accent' | 'counter' | 'steel';
+export type Paint =
+  | 'main' | 'wood' | 'white' | 'black' | 'dark' | 'accent' | 'counter' | 'steel'
+  | 'water' | 'green' | 'soil' | 'stone' | 'terracotta';
 
 export interface FurniturePiece {
   shape: 'box' | 'cylinder' | 'sphere';
@@ -99,6 +101,8 @@ export interface FurniturePiece {
 export interface FurnitureDef {
   id: string;
   name: string;
+  /** outdoor：庭・外構に置くもの（プール・花など）。省略は家の中の家具 */
+  category?: 'outdoor';
   colors: string[];
   parts: FurniturePiece[];
 }

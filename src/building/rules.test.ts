@@ -7,6 +7,7 @@ import {
   canPlaceStair,
   canChangeWallHeight,
   canPlaceWall,
+  furnitureBaseY,
   removePart,
   snapOpeningOffset,
   stairFootprint,
@@ -182,5 +183,21 @@ describe('半分の高さの壁', () => {
     };
     expect(canChangeWallHeight(h, 'a', 'half')).not.toBeNull();
     expect(canChangeWallHeight({ ...h, openings: [] }, 'a', 'half')).toBeNull();
+  });
+});
+
+describe('テラスと庭', () => {
+  it('テラスに面した側は外壁として扱う', () => {
+    const room = { id: 'r', level: 0, x0: 0, z0: 0, x1: 4, z1: 4, finish };
+    const terrace = { id: 't', level: 0, x0: 0, z0: -2, x1: 4, z1: 0, finish, kind: 'terrace' as const };
+    const w = wall('a', 0, 0, 4, 0);
+    expect(wallOutsideSide({ ...emptyHouse(), floors: [room, { ...terrace, kind: undefined }], walls: [w] }, w)).toBe(0);
+    expect(wallOutsideSide({ ...emptyHouse(), floors: [room, terrace], walls: [w] }, w)).not.toBe(0);
+  });
+
+  it('家具は床の上なら床の高さ、庭なら地面に置く', () => {
+    const h: House = { ...emptyHouse(), floors: [{ id: 'f', level: 0, x0: 0, z0: 0, x1: 4, z1: 4, finish }] };
+    expect(furnitureBaseY(h, { level: 0, x: 2 * GRID, z: 2 * GRID })).toBeCloseTo(0.5);
+    expect(furnitureBaseY(h, { level: 0, x: 8 * GRID, z: 8 * GRID })).toBe(0);
   });
 });
