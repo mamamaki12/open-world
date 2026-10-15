@@ -369,3 +369,25 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
 @media (max-width: 640px) {
   .slot-floor .casino-stage { height: 340px !important; }
 }
+
+.casino-voice-note {
+  margin: -4px 0 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 207, 74, 0.14);
+  border: 1px solid rgba(255, 207, 74, 0.45);
+  color: #ffe7a3;
+  font-size: 12px;
+}
+
+/* レース映像（3D）：スマホでは文字を小さくして、映像を隠しすぎないようにする */
+.race-screen { background: #9cc3e0; }
+@media (max-width: 640px) {
+  .race-hud { left: 6px; top: 6px; gap: 6px; padding: 3px 7px; font-size: 11px; flex-wrap: wrap; max-width: calc(100% - 160px); }
+  .race-clock { font-size: 12px; }
+  .race-screen canvas.race-mini { right: 6px; top: 6px; transform: scale(0.85); transform-origin: top right; }
+  .race-calls { padding: 4px 8px; }
+  .race-calls .now { font-size: 13px; }
+  .race-calls .prev { display: none; }
+  .race-bell { font-size: 20px; }
+}

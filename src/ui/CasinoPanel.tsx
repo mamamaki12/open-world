@@ -8,7 +8,7 @@ import { RaceGame } from './casino/RaceGame';
 import { Roulette } from './casino/Roulette';
 import { Slots } from './casino/Slots';
 import { isMuted, setMuted } from './casino/sfx';
-import { stopSpeaking } from './casino/voice';
+import { onVoiceChange, stopSpeaking, voiceStatus } from './casino/voice';
 import { Modal } from './Modal';
 import './casino/casino.css';
 
@@ -74,6 +74,25 @@ function MuteButton() {
   );
 }
 
+/** 日本語の読み上げが使えない端末では、実況が字幕だけになることを知らせる */
+function VoiceNotice() {
+  const [status, setStatus] = useState(voiceStatus);
+  useEffect(() => {
+    const off = onVoiceChange(() => setStatus(voiceStatus()));
+    return () => {
+      off();
+    };
+  }, []);
+  if (status === 'ok' || status === 'loading') return null;
+  return (
+    <div className="casino-voice-note" role="status">
+      {status === 'unsupported'
+        ? 'このブラウザは読み上げに対応していないので、実況とディーラーの声は字幕だけになります。'
+        : 'この端末には日本語の読み上げ音声が入っていないので、実況とディーラーの声は字幕だけになります。'}
+    </div>
+  );
+}
+
 export function CasinoPanel() {
   const [tab, setTabState] = useState<Tab>(lastTab);
   const setTab = (t: Tab) => {
@@ -88,6 +107,7 @@ export function CasinoPanel() {
         <Wallet />
         <MuteButton />
       </div>
+      <VoiceNotice />
       <div className={race ? `casino-paper ${tab}` : 'casino-felt'}>
         {tab === 'slots' && <Slots />}
         {tab === 'roulette' && <Roulette />}
