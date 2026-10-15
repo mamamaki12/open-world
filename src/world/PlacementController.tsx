@@ -210,8 +210,8 @@ export function PlacementController() {
       const ui = useInteraction.getState();
       switch (g.tool) {
         case 'erase':
-          // まとめて消す：何もない所からドラッグすると、その範囲のパーツを選ぶ（パーツのクリックは usePart が受ける）
-          if (!g.eraseMulti || g.mode === 'walk') break;
+          // ドラッグすると、その範囲のパーツをまとめて選ぶ（パーツのクリックは usePart が受ける）
+          if (g.mode === 'walk') break;
           dragStart = cellAt(p);
           dragSurface = surface;
           eraseFrom = { x: e.clientX, y: e.clientY };
@@ -301,7 +301,11 @@ export function PlacementController() {
         const from = eraseFrom;
         eraseFrom = null;
         useInteraction.getState().setPreview(null);
-        if (p && from && Math.hypot(e.clientX - from.x, e.clientY - from.y) > 8) g.addMarks(partsInRect(g.house, cellRect(start, cellAt(p))));
+        if (p && from && Math.hypot(e.clientX - from.x, e.clientY - from.y) > 8) {
+          // 「1つずつ」のときに範囲で選んだら、「まとめて選ぶ」に切り替えて選んだものを見せる
+          if (!g.eraseMulti) g.setEraseMulti(true);
+          useGame.getState().addMarks(partsInRect(g.house, cellRect(start, cellAt(p))));
+        }
         return;
       }
       if (!p) return;

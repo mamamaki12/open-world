@@ -344,12 +344,13 @@ function ControlsHelp() {
   const walking = useGame((s) => s.mode === 'walk');
   const building = tool !== 'select' && tool !== 'erase';
   const touch = useTouchDevice();
-  const eraseMulti = useGame((s) => s.eraseMulti) && tool === 'erase' && !walking;
+  const eraseMulti = useGame((s) => s.eraseMulti);
   let text: string;
-  if (eraseMulti) {
+  if (tool === 'erase' && !walking) {
+    const click = eraseMulti ? (touch ? 'タップ：選ぶ・外す' : 'クリック：選ぶ・外す') : touch ? 'タップ：消す' : 'クリック：消す';
     text = touch
-      ? 'タップ：選ぶ・外す　なぞる：範囲で選ぶ　2本指：移動・ズーム'
-      : 'クリック：選ぶ・外す　ドラッグ：範囲で選ぶ　Delete：まとめて削除　右ドラッグ：回転';
+      ? `${click}　なぞる：範囲で選ぶ　2本指：移動・ズーム`
+      : `${click}　ドラッグ：範囲で選ぶ　${eraseMulti ? 'Delete：まとめて削除　' : ''}右ドラッグ：回転`;
   } else if (touch) {
     const place = tool === 'erase' ? 'タップ：消す' : tool === 'floor' || tool === 'roof' || tool === 'wall' ? 'なぞる：置く' : 'タップ：置く';
     if (walking) text = tool === 'select' ? 'スティック：歩く（端まで倒すと走る）　なぞる：見回す' : `${place}　2本指：見回す`;
