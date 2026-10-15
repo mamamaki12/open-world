@@ -47,6 +47,13 @@ export function isHouse(h: unknown): h is House {
 
 export const autosave = (house: House) => write(AUTOSAVE_KEY, house);
 export const loadAutosave = () => read(AUTOSAVE_KEY)?.house ?? null;
+export function clearAutosave() {
+  try {
+    localStorage.removeItem(AUTOSAVE_KEY);
+  } catch {
+    // ストレージが使えない環境では何もしない
+  }
+}
 export const saveSlot = (slot: number, house: House) => write(SLOT_KEY(slot), house);
 export const loadSlot = (slot: number) => read(SLOT_KEY(slot))?.house ?? null;
 export function slotInfos(): SlotInfo[] {

@@ -16,3 +16,12 @@ npm run dev      # http://localhost:5173 で起動
 npm test         # ルール（配置判定・屋根の形）のテスト
 npm run build    # dist/ に公開用ファイルを作る
 ```
+
+## 公開（本番）
+
+`main` に変更が入ると、GitHub Actions がテストとビルドをして GitHub Pages に公開します（`.github/workflows/deploy.yml`）。プルリクエストでは型チェック・テスト・ビルドだけを行います（`.github/workflows/ci.yml`）。
+
+最初の一回だけ、リポジトリの **Settings → Pages → Build and deployment → Source** を **GitHub Actions** にしてください。公開先は `https://mamamaki12.github.io/open-world/` です。
+
+- セーブは遊ぶ人のブラウザ内（localStorage）だけに残り、サーバーには送られません。
+- 3D表示（WebGL）が使えないブラウザでは案内を出し、予期しないエラーで止まったときは「再読み込み」か「自動セーブを消して始め直す」を選べます。
