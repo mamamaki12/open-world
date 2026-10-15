@@ -3,7 +3,10 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
-import { PLAYER, resolveCollisions, surfaceHeight } from '../building/walk';
+import { getOpening } from '../catalog';
+import { PLAYER, nearestDoor, resolveCollisions, surfaceHeight } from '../building/walk';
+import { isDoorOpen, useDoors } from '../state/doors';
+import { playDoorSound } from './sound';
 import { useGame } from '../state/store';
 import { plainMaterial } from './materials';
 
@@ -39,7 +42,22 @@ export const WALK_KEYS = {
   crouch: ['KeyC'],
   view: ['KeyQ'],
   resetCamera: ['KeyR'],
+  interact: ['KeyF', 'KeyE'],
 };
+
+/** いま狙っているドアを開け閉めする（キーと画面のボタンの両方から呼ぶ） */
+export function toggleTargetDoor() {
+  const doors = useDoors.getState();
+  const id = doors.target;
+  if (!id) return;
+  const { house } = useGame.getState();
+  const spot = nearestDoor(house, playerMemory.x, playerMemory.z, playerMemory.y);
+  // 開く向き：プレイヤーがいる側と反対へ
+  const dir = (spot && spot.id === id ? -spot.side : 1) as 1 | -1;
+  const opened = doors.toggle(id, dir);
+  const o = house.openings.find((p) => p.id === id);
+  playDoorSound(opened, o ? getOpening(o.type).style === 'sliding' : false);
+}
 
 export function Player() {
   const { camera, gl, scene } = useThree();
@@ -63,6 +81,7 @@ export function Player() {
       cam.fov = saved.fov;
       cam.updateProjectionMatrix();
       if (document.pointerLockElement) document.exitPointerLock();
+      useDoors.getState().setTarget(null);
     };
   }, [camera]);
 
@@ -94,6 +113,7 @@ export function Player() {
         useGame.getState().toggleView();
         playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
       }
+      if (WALK_KEYS.interact.includes(e.code)) toggleTargetDoor();
       if (WALK_KEYS.resetCamera.includes(e.code)) {
         playerMemory.yaw = playerMemory.bodyYaw;
         playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
@@ -172,7 +192,13 @@ export function Player() {
       if (moving) {
         const speed = st.crouch ? CROUCH_SPEED : running ? RUN_SPEED : WALK_SPEED;
         const height = st.crouch ? PLAYER.crouchHeight : PLAYER.height;
-        const next = resolveCollisions(house, { x: playerMemory.x + mx * speed * dt, z: playerMemory.z + mz * speed * dt }, playerMemory.y, height);
+        const next = resolveCollisions(
+          house,
+          { x: playerMemory.x + mx * speed * dt, z: playerMemory.z + mz * speed * dt },
+          playerMemory.y,
+          height,
+          isDoorOpen,
+        );
         playerMemory.x = Math.min(Math.max(next.x, -25), LOT_W * GRID + 25);
         playerMemory.z = Math.min(Math.max(next.z, -25), LOT_D * GRID + 25);
         // 三人称では進む向きへ体を回す
@@ -198,6 +224,9 @@ export function Player() {
         st.grounded = true;
       }
     }
+
+    // 近くのドアを操作対象にする
+    useDoors.getState().setTarget(nearestDoor(house, playerMemory.x, playerMemory.z, playerMemory.y)?.id ?? null);
 
     // しゃがみ・歩きの動き
     st.crouchBlend += ((st.crouch ? 1 : 0) - st.crouchBlend) * Math.min(1, frameDt * 10);

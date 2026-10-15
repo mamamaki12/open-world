@@ -4,20 +4,21 @@ import { getMaterial } from '../catalog';
 import type { Finish } from '../building/types';
 import { patternTexture } from './textures';
 
-export type Highlight = 'none' | 'selected' | 'hover' | 'erase';
+export type Highlight = 'none' | 'selected' | 'hover' | 'erase' | 'focus';
 
 const HIGHLIGHT_EMISSIVE: Record<Highlight, string> = {
   none: '#000000',
   selected: '#2a6cff',
   hover: '#3a7a3a',
   erase: '#c0302a',
+  focus: '#ffb347',
 };
 
 const cache = new Map<string, THREE.MeshStandardMaterial>();
 
 function applyHighlight(m: THREE.MeshStandardMaterial, h: Highlight) {
   m.emissive = new THREE.Color(HIGHLIGHT_EMISSIVE[h]);
-  m.emissiveIntensity = h === 'none' ? 0 : 0.35;
+  m.emissiveIntensity = h === 'none' ? 0 : h === 'focus' ? 0.16 : 0.35;
 }
 
 export function finishMaterial(finish: Finish, highlight: Highlight = 'none'): THREE.MeshStandardMaterial {

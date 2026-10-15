@@ -69,10 +69,10 @@ export function surfaceHeight(house: House, x: number, z: number, y: number): nu
   return best;
 }
 
-/** 壁を、通り抜けられるドアの部分を除いた区間に分ける（壁の始点からの距離 m） */
-function solidSpans(house: House, w: WallPart, length: number): [number, number][] {
+/** 壁を、通り抜けられる（開いている）ドアの部分を除いた区間に分ける（壁の始点からの距離 m） */
+function solidSpans(house: House, w: WallPart, length: number, isOpen: (id: string) => boolean): [number, number][] {
   const gaps = house.openings
-    .filter((o) => o.wallId === w.id && o.kind === 'door')
+    .filter((o) => o.wallId === w.id && o.kind === 'door' && isOpen(o.id))
     .map((o) => {
       const d = getOpening(o.type);
       return [o.offset - d.width / 2, o.offset + d.width / 2] as [number, number];
@@ -89,8 +89,18 @@ function solidSpans(house: House, w: WallPart, length: number): [number, number]
   return spans;
 }
 
-/** 円（プレイヤー）を壁と家具から押し出した位置を返す */
-export function resolveCollisions(house: House, p: Vec2, feetY: number, height: number, radius = PLAYER.radius): Vec2 {
+/**
+ * 円（プレイヤー）を壁と家具から押し出した位置を返す。
+ * isOpen：ドアが開いているか（閉じたドアは壁と同じく通れない）。省略時はすべて開いている扱い
+ */
+export function resolveCollisions(
+  house: House,
+  p: Vec2,
+  feetY: number,
+  height: number,
+  isOpen: (id: string) => boolean = () => true,
+  radius = PLAYER.radius,
+): Vec2 {
   let { x, z } = p;
   const headY = feetY + height;
   for (let iter = 0; iter < 3; iter++) {
@@ -105,7 +115,7 @@ export function resolveCollisions(house: House, p: Vec2, feetY: number, height: 
       const dx = ((w.x1 - w.x0) * GRID) / len;
       const dz = ((w.z1 - w.z0) * GRID) / len;
       const minD = radius + WALL_THICKNESS / 2;
-      for (const [lo, hi] of solidSpans(house, w, len)) {
+      for (const [lo, hi] of solidSpans(house, w, len, isOpen)) {
         const s = Math.min(Math.max((x - ax) * dx + (z - az) * dz, lo), hi);
         const cx = ax + dx * s;
         const cz = az + dz * s;
@@ -167,4 +177,35 @@ export function resolveCollisions(house: House, p: Vec2, feetY: number, height: 
     }
   }
   return { x, z };
+}
+
+export interface DoorSpot {
+  id: string;
+  x: number;
+  z: number;
+  /** プレイヤーが壁のどちら側にいるか（壁の左法線 = ローカル +Z 側なら 1） */
+  side: 1 | -1;
+  distance: number;
+}
+
+/** プレイヤーの近く（同じ階）で操作できるドアのうち一番近いもの */
+export function nearestDoor(house: House, x: number, z: number, feetY: number, reach = 1.5): DoorSpot | null {
+  let best: DoorSpot | null = null;
+  for (const o of house.openings) {
+    if (o.kind !== 'door') continue;
+    const w = house.walls.find((ww) => ww.id === o.wallId);
+    if (!w) continue;
+    const y0 = floorY(w.level);
+    if (feetY < y0 - PLAYER.maxStep - 0.05 || feetY > y0 + 1.0) continue;
+    const len = Math.hypot(w.x1 - w.x0, w.z1 - w.z0);
+    const dx = (w.x1 - w.x0) / len;
+    const dz = (w.z1 - w.z0) / len;
+    const cx = w.x0 * GRID + dx * o.offset;
+    const cz = w.z0 * GRID + dz * o.offset;
+    const distance = Math.hypot(x - cx, z - cz);
+    if (distance > reach || (best && best.distance <= distance)) continue;
+    const side = (x - cx) * -dz + (z - cz) * dx >= 0 ? 1 : -1;
+    best = { id: o.id, x: cx, z: cz, side, distance };
+  }
+  return best;
 }

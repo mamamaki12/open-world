@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GRID, STORY_HEIGHT, floorY } from './dimensions';
 import { sampleHouse } from './sample';
-import { PLAYER, resolveCollisions, surfaceHeight } from './walk';
+import { PLAYER, nearestDoor, resolveCollisions, surfaceHeight } from './walk';
 
 const house = sampleHouse();
 
@@ -42,6 +42,21 @@ describe('壁と家具の当たり判定', () => {
     const p = resolveCollisions(house, { x: doorX, z: 14 * GRID }, floorY(0), PLAYER.height);
     expect(p.x).toBeCloseTo(doorX);
     expect(p.z).toBeCloseTo(14 * GRID);
+  });
+
+  it('閉じた玄関ドアは通れない', () => {
+    const doorX = 6 * GRID + 7.735;
+    const p = resolveCollisions(house, { x: doorX, z: 14 * GRID }, floorY(0), PLAYER.height, () => false);
+    expect(Math.abs(p.z - 14 * GRID)).toBeGreaterThan(0.3);
+  });
+
+  it('近くのドアと、プレイヤーが壁のどちら側にいるかがわかる', () => {
+    const doorX = 6 * GRID + 7.735;
+    const outside = nearestDoor(house, doorX, 14 * GRID + 0.8, 0);
+    const inside = nearestDoor(house, doorX, 14 * GRID - 0.8, floorY(0));
+    expect(outside?.id).toBe(inside?.id);
+    expect(outside?.side).toBe(-inside!.side);
+    expect(nearestDoor(house, doorX, 14 * GRID + 3, 0)).toBeNull();
   });
 
   it('2階にいるときは1階の壁に当たらない', () => {
