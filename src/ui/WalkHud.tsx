@@ -4,7 +4,7 @@ import { useDoors } from '../state/doors';
 import { getOpening } from '../catalog';
 import { useGame } from '../state/store';
 import { useSeating } from '../state/seating';
-import { enterCasino, interact } from '../world/Player';
+import { interact } from '../world/Player';
 import { useTouchDevice } from './useTouchDevice';
 
 const KEYS: [string, string][] = [
@@ -14,7 +14,7 @@ const KEYS: [string, string][] = [
   ['Space', 'ジャンプ（開いた窓の前では窓から出る）'],
   ['Q', '一人称 ⇄ 三人称'],
   ['R', 'カメラを背中側に戻す'],
-  ['F / E', 'ドア・窓の開閉、座る / 立つ、カジノに入る'],
+  ['F / E', 'ドア・窓の開閉、座る / 立つ、店舗に入る'],
   ['マウス', 'クリックで視点操作（Esc で解除）'],
   ['ホイール', 'カメラの距離（三人称）'],
   ['M', '町の地図（持っている土地へワープ）'],
@@ -42,6 +42,7 @@ export function WalkHud() {
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
   const atCasino = useDoors((s) => s.atCasino);
+  const atEstate = useDoors((s) => s.atEstate);
   const overlay = useGame((s) => s.overlay);
   const house = useGame((s) => s.house);
   const opening = target ? house.openings.find((o) => o.id === target) : undefined;
@@ -67,21 +68,21 @@ export function WalkHud() {
   return (
     <>
       {view === 'first' && !holding && <div className="crosshair" />}
-      {atCasino && !seated && !overlay && (
+      {(atCasino || atEstate) && !climbing && !seated && !overlay && (
         <div className="door-prompts">
           <button
             className="door-prompt casino"
             onClick={(e) => {
               e.currentTarget.blur();
-              enterCasino();
+              interact();
             }}
           >
             <kbd>F</kbd>
-            カジノ・競技場に入る
+            {atEstate ? '不動産屋に入る' : 'カジノ・競技場に入る'}
           </button>
         </div>
       )}
-      {(target || seat || seated) && !climbing && (!atCasino || seated) && (
+      {(target || seat || seated) && !climbing && ((!atCasino && !atEstate) || seated) && (
         <div className="door-prompts">
           <button
             className="door-prompt"
