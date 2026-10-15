@@ -131,10 +131,15 @@ export function slabGeometry(slab: Slab): THREE.BufferGeometry {
   return geo;
 }
 
-/** 床の四角形を、階段の穴を避けて横長の帯に分ける（グリッド座標） */
-export function floorStrips(rect: Rect, holes: Rect[]): Rect[] {
+/**
+ * 床の四角形を、階段の穴を避けて横長の帯に分ける（グリッド座標）。
+ * within を渡すと、そのどれかに入っているマスだけを残す
+ */
+export function floorStrips(rect: Rect, holes: Rect[], within?: Rect[]): Rect[] {
   const strips: Rect[] = [];
-  const inHole = (x: number, z: number) => holes.some((h) => x >= h.x0 && x < h.x1 && z >= h.z0 && z < h.z1);
+  const inRect = (x: number, z: number, h: Rect) => x >= h.x0 && x < h.x1 && z >= h.z0 && z < h.z1;
+  const inHole = (x: number, z: number) =>
+    holes.some((h) => inRect(x, z, h)) || (within !== undefined && !within.some((h) => inRect(x, z, h)));
   for (let z = rect.z0; z < rect.z1; z++) {
     let x = rect.x0;
     while (x < rect.x1) {
