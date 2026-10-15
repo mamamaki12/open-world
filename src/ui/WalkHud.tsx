@@ -4,6 +4,7 @@ import { useDoors } from '../state/doors';
 import { getOpening } from '../catalog';
 import { useGame } from '../state/store';
 import { enterCasino, toggleTargetDoor } from '../world/Player';
+import { useTouchDevice } from './useTouchDevice';
 
 const KEYS: [string, string][] = [
   ['W / S', '前へ / 後ろへ'],
@@ -34,6 +35,7 @@ export function WalkHud() {
   const noun = opening?.kind === 'window' ? '窓' : 'ドア';
   const patio = opening ? getOpening(opening.type).sill === 0 : false;
   const holding = useGame((s) => s.tool !== 'select');
+  const touch = useTouchDevice();
   const [locked, setLocked] = useState(false);
   useEffect(() => {
     const onChange = () => setLocked(document.pointerLockElement !== null);
@@ -69,7 +71,7 @@ export function WalkHud() {
             <kbd>F</kbd>
             {targetOpen ? `${noun}を閉める` : `${noun}を開ける`}
           </button>
-          {climb === 'ok' && (
+          {climb === 'ok' && !touch && (
             <div className="door-prompt passive">
               <kbd>Space</kbd>
               窓から出る
@@ -80,6 +82,7 @@ export function WalkHud() {
           )}
         </div>
       )}
+      {!touch && (
       <div className="panel walk-hud">
         <div className="panel-title">
           <span>歩きモード</span>
@@ -109,6 +112,7 @@ export function WalkHud() {
         )}
         {!locked && !holding && <p className="info">画面をクリックするとマウスで見回せます。ドラッグでも回せます。</p>}
       </div>
+      )}
     </>
   );
 }

@@ -39,19 +39,25 @@ export function Wall({ wall, openings, outside }: Props) {
     outside === 1 ? [ext, int, int] : outside === -1 ? [int, ext, int] : outside === 0 ? [int, int, int] : [ext, ext, ext];
 
   const openingTool = tool === 'door' || tool === 'window';
+  /** 壁の上の点に、いまのドア・窓を付けるとしたときのプレビュー */
+  const previewAt = (point: { x: number; z: number }) => {
+    const { defaults, house } = useGame.getState();
+    const type = tool === 'door' ? defaults.doorType : defaults.windowType;
+    const def = getOpening(type);
+    const dx = point.x - wall.x0 * GRID;
+    const dz = point.z - wall.z0 * GRID;
+    const raw = dx * Math.cos(-angle) + dz * Math.sin(-angle);
+    const offset = snapOpeningOffset(length, raw, def.width);
+    const valid = canPlaceOpening(house, wall.id, type, offset) === null;
+    const preview = { kind: 'opening' as const, wallId: wall.id, offset, valid };
+    useInteraction.getState().setPreview(preview);
+    return preview;
+  };
   const openingHandlers = openingTool
     ? {
         onPointerMove: (e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation();
-          const { defaults, house } = useGame.getState();
-          const type = tool === 'door' ? defaults.doorType : defaults.windowType;
-          const def = getOpening(type);
-          const dx = e.point.x - wall.x0 * GRID;
-          const dz = e.point.z - wall.z0 * GRID;
-          const raw = dx * Math.cos(-angle) + dz * Math.sin(-angle);
-          const offset = snapOpeningOffset(length, raw, def.width);
-          const valid = canPlaceOpening(house, wall.id, type, offset) === null;
-          useInteraction.getState().setPreview({ kind: 'opening', wallId: wall.id, offset, valid });
+          previewAt(e.point);
         },
         onPointerOut: () => {
           const p = useInteraction.getState().preview;
@@ -59,8 +65,9 @@ export function Wall({ wall, openings, outside }: Props) {
         },
         onClick: (e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
-          const p = useInteraction.getState().preview;
-          if (p?.kind !== 'opening' || p.wallId !== wall.id) return;
+          if (e.delta > 8) return; // カメラを動かしたドラッグの終わり
+          // 指でタップしたときは、事前にカーソルを当てていないので、ここで位置を決める
+          const p = previewAt(e.point);
           const s = useGame.getState();
           const type = tool === 'door' ? s.defaults.doorType : s.defaults.windowType;
           const err = canPlaceOpening(s.house, wall.id, type, p.offset);
