@@ -1,32 +1,76 @@
-// スロット：3本のリールが左から順に止まる
-import { useEffect, useRef, useState } from 'react';
+// スロット：本物の台のように3本のリールが回って、左から順に止まる
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CHERRY_PAY, REEL_SYMBOLS, SLOT_FACES, SLOT_PAYS, slotMultiplier, slotReturnRate, spinSlots } from '../../economy/casino';
 import type { SlotSymbol } from '../../economy/casino';
 import { yen } from '../../economy/money';
+import { seeded } from '../../economy/rng';
 import { useEconomy } from '../../state/economy';
 import { useGame } from '../../state/store';
 import { BetInput } from './BetInput';
+import { WinBurst } from './Chips';
+import { sfxLever, sfxLose, sfxReelStop, sfxWin } from './sfx';
 
-const STOP_MS = [700, 1100, 1500];
+/** 回り始めてから各リールが止まり始めるまで（ms） */
+const STOP_AT = [900, 1350, 1800];
+/** 止まるときにすべる時間（ms） */
+const SETTLE = 420;
+/** 回っている速さ（絵柄/秒） */
+const SPEED = 22;
+
+/** リールの絵柄の並び（同じ絵柄が固まらないよう、決まった順に混ぜる） */
+function makeStrip(seed: number): SlotSymbol[] {
+  const rng = seeded(seed);
+  const s = [...REEL_SYMBOLS];
+  for (let i = s.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [s[i], s[j]] = [s[j], s[i]];
+  }
+  return s;
+}
+
+interface ReelMotion {
+  pos: number;
+  /** 'spin' 回転中 / 'settle' 止まる途中 / 'stop' 止まっている */
+  phase: 'spin' | 'settle' | 'stop';
+  from: number;
+  to: number;
+  t0: number;
+}
+
+const easeOutBack = (t: number) => {
+  const c = 1.4;
+  return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2;
+};
+
+function Symbol({ s }: { s: SlotSymbol }) {
+  return <div className={`sym ${s}`}>{SLOT_FACES[s]}</div>;
+}
 
 export function Slots() {
   const [bet, setBet] = useState(10_000);
-  const [reels, setReels] = useState<SlotSymbol[]>(['seven', 'bar', 'bell']);
+  const strips = useMemo(() => [makeStrip(11), makeStrip(23), makeStrip(37)], []);
+  const [, setFrame] = useState(0);
+  const reels = useRef<ReelMotion[]>(strips.map((st, i) => ({ pos: st.indexOf(['seven', 'bar', 'bell'][i] as SlotSymbol), phase: 'stop', from: 0, to: 0, t0: 0 })));
   const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState<{ win: number; mult: number } | null>(null);
+  const [lever, setLever] = useState(false);
+  const [result, setResult] = useState<{ win: number; mult: number; id: number } | null>(null);
+  const raf = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   /** まだ払い戻していない当たり（途中で画面を閉じても払い戻す） */
   const pending = useRef(0);
   const notify = useGame((s) => s.notify);
   useEffect(
     () => () => {
-      timers.current.forEach((t) => (clearTimeout(t), clearInterval(t)));
+      cancelAnimationFrame(raf.current);
+      timers.current.forEach(clearTimeout);
       if (pending.current > 0) useEconomy.getState().collect(pending.current, 'スロット 払戻');
     },
     [],
   );
 
   const spin = () => {
+    if (spinning) return;
+    if (bet <= 0) return;
     if (!useEconomy.getState().placeBet(bet, 'スロット')) return notify('賭け金が所持金を超えています');
     const final = spinSlots(Math.random);
     const mult = slotMultiplier(final);
@@ -34,54 +78,126 @@ export function Slots() {
     pending.current = win;
     setSpinning(true);
     setResult(null);
-    const stopped = [false, false, false];
-    const roll = setInterval(() => {
-      setReels((r) => r.map((s, i) => (stopped[i] ? s : REEL_SYMBOLS[Math.floor(Math.random() * REEL_SYMBOLS.length)])));
-    }, 60);
-    timers.current = [roll];
-    STOP_MS.forEach((ms, i) => {
-      timers.current.push(
-        setTimeout(() => {
-          stopped[i] = true;
-          setReels((r) => r.map((s, j) => (j === i ? final[i] : s)));
-          if (i === 2) {
-            clearInterval(roll);
-            pending.current = 0;
-            useEconomy.getState().collect(win, 'スロット 払戻');
-            setResult({ win, mult });
-            setSpinning(false);
+    setLever(true);
+    sfxLever();
+    timers.current.push(setTimeout(() => setLever(false), 350));
+    const start = performance.now();
+    let last = start;
+    reels.current.forEach((r) => (r.phase = 'spin'));
+    const step = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      reels.current.forEach((r, i) => {
+        const n = strips[i].length;
+        if (r.phase === 'spin') {
+          r.pos += SPEED * dt;
+          if (now - start >= STOP_AT[i]) {
+            // 次に来る「出目」の位置まで、少し行き過ぎて戻るように止める
+            let to = Math.ceil(r.pos) + 2;
+            while (strips[i][((to % n) + n) % n] !== final[i]) to++;
+            r.phase = 'settle';
+            r.from = r.pos;
+            r.to = to;
+            r.t0 = now;
           }
-        }, ms),
-      );
-    });
+        } else if (r.phase === 'settle') {
+          const t = Math.min(1, (now - r.t0) / SETTLE);
+          r.pos = r.from + (r.to - r.from) * easeOutBack(t);
+          if (t >= 1) {
+            r.phase = 'stop';
+            r.pos = r.to % n;
+            sfxReelStop(i);
+          }
+        }
+      });
+      setFrame((f) => f + 1);
+      if (reels.current.every((r) => r.phase === 'stop')) {
+        pending.current = 0;
+        useEconomy.getState().collect(win, 'スロット 払戻');
+        setResult({ win, mult, id: now });
+        setSpinning(false);
+        if (win > 0) sfxWin(mult >= 200 ? 2 : mult >= 15 ? 1 : 0);
+        else sfxLose();
+        return;
+      }
+      raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
   };
 
+  const big = result && result.mult >= 15;
+  const level: 0 | 1 | 2 = result ? (result.mult >= 200 ? 2 : result.mult >= 15 ? 1 : 0) : 0;
   return (
     <div className="game slots">
-      <div className={`reels${result && result.mult >= 15 ? ' jackpot' : ''}`}>
-        {reels.map((s, i) => (
-          <div key={i} className={`reel ${s}`}>{SLOT_FACES[s]}</div>
-        ))}
-      </div>
-      <div className="result-line">
-        {result ? (result.win > 0 ? <b className="plus">×{result.mult}　{yen(result.win)} 獲得！</b> : <span className="muted">はずれ</span>) : ' '}
+      <div className={`slot-machine${spinning ? ' spinning' : ''}${big ? ' big-win' : ''}${result && result.win > 0 ? ' win' : ''}`}>
+        <div className="slot-top">
+          <span className="slot-lamps" />
+          <b>MEGA ７７７</b>
+          <span className="slot-lamps" />
+        </div>
+        <div className="slot-window">
+          {reels.current.map((r, i) => {
+            const n = strips[i].length;
+            const base = Math.floor(r.pos);
+            const frac = r.pos - base;
+            // 真ん中の行が base の絵柄。上に1つ、下に2つ並べ、少しずつ下へ流す
+            const rows = [-2, -1, 0, 1].map((k) => strips[i][(((base - k) % n) + n) % n]);
+            return (
+              <div key={i} className={`slot-reel${r.phase === 'spin' ? ' blur' : ''}`}>
+                <div className="slot-strip" style={{ transform: `translateY(${(frac - 1) * 25}%)` }}>
+                  {rows.map((s, k) => (
+                    <Symbol key={k} s={s} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <div className="payline" />
+        </div>
+        <div className="slot-display">
+          {result ? (
+            result.win > 0 ? (
+              <b className="plus">×{result.mult}　{yen(result.win)}</b>
+            ) : (
+              <span>はずれ　また挑戦！</span>
+            )
+          ) : spinning ? (
+            <span className="blink">GOOD LUCK!</span>
+          ) : (
+            <span>BET {yen(bet)}</span>
+          )}
+        </div>
+        <button className={`slot-lever${lever ? ' pulled' : ''}`} onClick={spin} disabled={spinning || bet <= 0} aria-label="レバーを引く">
+          <i />
+        </button>
+        {result && result.win > 0 && level > 0 && (
+          <WinBurst key={result.id} level={level} amount={result.win} text={level === 2 ? 'JACKPOT!!' : 'BIG WIN!'} />
+        )}
       </div>
       <BetInput value={bet} onChange={setBet} disabled={spinning} />
-      <button className="btn primary big-btn" disabled={spinning || bet <= 0} onClick={spin}>
+      <button className="btn casino-go big-btn" disabled={spinning || bet <= 0} onClick={spin}>
         {spinning ? '回転中…' : 'レバーを引く'}
       </button>
-      <table className="ledger compact paytable">
-        <tbody>
-          {(Object.keys(SLOT_PAYS) as (keyof typeof SLOT_PAYS)[]).map((s) => (
-            <tr key={s}>
-              <td>{SLOT_FACES[s]} {SLOT_FACES[s]} {SLOT_FACES[s]}</td>
-              <td className="num">×{SLOT_PAYS[s]}</td>
-            </tr>
-          ))}
-          <tr><td>左に {SLOT_FACES.cherry}</td><td className="num">×{CHERRY_PAY}（元返し）</td></tr>
-        </tbody>
-      </table>
-      <p className="muted">還元率 {(slotReturnRate() * 100).toFixed(1)}%</p>
+      <div className="paytable-board">
+        {(Object.keys(SLOT_PAYS) as (keyof typeof SLOT_PAYS)[]).map((s) => (
+          <div key={s} className="pay-row">
+            <span className="pay-syms">
+              <Symbol s={s} />
+              <Symbol s={s} />
+              <Symbol s={s} />
+            </span>
+            <b>×{SLOT_PAYS[s]}</b>
+          </div>
+        ))}
+        <div className="pay-row">
+          <span className="pay-syms">
+            <Symbol s="cherry" />
+            <small>左だけ</small>
+          </span>
+          <b>×{CHERRY_PAY}</b>
+        </div>
+        <p className="muted">還元率 {(slotReturnRate() * 100).toFixed(1)}%</p>
+      </div>
     </div>
   );
 }

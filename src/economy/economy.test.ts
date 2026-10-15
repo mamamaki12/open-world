@@ -5,6 +5,7 @@ import type { House } from '../building/types';
 import {
   highLowMultiplier,
   roulettePayout,
+  WHEEL_ORDER,
   slotMultiplier,
   slotReturnRate,
 } from './casino';
@@ -130,6 +131,11 @@ describe('カジノ', () => {
     expect(roulettePayout({ kind: 'red' }, 0)).toBe(0);
     expect(roulettePayout({ kind: 'dozen', dozen: 3 }, 36)).toBe(3);
     expect(roulettePayout({ kind: 'number', number: 0 }, 0)).toBe(36);
+    expect(roulettePayout({ kind: 'column', column: 1 }, 34)).toBe(3);
+    expect(roulettePayout({ kind: 'column', column: 3 }, 36)).toBe(3);
+    expect(roulettePayout({ kind: 'column', column: 2 }, 36)).toBe(0);
+    expect(roulettePayout({ kind: 'column', column: 1 }, 0)).toBe(0);
+    expect([...WHEEL_ORDER].sort((a, b) => a - b)).toEqual(Array.from({ length: 37 }, (_, i) => i));
     // 期待値は 36/37
     let total = 0;
     for (let n = 0; n <= 36; n++) total += roulettePayout({ kind: 'even' }, n);

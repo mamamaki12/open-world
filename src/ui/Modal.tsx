@@ -9,9 +9,11 @@ interface Props<T extends string> {
   tab: T;
   onTab: (t: T) => void;
   children: ReactNode;
+  /** 見た目を変えるための追加のクラス（カジノなど） */
+  className?: string;
 }
 
-export function Modal<T extends string>({ title, onClose, tabs, tab, onTab, children }: Props<T>) {
+export function Modal<T extends string>({ title, onClose, tabs, tab, onTab, children, className }: Props<T>) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -21,7 +23,7 @@ export function Modal<T extends string>({ title, onClose, tabs, tab, onTab, chil
   }, [onClose]);
   return (
     <div className="overlay" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-label={title}>
+      <div className={`modal${className ? ` ${className}` : ''}`} role="dialog" aria-label={title}>
         <div className="modal-head">
           <div className="modal-title">{title}</div>
           <div className="modal-tabs">
