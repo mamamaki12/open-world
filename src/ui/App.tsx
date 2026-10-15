@@ -20,6 +20,7 @@ import { yen } from '../economy/money';
 import { useEconomy } from '../state/economy';
 import { Sheet, TouchCameraPad, TouchWalkControls } from './TouchControls';
 import { useTouchDevice } from './useTouchDevice';
+import { LotSwitcher } from './LotSwitcher';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
@@ -132,6 +133,7 @@ function TouchHud() {
     <div className="touch-hud">
       <div className="touch-hud-row">
         <ModeButton />
+        <LotSwitcher />
         <button className="tool icon" disabled={!canUndo} onClick={undo} aria-label="取り消し">
           ↶
         </button>
@@ -216,6 +218,7 @@ function TopBar() {
     <div className="topbar">
       <div className="brand">家づくり</div>
       <ModeButton />
+      <LotSwitcher />
       <div className="tools tool-list">
         {TOOLS.map((t) => (
           <button
