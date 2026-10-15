@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
+import { nearestSeat } from '../building/seating';
+import { useSeating } from '../state/seating';
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
 import type { ClimbPlan } from '../building/climb';
@@ -20,7 +22,6 @@ import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
 
 const WALK_SPEED = 2.6;
 const RUN_SPEED = 5.2;
-const CROUCH_SPEED = 1.2;
 const JUMP_SPEED = 4.2;
 const GRAVITY = 9.8;
 /** 歩き出し・止まるときの加速のなめらかさ（大きいほどきびきび） */
@@ -49,7 +50,6 @@ export const WALK_KEYS = {
   right: ['KeyD', 'ArrowRight'],
   run: ['ShiftLeft', 'ShiftRight'],
   jump: ['Space'],
-  crouch: ['KeyC'],
   view: ['KeyQ'],
   resetCamera: ['KeyR'],
   interact: ['KeyF', 'KeyE'],
@@ -72,6 +72,27 @@ export function toggleTargetDoor() {
   else playDoorSound(opened, style === 'sliding');
 }
 
+/** キーと画面のボタンで共通の操作。座っていれば立つ。 */
+export function interact() {
+  const seating = useSeating.getState();
+  if (seating.seated) {
+    if (seating.returnTo) Object.assign(playerMemory, seating.returnTo);
+    useSeating.setState({ seated: null, returnTo: null });
+    return;
+  }
+  if (enterCasino()) return;
+  if (useDoors.getState().climbing) return;
+  const seat = seating.target;
+  if (seat) {
+    const current = nearestSeat(useGame.getState().house, playerMemory.x, playerMemory.y, playerMemory.z, isDoorOpen);
+    if (!current || current.id !== seat.id) return;
+    useSeating.setState({ seated: current, returnTo: { x: playerMemory.x, y: playerMemory.y, z: playerMemory.z } });
+    Object.assign(playerMemory, { x: current.x, y: current.y, z: current.z, yaw: current.yaw, bodyYaw: current.yaw });
+    return;
+  }
+  toggleTargetDoor();
+}
+
 /** カジノの入口の前なら中へ入る（カジノの画面を開く）。入れたら true */
 export function enterCasino(): boolean {
   if (!useDoors.getState().atCasino) return false;
@@ -81,6 +102,7 @@ export function enterCasino(): boolean {
 
 /** 歩きモードにして、カジノの入口の前へ移動する */
 export function goToCasino() {
+  useSeating.setState({ seated: null, target: null, returnTo: null });
   const game = useGame.getState();
   game.setOverlay(null);
   if (game.mode !== 'walk') game.setMode('walk');
@@ -98,6 +120,7 @@ export function warpToLot(id: string) {
   const eco = useEconomy.getState();
   const lot = eco.lots.find((l) => l.id === id);
   if (!lot) return;
+  useSeating.setState({ seated: null, target: null, returnTo: null });
   game.setOverlay(null);
   eco.switchLot(id);
   playerMemory.x = (LOT_W * GRID) / 2;
@@ -169,7 +192,7 @@ export function Player() {
   const rig = useRig();
   const smooth = useSmooth();
   const keys = useRef(new Set<string>());
-  const state = useRef({ velY: 0, vx: 0, vz: 0, grounded: true, crouch: false, airTime: 0, lastYaw: 0, shake: 0 });
+  const state = useRef({ velY: 0, vx: 0, vz: 0, grounded: true, airTime: 0, lastYaw: 0, shake: 0 });
   const action = useRef<Action | null>(null);
   /** 窓から飛び出した直後：通ってきた窓の壁に押し戻されないよう、少しの間だけ壁の当たり判定を切る */
   const skipWalls = useRef(false);
@@ -188,6 +211,9 @@ export function Player() {
       cam.fov = saved.fov;
       cam.updateProjectionMatrix();
       if (document.pointerLockElement) document.exitPointerLock();
+      const seating = useSeating.getState();
+      if (seating.returnTo) Object.assign(playerMemory, seating.returnTo);
+      useSeating.setState({ seated: null, target: null, returnTo: null });
       useDoors.getState().setTarget(null);
       useDoors.getState().setClimb(null, false);
       useDoors.getState().setAtCasino(false);
@@ -210,13 +236,12 @@ export function Player() {
     // 動作はキーと画面のボタン（スマホ）の両方から呼ぶ
     const jump = () => {
       const st = state.current;
-      if (!st.grounded || action.current) return;
+      if (!st.grounded || action.current || useSeating.getState().seated) return;
       // 開いた窓の前なら乗り越える。そうでなければジャンプ
       const pass = climbablePassage();
       if (pass) {
         const { house } = useGame.getState();
         action.current = { plan: planClimb(house, pass, { x: playerMemory.x, y: playerMemory.y, z: playerMemory.z }), t: 0 };
-        st.crouch = false;
         st.vx = 0;
         st.vz = 0;
         playClimbSound();
@@ -224,10 +249,6 @@ export function Player() {
         st.velY = JUMP_SPEED;
         st.grounded = false;
       }
-    };
-    const crouch = () => {
-      if (!action.current) state.current.crouch = !state.current.crouch;
-      return state.current.crouch;
     };
     const toggleView = () => {
       useGame.getState().toggleView();
@@ -237,7 +258,7 @@ export function Player() {
       playerMemory.yaw = playerMemory.bodyYaw;
       playerMemory.pitch = useGame.getState().view === 'first' ? 0 : THIRD_PITCH;
     };
-    Object.assign(walkActions, { jump, crouch, toggleView, resetCamera });
+    Object.assign(walkActions, { jump, toggleView, resetCamera });
 
     const onDown = (e: KeyboardEvent) => {
       if (isTyping(e) || e.ctrlKey || e.metaKey) return;
@@ -245,9 +266,8 @@ export function Player() {
       if (e.repeat) return;
       keys.current.add(e.code);
       if (WALK_KEYS.jump.includes(e.code)) jump();
-      if (WALK_KEYS.crouch.includes(e.code)) crouch();
       if (WALK_KEYS.view.includes(e.code)) toggleView();
-      if (WALK_KEYS.interact.includes(e.code) && !enterCasino()) toggleTargetDoor();
+      if (WALK_KEYS.interact.includes(e.code)) interact();
       // 階段・家具を持っているときの R は向きを変える（App 側で処理）
       const tool = useGame.getState().tool;
       if (WALK_KEYS.resetCamera.includes(e.code) && tool !== 'stair' && tool !== 'furniture') resetCamera();
@@ -343,7 +363,7 @@ export function Player() {
     window.addEventListener('pointercancel', onTouchUp);
     return () => {
       clearTimeout(touchTimer);
-      Object.assign(walkActions, { jump: () => undefined, crouch: () => false, toggleView: () => undefined, resetCamera: () => undefined });
+      Object.assign(walkActions, { jump: () => undefined, toggleView: () => undefined, resetCamera: () => undefined });
       touchMove.x = 0;
       touchMove.y = 0;
       el.removeEventListener('pointerdown', onTouchDown);
@@ -372,6 +392,8 @@ export function Player() {
     const k = keys.current;
     const pressed = (codes: string[]) => codes.some((c) => k.has(c));
     const yawBefore = playerMemory.bodyYaw;
+    const seated = useSeating.getState().seated;
+    if (seated) { st.vx = 0; st.vz = 0; st.velY = 0; st.grounded = true; }
 
     // 移動の入力（カメラの向き基準）
     let fwd = (pressed(WALK_KEYS.forward) ? 1 : 0) - (pressed(WALK_KEYS.back) ? 1 : 0);
@@ -391,9 +413,9 @@ export function Player() {
       mx /= mlen;
       mz /= mlen;
     }
-    const running = (pressed(WALK_KEYS.run) || stick >= RUN_THRESHOLD) && !st.crouch;
+    const running = (pressed(WALK_KEYS.run) || stick >= RUN_THRESHOLD);
     const analog = stick > 0 ? Math.min(1, stick / 0.7) : 1;
-    const speedGoal = mlen === 0 ? 0 : (st.crouch ? CROUCH_SPEED : running ? RUN_SPEED : WALK_SPEED) * (running ? 1 : analog);
+    const speedGoal = mlen === 0 ? 0 : (running ? RUN_SPEED : WALK_SPEED) * (running ? 1 : analog);
 
     // 窓を乗り越えている最中は、決まった動きに沿って体を動かす
     let climbPose: ReturnType<typeof climbFrame> | null = null;
@@ -434,7 +456,7 @@ export function Player() {
       }
     }
 
-    if (!climbPose) {
+    if (!climbPose && !seated) {
       for (let i = 0; i < steps; i++) {
         // 速さは少しずつ変える（歩き出し・止まりがなめらかになる）。空中では向きを変えにくい
         const control = st.grounded ? ACCEL : 1.2;
@@ -443,7 +465,7 @@ export function Player() {
         st.vz += (mz * speedGoal - st.vz) * (st.grounded || mlen > 0 ? blend : 0);
         const hs = Math.hypot(st.vx, st.vz);
         if (hs > 0.01) {
-          const height = st.crouch ? PLAYER.crouchHeight : PLAYER.height;
+          const height = PLAYER.height;
           const nx = playerMemory.x + st.vx * dt;
           const nz = playerMemory.z + st.vz * dt;
           // 窓から飛び出した直後は、通ってきた窓の壁に押し戻されないようにする
@@ -481,7 +503,7 @@ export function Player() {
           st.airTime += dt;
           // 頭が屋根や上の階の床にぶつかったら、それ以上は上がらない
           if (st.velY > 0) {
-            const height = st.crouch ? PLAYER.crouchHeight : PLAYER.height;
+            const height = PLAYER.height;
             const ceil = ceilingHeight(house, playerMemory.x, playerMemory.z, before + height - 0.1);
             if (playerMemory.y + height > ceil) {
               playerMemory.y = Math.max(before, ceil - height);
@@ -502,8 +524,12 @@ export function Player() {
     // 近くのドア・窓を操作対象にする。開いた窓なら出られるかも調べる
     const doors = useDoors.getState();
     if (!action.current) {
-      const spot = nearestOpening(house, playerMemory.x, playerMemory.z, playerMemory.y);
-      doors.setTarget(spot?.id ?? null);
+      const seat = !seated && st.grounded ? nearestSeat(house, playerMemory.x, playerMemory.y, playerMemory.z, isDoorOpen) : null;
+      const spot = !seated ? nearestOpening(house, playerMemory.x, playerMemory.z, playerMemory.y) : null;
+      const seatCloser = seat && (!spot || seat.distance < Math.hypot(playerMemory.x - spot.x, playerMemory.z - spot.z));
+      const targetSeat = seatCloser ? seat : null;
+      if (useSeating.getState().target?.id !== targetSeat?.id) useSeating.setState({ target: targetSeat });
+      doors.setTarget(seatCloser ? null : spot?.id ?? null);
       let climb: 'ok' | 'narrow' | 'high' | null = null;
       if (spot?.kind === 'window' && isDoorOpen(spot.id)) {
         const o = house.openings.find((p) => p.id === spot.id);
@@ -558,7 +584,8 @@ export function Player() {
       time: clock.elapsedTime,
       speed: hspeed * (st.grounded ? 1 : 0),
       running,
-      crouch: climbPose ? climbPose.crouch : st.crouch ? 1 : 0,
+      crouch: climbPose ? climbPose.crouch : 0,
+      seated: seated ? seated.height + 0.06 : undefined,
       air: climbPose ? climbPose.air : !st.grounded,
       velY: st.velY,
       turnRate: turn / Math.max(frameDt, 1e-3),
@@ -655,3 +682,4 @@ export function Player() {
     </>
   );
 }
+
