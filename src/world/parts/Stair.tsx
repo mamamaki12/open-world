@@ -1,79 +1,55 @@
-import { GRID, STAIR_LENGTH, STAIR_RAIL_HEIGHT, STAIR_RISERS, STAIR_WIDTH, STORY_HEIGHT, floorY } from '../../building/dimensions';
-import { stairRailXs } from '../../building/rules';
+import * as THREE from 'three';
+import { GRID, STAIR_RAIL_HEIGHT, STAIR_RISERS, STAIR_WIDTH, STORY_HEIGHT, floorY } from '../../building/dimensions';
+import { stairLocalRails, stairPlan } from '../../building/stairs';
 import type { StairPart } from '../../building/types';
 import { finishMaterial, plainMaterial } from '../materials';
 import { usePart } from './usePart';
 
-/** 直階段。ローカル座標で +Z に向かって上る。幅1マス × 長さ4マス */
-export function StairModel({ stair, ghost = false }: { stair: Pick<StairPart, 'level' | 'x' | 'z' | 'rot' | 'finish' | 'rail'>; ghost?: boolean }) {
-  return (
-    <group
-      position={[(stair.x + 0.5) * GRID, floorY(stair.level), (stair.z + 0.5) * GRID]}
-      rotation={[0, (stair.rot * Math.PI) / 2, 0]}
-    >
-      <StairBody finish={stair.finish} rail={stair.rail} ghost={ghost} />
-    </group>
-  );
+type StairModelPart = Pick<StairPart, 'level' | 'x' | 'z' | 'rot' | 'finish' | 'rail' | 'shape'>;
+export function StairModel({ stair, ghost = false }: { stair: StairModelPart; ghost?: boolean }) {
+  return <group position={[(stair.x + 0.5) * GRID, floorY(stair.level), (stair.z + 0.5) * GRID]} rotation={[0, stair.rot * Math.PI / 2, 0]}>
+    <StairBody stair={stair} ghost={ghost} />
+  </group>;
 }
-
-function StairBody({ finish, rail: railSide, ghost, highlight = 'none' }: { finish: StairPart['finish']; rail: StairPart['rail']; ghost: boolean; highlight?: 'none' | 'selected' | 'hover' | 'erase' }) {
-  const width = STAIR_WIDTH;
-  const run = (STAIR_LENGTH * GRID) / STAIR_RISERS;
-  const rise = STORY_HEIGHT / STAIR_RISERS;
-  const z0 = -GRID / 2;
-  const tread = finishMaterial(finish, highlight);
-  const riser = plainMaterial('#f2f1ee', highlight);
-  const rail = plainMaterial('#6b5546', highlight);
-  const steps = [];
-  for (let i = 0; i < STAIR_RISERS; i++) {
-    const top = (i + 1) * rise;
-    steps.push(
-      <group key={i}>
-        <mesh position={[0, top - 0.02, z0 + run * (i + 0.5)]} material={tread} castShadow={!ghost} receiveShadow>
-          <boxGeometry args={[width, 0.04, run + 0.02]} />
-        </mesh>
-        <mesh position={[0, top - rise / 2 - 0.02, z0 + run * i + 0.01]} material={riser} castShadow={!ghost} receiveShadow>
-          <boxGeometry args={[width, rise - 0.04, 0.02]} />
-        </mesh>
-      </group>,
-    );
-  }
-  // 側板（ささら桁）と手すり
-  const len = STAIR_LENGTH * GRID;
-  const slope = Math.atan2(STORY_HEIGHT, len);
-  const diag = Math.hypot(STORY_HEIGHT, len);
-  return (
-    <group>
-      {steps}
-      {[-1, 1].map((side) => (
-        <mesh
-          key={side}
-          position={[side * (width / 2 + 0.02), STORY_HEIGHT / 2 - 0.12, z0 + len / 2]}
-          rotation={[-slope, 0, 0]}
-          material={tread}
-          castShadow={!ghost}
-        >
-          <boxGeometry args={[0.035, 0.25, diag]} />
-        </mesh>
-      ))}
-      {stairRailXs(railSide).map((x) => (
-        <mesh key={x} position={[x, STORY_HEIGHT / 2 + STAIR_RAIL_HEIGHT, z0 + len / 2]} rotation={[Math.PI / 2 - slope, 0, 0]} material={rail}>
-          <cylinderGeometry args={[0.02, 0.02, diag, 8]} />
-        </mesh>
-      ))}
-    </group>
-  );
+function StairBody({ stair, ghost, highlight = 'none' }: { stair: StairModelPart; ghost: boolean; highlight?: 'none' | 'selected' | 'hover' | 'erase' }) {
+  const plan = stairPlan(stair.shape);
+  const tread = finishMaterial(stair.finish, highlight), riser = plainMaterial('#eee9df', highlight), rail = plainMaterial('#72553b', highlight);
+  return <group>
+    {plan.flights.map((f, flight) => {
+      const count = Math.max(1, Math.round(STAIR_RISERS * (f.top - f.bottom)));
+      const run = f.length * GRID / count, rise = (f.top - f.bottom) * STORY_HEIGHT / count;
+      const length = f.length * GRID, height = (f.top - f.bottom) * STORY_HEIGHT;
+      return <group key={flight} position={[(f.x - 0.5) * GRID, f.bottom * STORY_HEIGHT, (f.z - 0.5) * GRID]} rotation-y={f.dir * Math.PI / 2}>
+        {Array.from({ length: count }, (_, i) => <group key={i}>
+          <mesh position={[0, (i + 1) * rise - 0.02, run * (i + 0.5)]} material={tread} castShadow={!ghost} receiveShadow><boxGeometry args={[STAIR_WIDTH, 0.04, run + 0.02]} /></mesh>
+          <mesh position={[0, (i + 0.5) * rise - 0.02, run * i + 0.01]} material={riser} castShadow={!ghost}><boxGeometry args={[STAIR_WIDTH, rise - 0.04, 0.02]} /></mesh>
+        </group>)}
+        {[-1, 1].map(side => <mesh key={side} position={[side * (STAIR_WIDTH / 2 + 0.02), height / 2 - 0.12, length / 2]} rotation-x={-Math.atan2(height, length)} material={tread} castShadow={!ghost}>
+          <boxGeometry args={[0.035, 0.25, Math.hypot(height, length)]} />
+        </mesh>)}
+      </group>;
+    })}
+    {plan.landings.map((l, i) => <mesh key={i} position={[((l.x0 + l.x1) / 2 - 0.5) * GRID, l.height * STORY_HEIGHT - 0.06, ((l.z0 + l.z1) / 2 - 0.5) * GRID]} material={tread} castShadow={!ghost} receiveShadow>
+      <boxGeometry args={[(l.x1 - l.x0) * GRID, 0.12, (l.z1 - l.z0) * GRID]} />
+    </mesh>)}
+    {stairLocalRails(stair).map((r, i) => {
+      const a = new THREE.Vector3((r.ax - 0.5) * GRID, r.bottom * STORY_HEIGHT + STAIR_RAIL_HEIGHT, (r.az - 0.5) * GRID);
+      const b = new THREE.Vector3((r.bx - 0.5) * GRID, r.top * STORY_HEIGHT + STAIR_RAIL_HEIGHT, (r.bz - 0.5) * GRID);
+      const vector = b.clone().sub(a), middle = a.clone().add(b).multiplyScalar(0.5);
+      const rotation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), vector.clone().normalize());
+      return <group key={i}>
+        <mesh position={middle} quaternion={rotation} material={rail}><cylinderGeometry args={[0.025, 0.025, vector.length(), 8]} /></mesh>
+        {[0.08, 0.5, 0.92].map(t => <mesh key={t} position={a.clone().lerp(b, t).add(new THREE.Vector3(0, -STAIR_RAIL_HEIGHT / 2, 0))} material={rail}>
+          <cylinderGeometry args={[0.018, 0.018, STAIR_RAIL_HEIGHT, 8]} />
+        </mesh>)}
+      </group>;
+    })}
+  </group>;
 }
-
 export function Stair({ stair }: { stair: StairPart }) {
   const { highlight, handlers } = usePart({ kind: 'stair', id: stair.id });
-  return (
-    <group
-      position={[(stair.x + 0.5) * GRID, floorY(stair.level), (stair.z + 0.5) * GRID]}
-      rotation={[0, (stair.rot * Math.PI) / 2, 0]}
-      {...handlers}
-    >
-      <StairBody finish={stair.finish} rail={stair.rail} ghost={false} highlight={highlight} />
-    </group>
-  );
+  return <group position={[(stair.x + 0.5) * GRID, floorY(stair.level), (stair.z + 0.5) * GRID]} rotation-y={stair.rot * Math.PI / 2} {...handlers}>
+    <StairBody stair={stair} ghost={false} highlight={highlight} />
+  </group>;
 }
+
