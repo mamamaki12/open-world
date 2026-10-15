@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MAX_LEVEL, levelName } from '../building/dimensions';
 import { canPlaceStair } from '../building/rules';
 import { sampleHouse } from '../building/sample';
@@ -15,6 +15,8 @@ import { WalkHud } from './WalkHud';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
 import { MoneyBar, useEconomyClock } from './MoneyBar';
+import { Sheet, TouchCameraPad, TouchWalkControls } from './TouchControls';
+import { useTouchDevice } from './useTouchDevice';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
@@ -36,15 +38,18 @@ export function App() {
   useKeyboard();
   useAutosave();
   useEconomyClock();
+  const overlay = useGame((s) => s.overlay);
+  const touch = useTouchDevice();
   const walking = useGame((s) => s.mode === 'walk');
   const holding = useGame((s) => s.tool !== 'select');
-  const overlay = useGame((s) => s.overlay);
+  const app = useRef<HTMLDivElement>(null);
+  useTopBarHeight(app);
   return (
-    <div className="app">
+    <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}`}>
       <Scene />
       <TopBar />
       <MoneyBar />
-      {walking ? (
+      {touch ? <TouchLayout walking={walking} holding={holding} /> : walking ? (
         <>
           <WalkHud />
           {holding && (
@@ -76,6 +81,62 @@ export function App() {
   );
 }
 
+/** スマホ・タブレットの画面：パネルは下の引き出しにまとめ、指で操作するボタンを出す */
+function TouchLayout({ walking, holding }: { walking: boolean; holding: boolean }) {
+  const tool = useGame((s) => s.tool);
+  const selected = useGame((s) => s.selection !== null);
+  const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
+  if (walking) {
+    return (
+      <>
+        <WalkHud />
+        <TouchWalkControls />
+        {holding && (
+          <div className="touch-top">
+            <LevelBar />
+            <Sheet title={`${label}の設定`} className="compact">
+              <ToolOptions />
+            </Sheet>
+          </div>
+        )}
+        <ControlsHelp />
+      </>
+    );
+  }
+  return (
+    <>
+      <TouchCameraPad />
+      <div className="touch-dock">
+        <LevelBar />
+        {selected ? (
+          <Sheet key="inspector" title="選んだパーツ" defaultOpen>
+            <Inspector />
+          </Sheet>
+        ) : (
+          <Sheet key={tool} title={tool === 'select' ? '使い方' : `${label}の設定`}>
+            <ToolOptions />
+          </Sheet>
+        )}
+      </div>
+      <ControlsHelp />
+    </>
+  );
+}
+
+/** 上のバーの高さ（折り返すと変わる）を CSS 変数にして、その下に他の表示を並べる */
+function useTopBarHeight(app: React.RefObject<HTMLDivElement>) {
+  useEffect(() => {
+    const root = app.current;
+    const bar = root?.querySelector('.topbar');
+    if (!root || !bar) return;
+    const update = () => root.style.setProperty('--top-h', `${Math.ceil(bar.getBoundingClientRect().bottom)}px`);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, [app]);
+}
+
 function ModeButton() {
   const mode = useGame((s) => s.mode);
   const setMode = useGame((s) => s.setMode);
@@ -86,7 +147,8 @@ function ModeButton() {
         e.currentTarget.blur(); // Space（ジャンプ）でボタンが押し直されないように
         setMode(mode === 'walk' ? 'build' : 'walk');
       }} title="Tab キーでも切り替えられます">
-      {mode === 'walk' ? '建築に戻る（Tab）' : '歩いてみる（Tab）'}
+      {mode === 'walk' ? '建築に戻る' : '歩いてみる'}
+      <span className="kbd-hint">（Tab）</span>
     </button>
   );
 }
@@ -103,7 +165,7 @@ function TopBar() {
     <div className="topbar">
       <div className="brand">家づくり</div>
       <ModeButton />
-      <div className="tools">
+      <div className="tools tool-list">
         {TOOLS.map((t) => (
           <button
             key={t.id}
@@ -119,18 +181,18 @@ function TopBar() {
           </button>
         ))}
       </div>
-      <div className="tools">
+      <div className="tools history">
         <button className="tool" disabled={!canUndo} onClick={(e) => {
             e.currentTarget.blur();
             undo();
           }} title="Ctrl+Z">
-          ↶ 取り消し
+          ↶<span className="btn-label"> 取り消し</span>
         </button>
         <button className="tool" disabled={!canRedo} onClick={(e) => {
             e.currentTarget.blur();
             redo();
           }} title="Ctrl+Y">
-          ↷ やり直し
+          ↷<span className="btn-label"> やり直し</span>
         </button>
       </div>
       <SaveMenu />
@@ -147,7 +209,7 @@ function LevelBar() {
   const levels = Array.from({ length: MAX_LEVEL + 1 }, (_, i) => i);
   return (
     <div className="levelbar">
-      <span className="levelbar-label">作業する階（Z / X）</span>
+      <span className="levelbar-label">作業する階<span className="kbd-hint">（Z / X）</span></span>
       {levels
         .slice()
         .reverse()
@@ -165,11 +227,11 @@ function LevelBar() {
           </button>
         ))}
       {walking ? (
-        <span className="levelbar-label">階を移動すると自動で切り替わります</span>
+        <span className="levelbar-label auto-hint">階を移動すると自動で切り替わります</span>
       ) : (
         <label className="check">
           <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
-          上の階と屋根も表示
+          上の階<span className="btn-label">と</span>屋根も表示
         </label>
       )}
     </div>
@@ -192,7 +254,7 @@ function SaveMenu() {
           setConfirmClear(false);
         }}
       >
-        セーブ / ロード ▾
+        セーブ<span className="btn-label"> / ロード</span> ▾
       </button>
       {open && (
         <div className="save-menu">
@@ -262,8 +324,13 @@ function ControlsHelp() {
   const tool = useGame((s) => s.tool);
   const walking = useGame((s) => s.mode === 'walk');
   const building = tool !== 'select' && tool !== 'erase';
+  const touch = useTouchDevice();
   let text: string;
-  if (walking) {
+  if (touch) {
+    const place = tool === 'erase' ? 'タップ：消す' : tool === 'floor' || tool === 'roof' || tool === 'wall' ? 'なぞる：置く' : 'タップ：置く';
+    if (walking) text = tool === 'select' ? 'スティック：歩く（端まで倒すと走る）　なぞる：見回す' : `${place}　2本指：見回す`;
+    else text = building || tool === 'erase' ? `${place}　2本指：移動・ズーム` : 'タップ：選ぶ　なぞる：回す　2本指：移動・ズーム';
+  } else if (walking) {
     text =
       tool === 'select'
         ? '数字キー 2〜9：建てるツールを持つ'
