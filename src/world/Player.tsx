@@ -19,6 +19,7 @@ import { lotHouse, plotOffset, useEconomy } from '../state/economy';
 import { CASINO_PLOT, FIRST_PLOT, LAST_PLOT } from '../economy/town';
 import { RUN_THRESHOLD, touchMove, walkActions } from '../state/touch';
 import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
+import { selectLotForEditing } from '../state/lotEditing';
 
 const WALK_SPEED = 2.6;
 const RUN_SPEED = 5.2;
@@ -123,6 +124,14 @@ export function warpToLot(id: string) {
   playerMemory.bodyYaw = 0;
   playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
   game.notify(`📍 ${lot.name} にワープしました`);
+}
+
+/** 所有する家を選んで建築モードで開く。歩きモードからの切り替えにも対応する。 */
+export function editOwnedLot(id: string) {
+  if (!selectLotForEditing(id)) return;
+  warpToLot(id);
+  const lot = useEconomy.getState().lots.find(lot => lot.id === id)!;
+  useGame.getState().notify(`🏠 ${lot.name} を編集中です`);
 }
 
 /** 原点の土地の外にあるもの（カジノ・ほかの持っている家）にぶつかったら押し戻す */
