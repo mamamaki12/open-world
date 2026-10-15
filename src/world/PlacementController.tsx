@@ -19,6 +19,7 @@ import {
 } from '../building/rules';
 import type { Rect } from '../building/rules';
 import type { House } from '../building/types';
+import { touchGesture } from '../state/gestures';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { snapFurniturePlacement } from '../building/furnitureSnap';
@@ -222,6 +223,7 @@ export function PlacementController() {
       const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
+      if(e.pointerType==='touch' && ['floor','wall','roof'].includes(g.tool) && !touchGesture.reserved)return;
       if (g.tool === 'furniture' || (e.pointerType === 'touch' && g.tool === 'stair')) {
         tap = { x: e.clientX, y: e.clientY };
         updatePreview(e);
@@ -236,7 +238,7 @@ export function PlacementController() {
       switch (g.tool) {
         case 'erase':
           // ドラッグすると、その範囲のパーツをまとめて選ぶ（パーツのクリックは usePart が受ける）
-          if (g.mode === 'walk') break;
+          if (g.mode === 'walk' || (e.pointerType==='touch' && !g.eraseMulti)) break;
           dragStart = cellAt(p);
           dragSurface = surface;
           eraseFrom = { x: e.clientX, y: e.clientY };
