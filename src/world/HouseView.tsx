@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
 import { GRID, WALL_HEIGHT, WALL_THICKNESS, floorY } from '../building/dimensions';
-import { stairHoles, wallHeight, wallLength, wallOutsideSide } from '../building/rules';
+import { furnitureBaseY, stairHoles, wallHeight, wallLength, wallOutsideSide } from '../building/rules';
 import type { House } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
@@ -116,8 +116,8 @@ function PreviewView() {
       const def = getFurniture(defaults.furnitureType);
       const fp = furnitureFootprint(def);
       return (
-        <group position={[preview.x, y, preview.z]} rotation={[0, (defaults.furnitureRotation * Math.PI) / 180, 0]}>
-          <FurnitureModel def={def} color={def.colors[0]} />
+        <group position={[preview.x, furnitureBaseY(house, { level, x: preview.x, z: preview.z }), preview.z]} rotation={[0, (defaults.furnitureRotation * Math.PI) / 180, 0]}>
+          <FurnitureModel def={def} color={def.colors[0]} label={defaults.nameplateText} />
           <mesh position={[0, 0.01, 0]} material={okMat}>
             <boxGeometry args={[fp.w, 0.02, fp.d]} />
           </mesh>

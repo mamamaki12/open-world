@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { removePart } from '../building/rules';
 import { emptyHouse } from '../building/types';
-import type { Finish, House, PartRef, RoofType, StairRail, WallHeight } from '../building/types';
+import type { Finish, House, FloorKind, PartRef, RoofType, StairRail, WallHeight } from '../building/types';
 
 /** build：建築モード（俯瞰で建てる） / walk：歩きモード（プレイヤーを動かす） */
 export type Mode = 'build' | 'walk';
@@ -15,6 +15,9 @@ export type Tool = 'select' | 'floor' | 'wall' | 'door' | 'window' | 'stair' | '
 
 export interface Defaults {
   floor: Finish;
+  /** 床ツールで張るのが部屋の床かテラスか */
+  floorKind: FloorKind;
+  terrace: Finish;
   wallExterior: Finish;
   wallInterior: Finish;
   doorType: string;
@@ -31,10 +34,14 @@ export interface Defaults {
   wallHeight: WallHeight;
   furnitureType: string;
   furnitureRotation: number;
+  /** 表札に書く文字 */
+  nameplateText: string;
 }
 
 export const INITIAL_DEFAULTS: Defaults = {
   floor: { material: 'flooring', color: '#c8a57a' },
+  floorKind: 'room',
+  terrace: { material: 'deck', color: '#8a6447' },
   wallExterior: { material: 'siding', color: '#f2efe8' },
   wallInterior: { material: 'wallpaper', color: '#f7f5f0' },
   doorType: 'entrance',
@@ -51,6 +58,7 @@ export const INITIAL_DEFAULTS: Defaults = {
   wallHeight: 'full',
   furnitureType: 'sofa',
   furnitureRotation: 0,
+  nameplateText: '山田',
 };
 
 const HISTORY_LIMIT = 200;

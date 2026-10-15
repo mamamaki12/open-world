@@ -8,7 +8,7 @@
 import { furnitureBounds, getFurniture, getOpening } from '../catalog';
 import { GRID, SLAB_THICKNESS, STAIR_LENGTH, STAIR_RAIL_HEIGHT, STORY_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import { roofHeightAt } from './roof';
-import { stairFootprint, stairHoles, stairRailX, wallHeight } from './rules';
+import { furnitureBaseY, stairFootprint, stairHoles, stairRailXs, wallHeight } from './rules';
 import type { OpeningDef } from '../catalog';
 import type { House, OpeningPart, StairPart, WallPart } from './types';
 
@@ -52,9 +52,9 @@ function stairHeight(s: StairPart, x: number, z: number): number | null {
 
 /**
  * 階段の手すりを上から見た線分（ワールド座標 m）。a が下端、b が上端。
- * n は階段の中心から手すりへ向かう単位ベクトル
+ * n は階段の中心から手すりへ向かう単位ベクトル。手すりがなければ空
  */
-export function stairRail(s: StairPart): { ax: number; az: number; bx: number; bz: number; nx: number; nz: number } {
+export function stairRails(s: StairPart): { ax: number; az: number; bx: number; bz: number; nx: number; nz: number }[] {
   const a = (s.rot * Math.PI) / 2;
   const cos = Math.cos(a);
   const sin = Math.sin(a);
@@ -62,12 +62,13 @@ export function stairRail(s: StairPart): { ax: number; az: number; bx: number; b
   const cz = (s.z + 0.5) * GRID;
   // 描画と同じ：ローカル (lx, lz) を Y 軸まわりに a 回す
   const toWorld = (lx: number, lz: number) => [cx + lx * cos + lz * sin, cz - lx * sin + lz * cos];
-  const lx = stairRailX(s.rail);
   const z0 = -GRID / 2;
-  const [ax, az] = toWorld(lx, z0);
-  const [bx, bz] = toWorld(lx, z0 + STAIR_LENGTH * GRID);
-  const side = Math.sign(lx);
-  return { ax, az, bx, bz, nx: side * cos, nz: -side * sin };
+  return stairRailXs(s.rail).map((lx) => {
+    const [ax, az] = toWorld(lx, z0);
+    const [bx, bz] = toWorld(lx, z0 + STAIR_LENGTH * GRID);
+    const side = Math.sign(lx);
+    return { ax, az, bx, bz, nx: side * cos, nz: -side * sin };
+  });
 }
 
 /**
@@ -221,8 +222,7 @@ export function resolveCollisions(
         }
       }
     }
-    for (const s of house.stairs) {
-      const r = stairRail(s);
+    for (const s of house.stairs) for (const r of stairRails(s)) {
       // 手すりの線上でプレイヤーにいちばん近い点
       const ex = r.bx - r.ax;
       const ez = r.bz - r.az;
@@ -247,7 +247,7 @@ export function resolveCollisions(
       }
     }
     for (const f of house.furniture) {
-      const y0 = floorY(f.level);
+      const y0 = furnitureBaseY(house, f);
       const b = furnitureBounds(getFurniture(f.type));
       if (b.top < 0.1) continue; // ラグなどは踏める
       if (feetY >= y0 + b.top - 0.05 || headY <= y0) continue;

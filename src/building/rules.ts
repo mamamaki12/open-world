@@ -1,8 +1,8 @@
 // 配置ルール（置けるかどうかの判定、吸着、削除の連鎖）。描画からは独立させ、
 // 将来サーバー側でも同じ判定を使えるようにする。
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
-import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_LENGTH, STAIR_WIDTH, WALL_HEIGHT, WALL_THICKNESS } from './dimensions';
-import type { House, OpeningPart, PartRef, StairPart, StairRail, WallHeight, WallPart } from './types';
+import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_LENGTH, STAIR_WIDTH, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
+import type { FurniturePart, House, OpeningPart, PartRef, StairPart, StairRail, WallHeight, WallPart } from './types';
 
 export interface Rect {
   x0: number;
@@ -133,10 +133,18 @@ export function canPlaceWall(
 }
 
 /** その階のその地点（m）が床で覆われているか */
-export function floorCovers(house: House, level: number, x: number, z: number): boolean {
+export function floorCovers(house: House, level: number, x: number, z: number, roomsOnly = false): boolean {
   const gx = x / GRID;
   const gz = z / GRID;
-  return house.floors.some((f) => f.level === level && gx > f.x0 && gx < f.x1 && gz > f.z0 && gz < f.z1);
+  return house.floors.some(
+    (f) => f.level === level && !(roomsOnly && f.kind === 'terrace') && gx > f.x0 && gx < f.x1 && gz > f.z0 && gz < f.z1,
+  );
+}
+
+/** 家具を置く高さ：その階の床の上。1階で床のない所（庭）なら地面 */
+export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x' | 'z'>): number {
+  if (f.level > 0 || floorCovers(house, 0, f.x, f.z)) return floorY(f.level);
+  return 0;
 }
 
 /**
@@ -149,8 +157,9 @@ export function wallOutsideSide(house: House, w: WallPart): 1 | -1 | 0 | 2 {
   const mz = ((w.z0 + w.z1) / 2) * GRID;
   const probe = GRID / 2;
   // 左法線 (-dz, dx)
-  const leftIn = floorCovers(house, w.level, mx - dz * probe, mz + dx * probe);
-  const rightIn = floorCovers(house, w.level, mx + dz * probe, mz - dx * probe);
+  // テラスの側は屋外として扱う
+  const leftIn = floorCovers(house, w.level, mx - dz * probe, mz + dx * probe, true);
+  const rightIn = floorCovers(house, w.level, mx + dz * probe, mz - dx * probe, true);
   if (leftIn && rightIn) return 0;
   if (leftIn) return -1;
   if (rightIn) return 1;
@@ -212,9 +221,10 @@ export function stairFootprint(s: Pick<StairPart, 'x' | 'z' | 'rot'>): Rect {
   }
 }
 
-/** 手すりの位置（階段ローカルの X。上る向き +Z に見て左が +X） */
-export function stairRailX(rail: StairRail = 'left'): number {
-  return (rail === 'left' ? 1 : -1) * (STAIR_WIDTH / 2 - 0.03);
+/** 手すりの位置（階段ローカルの X。上る向き +Z に見て左が +X）。両側なら2本、なしなら空 */
+export function stairRailXs(rail: StairRail = 'left'): number[] {
+  const x = STAIR_WIDTH / 2 - 0.03;
+  return { left: [x], right: [-x], both: [x, -x], none: [] }[rail];
 }
 
 export function canPlaceStair(house: House, s: Omit<StairPart, 'id' | 'finish'>, ignoreId?: string): string | null {

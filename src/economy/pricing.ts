@@ -150,7 +150,7 @@ export interface Quality {
 /** 家の品質係数。設備がそろっていて、明るく、屋根がちゃんとかかっているほど高い */
 export function quality(house: House): Quality {
   const has = (type: string) => house.furniture.some((f) => f.type === type);
-  const floorArea = house.floors.reduce((a, f) => a + Math.abs(f.x1 - f.x0) * Math.abs(f.z1 - f.z0) * GRID * GRID, 0);
+  const floorArea = house.floors.filter((f) => f.kind !== 'terrace').reduce((a, f) => a + Math.abs(f.x1 - f.x0) * Math.abs(f.z1 - f.z0) * GRID * GRID, 0);
   const windows = house.openings.filter((o) => o.kind === 'window').length;
   const entrance = house.openings.some((o) => o.type.startsWith('entrance'));
   const topLevel = house.floors.reduce((m, f) => Math.max(m, f.level), 0);

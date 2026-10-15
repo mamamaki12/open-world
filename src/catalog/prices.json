@@ -59,6 +59,8 @@
     "big-tile": 16000,
     "mortar": 6000,
     "cork": 8000,
+    "deck": 14000,
+    "terrace-tile": 12000,
     "walnut": 16000,
     "maple": 12000,
     "hinoki": 12000,
@@ -92,6 +94,11 @@
     "bath": 1000000,
     "toilet": 250000,
     "plant": 15000,
-    "rug": 25000
+    "rug": 25000,
+    "pool": 2500000,
+    "flowerbed": 40000,
+    "flowerpot": 8000,
+    "nameplate-post": 180000,
+    "nameplate": 20000
   }
 }
