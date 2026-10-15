@@ -304,11 +304,13 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 
 .race-view { display: flex; flex-direction: column; gap: 6px; }
 .race-screen { position: relative; border-radius: 10px; overflow: hidden; background: #234; }
-.race-screen canvas { display: block; width: 100%; }
+.race-screen .race-3d canvas { display: block; }
+.race-screen canvas.race-mini { position: absolute; right: 8px; top: 8px; pointer-events: none; }
 .race-hud {
-  position: absolute; left: 8px; top: 8px; display: flex; gap: 10px; align-items: center;
-  background: rgba(0,0,0,0.55); color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 13px;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  background: #1b2430; color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 13px;
 }
+.race-title { opacity: 0.85; }
 .race-clock { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; }
 .race-remain { background: #ffcf4a; color: #222; border-radius: 4px; padding: 0 6px; font-weight: 700; }
 .race-bell {
@@ -318,7 +320,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 }
 @keyframes bell { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-50%, -50%) scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .race-bell { animation: none; } }
-.race-calls { position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.75)); color: #fff; }
+.race-calls { min-height: 46px; padding: 6px 12px; border-radius: 8px; background: #1b2430; color: #fff; }
 .race-calls .now { font-size: 15px; font-weight: 700; }
 .race-calls .prev { font-size: 12px; opacity: 0.7; }
 .race-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }

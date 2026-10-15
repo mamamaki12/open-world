@@ -5,7 +5,7 @@ import type { SlotSymbol } from '../../../economy/casino';
 
 const cache = new Map<string, THREE.CanvasTexture>();
 
-function canvasTexture(key: string, w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) {
+export function canvasTexture(key: string, w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) {
   const hit = cache.get(key);
   if (hit) return hit;
   const c = document.createElement('canvas');
