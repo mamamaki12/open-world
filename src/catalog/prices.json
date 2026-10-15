@@ -1,0 +1,50 @@
+{
+  "note": "単価（円）。素材は 1m² あたり、ドア・窓・家具は1つあたり。構造（基礎・骨組み）の単価は src/economy/pricing.ts にある",
+  "materials": {
+    "siding": 6000,
+    "tile": 15000,
+    "stucco": 9000,
+    "woodboard": 11000,
+    "galvalume": 8000,
+    "wallpaper": 1500,
+    "plaster": 5000,
+    "woodpanel": 7000,
+    "kawara": 12000,
+    "slate": 6000,
+    "standing": 9000,
+    "sheet": 7000,
+    "flooring": 9000,
+    "tatami": 12000,
+    "floortile": 14000,
+    "carpet": 7000,
+    "oak": 10000
+  },
+  "openings": {
+    "entrance": 350000,
+    "entrance-wide": 550000,
+    "door": 60000,
+    "slide-door": 90000,
+    "sliding": 90000,
+    "sliding-small": 45000,
+    "patio": 140000,
+    "casement": 50000,
+    "fix": 40000,
+    "high": 60000
+  },
+  "furniture": {
+    "bed-double": 120000,
+    "bed-single": 60000,
+    "sofa": 150000,
+    "dining": 80000,
+    "chair": 20000,
+    "tv": 180000,
+    "desk": 40000,
+    "shelf": 30000,
+    "kitchen": 900000,
+    "fridge": 200000,
+    "bath": 1000000,
+    "toilet": 250000,
+    "plant": 15000,
+    "rug": 25000
+  }
+}
