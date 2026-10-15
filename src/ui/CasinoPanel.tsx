@@ -145,7 +145,7 @@ function CasinoLobby({ onSelect }: { onSelect: (game: Tab) => void }) {
     </header>
     <div className="casino-game-grid">
       {TABS.map(game => { const detail = GAME_DETAILS[game.id]; return (
-        <button key={game.id} className={`casino-game-card ${detail.scene}`} onClick={() => onSelect(game.id)}>
+        <button key={game.id} className="casino-game-card" data-scene={detail.scene} onClick={() => onSelect(game.id)}>
           <div className="casino-card-scene" aria-hidden="true"><span>{detail.icon}</span><i /><i /><i /></div>
           <div className="casino-card-copy"><small>{detail.tag}</small><h2>{game.label}</h2><p>{detail.copy}</p><b>このゲームで遊ぶ <span>↗</span></b></div>
         </button>
