@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_LEVEL, levelName } from '../building/dimensions';
 import { canPlaceStair } from '../building/rules';
 import { sampleHouse } from '../building/sample';
@@ -14,7 +14,10 @@ import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
-import { MoneyBar, useEconomyClock } from './MoneyBar';
+import { BuildChip, MoneyBar, useEconomyClock } from './MoneyBar';
+import { BuildButton, BuildMenu } from './BuildMenu';
+import { yen } from '../economy/money';
+import { useEconomy } from '../state/economy';
 import { Sheet, TouchCameraPad, TouchWalkControls } from './TouchControls';
 import { useTouchDevice } from './useTouchDevice';
 
@@ -43,13 +46,17 @@ export function App() {
   const walking = useGame((s) => s.mode === 'walk');
   const holding = useGame((s) => s.tool !== 'select');
   const app = useRef<HTMLDivElement>(null);
-  useTopBarHeight(app);
+  useTopBarHeight(app, touch);
   useNoPageZoom(touch);
   return (
     <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}`}>
       <Scene />
-      <TopBar />
-      <MoneyBar />
+      {!touch && (
+        <>
+          <TopBar />
+          <MoneyBar />
+        </>
+      )}
       {touch ? <TouchLayout walking={walking} holding={holding} /> : walking ? (
         <>
           <WalkHud />
@@ -82,45 +89,77 @@ export function App() {
   );
 }
 
-/** スマホ・タブレットの画面：パネルは下の引き出しにまとめ、指で操作するボタンを出す */
+/** スマホ・タブレットの画面：上のバーの代わりに小さなボタンを四隅に置き、建築は「建てる」ボタンから大きなメニューで選ぶ */
 function TouchLayout({ walking, holding }: { walking: boolean; holding: boolean }) {
   const tool = useGame((s) => s.tool);
   const selected = useGame((s) => s.selection !== null);
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
-  if (walking) {
-    return (
-      <>
-        <WalkHud />
-        <TouchWalkControls />
-        {holding && (
-          <div className="touch-top">
-            <LevelBar />
-            <Sheet title={`${label}の設定`} className="compact">
-              <ToolOptions />
-            </Sheet>
-          </div>
-        )}
-        <ControlsHelp />
-      </>
-    );
-  }
+  const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
   return (
     <>
-      <TouchCameraPad />
-      <div className="touch-dock">
-        <LevelBar />
-        {selected ? (
-          <Sheet key="inspector" title="選んだパーツ" defaultOpen>
-            <Inspector />
-          </Sheet>
-        ) : (
-          <Sheet key={tool} title={tool === 'select' ? '使い方' : `${label}の設定`}>
-            <ToolOptions />
-          </Sheet>
-        )}
+      <TouchHud />
+      <div className="touch-right">
+        <BuildButton label={label} onOpen={() => setMenu(true)} />
+        {!walking && <TouchCameraPad />}
       </div>
+      {walking ? (
+        <>
+          <WalkHud />
+          <TouchWalkControls />
+          {holding && (
+            <div className="touch-top">
+              <LevelBar />
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="touch-dock">
+          <LevelBar />
+          {selected && (
+            <Sheet key="inspector" title="選んだパーツ" defaultOpen>
+              <Inspector />
+            </Sheet>
+          )}
+        </div>
+      )}
       <ControlsHelp />
+      {menu && <BuildMenu tools={TOOLS} walking={walking} levelBar={walking ? null : <LevelBar />} onClose={closeMenu} />}
     </>
+  );
+}
+
+/** スマホの左上：モード切り替え・取り消し・セーブと、所持金・不動産屋・カジノ */
+function TouchHud() {
+  const undo = useGame((s) => s.undo);
+  const redo = useGame((s) => s.redo);
+  const canUndo = useGame((s) => s.past.length > 0);
+  const canRedo = useGame((s) => s.future.length > 0);
+  const setOverlay = useGame((s) => s.setOverlay);
+  const money = useEconomy((s) => s.money);
+  return (
+    <div className="touch-hud">
+      <div className="touch-hud-row">
+        <ModeButton />
+        <button className="tool icon" disabled={!canUndo} onClick={undo} aria-label="取り消し">
+          ↶
+        </button>
+        <button className="tool icon" disabled={!canRedo} onClick={redo} aria-label="やり直し">
+          ↷
+        </button>
+        <SaveMenu />
+      </div>
+      <div className="touch-hud-row">
+        <span className={`touch-cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
+        <button className="tool icon" onClick={() => setOverlay('estate')} aria-label="不動産屋">
+          🏠
+        </button>
+        <button className="tool icon" onClick={() => setOverlay('casino')} aria-label="カジノ・競技場">
+          🎰
+        </button>
+        <BuildChip />
+      </div>
+    </div>
   );
 }
 
@@ -139,16 +178,16 @@ function useNoPageZoom(touch: boolean) {
 }
 
 /** 上のバー（折り返すと高さが変わる）とお金のバーの下端を CSS 変数にして、その下に他の表示を並べる */
-function useTopBarHeight(app: React.RefObject<HTMLDivElement>) {
+function useTopBarHeight(app: React.RefObject<HTMLDivElement>, touch: boolean) {
   useEffect(() => {
     const root = app.current;
-    const bars = root ? [...root.querySelectorAll('.topbar, .moneybar')] : [];
+    const bars = root ? [...root.querySelectorAll('.topbar, .moneybar, .touch-hud')] : [];
     if (!root || bars.length === 0) return;
     const update = () => {
       const top = root.getBoundingClientRect().top;
       const bottom = (sel: string) => Math.ceil((root.querySelector(sel)?.getBoundingClientRect().bottom ?? top) - top);
       root.style.setProperty('--top-h', `${bottom('.topbar')}px`);
-      root.style.setProperty('--hud-top', `${Math.max(bottom('.topbar'), bottom('.moneybar'))}px`);
+      root.style.setProperty('--hud-top', `${Math.max(bottom('.topbar'), bottom('.moneybar'), bottom('.touch-hud'))}px`);
     };
     update();
     const ro = new ResizeObserver(update);
@@ -158,7 +197,7 @@ function useTopBarHeight(app: React.RefObject<HTMLDivElement>) {
       ro.disconnect();
       window.removeEventListener('resize', update);
     };
-  }, [app]);
+  }, [app, touch]);
 }
 
 function ModeButton() {

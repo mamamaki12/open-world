@@ -33,7 +33,7 @@ export function MoneyBar() {
 }
 
 /** 工事中の表示、または設計を変えたときの「着工」ボタン */
-function BuildChip() {
+export function BuildChip() {
   const lot = useCurrentLot();
   const house = useGame((s) => s.house);
   const setOverlay = useGame((s) => s.setOverlay);
