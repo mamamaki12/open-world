@@ -22,6 +22,9 @@ export function MoneyBar() {
           {day}日目 ・ 相場 <b className={trend}>{market.toFixed(2)}{trend === 'up' ? '▲' : trend === 'down' ? '▼' : ''}</b>
         </span>
       </div>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">
+        🗺 マップ
+      </button>
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('estate'); }}>
         🏠 不動産
       </button>

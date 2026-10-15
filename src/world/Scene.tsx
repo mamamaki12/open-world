@@ -5,12 +5,11 @@ import { GRID, LOT_D, LOT_W, floorY } from '../building/dimensions';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { BuildCamera } from './BuildCamera';
-import { CasinoBuilding } from './CasinoBuilding';
 import { DebugBridge } from './DebugBridge';
 import { HouseView } from './HouseView';
 import { PlacementController } from './PlacementController';
 import { Player } from './Player';
-import { grassTexture } from './textures';
+import { Town } from './Town';
 
 const CENTER: [number, number, number] = [(LOT_W * GRID) / 2, 0, (LOT_D * GRID) / 2];
 const SUN: [number, number, number] = [CENTER[0] + 14, 26, CENTER[2] + 12];
@@ -31,7 +30,7 @@ export function Scene() {
     <Canvas
       shadows
       frameloop={paused ? 'never' : 'always'}
-      camera={{ position: [CENTER[0] + 13, 15, CENTER[2] + 19], fov: 45, near: 0.1, far: 500 }}
+      camera={{ position: [CENTER[0] + 13, 15, CENTER[2] + 19], fov: 45, near: 0.1, far: 700 }}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
@@ -69,9 +68,9 @@ export function Scene() {
       </directionalLight>
 
       <Ground />
+      <Town />
       {placing && <LevelGrid />}
       <HouseView />
-      <CasinoBuilding />
       {walking && <Player />}
       <PlacementController />
       {import.meta.env.DEV && <DebugBridge />}
@@ -106,30 +105,15 @@ export function Scene() {
   );
 }
 
+/** いま建てている土地（砂利敷き）。草地・道路・ほかの区画は Town が描く */
 function Ground() {
   const lotW = LOT_W * GRID;
   const lotD = LOT_D * GRID;
   return (
-    <group>
-      <mesh rotation-x={-Math.PI / 2} position={[CENTER[0], -0.02, CENTER[2]]} receiveShadow>
-        <planeGeometry args={[240, 240]} />
-        <meshStandardMaterial map={grassTexture()} roughness={1} />
-      </mesh>
-      {/* 土地（砂利敷き） */}
-      <mesh rotation-x={-Math.PI / 2} position={[lotW / 2, 0, lotD / 2]} receiveShadow>
-        <planeGeometry args={[lotW, lotD]} />
-        <meshStandardMaterial color="#b9b2a3" roughness={1} />
-      </mesh>
-      {/* 前面道路 */}
-      <mesh rotation-x={-Math.PI / 2} position={[lotW / 2, -0.01, lotD + 3.2]} receiveShadow>
-        <planeGeometry args={[240, 6]} />
-        <meshStandardMaterial color="#55585c" roughness={0.95} />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[lotW / 2, -0.005, lotD + 3.2]}>
-        <planeGeometry args={[240, 0.12]} />
-        <meshStandardMaterial color="#e8e6df" roughness={0.9} />
-      </mesh>
-    </group>
+    <mesh rotation-x={-Math.PI / 2} position={[lotW / 2, 0, lotD / 2]} receiveShadow>
+      <planeGeometry args={[lotW, lotD]} />
+      <meshStandardMaterial color="#b9b2a3" roughness={1} />
+    </mesh>
   );
 }
 

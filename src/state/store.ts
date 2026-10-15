@@ -9,7 +9,7 @@ export type Mode = 'build' | 'walk';
 export type View = 'third' | 'first';
 
 /** 画面いっぱいに開くメニュー（開いている間はゲームのキー操作を止める） */
-export type Overlay = 'estate' | 'casino' | null;
+export type Overlay = 'estate' | 'casino' | 'map' | null;
 
 export type Tool = 'select' | 'floor' | 'wall' | 'door' | 'window' | 'stair' | 'roof' | 'furniture' | 'erase';
 

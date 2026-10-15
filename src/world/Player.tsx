@@ -13,6 +13,8 @@ import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
+import { plotOffset, useEconomy } from '../state/economy';
+import { CASINO_PLOT } from '../economy/town';
 import { RUN_THRESHOLD, touchMove, walkActions } from '../state/touch';
 import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
 
@@ -82,12 +84,46 @@ export function goToCasino() {
   const game = useGame.getState();
   game.setOverlay(null);
   if (game.mode !== 'walk') game.setMode('walk');
-  playerMemory.x = CASINO_ARRIVAL.x;
+  playerMemory.x = CASINO_ARRIVAL.x + plotOffset(CASINO_PLOT);
   playerMemory.y = 0;
   playerMemory.z = CASINO_ARRIVAL.z;
   playerMemory.yaw = CASINO_ARRIVAL.yaw;
   playerMemory.bodyYaw = CASINO_ARRIVAL.yaw;
   playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
+}
+
+/** 持っている土地へワープする：その土地を画面に出し、歩きモードなら土地の前の道に立つ */
+export function warpToLot(id: string) {
+  const game = useGame.getState();
+  const eco = useEconomy.getState();
+  const lot = eco.lots.find((l) => l.id === id);
+  if (!lot) return;
+  game.setOverlay(null);
+  eco.switchLot(id);
+  playerMemory.x = (LOT_W * GRID) / 2;
+  playerMemory.y = 0;
+  playerMemory.z = LOT_D * GRID + 0.9;
+  playerMemory.yaw = 0;
+  playerMemory.bodyYaw = 0;
+  playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
+  game.notify(`📍 ${lot.name} にワープしました`);
+}
+
+/** 原点の土地の外にあるもの（カジノ・ほかの持っている家）にぶつかったら押し戻す */
+function resolveTown(p: { x: number; z: number }, feetY: number, height: number) {
+  const s = useEconomy.getState();
+  const dx = plotOffset(CASINO_PLOT, s);
+  const c = resolveLandmarks({ x: p.x - dx, z: p.z });
+  let q = { x: c.x + dx, z: c.z };
+  // ほかの土地の家は中に入れない（入るときはその土地へワープする）
+  for (const l of s.lots) {
+    if (l.id === s.currentLotId || !l.built || typeof l.plot !== 'number') continue;
+    const ox = plotOffset(l.plot, s);
+    if (Math.abs(q.x - ox - (LOT_W * GRID) / 2) > LOT_W * GRID) continue;
+    const r = resolveCollisions(l.built, { x: q.x - ox, z: q.z }, feetY, height, () => false);
+    q = { x: r.x + ox, z: r.z };
+  }
+  return q;
 }
 
 /** 近くの開いた窓のうち、乗り越えられるもの */
@@ -412,7 +448,7 @@ export function Player() {
           // 窓から飛び出した直後は、通ってきた窓の壁に押し戻されないようにする
           let next = skipWalls.current && st.airTime < 0.3
             ? { x: nx, z: nz }
-            : resolveLandmarks(resolveCollisions(house, { x: nx, z: nz }, playerMemory.y, height, isDoorOpen));
+            : resolveTown(resolveCollisions(house, { x: nx, z: nz }, playerMemory.y, height, isDoorOpen), playerMemory.y, height);
           // 屋根の斜面に横からぶつかったら止まる（片方の向きだけなら沿って動く）。もう埋まっているときは抜け出せるようにする
           const blocked = (q: { x: number; z: number }) => roofBlocks(house, q.x, q.z, playerMemory.y, height);
           if (blocked(next) && !blocked(playerMemory)) {
@@ -474,7 +510,7 @@ export function Player() {
         if (pass) climb = pass.ok ? (Math.hypot(playerMemory.x - pass.x, playerMemory.z - pass.z) <= CLIMB_REACH ? 'ok' : null) : pass.reason;
       }
       doors.setClimb(climb, false);
-      doors.setAtCasino(atCasinoDoor(playerMemory.x, playerMemory.z));
+      doors.setAtCasino(atCasinoDoor(playerMemory.x - plotOffset(CASINO_PLOT), playerMemory.z));
     } else {
       doors.setClimb(null, true);
     }
@@ -558,7 +594,7 @@ export function Player() {
       const focus = new THREE.Vector3(playerMemory.x, eye - 0.1, playerMemory.z);
       let dist = playerMemory.distance;
       // 壁や屋根でカメラが埋もれないよう、手前に寄せる
-      const blockers = ['house', 'casino'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
+      const blockers = ['house', 'casino', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
       if (blockers.length) {
         raycaster.current.set(focus, dir.clone().negate());
         raycaster.current.far = dist;
