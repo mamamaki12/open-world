@@ -98,7 +98,6 @@ export function TouchWalkControls() {
   const view = useGame((s) => s.view);
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
-  const [crouching, setCrouching] = useState(false);
   return (
     <div className="touch-walk">
       <Joystick />
@@ -108,14 +107,6 @@ export function TouchWalkControls() {
         </TapButton>
         <TapButton className="small" onTap={() => walkActions.toggleView()}>
           {view === 'first' ? '一人称' : '三人称'}
-        </TapButton>
-        <TapButton
-          className={`small${crouching ? ' on' : ''}`}
-          onTap={() => {
-            setCrouching(walkActions.crouch());
-          }}
-        >
-          しゃがむ
         </TapButton>
         <TapButton className={`jump${climb === 'ok' && !climbing ? ' climb' : ''}`} onTap={() => walkActions.jump()}>
           {climb === 'ok' && !climbing ? '窓から出る' : 'ジャンプ'}
@@ -164,3 +155,4 @@ export function Sheet({ title, children, defaultOpen = false, className }: { tit
     </div>
   );
 }
+
