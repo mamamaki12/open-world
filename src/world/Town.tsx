@@ -17,6 +17,7 @@ import { yen } from '../economy/money';
 import { FIRST_PLOT, LAST_PLOT, PLOT_PITCH, TOWN_BOUNDS, TOWN_ROADS, CIVIC_SITE, districtOf, plotX, plotZ } from '../economy/town';
 import { lotCells, lotHouse, originShift, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
+import { Streetscape } from './Streetscape';
 import { DealerBuilding } from './DealerBuilding';
 import { EstateBuilding } from './EstateBuilding';
 import { HouseParts } from './HouseView';
@@ -92,9 +93,6 @@ export function Town() {
           const width = road.x1 - road.x0, depth = road.z1 - road.z0;
           const horizontal = width > depth;
           return <group key={i}>
-            <mesh rotation-x={-Math.PI / 2} position={[(road.x0 + road.x1) / 2, -0.012, (road.z0 + road.z1) / 2]} receiveShadow>
-              <planeGeometry args={[width + 1.8, depth + 1.8]} /><meshStandardMaterial color="#c8c7bf" roughness={0.9} />
-            </mesh>
             <mesh rotation-x={-Math.PI / 2} position={[(road.x0 + road.x1) / 2, -0.008, (road.z0 + road.z1) / 2]} receiveShadow>
               <planeGeometry args={[width, depth]} /><meshStandardMaterial color="#555b60" roughness={0.95} />
             </mesh>
@@ -103,6 +101,7 @@ export function Town() {
             </mesh>
           </group>;
         })}
+        <Streetscape />
         <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><CasinoBuilding /><EstateBuilding /><DealerBuilding /></group>
         {/* 地区の境目の看板 */}
         {[FIRST_PLOT, ...[3, 9].filter((p) => p <= LAST_PLOT)].map((p) => (
