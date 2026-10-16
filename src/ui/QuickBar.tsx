@@ -14,6 +14,7 @@ const NAMES={select:'手ぶら',floor:'床',wall:'壁',door:'ドア',window:'窓
 export function QuickBar(){
   const tool=useGame(s=>s.tool),view=useGame(s=>s.view),overlay=useGame(s=>s.overlay),setTool=useGame(s=>s.setTool);
   const furniture=useGame(s=>s.defaults.furnitureType),driving=useVehicles(s=>s.driving),aim=useControls(s=>s.aimBuild),touch=useTouchDevice();
+  const selectedFurniture=useGame(s=>s.selection?.kind==='furniture');
   const target=useAim(),slots=useRef<HTMLDivElement>(null),hold=useRef<ReturnType<typeof setTimeout>>(),[pressing,setPressing]=useState(false);
   const centered=view==='first'&&aim&&tool!=='select';
   const release=()=>{clearTimeout(hold.current);setPressing(false);};
@@ -26,6 +27,7 @@ export function QuickBar(){
       <div className="quick-slots" ref={slots}>{QUICK_TOOLS.map((t,i)=><button key={t} aria-label={`${i+1}: ${NAMES[t]}`} aria-pressed={t===tool} onClick={()=>setTool(t)}><kbd>{i+1}</kbd><span>{toolIcon(t)}</span><small>{NAMES[t]}</small></button>)}</div>
       {tool!=='select'&&<BuildHistory/>}
       <div className="quick-meta"><span>{name}<small className="quick-swipe-hint"> · 左右スワイプで道具</small></span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>⚙</button></div>
+      {touch&&tool==='select'&&selectedFurniture&&<div className="furniture-edit-hint">青い家具をドラッグで移動・タップで45°回転</div>}
     </div>
     {centered&&<>
       <div className={`aim-reticle${target.valid?' valid':''}`} aria-hidden="true">＋</div>

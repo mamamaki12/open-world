@@ -99,7 +99,7 @@ export function Furniture({ item }: { item: FurniturePart }) {
       rotation={[0, ((mounted?.rotation ?? item.rotation) * Math.PI) / 180, 0]}
       {...handlers}
     >
-      <FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} open={shutterOpen} />
+      {mounted ? <group position={[0,1.6,0]} rotation={[0,0,(item.rotation-mounted.rotation)*Math.PI/180]}><group position={[0,-1.6,0]}><FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} open={shutterOpen}/></group></group> : <FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} open={shutterOpen}/> }
       {item.type === 'nameplate' && (tool === 'select' || tool === 'erase') && (
         <mesh position={[0, 1.6, 0.025]}>
           <boxGeometry args={[0.46, 0.28, 0.055]} />

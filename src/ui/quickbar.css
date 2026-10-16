@@ -31,3 +31,5 @@
 .build-history button:disabled{background:#35404c;color:#c2c9d0;border-color:#727b87;opacity:.65;}
 .touch .build-history{padding:2px 4px;}.touch .build-history button{min-height:36px;}
 @media(orientation:landscape) and (max-height:500px){.touch .quick-slots button{min-height:40px;}.touch .build-history{position:absolute;left:calc(100% + 8px);top:0;flex-direction:column;border-radius:8px;}.touch .build-history button{min-width:82px;}}
+
+.furniture-edit-hint{background:#12375aed;color:#fff;text-align:center;padding:6px;font-size:11px;border-radius:0 0 6px 6px;}

@@ -63,11 +63,34 @@ try {
   await page.getByRole('button', { name: 'この道具で戻る', exact: true }).tap(); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture[0]?.label), 'MY HOME');
   assert.equal(await page.evaluate(() => window.__ow.game.getState().tool), 'select');
+  const platePoint=await page.evaluate(async()=>{const {mountedTransform}=await import('/src/building/mounts.ts');const g=window.__ow.game.getState(),f=g.house.furniture[0],t=mountedTransform(g.house,f.wallMount);return window.__ow.project(t.x,t.y+1.6,t.z);});
+  const plateRotation=await page.evaluate(()=>window.__ow.game.getState().house.furniture[0].rotation);
+  await page.touchscreen.tap(platePoint.x,platePoint.y);
+  assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.furniture[0].rotation),(plateRotation+45)%360,'mounted sign tap rotates 45 degrees');
   await setup();
   await tool(8); await page.getByRole('button', { name: '種類・素材', exact: true }).tap();
   await page.getByRole('button', { name: 'チェア', exact: true }).tap();
   await page.getByRole('button', { name: 'この道具で戻る', exact: true }).tap(); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture.length), 1);
+  const chairBefore=await page.evaluate(()=>({...window.__ow.game.getState().house.furniture[0]}));
+  const chairPoint=await page.evaluate(async()=>{
+    const {furnitureBaseY}=await import('/src/building/rules.ts');const g=window.__ow.game.getState(),f=g.house.furniture[0];
+    return window.__ow.project(f.x,furnitureBaseY(g.house,f)+.45,f.z);
+  });
+  const editYaw=await page.evaluate(()=>window.__ow.player.yaw);
+  await page.touchscreen.tap(chairPoint.x,chairPoint.y);
+  assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.furniture[0].rotation),(chairBefore.rotation+45)%360,'selected chair tap rotates 45 degrees');
+  const editCdp=await page.context().newCDPSession(page);
+  await editCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...chairPoint,id:1}]});
+  for(let i=1;i<=8;i++){await editCdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:chairPoint.x+45*i/8,y:chairPoint.y,id:1}]});await page.waitForTimeout(45);}
+  await editCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await editCdp.detach();
+  const chairAfter=await page.evaluate(()=>window.__ow.game.getState().house.furniture[0]);
+  assert.ok(Math.hypot(chairAfter.x-chairBefore.x,chairAfter.z-chairBefore.z)>.08,'selected chair drag moves it');
+  assert.equal(chairAfter.rotation,(chairBefore.rotation+45)%360,'drag does not also rotate');
+  assert.ok(Math.abs(await page.evaluate(()=>window.__ow.player.yaw)-editYaw)<.001,'furniture drag leaves camera still');
+  await page.screenshot({path:'control-checks/furniture-edit.png'});
+  await page.evaluate(()=>window.__ow.game.getState().undo());
+  assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.furniture[0].x),chairBefore.x,'one undo restores drag');
   await tool(9);
   for(let i=0;i<12&&!await page.locator('.aim-place').isEnabled();i++){await swipe(0,-8);await page.waitForTimeout(150);}
   await page.locator('.aim-place').tap();

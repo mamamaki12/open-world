@@ -10,6 +10,7 @@ import { DebugBridge } from './DebugBridge';
 import { HouseView } from './HouseView';
 import { PlacementController } from './PlacementController';
 import { AimBuilder } from './AimBuilder';
+import { TouchFurnitureEdit } from './TouchFurnitureEdit';
 import { Player } from './Player';
 import { VenueInteriors } from './VenueInteriors';
 import { CarFleet } from './CarFleet';
@@ -83,6 +84,7 @@ export function Scene() {
       {walking && <Player />}
       <PlacementController />
       <AimBuilder />
+      <TouchFurnitureEdit />
       {import.meta.env.DEV && <DebugBridge />}
 
       {/* 歩きモード中も消さずに止めておく（戻ったときに見ていた場所を保つ） */}
