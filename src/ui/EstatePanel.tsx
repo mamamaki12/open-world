@@ -10,6 +10,8 @@ import { useGame } from '../state/store';
 import { Modal } from './Modal';
 import { JoinOption } from './JoinOption';
 import { warpToLot } from '../world/Player';
+import { sessionGate } from '../session/gate';
+import { savedBundle } from '../session/saves';
 
 type Tab = 'lot' | 'lots' | 'land' | 'market' | 'ledger';
 const TABS: { id: Tab; label: string }[] = [
@@ -49,6 +51,7 @@ function CurrentLot({ onGoLand }: { onGoLand: () => void }) {
     );
   }
   const n = lotNumbers(lot, market);
+  if (sessionGate.shared) return <SharedLot lot={lot} sale={n.sale} />;
   const start = () => {
     const err = useEconomy.getState().startConstruction();
     notify(err ?? (est.parts === 0 ? '設計を反映しました' : `工事を始めました（${buildSeconds(est.total)}秒）`));
@@ -185,6 +188,55 @@ function Appraisal({ lot }: { lot: Lot }) {
   );
 }
 
+/** みんなのワールドの家：持ち主が売りに出す・貸し出す。代金と家賃は買った人・借りた人から持ち主へ直接払う */
+function SharedLot({ lot, sale }: { lot: Lot; sale: number }) {
+  const me = savedBundle().profile.id, mine = lot.owner === me;
+  const [price, setPrice] = useState(String(lot.listing?.price ?? sale));
+  const [rent, setRent] = useState(String(lot.rentOffer?.rent ?? Math.max(10000, Math.round(sale / 300 / 10000) * 10000)));
+  const act = (action: Parameters<NonNullable<typeof sessionGate.act>>[1], reserved = 0) => {
+    const err = sessionGate.act?.(lot.id, action, reserved) ?? '接続していません';
+    if (err) useGame.getState().notify(err);
+  };
+  const amount = (v: string) => Math.max(0, Math.round(Number(v.replace(/[^0-9]/g, '')) || 0));
+  return (
+    <div className="estate">
+      <h3>{lot.name}</h3>
+      <p className="muted">持ち主：{mine ? 'あなた' : lot.ownerName ?? 'だれか'}{lot.tenant ? `　住んでいる人：${lot.tenant === me ? 'あなた' : lot.tenantName ?? 'だれか'}` : ''}　いまの査定 {yen(sale)}</p>
+      {mine ? <>
+        <section className="card">
+          <div className="card-title">売りに出す</div>
+          {lot.listing ? <p>{yen(lot.listing.price)} で売りに出しています。買った人の所持金からあなたへ直接払われます。</p> : <p>値段を決めて、ほかのプレイヤーに売れます。</p>}
+          <label>値段（円）<input inputMode="numeric" value={price} onChange={e => setPrice(e.target.value)} /></label>
+          <button className="btn primary" disabled={!amount(price)} onClick={() => act({ type: 'list', price: amount(price) })}>{lot.listing ? '値段を変える' : '売りに出す'}</button>
+          {lot.listing && <button className="btn" onClick={() => act({ type: 'list', price: null })}>売るのをやめる</button>}
+        </section>
+        <section className="card">
+          <div className="card-title">貸し出す</div>
+          {lot.tenant ? <><p>{lot.tenantName ?? 'だれか'}さんに1日 {yen(lot.rentOffer?.rent ?? 0)} で貸しています（{DAY_SECONDS}秒ごとに家賃が入ります）。</p>
+            <button className="btn danger" onClick={() => act({ type: 'endLease' })}>退去してもらう</button></>
+          : <>
+            {lot.rentOffer ? <p>1日 {yen(lot.rentOffer.rent)} で借りる人を募集しています。</p> : <p>家賃を決めて、ほかのプレイヤーに貸せます。</p>}
+            <label>1日の家賃（円）<input inputMode="numeric" value={rent} onChange={e => setRent(e.target.value)} /></label>
+            <button className="btn primary" disabled={!amount(rent)} onClick={() => act({ type: 'offerRent', rent: amount(rent) })}>{lot.rentOffer ? '家賃を変える' : '借りる人を募集する'}</button>
+            {lot.rentOffer && <button className="btn" onClick={() => act({ type: 'offerRent', rent: null })}>募集をやめる</button>}
+          </>}
+        </section>
+      </> : <>
+        {lot.listing && <section className="card"><div className="card-title">売り出し中</div>
+          <p>{yen(lot.listing.price)}（代金は持ち主へ直接払います）</p>
+          <button className="btn primary" onClick={() => act({ type: 'buyLot' }, lot.listing!.price)}>{yen(lot.listing.price)} で買う</button></section>}
+        {lot.tenant === me ? <section className="card"><div className="card-title">借りている家</div>
+          <p>1日 {yen(lot.rentOffer?.rent ?? 0)} を持ち主へ払っています。払えなくなると退去になります。</p>
+          <button className="btn" onClick={() => act({ type: 'endLease' })}>借りるのをやめる</button></section>
+        : lot.rentOffer && !lot.tenant && <section className="card"><div className="card-title">入居者募集中</div>
+          <p>1日 {yen(lot.rentOffer.rent)}（借りた日の分を先に払います）</p>
+          <button className="btn primary" onClick={() => act({ type: 'rentLot' })}>この家を借りる</button></section>}
+        {!lot.listing && !lot.rentOffer && <p>この家はいま売り出しも貸し出しもしていません。</p>}
+      </>}
+    </div>
+  );
+}
+
 function LotList() {
   const lots = useEconomy((s) => s.lots);
   const current = useEconomy((s) => s.currentLotId);
@@ -193,7 +245,7 @@ function LotList() {
   return (
     <table className="ledger owned-lots">
       <thead>
-        <tr><th>土地</th><th>状態</th><th className="num">いま売ると</th><th /></tr>
+        <tr><th>土地</th><th>{sessionGate.shared ? '持ち主' : '状態'}</th><th className="num">いま売ると</th><th /></tr>
       </thead>
       <tbody>
         {lots.map((l) => {
@@ -202,7 +254,7 @@ function LotList() {
           return (
             <tr key={l.id} className={l.id === current ? 'on' : ''}>
               <td>{l.name}</td>
-              <td>{status}</td>
+              <td>{sessionGate.shared ? <>{l.owner === savedBundle().profile.id ? 'あなた' : l.ownerName}{l.listing ? `・売出 ${yen(l.listing.price)}` : ''}{l.rentOffer && !l.tenant ? `・貸家 ${yen(l.rentOffer.rent)}/日` : ''}</> : status}</td>
               <td className="num">{l.built ? yen(n.sale) : yen(n.landNow)}</td>
               <td>
                 {l.id === current ? (

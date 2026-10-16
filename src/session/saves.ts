@@ -68,7 +68,7 @@ let bundle: SaveBundle;
 let saving = Promise.resolve();
 export const savedBundle = () => bundle;
 export function snapshot(): SaveBundle {
-  bundle = { ...bundle, version: 1, savedAt: Date.now(), profile: captureProfile(bundle.profile.id, bundle.profile.name),
+  bundle = { ...bundle, version: 1, savedAt: Date.now(), profile: personalProfile(),
     home: visitingWorld() ? bundle.home : captureWorld() };
   return copy(bundle);
 }
@@ -104,8 +104,13 @@ export function downloadBackup() {
   const a = document.createElement('a'); a.href = url; a.download = 'open-world-backup.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+/** みんなのワールドの所持金・車は自分のワールドへ持ち込まない（引き継ぐのは見た目と服だけ） */
+function personalProfile(): GuestProfile {
+  const now = captureProfile(bundle.profile.id, bundle.profile.name);
+  return sessionGate.shared ? { ...copy(bundle.profile), wardrobe: now.wardrobe } : now;
+}
 export function restoreHome() {
-  const personal = captureProfile(bundle.profile.id, bundle.profile.name);
+  const personal = personalProfile();
   sessionGate.role = 'home'; applyWorld(bundle.home); applyProfile(personal);
   useGame.setState({ mode: 'build', tool: 'select', overlay: null });
 }

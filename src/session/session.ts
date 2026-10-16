@@ -131,12 +131,42 @@ function endpointURL(value: string) {
 }
 export async function enterOffline() {
   intendedLeave = true; ++epoch; clearTimeout(reconnectTimer); socket?.close(); socket = null;
-  if (sessionGate.role === 'guest' && remoteWorld) restoreHome();
-  sessionGate.role = 'home'; sessionGate.edit = null; sessionGate.undo = null;
+  if ((sessionGate.role === 'guest' && remoteWorld) || sessionGate.shared) restoreHome();
+  leaveShared(); sessionGate.role = 'home'; sessionGate.edit = null; sessionGate.undo = null;
   await persist(); useSession.setState({ screen: 'game', role: 'home', shared: false, status: 'offline', message: '', members: [], poses: {}, code: '' });
 }
 /** みんなのワールド（サーバーが正本を持つ1つの町）に入る。自宅は訪問中と同じく上書きしない */
-export async function joinShared(url: string) { await connectWorld(url, '', true); }
+export async function joinShared(url: string) {
+  await persist(); // 自分のワールドの所持金・車を保存してから切り替える
+  sessionGate.shared = true; inflight.clear(); account = null;
+  sessionGate.money = (delta, label) => {
+    if (accountApplying || !delta || useSession.getState().status !== 'connected') return;
+    const id = crypto.randomUUID(); inflight.set(id, delta);
+    send({ type: 'command', command: { id, lot: '', delta: [], reserved: 0, action: { type: 'money', delta, label } } });
+  };
+  sessionGate.act = (lot, action, reserved) => {
+    if (useSession.getState().status !== 'connected') return '接続を待っています';
+    const id = crypto.randomUUID(); actions.add(id);
+    send({ type: 'command', command: { id, lot, delta: [], reserved, action } });
+    return null;
+  };
+  useEconomy.setState({ money: 0, ledger: [] }); useVehicles.setState({ cars: [], driving: null, target: null });
+  try { await connectWorld(url, '', true); } catch (e) { restoreHome(); leaveShared(); throw e; }
+}
+/** みんなのワールドの口座（サーバーの正本）に、まだ返事のない自分の出入りを足して表示する */
+const inflight = new Map<string, number>(), actions = new Set<string>();
+let account: { money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[] } | null = null, accountApplying = false;
+function showAccount() {
+  if (!account) return;
+  accountApplying = true;
+  try {
+    const money = account.money + [...inflight.values()].reduce((a, b) => a + b, 0);
+    useEconomy.setState({ money, ledger: account.ledger });
+    const cars = account.cars.filter(validCar);
+    if (JSON.stringify(cars) !== JSON.stringify(useVehicles.getState().cars)) useVehicles.setState({ cars });
+  } finally { accountApplying = false; }
+}
+function leaveShared() { sessionGate.shared = false; sessionGate.money = null; sessionGate.act = null; inflight.clear(); actions.clear(); account = null; }
 export async function connectWorld(url: string, code = '', shared = false) {
   if (!navigator.onLine) throw Error('みんなと遊ぶには通信が必要です');
   endpoint = endpointURL(url); await persist();
@@ -174,6 +204,12 @@ function openConnection(generation: number, resume: boolean) {
         useSession.setState({ members: m.members, poses: Object.fromEntries(Object.entries(useSession.getState().poses).filter(([id]) => m.members.some((x: Member) => x.id === id))) });
         if (state.role === 'host') publishWorld();
       } else if (m.type === 'command' && state.role === 'host') approvalQueue = approvalQueue.then(() => accept(m.sender, m.command));
+      else if (m.type === 'result' && (inflight.has(m.result?.id) || actions.has(m.result?.id))) {
+        const id = m.result.id; inflight.delete(id);
+        if (actions.delete(id)) useGame.getState().notify(m.result.ok ? m.result.message || '完了しました' : m.result.message || 'できませんでした');
+        showAccount();
+      }
+      else if (m.type === 'account' && m.account && Number.isFinite(m.account.money)) { account = m.account; showAccount(); }
       else if (m.type === 'result') await finish(m.result);
       else if (m.type === 'denied') await finish({ id: m.id, ok: false, message: m.message });
       else if (m.type === 'pose' && validPose(m.pose)) useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } }));
@@ -201,7 +237,7 @@ export function allowBuilding(id: string, canBuild: boolean) { send({ type: 'per
 export async function leaveWorld() {
   if (useSession.getState().busy && useSession.getState().status !== 'closed') { useSession.setState({ message: '建築費の精算待ちです。接続の復帰後に退出してください' }); return; }
   await persist(); intendedLeave = true; ++epoch; clearTimeout(reconnectTimer); send({ type: 'leave' }); socket?.close(); socket = null;
-  sessionGate.edit = null; sessionGate.undo = null; ownHistory.length = 0; restoreHome();
+  sessionGate.edit = null; sessionGate.undo = null; ownHistory.length = 0; restoreHome(); leaveShared();
   useDoors.setState({ target: null, climb: null, climbing: false }); useVisit.setState({ plot: null }); useVenue.setState({ inside: null });
   pending = null;
   useSession.setState({ screen: 'menu', role: 'home', shared: false, status: 'offline', code: '', members: [], poses: {}, message: '', busy: false }); await persist();
@@ -228,6 +264,10 @@ export function startSessionTimers() {
     }
     void persist().catch(() => useSession.setState({ message: '端末への保存に失敗しました。バックアップを保存してください' }));
   }, 2000);
+  const cars = useVehicles.subscribe((s, prev) => {
+    if (!sessionGate.shared || accountApplying || s.cars === prev.cars || useSession.getState().status !== 'connected') return;
+    send({ type: 'command', command: { id: crypto.randomUUID(), lot: '', delta: [], reserved: 0, action: { type: 'cars', cars: s.cars } } });
+  });
   const doors = useDoors.subscribe((s, prev) => {
     if (sessionGate.applying || useSession.getState().status !== 'connected' || s.open === prev.open) return;
     for (const id of new Set([...Object.keys(prev.open), ...Object.keys(s.open)])) if (s.open[id] !== prev.open[id]) send({ type: 'door', id, dir: s.open[id] ?? 0 });
@@ -236,5 +276,5 @@ export function startSessionTimers() {
     if (!sessionGate.applying && s.house !== prev.house && !s.dragBase) void persist().catch(() => undefined);
   });
   const hide = () => { if (document.hidden) void persist(); }; document.addEventListener('visibilitychange', hide);
-  return () => { clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
+  return () => { cars(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
 }
