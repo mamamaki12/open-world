@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { nearestSeat } from '../building/seating';
 import { touchGesture } from '../state/gestures';
+import { DoubleTap } from '../state/doubleTap';
 import { useInteraction } from '../state/interaction';
 import { useVehicles } from '../state/vehicles';
 import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract, resolveParkedCars } from './vehicleLogic';
@@ -261,12 +262,12 @@ export function Player() {
       return t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || useGame.getState().overlay !== null || buildMenuOpen.current;
     };
     // 動作はキーと画面のボタン（スマホ）の両方から呼ぶ
-    const jump = () => {
+    const jump = (allowClimb = true) => {
       const st = state.current;
       if (useVehicles.getState().driving) return;
       if (!st.grounded || action.current || useSeating.getState().seated) return;
       // 開いた窓の前なら乗り越える。そうでなければジャンプ
-      const pass = climbablePassage();
+      const pass = allowClimb ? climbablePassage() : null;
       if (pass) {
         const house = walkHouse();
         action.current = { plan: planClimb(house, pass, { x: playerMemory.x, y: playerMemory.y, z: playerMemory.z }), t: 0 };
@@ -305,7 +306,7 @@ export function Player() {
       if (WALK_KEYS.resetCamera.includes(e.code) && tool !== 'stair' && tool !== 'furniture') resetCamera();
     };
     const onUp = (e: KeyboardEvent) => {keys.current.delete(e.code);if(WALK_KEYS.forward.includes(e.code))keys.current.delete('DoubleSprint');};
-    const onBlur = () => keys.current.clear();
+    const onBlur = () => { keys.current.clear(); doubleTap.reset(); };
 
     let dragging = false;
     let locking = false, skipLockedMove = false;
@@ -351,6 +352,16 @@ export function Player() {
     // 指：画面をなぞって見回す。2本指でつまむとカメラの距離。
     // 建てるツールを持っているときは1本指が「置く」になるので、見回すのは2本指で
     const fingers = new Map<number, { x: number; y: number }>();
+    const doubleTap = new DoubleTap();
+    const canTapJump = () => {
+      const g = useGame.getState(), st = state.current, interaction = useInteraction.getState();
+      return g.mode === 'walk' && g.tool === 'select' && !g.overlay && !buildMenuOpen.current &&
+        !touchGesture.reserved && !interaction.furnitureDrag && !interaction.buildingDrag &&
+        !useVehicles.getState().driving && !useSeating.getState().seated && !action.current && st.grounded &&
+        (Math.hypot(touchMove.x, touchMove.y) > 0.1 || Math.hypot(st.vx, st.vz) > 0.1);
+    };
+    const resetTapOnUI = (e: PointerEvent) => { if (e.target !== el) doubleTap.reset(); };
+    const resetTapWhenHidden = () => { if (document.hidden) doubleTap.reset(); };
     let touchActive = false;
     let touchTimer: ReturnType<typeof setTimeout> | undefined;
     let pinch = 0;
@@ -363,11 +374,14 @@ export function Player() {
       touchActive = true;
       clearTimeout(touchTimer);
       fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (fingers.size === 1 && canTapJump()) doubleTap.down(e.pointerId, e.clientX, e.clientY, e.timeStamp);
+      else doubleTap.reset();
       pinch = spread();
     };
     const onTouchMove = (e: PointerEvent) => {
       const f = fingers.get(e.pointerId);
       if (!f) return;
+      doubleTap.move(e.pointerId, e.clientX, e.clientY);
       const dx = e.clientX - f.x;
       const dy = e.clientY - f.y;
       f.x = e.clientX;
@@ -383,6 +397,9 @@ export function Player() {
       }
     };
     const onTouchUp = (e: PointerEvent) => {
+      if (e.type === 'pointerup' && e.target === el && canTapJump()) {
+        if (doubleTap.up(e.pointerId, e.clientX, e.clientY, e.timeStamp)) jump(false);
+      } else if (fingers.has(e.pointerId)) doubleTap.reset();
       if (!fingers.delete(e.pointerId)) return;
       pinch = spread();
       if (fingers.size === 0) touchTimer = setTimeout(() => (touchActive = false), 600);
@@ -398,6 +415,8 @@ export function Player() {
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
     window.addEventListener('blur', onBlur);
+    window.addEventListener('pointerdown', resetTapOnUI, true);
+    document.addEventListener('visibilitychange', resetTapWhenHidden);
     el.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
     window.addEventListener('mousemove', onMouseMove);
@@ -409,6 +428,9 @@ export function Player() {
     window.addEventListener('pointercancel', onTouchUp);
     return () => {
       playerMotion.running = false;
+      doubleTap.reset();
+      window.removeEventListener('pointerdown', resetTapOnUI, true);
+      document.removeEventListener('visibilitychange', resetTapWhenHidden);
       clearTimeout(touchTimer);
       Object.assign(walkActions, { jump: () => undefined, toggleView: () => undefined, resetCamera: () => undefined });
       touchMove.x = 0;
