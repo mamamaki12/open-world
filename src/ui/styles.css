@@ -103,6 +103,8 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .slot { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .slot span { flex: 1; font-size: 14px; display: flex; flex-direction: column; }
 .slot small { color: var(--muted); font-size: 11px; }
+.save-menu .row.update { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e6e8eb; align-items: center; }
+.save-menu .row.update small { color: var(--muted); font-size: 11px; }
 
 .toast {
   position: absolute; left: 50%; top: calc(var(--hud-top) + 12px); transform: translateX(-50%); z-index: 3;
