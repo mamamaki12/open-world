@@ -15,7 +15,7 @@ import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
 import { FIRST_PLOT, LAST_PLOT, PLOT_PITCH, TOWN_BOUNDS, TOWN_ROADS, CIVIC_SITE, districtOf, plotX, plotZ } from '../economy/town';
-import { lotHouse, useCurrentPlot, useEconomy } from '../state/economy';
+import { lotCells, lotHouse, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
 import { DealerBuilding } from './DealerBuilding';
 import { EstateBuilding } from './EstateBuilding';
@@ -102,19 +102,20 @@ export function Town() {
         {lots.map((l) => {
           if (typeof l.plot !== 'number') return null;
           const house = lotHouse(l);
+          const padW = lotCells(l).w * GRID;
           const x = plotX(l.plot) + shift;
           const current = l.id === currentLotId;
           return (
             <group key={l.id} position={[x, 0, plotZ(l.plot) + shiftZ]}>
               {!current && (
-                <mesh rotation-x={-Math.PI / 2} position={[lotW / 2, 0.002, lotD / 2]} receiveShadow onPointerDown={(e) => activate(l.id, e)}>
-                  <planeGeometry args={[lotW, lotD]} />
+                <mesh rotation-x={-Math.PI / 2} position={[padW / 2, 0.002, lotD / 2]} receiveShadow onPointerDown={(e) => activate(l.id, e)}>
+                  <planeGeometry args={[padW, lotD]} />
                   <meshStandardMaterial color="#b9b2a3" roughness={1} />
                 </mesh>
               )}
               {!current && house && <HouseParts house={house} showRoofs={showRoofs} activate={(e, ref) => activate(l.id, e, ref)} />}
               <Signboard
-                lines={['あなたの土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : '']}
+                lines={['あなたの土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
                 tone="owned"
               />
             </group>

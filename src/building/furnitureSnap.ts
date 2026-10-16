@@ -1,5 +1,5 @@
 import { furnitureBounds, getFurniture } from '../catalog';
-import { GRID, LOT_D, LOT_W } from './dimensions';
+import { GRID, lotSize } from './dimensions';
 import { snapFurniture } from './rules';
 import type { FurniturePart, House } from './types';
 
@@ -41,5 +41,5 @@ export function snapFurniturePlacement(house: House, item: Item, x: number, z: n
     }
     return +Math.min(max, Math.max(0, result)).toFixed(4);
   };
-  return { x: snap(x, 'x', LOT_W * GRID), z: snap(z, 'z', LOT_D * GRID) };
+  return { x: snap(x, 'x', lotSize.w * GRID), z: snap(z, 'z', lotSize.d * GRID) };
 }
