@@ -104,9 +104,14 @@ try {
   console.log('Travel distance:',{walking,sprinting});
   assert.ok(sprinting>walking*1.3, 'double W sprints faster than walking');
   await setup(); await page.keyboard.down('Space');
-  let rises=0,previous=0;
-  for(let i=0;i<25;i++){await page.waitForTimeout(100);const y=await page.evaluate(()=>window.__ow.player.y);if(previous<.2&&y>=.2)rises++;previous=y;}
-  await page.keyboard.up('Space'); assert.ok(rises>=2,'held jump jumps again after landing');
+  let rises=0,previous=0,falling=false; const heights=[];
+  for(let i=0;i<25;i++){
+    await page.waitForTimeout(100);const y=await page.evaluate(()=>window.__ow.player.y);heights.push(y);
+    if(y<previous-.03)falling=true;
+    if(y>previous+.03){if(falling||rises===0)rises++;falling=false;}previous=y;
+  }
+  await page.keyboard.up('Space');console.log('Held jump trajectory:',{rises,heights});
+  assert.ok(rises>=2,'held jump jumps again after landing');
   await page.getByRole('button', { name: '操作設定', exact: true }).first().click();
   const slider=page.getByRole('slider', { name: '視点感度' }); await slider.focus(); await slider.press('Home'); for(let i=0;i<12;i++) await slider.press('ArrowRight');
   await page.getByRole('checkbox', { name: '上下の視点操作を反転' }).check();
