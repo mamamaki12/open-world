@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { avoidCameraWalls } from './cameraObstruction';
 import { driverEye } from './CarModel';
 import { getCar } from '../catalog/cars';
-import { carHitsWalls } from '../building/vehicleWalls';
+import { carHitsBox, carHitsWalls } from '../building/vehicleWalls';
 import { GRID, LOT_W, LOT_D } from '../building/dimensions';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
 import { takenPlots } from './visit';
@@ -17,7 +17,7 @@ import { atDealerDoor } from '../building/dealer';
 import { SHOP_BOXES } from '../building/tuner';
 import { STOCK_MODS, tunedCar } from '../catalog/carMods';
 import { engineHum } from './engineSound';
-import { resolveLandmarks } from '../building/landmarks';
+import { LANDMARK_COLLIDERS, resolveLandmarks } from '../building/landmarks';
 import { ceilingHeight, resolveCollisions, surfaceHeight } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { currentPlotOf, civicOffset, lotHouse, useEconomy } from '../state/economy';
@@ -26,6 +26,7 @@ import { saveVehicles, useVehicles } from '../state/vehicles';
 import { plotX, plotZ, TOWN_BOUNDS } from '../economy/town';
 import { touchMove } from '../state/touch';
 
+const FACILITY_BOXES = [...LANDMARK_COLLIDERS, ...SHOP_BOXES];
 export const driveButtons = { left:false, right:false, accelerator:false, brake:false, handbrake:false };
 export function resetDriveButtons() { driveButtons.left=false;driveButtons.right=false;driveButtons.accelerator=false;driveButtons.brake=false;driveButtons.handbrake=false; }
 type Memory = {x:number;y:number;z:number;yaw:number;bodyYaw:number;pitch:number};
@@ -148,8 +149,10 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   const buttonSteering=!paused&&!keyboardSteering&&buttonDirection!==0;
   const o=origin();
   const previousYaw=car.yaw;
+  const site=civicOffset(),facilityOffset={x:o.x+site.x,z:o.z+site.z};
   const obstacles=houses(car.x-o.x,car.z-o.z,Math.hypot(d.length,d.width)/2+d.maxSpeed*Math.min(dt,.25)+.2);
   integrateDrive(car,{throttle,steering,buttonSteering,reverseOnBrake:!paused&&driveButtons.brake,handbrake:!paused&&(driveButtons.handbrake||key('ShiftLeft','ShiftRight')),brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
+    FACILITY_BOXES.some(box=>carHitsBox(pose,d,box,facilityOffset)) ||
     obstacles.some(({h,x,z})=>carHitsWalls(pose,d,h,isDoorOpen,{x:o.x+x,z:o.z+z})) ||
     carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id,obstacles)));
   engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
