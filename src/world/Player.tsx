@@ -271,7 +271,7 @@ export function Player() {
       if (Object.values(WALK_KEYS).some((codes) => codes.includes(e.code))) e.preventDefault();
       if (e.repeat) return;
       keys.current.add(e.code);
-      if (WALK_KEYS.forward.includes(e.code)) { const now=performance.now(); if(now-lastForward<280)keys.current.add('DoubleSprint');lastForward=now; }
+      if (WALK_KEYS.forward.includes(e.code)) { const now=e.timeStamp; if(now-lastForward<350)keys.current.add('DoubleSprint');lastForward=now; }
       if (e.code === 'KeyL') { const s=useVehicles.getState(); const car=s.cars.find(c=>c.id===s.driving); if(car)car.lights=!car.lights; }
       if (WALK_KEYS.jump.includes(e.code)) jump();
       if (WALK_KEYS.view.includes(e.code)) toggleView();

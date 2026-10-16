@@ -94,13 +94,14 @@ try {
   await page.keyboard.press('Escape');
   const measure = async sprint => {
     await setup(); await page.waitForTimeout(350);
-    if(sprint){await page.keyboard.press('KeyW'); await page.waitForTimeout(90);}
     const start=await page.evaluate(()=>window.__ow.player.z);
+    if(sprint)await page.keyboard.press('KeyW');
     await page.keyboard.down('KeyW'); await page.waitForTimeout(600);
     const distance=start-await page.evaluate(()=>window.__ow.player.z);
     await page.keyboard.up('KeyW'); await page.waitForTimeout(350); return distance;
   };
   const walking=await measure(false),sprinting=await measure(true);
+  console.log('Travel distance:',{walking,sprinting});
   assert.ok(sprinting>walking*1.3, 'double W sprints faster than walking');
   await setup(); await page.keyboard.down('Space');
   let rises=0,previous=0;
