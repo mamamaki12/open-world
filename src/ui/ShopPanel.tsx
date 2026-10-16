@@ -7,8 +7,8 @@ import { useVehicles } from '../state/vehicles';
 import { useSession } from '../session/session';
 import { sessionGate } from '../session/gate';
 import { savedBundle } from '../session/saves';
-import { cleanShop, newShop, removeItem, upsertItem, SHOP_LIMITS } from '../economy/shop';
-import type { Shop, ShopItem } from '../economy/shop';
+import { cleanShop, newShop, passesOf, removeItem, upsertItem, ITEM_KINDS, RESERVE_AHEAD, SHOP_LIMITS } from '../economy/shop';
+import type { ItemKind, Shop, ShopItem, ShopSale } from '../economy/shop';
 import { yen } from '../economy/money';
 import './shop.css';
 
@@ -24,6 +24,9 @@ function snapPhoto(): string | undefined {
   return undefined;
 }
 
+const kindName = (k?: ItemKind) => ITEM_KINDS.find((x) => x.id === (k ?? 'goods'))!.name;
+/** 券の有効期限など、種類ごとの一言 */
+const passNote = (s: ShopSale) => s.kind === 'membership' ? `${s.until}日目まで有効` : s.kind === 'reservation' ? `${s.forDay}日目の予約` : s.kind === 'ticket' ? '入場券' : '';
 const blank = (): ShopItem => ({ id: crypto.randomUUID(), name: '', price: 1000, description: '' });
 
 export function ShopPanel() {
@@ -32,6 +35,8 @@ export function ShopPanel() {
   const lotId = target?.startsWith('register:') ? target.slice(9) : null;
   const lot = useEconomy((s) => s.lots.find((l) => l.id === lotId));
   const money = useEconomy((s) => s.money);
+  const today = useEconomy((s) => s.day);
+  const [reserveDay, setReserveDay] = useState<Record<string, number>>({});
   const role = useSession((s) => s.role);
   const [tab, setTab] = useState<'items' | 'sales'>('items');
   const [draft, setDraft] = useState<ShopItem | null>(null);
@@ -50,7 +55,7 @@ export function ShopPanel() {
   const buy = (i: ShopItem) => {
     if (!lot) return;
     if (!shared) { setError('みんなのワールドで、ほかのプレイヤーのお店から買えます'); return; }
-    setError((sessionGate.act ? sessionGate.act(lot.id, { type: 'purchase', item: i.id, price: i.price }, i.price) : '接続していません') ?? '');
+    setError((sessionGate.act ? sessionGate.act(lot.id, { type: 'purchase', item: i.id, price: i.price, ...(i.kind === 'reservation' ? { day: reserveDay[i.id] ?? today } : {}) }, i.price) : '接続していません') ?? '');
   };
   const onClose = () => close(null);
 
@@ -73,15 +78,20 @@ export function ShopPanel() {
   return <Modal className="shop-panel" title={shop.name} onClose={onClose} tabs={[{ id: 'items', label: '商品' }, { id: 'sales', label: '売上' }]} tab={tab} onTab={setTab}>
     {tab === 'sales' ? <>
       <p>売上合計 <b className="big">{yen(shop.revenue)}</b>（{shop.sales.length}件・誰でも見られます）</p>
-      <ul className="shop-sales">{[...shop.sales].reverse().map((s) => <li key={s.id}>{s.day}日目 · {s.buyer}さん · {s.item} · {yen(s.price)}</li>)}</ul>
+      <ul className="shop-sales">{[...shop.sales].reverse().map((s) => <li key={s.id}>{s.day}日目 · {s.buyer}さん · {s.item} · {yen(s.price)}{s.kind ? ` · ${passNote(s)}` : ''}</li>)}</ul>
       {!shop.sales.length && <p>まだ売れていません。</p>}
     </> : <>
       {owner && <p className="shop-note">みんなのワールドで、ほかのプレイヤーが一回払いで買えます。代金はそのままあなたの所持金に入ります。</p>}
       {!owner && <p>所持金 {yen(money)}</p>}
+      {!owner && shared && (() => { const mine = passesOf(shop, savedBundle().profile.id, today); return mine.length ? <div className="card shop-passes"><b>あなたの券</b>{mine.map((p) => <div key={p.id}>🎫 {p.item} · {passNote(p)}</div>)}</div> : null; })()}
       <div className="shop-items">
         {shop.items.map((i) => <div key={i.id} className="shop-item card">
           {i.photo ? <img src={i.photo} alt="" /> : <div className="shop-photo-empty">写真なし</div>}
+          {i.kind && <span className="shop-kind">{kindName(i.kind)}{i.kind === 'membership' ? `・${i.days}日間` : ''}</span>}
           <b>{i.name}</b><span className="big">{yen(i.price)}</span>
+          {!owner && i.kind === 'reservation' && <label className="shop-note">予約する日 <select value={reserveDay[i.id] ?? today} onChange={(e) => setReserveDay({ ...reserveDay, [i.id]: Number(e.target.value) })}>
+            {Array.from({ length: RESERVE_AHEAD + 1 }, (_, d) => today + d).map((d) => <option key={d} value={d}>{d}日目{d === today ? '（今日）' : ''}</option>)}
+          </select></label>}
           {i.description && <p>{i.description}</p>}
           {owner ? <div><button className="btn small" onClick={() => { setDraft(i); setError(''); }}>編集</button><button className="btn small danger" onClick={() => save(removeItem(shop, i.id))}>取り下げ</button></div>
             : <button className="btn primary" disabled={money < i.price} onClick={() => buy(i)}>買う</button>}
@@ -91,6 +101,12 @@ export function ShopPanel() {
       {error && <p className="warn" role="alert">{error}</p>}
       {owner && (draft ? <div className="card shop-form">
         <div className="field"><div className="field-label">商品・サービスの名前</div><input type="text" maxLength={SHOP_LIMITS.itemName} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div>
+        <div className="field"><div className="field-label">種類</div>
+          <select value={draft.kind ?? 'goods'} onChange={(e) => setDraft({ ...draft, kind: e.target.value as ItemKind, days: draft.days ?? 30 })}>
+            {ITEM_KINDS.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+          </select>
+          {draft.kind === 'membership' && <label className="shop-note"> 有効日数 <input type="text" inputMode="numeric" style={{ width: 60 }} value={draft.days ?? 30} onChange={(e) => setDraft({ ...draft, days: Number(e.target.value.replace(/[^0-9]/g, '')) })} /> 日（1〜365）</label>}
+        </div>
         <div className="field"><div className="field-label">値段（円・一回払い）</div><input type="text" inputMode="numeric" value={draft.price} onChange={(e) => setDraft({ ...draft, price: Number(e.target.value.replace(/[^0-9]/g, '')) })} /></div>
         <div className="field"><div className="field-label">説明</div><textarea maxLength={SHOP_LIMITS.description} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></div>
         <div className="field"><div className="field-label">写真</div>

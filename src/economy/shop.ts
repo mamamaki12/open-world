@@ -1,8 +1,19 @@
 // プレイヤーが開くお店。業種は持たず、名前・写真・値段・説明だけで何でも売れる。
 // 描画やブラウザーの状態に依存しない（共有ワールドのサーバーでも使えるように）。
 
+/** 売り物の種類。goods は物・サービス（一回きり）、ticket は入場券、reservation は日を決めて予約、membership は期限つきの会員権 */
+export type ItemKind = 'goods' | 'ticket' | 'reservation' | 'membership';
+export const ITEM_KINDS: { id: ItemKind; name: string }[] = [
+  { id: 'goods', name: '物・サービス' }, { id: 'ticket', name: '入場券' }, { id: 'reservation', name: '予約' }, { id: 'membership', name: '会員権' },
+];
+/** 予約できるのは今日から何日先まで */
+export const RESERVE_AHEAD = 30;
+
 export interface ShopItem {
   id: string;
+  kind?: ItemKind;
+  /** 会員権の有効日数 */
+  days?: number;
   name: string;
   /** 一回払いの値段（円） */
   price: number;
@@ -17,6 +28,13 @@ export interface ShopSale {
   buyer: string;
   item: string;
   price: number;
+  kind?: ItemKind;
+  /** 買った人のID（券を見せるときに使う） */
+  buyerId?: string;
+  /** 会員権の最終日 */
+  until?: number;
+  /** 予約した日 */
+  forDay?: number;
 }
 
 export interface Shop {
@@ -27,8 +45,15 @@ export interface Shop {
   revenue: number;
 }
 
-export const SHOP_LIMITS = { items: 12, name: 24, itemName: 30, description: 200, photo: 60_000, sales: 50, price: 10_000_000_000 };
+export const SHOP_LIMITS = { items: 12, name: 24, itemName: 30, description: 200, photo: 60_000, sales: 100, price: 10_000_000_000 };
 
+const kindOf = (v: unknown): ItemKind => (ITEM_KINDS.some(k => k.id === v) ? (v as ItemKind) : 'goods');
+const daysOf = (v: unknown) => (Number.isSafeInteger(v) && (v as number) >= 1 && (v as number) <= 365 ? (v as number) : 30);
+/** 種類と日数を正しい形にそろえる（物・サービスは何も付けない） */
+function typed(i: { kind?: unknown; days?: unknown }): Pick<ShopItem, 'kind' | 'days'> {
+  const kind = kindOf(i.kind);
+  return kind === 'goods' ? {} : kind === 'membership' ? { kind, days: daysOf(i.days) } : { kind };
+}
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const photo = (v: unknown) =>
   typeof v === 'string' && v.length <= SHOP_LIMITS.photo && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) ? v : undefined;
@@ -49,11 +74,14 @@ export function cleanShop(v: unknown): Shop | null {
     const name = str(i.name, SHOP_LIMITS.itemName);
     if (!name || priceError(i.price)) return [];
     const p = photo(i.photo);
-    return [{ id: i.id, name, price: i.price, description: str(i.description, SHOP_LIMITS.description), ...(p ? { photo: p } : {}) }];
+    return [{ id: i.id, name, price: i.price, description: str(i.description, SHOP_LIMITS.description), ...typed(i), ...(p ? { photo: p } : {}) }];
   });
   const sales = (Array.isArray(s.sales) ? s.sales : []).slice(-SHOP_LIMITS.sales).flatMap((x): ShopSale[] =>
     x && typeof x.id === 'string' && Number.isFinite(x.day) && Number.isSafeInteger(x.price)
-      ? [{ id: x.id, day: x.day, buyer: str(x.buyer, 24), item: str(x.item, SHOP_LIMITS.itemName), price: x.price }]
+      ? [{ id: x.id, day: x.day, buyer: str(x.buyer, 24), item: str(x.item, SHOP_LIMITS.itemName), price: x.price,
+        ...(x.kind && x.kind !== 'goods' ? { kind: kindOf(x.kind) } : {}),
+        ...(typeof x.buyerId === 'string' && x.buyerId.length <= 100 ? { buyerId: x.buyerId } : {}),
+        ...(Number.isSafeInteger(x.until) ? { until: x.until } : {}), ...(Number.isSafeInteger(x.forDay) ? { forDay: x.forDay } : {}) }]
       : [],
   );
   return { name: str(s.name, SHOP_LIMITS.name) || 'お店', items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue! : 0 };
@@ -72,7 +100,7 @@ export function upsertItem(shop: Shop, item: ShopItem): Shop | string {
   const exists = shop.items.some((i) => i.id === item.id);
   if (!exists && shop.items.length >= SHOP_LIMITS.items) return `商品は${SHOP_LIMITS.items}個までです`;
   const p = photo(item.photo);
-  const clean: ShopItem = { id: item.id, name, price: item.price, description: str(item.description, SHOP_LIMITS.description), ...(p ? { photo: p } : {}) };
+  const clean: ShopItem = { id: item.id, name, price: item.price, description: str(item.description, SHOP_LIMITS.description), ...typed(item), ...(p ? { photo: p } : {}) };
   return { ...shop, items: exists ? shop.items.map((i) => (i.id === item.id ? clean : i)) : [...shop.items, clean] };
 }
 
@@ -84,10 +112,20 @@ export function removeItem(shop: Shop, id: string): Shop {
  * 一回払いの購入を店に記録する。値段が変わっていたり商品が消えていたら理由を返す。
  * お金の移動（買い手から払い、持ち主が受け取る）は呼び出し側で行う。
  */
-export function recordSale(shop: Shop, sale: { id: string; day: number; buyer: string; itemId: string; price: number }): { shop: Shop; item: ShopItem } | string {
+export function recordSale(shop: Shop, sale: { id: string; day: number; buyer: string; buyerId?: string; itemId: string; price: number; forDay?: number }): { shop: Shop; item: ShopItem } | string {
   const item = shop.items.find((i) => i.id === sale.itemId);
   if (!item) return 'この商品は売り切れか、取り下げられました';
   if (item.price !== sale.price) return '値段が変わりました。もう一度確認してください';
-  const entry: ShopSale = { id: sale.id, day: sale.day, buyer: str(sale.buyer, 24) || 'お客さん', item: item.name, price: item.price };
+  const kind = kindOf(item.kind);
+  if (kind === 'reservation' && !(Number.isSafeInteger(sale.forDay) && sale.forDay! >= sale.day && sale.forDay! <= sale.day + RESERVE_AHEAD)) return `予約する日を今日から${RESERVE_AHEAD}日以内で選んでください`;
+  const entry: ShopSale = { id: sale.id, day: sale.day, buyer: str(sale.buyer, 24) || 'お客さん', item: item.name, price: item.price,
+    ...(kind !== 'goods' ? { kind } : {}), ...(sale.buyerId ? { buyerId: sale.buyerId } : {}),
+    ...(kind === 'membership' ? { until: sale.day + daysOf(item.days) - 1 } : {}), ...(kind === 'reservation' ? { forDay: sale.forDay } : {}) };
   return { item, shop: { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + item.price } };
+}
+
+/** その人が持っている、まだ使える券（入場券・予約・有効な会員権） */
+export function passesOf(shop: Shop, buyerId: string, today: number): ShopSale[] {
+  return shop.sales.filter((s) => s.buyerId === buyerId && s.kind && s.kind !== 'goods' &&
+    (s.kind === 'membership' ? (s.until ?? -1) >= today : s.kind === 'reservation' ? (s.forDay ?? -1) >= today : true));
 }

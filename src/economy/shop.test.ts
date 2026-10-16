@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanShop, newShop, recordSale, removeItem, upsertItem } from './shop';
+import { cleanShop, newShop, passesOf, recordSale, removeItem, upsertItem } from './shop';
 import type { Shop } from './shop';
 
 const item = { id: 'a', name: '家の設計代行', price: 300_000, description: '2階建てまで' };
@@ -34,5 +34,22 @@ describe('player shops', () => {
     expect(s.items[0].photo).toBeUndefined();
     expect(s.sales).toEqual([]);
     expect(cleanShop(null)).toBeNull();
+  });
+  it('sells tickets, reservations and memberships as passes the buyer can show', () => {
+    let s = newShop('ジム');
+    s = upsertItem(s, { id: 'm', name: '月会員', price: 5000, description: '', kind: 'membership', days: 30 }) as Shop;
+    s = upsertItem(s, { id: 'r', name: '貸切', price: 9000, description: '', kind: 'reservation' }) as Shop;
+    s = upsertItem(s, { id: 't', name: '入場券', price: 500, description: '', kind: 'ticket' }) as Shop;
+    expect(cleanShop(s)!.items.map(i => i.kind)).toEqual(['membership', 'reservation', 'ticket']);
+    expect(recordSale(s, { id: 'x', day: 5, buyer: 'b', buyerId: 'B', itemId: 'r', price: 9000, forDay: 40 })).toMatch(/30日以内/);
+    for (const [id, itemId, price, forDay] of [['1', 'm', 5000, undefined], ['2', 'r', 9000, 8], ['3', 't', 500, undefined]] as const) {
+      const r = recordSale(s, { id, day: 5, buyer: 'b', buyerId: 'B', itemId, price, forDay });
+      if (typeof r === 'string') throw Error(r);
+      s = r.shop;
+    }
+    expect(s.sales[0].until).toBe(34);
+    expect(passesOf(s, 'B', 5).map(p => p.item)).toEqual(['月会員', '貸切', '入場券']);
+    expect(passesOf(s, 'B', 35).map(p => p.item)).toEqual(['入場券']);
+    expect(passesOf(s, 'someone', 5)).toEqual([]);
   });
 });

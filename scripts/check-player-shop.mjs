@@ -52,6 +52,16 @@ try {
   await buyer.waitForFunction(() => window.__ow.economy.getState().money === 1700000);
   await owner.waitForFunction(b => window.__ow.economy.getState().money === b + 300000, ownerBefore);
   await buyer.waitForFunction(lot => window.__ow.economy.getState().lots.find(l => l.id === lot)?.shop?.sales.length === 1, lot);
+  // 会員権：期限つきの券として買い手に残る
+  await owner.getByRole('button', { name: '＋ 商品を追加' }).click();
+  await form.locator('input').nth(0).fill('月会員');
+  await form.locator('select').selectOption('membership');
+  await form.locator('input').nth(2).fill('100000');
+  await owner.getByRole('button', { name: '保存', exact: true }).click();
+  await buyer.waitForFunction(lot => window.__ow.economy.getState().lots.find(l => l.id === lot)?.shop?.items.length === 2, lot);
+  await buyer.locator('.shop-item', { hasText: '月会員' }).getByRole('button', { name: '買う' }).click();
+  await buyer.locator('.shop-passes', { hasText: '月会員' }).waitFor();
+  await buyer.screenshot({ path: out + '/passes.png' });
   await buyer.getByRole('button', { name: '売上', exact: true }).click();
   await buyer.screenshot({ path: out + '/sales.png' });
   assert.deepEqual(errors, []);

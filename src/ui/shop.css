@@ -8,3 +8,5 @@
 .shop-note { font-size: 12px; color: #666; }
 .shop-sales { padding-left: 18px; font-size: 13px; }
 .shop-panel .btn + .btn { margin-left: 6px; }
+.shop-kind { align-self: flex-start; font-size: 11px; padding: 1px 6px; border-radius: 999px; background: #eef3ff; color: #2d5bd7; }
+.shop-passes { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
