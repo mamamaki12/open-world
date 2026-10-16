@@ -12,5 +12,6 @@
 
 ## 進捗
 - 済: 上記すべて実装、typecheck と vitest 全件成功、Playwright で店の外観・店内・施工・購入後の実車を確認（`scripts/check-tuner.mjs`）。
-- 次: PR を作成し CI が通ればマージ。
+- PR #48。CI の操作チェック（scripts/check-aim-controls.mjs）は mods の無い車を直接作るため落ちた → mods 未設定でも純正扱いにする修正を push。
+- 次: CI が通ればマージ。
 - 未確認: 実際に運転してのエンジン音の聞こえ方（自動テストなし）。

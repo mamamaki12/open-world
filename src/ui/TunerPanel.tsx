@@ -43,17 +43,17 @@ export function TunerPanel() {
   const [carId, setCarId] = useState(() => cars[0]?.id ?? '');
   const car = cars.find(c => c.id === carId);
   const [color, setColor] = useState(car?.color ?? '#ffffff');
-  const [mods, setMods] = useState<CarMods>(() => car ? { ...car.mods } : { ...STOCK_MODS });
+  const [mods, setMods] = useState<CarMods>(() => car ? { ...(car.mods ?? STOCK_MODS) } : { ...STOCK_MODS });
   const [tab, setTab] = useState<TunerTab>(() => useVenue.getState().tab ?? 'paint');
   const [error, setError] = useState('');
-  const pickCar = (id: string) => { const c = cars.find(x => x.id === id)!; setCarId(id); setColor(c.color); setMods({ ...c.mods }); setError(''); };
+  const pickCar = (id: string) => { const c = cars.find(x => x.id === id)!; setCarId(id); setColor(c.color); setMods({ ...(c.mods ?? STOCK_MODS) }); setError(''); };
   const set = <K extends keyof CarMods>(k: K, v: CarMods[K]) => { setMods(m => ({ ...m, [k]: v })); setError(''); };
   const title = 'STANCE GARAGE · カーカスタム';
   if (!car) return <Modal title={title} onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="dealer-modal">
     <p className="dealer-intro">あなたの一台を、あなただけの一台に。</p>
     <p>まだ車を持っていません。隣の AVENUE MOTORS で車を買ってから来てください。</p>
   </Modal>;
-  const def = getCar(car.model)!, before = tunedCar(def, car.mods), after = tunedCar(def, mods);
+  const def = getCar(car.model)!, before = tunedCar(def, (car.mods ?? STOCK_MODS)), after = tunedCar(def, mods);
   const lines = quote(car, { color, mods }), total = quoteTotal(lines);
   const evStock = car.model === 'volt' && mods.engine === 'stock';
   const stat = (label: string, a: string, b: string) => <><dt>{label}</dt><dd>{a === b ? b : <>{a} → <b className="tuner-up">{b}</b></>}</dd></>;
@@ -62,7 +62,7 @@ export function TunerPanel() {
     <p>所持金 <b>{yen(money)}</b></p>
     <div className="dealer-layout">
       <div className="dealer-models">{cars.map(c => { const d = getCar(c.model)!; return <button key={c.id} className={'dealer-model' + (c.id === carId ? ' on' : '')} onClick={() => pickCar(c.id)}>
-        <small>{d.category}{c.id === driving ? '・運転中' : ''}</small><b>{d.name}</b><span><i className="tuner-dot" style={{ background: c.color }} />{ENGINES.find(e => e.id === c.mods.engine)!.name}</span>
+        <small>{d.category}{c.id === driving ? '・運転中' : ''}</small><b>{d.name}</b><span><i className="tuner-dot" style={{ background: c.color }} />{ENGINES.find(e => e.id === (c.mods ?? STOCK_MODS).engine)!.name}</span>
       </button>; })}</div>
       <section className="dealer-detail">
         <div className="dealer-preview" role="img" aria-label={def.name + 'のカスタムの3Dプレビュー。ドラッグで回転'}>
@@ -115,7 +115,7 @@ export function TunerPanel() {
               const err = customizeCar(car.id, color, mods, useGame.getState().mode === 'walk' && atTuner(playerMemory));
               if (err) setError(err); else setError('');
             }}>{lines.length ? `施工する · ${yen(total)}` : '変更なし'}</button>
-            <button className="btn" disabled={!lines.length} onClick={() => { setColor(car.color); setMods({ ...car.mods }); setError(''); }}>選び直す</button>
+            <button className="btn" disabled={!lines.length} onClick={() => { setColor(car.color); setMods({ ...(car.mods ?? STOCK_MODS) }); setError(''); }}>選び直す</button>
           </div>
         </div>
       </section>

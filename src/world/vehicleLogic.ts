@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { avoidCameraWalls } from './cameraObstruction';
 import { getCar } from '../catalog/cars';
-import { tunedCar } from '../catalog/carMods';
+import { STOCK_MODS, tunedCar } from '../catalog/carMods';
 import { engineHum } from './engineSound';
 import { carSamples, integrateDrive } from '../building/driving';
 import type { DrivePose } from '../building/driving';
@@ -113,7 +113,7 @@ let saveClock=0;
 export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memory,scene?:THREE.Scene) {
   const state=useVehicles.getState(),car=state.cars.find(c=>c.id===state.driving);
   if(!car){engineHum(null,0,0);return false;}
-  const d=tunedCar(getCar(car.model)!,car.mods);
+  const mods=car.mods??STOCK_MODS,d=tunedCar(getCar(car.model)!,mods);
   if(useGame.getState().tool!=='select')useGame.getState().setTool('select');
   const key=(...codes:string[])=>codes.some(c=>keys.has(c));
   const paused=!!useGame.getState().overlay;
@@ -123,7 +123,7 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   const previousYaw=car.yaw;
   integrateDrive(car,{throttle,steering,brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
     carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id)));
-  engineHum(car.mods.engine==='stock'&&car.model==='volt'?'electric':car.mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
+  engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
   p.yaw+=car.yaw-previousYaw;
   Object.assign(p,{x:car.x-o.x,y:0,z:car.z-o.z,bodyYaw:car.yaw});
   const first=useGame.getState().view==='first';

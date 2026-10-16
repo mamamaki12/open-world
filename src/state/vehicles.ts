@@ -58,7 +58,7 @@ export function customizeCar(id: string, color: string, next: CarMods, atShop: b
   if (!car) return '車が見つかりません';
   if (state.driving === id) return '運転中の車は施工できません';
   if (!/^#[0-9a-f]{6}$/i.test(color)) return '色が不正です';
-  const mods = cleanMods(next), lines = quote(car, { color, mods });
+  const mods = cleanMods(next), lines = quote({ color: car.color, mods: car.mods ?? STOCK_MODS }, { color, mods });
   if (!lines.length) return '変更がありません';
   if (!useEconomy.getState().pay(quoteTotal(lines), 'カスタム：' + getCar(car.model)!.name)) return 'お金が足りません';
   useVehicles.setState({ cars: state.cars.map(c => c.id === id ? { ...c, color, mods } : c) });
