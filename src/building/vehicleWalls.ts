@@ -75,3 +75,21 @@ export function carHitsWalls(
   }
   return false;
 }
+
+/** 施設の直方体と車体の矩形。4軸の分離軸判定で斜めの四隅も保護する。 */
+export function carHitsBox(
+  car: Pick<DrivePose, 'x' | 'z' | 'yaw'>, def: Pick<CarDef, 'width' | 'length'>,
+  box: { x0: number; x1: number; z0: number; z1: number }, offset = { x: 0, z: 0 },
+): boolean {
+  const cos = Math.cos(car.yaw), sin = Math.sin(car.yaw);
+  const halfW = def.width / 2 + .04, halfL = def.length / 2 + .04;
+  const bx = (box.x1 - box.x0) / 2, bz = (box.z1 - box.z0) / 2;
+  const dx = (box.x0 + box.x1) / 2 + offset.x - car.x;
+  const dz = (box.z0 + box.z1) / 2 + offset.z - car.z;
+  for (const [ax, az] of [[1, 0], [0, 1], [cos, -sin], [sin, cos]]) {
+    const carRadius = halfW * Math.abs(ax * cos - az * sin) + halfL * Math.abs(ax * sin + az * cos);
+    const boxRadius = bx * Math.abs(ax) + bz * Math.abs(az);
+    if (Math.abs(dx * ax + dz * az) > carRadius + boxRadius) return false;
+  }
+  return true;
+}
