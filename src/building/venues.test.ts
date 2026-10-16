@@ -25,6 +25,8 @@ it('lets the player walk through an open shop door without changing space',()=>{
   for(const kind of ['casino','estate','dealer'] as const){
     const b=VENUES[kind],d=VENUE_DOORS[kind];
     expect(venueDoorAt(d.x,b.z0-1)).toBe(kind);expect(venueDoorAt(d.x,b.z0+1)).toBe(kind);
+    // 店の奥へ入る・外で離れると自動ドアのセンサーから外れる
+    expect(venueDoorAt(d.x,b.z0+2.5)).toBeNull();expect(venueDoorAt(d.x,b.z0-3)).toBeNull();
     expect(venueAt(d.x,b.z0-1)).toBeNull();expect(venueAt(d.x,b.z0+1)).toBe(kind);
     expect(throughDoorway(kind,{x:d.x+d.width/2-.1,z:b.z0+.1})?.x).toBeCloseTo(d.x+d.width/2-.25);
     expect(throughDoorway(kind,{x:d.x+d.width/2+.3,z:b.z0+.1})).toBeNull();

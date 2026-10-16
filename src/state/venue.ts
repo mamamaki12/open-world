@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { civicOffset } from './economy';
 import { useGame } from './store';
 import { isDoorOpen, useDoors } from './doors';
-import { throughDoorway, venueAt, venueDoorId } from '../building/venues';
+import { throughDoorway, venueAt, venueDoorAt, venueDoorId, VENUE_KINDS } from '../building/venues';
 import type { Venue, CasinoGame } from '../building/venues';
 import { playDoorSound } from '../world/sound';
 interface Point {x:number;y:number;z:number}
@@ -16,11 +16,13 @@ export function syncVenue(p:Point){
     if(inside)useGame.getState().setTool('select');
   }
 }
-/** 店の入口の引き戸を開け閉めする。人が戸口に立っているあいだは閉めない。 */
-export function toggleVenueDoor(kind:Venue,p:Point){
-  const id=venueDoorId(kind),o=civicOffset();
-  if(isDoorOpen(id)&&throughDoorway(kind,{x:p.x-o.x,z:p.z-o.z}))return false;
-  const opened=useDoors.getState().toggle(id,1);
-  playDoorSound(opened,true);
-  return true;
+/** 自動ドア：人が近づくと開き、離れるか店の奥へ入ると閉まる。車で通りかかっても開かない。 */
+export function autoVenueDoors(p:Point,walking:boolean){
+  const o=civicOffset(),near=walking?venueDoorAt(p.x-o.x,p.z-o.z,p.y):null,doors=useDoors.getState();
+  for(const kind of VENUE_KINDS){
+    const id=venueDoorId(kind),open=isDoorOpen(id),want=kind===near;
+    // 戸口に立っているあいだは閉めない（はさまないように）
+    if(open===want||(!want&&throughDoorway(kind,{x:p.x-o.x,z:p.z-o.z})))continue;
+    doors.toggle(id,1);playDoorSound(want,true);
+  }
 }
