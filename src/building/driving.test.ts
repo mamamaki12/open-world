@@ -3,6 +3,37 @@ import { CARS } from '../catalog/cars';
 import { integrateDrive } from './driving';
 const pose=()=>({x:0,z:0,yaw:0,speed:0,steer:0,wheelSpin:0,braking:false});
 describe('vehicle motion',()=>{
+  it('uses a gentler service brake while still stopping fully',()=>{
+    const p={...pose(),speed:10};
+    integrateDrive(p,{throttle:1,steering:0,brake:true},.25,CARS[0],()=>false);
+    expect(p.speed).toBeGreaterThan(4);
+    expect(p.speed).toBeLessThan(5);
+    for(let i=0;i<20;i++)integrateDrive(p,{throttle:1,steering:0,brake:true},.1,CARS[0],()=>false);
+    expect(p.speed).toBe(0);
+  });
+  it('slides sideways under handbrake steering and regains grip after release for every car',()=>{
+    for(const d of CARS) {
+      const p={...pose(),speed:10,steer:.3,slipAngle:0,drifting:false};
+      for(let i=0;i<20;i++)integrateDrive(p,{throttle:1,steering:1,brake:false,handbrake:true,buttonSteering:true},.025,d,()=>false);
+      expect(Math.abs(p.slipAngle),d.id).toBeGreaterThan(.15);
+      expect(p.drifting,d.id).toBe(true);
+      const before={...p};
+      integrateDrive(p,{throttle:1,steering:1,brake:false,handbrake:true,buttonSteering:true},.025,d,()=>false);
+      const direction=Math.atan2(-(p.x-before.x),-(p.z-before.z));
+      expect(Math.abs(direction-p.yaw),d.id).toBeGreaterThan(.1);
+      for(let i=0;i<60;i++)integrateDrive(p,{throttle:1,steering:0,brake:false},.025,d,()=>false);
+      expect(Math.abs(p.slipAngle),d.id).toBeLessThan(.01);
+      expect(p.drifting).toBe(false);
+    }
+  });
+  it('does not spin at rest or through a collision with the handbrake',()=>{
+    const p={...pose(),slipAngle:0,drifting:false};
+    integrateDrive(p,{throttle:1,steering:1,brake:false,handbrake:true},.25,CARS[0],()=>false);
+    expect(p.speed).toBe(0);expect(p.yaw).toBe(0);
+    Object.assign(p,{speed:10,slipAngle:.4,drifting:true});
+    integrateDrive(p,{throttle:1,steering:1,brake:false,handbrake:true},.25,CARS[0],()=>true);
+    expect(p.x).toBe(0);expect(p.z).toBe(0);expect(p.speed).toBe(0);expect(p.slipAngle).toBe(0);expect(p.drifting).toBe(false);
+  });
   it('turns more with buttons at city speeds for every car, with symmetric left/right steering',()=>{
     for(const d of CARS) for(const speed of [3,8,12]) {
       const normal={...pose(),speed},right={...pose(),speed},left={...pose(),speed};
