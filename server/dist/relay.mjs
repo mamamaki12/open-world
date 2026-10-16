@@ -8743,7 +8743,20 @@ function applyChanges(house, delta) {
 }
 
 // src/economy/shop.ts
-var SHOP_LIMITS = { items: 12, name: 24, itemName: 30, description: 200, photo: 6e4, sales: 50, price: 1e10 };
+var ITEM_KINDS = [
+  { id: "goods", name: "\u7269\u30FB\u30B5\u30FC\u30D3\u30B9" },
+  { id: "ticket", name: "\u5165\u5834\u5238" },
+  { id: "reservation", name: "\u4E88\u7D04" },
+  { id: "membership", name: "\u4F1A\u54E1\u6A29" }
+];
+var RESERVE_AHEAD = 30;
+var SHOP_LIMITS = { items: 12, name: 24, itemName: 30, description: 200, photo: 6e4, sales: 100, price: 1e10 };
+var kindOf = (v) => ITEM_KINDS.some((k) => k.id === v) ? v : "goods";
+var daysOf = (v) => Number.isSafeInteger(v) && v >= 1 && v <= 365 ? v : 30;
+function typed(i) {
+  const kind = kindOf(i.kind);
+  return kind === "goods" ? {} : kind === "membership" ? { kind, days: daysOf(i.days) } : { kind };
+}
 var str = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
 var photo = (v) => typeof v === "string" && v.length <= SHOP_LIMITS.photo && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) ? v : void 0;
 function priceError(price) {
@@ -8759,10 +8772,20 @@ function cleanShop(v) {
     const name = str(i.name, SHOP_LIMITS.itemName);
     if (!name || priceError(i.price)) return [];
     const p = photo(i.photo);
-    return [{ id: i.id, name, price: i.price, description: str(i.description, SHOP_LIMITS.description), ...p ? { photo: p } : {} }];
+    return [{ id: i.id, name, price: i.price, description: str(i.description, SHOP_LIMITS.description), ...typed(i), ...p ? { photo: p } : {} }];
   });
   const sales = (Array.isArray(s.sales) ? s.sales : []).slice(-SHOP_LIMITS.sales).flatMap(
-    (x) => x && typeof x.id === "string" && Number.isFinite(x.day) && Number.isSafeInteger(x.price) ? [{ id: x.id, day: x.day, buyer: str(x.buyer, 24), item: str(x.item, SHOP_LIMITS.itemName), price: x.price }] : []
+    (x) => x && typeof x.id === "string" && Number.isFinite(x.day) && Number.isSafeInteger(x.price) ? [{
+      id: x.id,
+      day: x.day,
+      buyer: str(x.buyer, 24),
+      item: str(x.item, SHOP_LIMITS.itemName),
+      price: x.price,
+      ...x.kind && x.kind !== "goods" ? { kind: kindOf(x.kind) } : {},
+      ...typeof x.buyerId === "string" && x.buyerId.length <= 100 ? { buyerId: x.buyerId } : {},
+      ...Number.isSafeInteger(x.until) ? { until: x.until } : {},
+      ...Number.isSafeInteger(x.forDay) ? { forDay: x.forDay } : {}
+    }] : []
   );
   return { name: str(s.name, SHOP_LIMITS.name) || "\u304A\u5E97", items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue : 0 };
 }
@@ -8770,7 +8793,19 @@ function recordSale(shop, sale) {
   const item = shop.items.find((i) => i.id === sale.itemId);
   if (!item) return "\u3053\u306E\u5546\u54C1\u306F\u58F2\u308A\u5207\u308C\u304B\u3001\u53D6\u308A\u4E0B\u3052\u3089\u308C\u307E\u3057\u305F";
   if (item.price !== sale.price) return "\u5024\u6BB5\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044";
-  const entry = { id: sale.id, day: sale.day, buyer: str(sale.buyer, 24) || "\u304A\u5BA2\u3055\u3093", item: item.name, price: item.price };
+  const kind = kindOf(item.kind);
+  if (kind === "reservation" && !(Number.isSafeInteger(sale.forDay) && sale.forDay >= sale.day && sale.forDay <= sale.day + RESERVE_AHEAD)) return `\u4E88\u7D04\u3059\u308B\u65E5\u3092\u4ECA\u65E5\u304B\u3089${RESERVE_AHEAD}\u65E5\u4EE5\u5185\u3067\u9078\u3093\u3067\u304F\u3060\u3055\u3044`;
+  const entry = {
+    id: sale.id,
+    day: sale.day,
+    buyer: str(sale.buyer, 24) || "\u304A\u5BA2\u3055\u3093",
+    item: item.name,
+    price: item.price,
+    ...kind !== "goods" ? { kind } : {},
+    ...sale.buyerId ? { buyerId: sale.buyerId } : {},
+    ...kind === "membership" ? { until: sale.day + daysOf(item.days) - 1 } : {},
+    ...kind === "reservation" ? { forDay: sale.forDay } : {}
+  };
   return { item, shop: { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + item.price } };
 }
 
@@ -8905,7 +8940,7 @@ function applyAction(w, sender, name, c, a) {
     if (!shop || !lot.owner) return "\u3053\u306E\u304A\u5E97\u306F\u9589\u307E\u3063\u3066\u3044\u307E\u3059";
     if (lot.owner === sender) return "\u81EA\u5206\u306E\u304A\u5E97\u3067\u306F\u8CB7\u3048\u307E\u305B\u3093";
     if (typeof a.item !== "string" || !Number.isSafeInteger(c.reserved) || c.reserved < a.price) return "\u5024\u6BB5\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044";
-    const sale = recordSale(shop, { id: c.id, day: w.economy.day, buyer: name, itemId: a.item, price: a.price });
+    const sale = recordSale(shop, { id: c.id, day: w.economy.day, buyer: name, buyerId: sender, itemId: a.item, price: a.price, forDay: a.day });
     if (typeof sale === "string") return sale;
     const paid2 = charge(w, sender, sale.item.price, `\u8CB7\u3044\u7269\uFF1A${sale.item.name}\uFF08${shop.name}\uFF09`);
     if (typeof paid2 === "string") return paid2;

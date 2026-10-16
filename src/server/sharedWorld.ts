@@ -16,7 +16,7 @@ import { cleanShop, recordSale } from '../economy/shop';
 export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; price: number | null } | { type: 'buyLot' }
   | { type: 'offerRent'; rent: number | null } | { type: 'rentLot' } | { type: 'endLease' }
   | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] } | { type: 'stocks'; holdings: Record<string, unknown> }
-  | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number };
+  | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number };
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
 /** みんなのワールドでの所持金と車。自分のワールドとは完全に別（引き継ぐのは見た目と服だけ） */
 export interface Account { name: string; money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, unknown> }
@@ -143,7 +143,7 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     if (!shop || !lot.owner) return 'このお店は閉まっています';
     if (lot.owner === sender) return '自分のお店では買えません';
     if (typeof a.item !== 'string' || !Number.isSafeInteger(c.reserved) || c.reserved < a.price) return '値段が変わりました。もう一度確認してください';
-    const sale = recordSale(shop, { id: c.id, day: w.economy.day, buyer: name, itemId: a.item, price: a.price });
+    const sale = recordSale(shop, { id: c.id, day: w.economy.day, buyer: name, buyerId: sender, itemId: a.item, price: a.price, forDay: a.day });
     if (typeof sale === 'string') return sale;
     const paid = charge(w, sender, sale.item.price, `買い物：${sale.item.name}（${shop.name}）`);
     if (typeof paid === 'string') return paid;
