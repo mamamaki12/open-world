@@ -3747,40 +3747,262 @@ var MAX_LEVEL = 9;
 var STAIR_LENGTH = 4;
 var STAIR_WIDTH = GRID - 0.12;
 
-// src/building/stairs.ts
-function stairPlan(shape = "straight") {
-  if (shape === "l") return { flights: [
-    { x: 0.5, z: 0, dir: 0, length: 2, bottom: 0, top: 0.5 },
-    { x: 1, z: 2.5, dir: 1, length: 2, bottom: 0.5, top: 1 }
-  ], landings: [{ x0: 0, z0: 2, x1: 1, z1: 3, height: 0.5 }] };
-  if (shape === "u") return { flights: [
-    { x: 0.5, z: 0, dir: 0, length: 2, bottom: 0, top: 0.5 },
-    { x: 1.5, z: 2, dir: 2, length: 2, bottom: 0.5, top: 1 }
-  ], landings: [{ x0: 0, z0: 2, x1: 2, z1: 3, height: 0.5 }] };
-  return { flights: [{ x: 0.5, z: 0, dir: 0, length: shape === "compact" ? 3 : STAIR_LENGTH, bottom: 0, top: 1 }], landings: [] };
+// src/economy/rng.ts
+function randInt(rng, n) {
+  return Math.floor(rng() * n);
 }
-var direction = (dir) => [[0, 1], [1, 0], [0, -1], [-1, 0]][dir];
-function stairWorldGrid(s, x, z) {
-  const a = x - 0.5, b = z - 0.5;
-  const [rx, rz] = [[a, b], [b, -a], [-a, -b], [-b, a]][s.rot];
-  return { x: s.x + 0.5 + rx, z: s.z + 0.5 + rz };
+function gauss(rng) {
+  const u = Math.max(rng(), 1e-12);
+  const v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
-function stairRects(s) {
-  const plan = stairPlan(s.shape);
-  const rects = plan.flights.map((f) => {
-    const [dx, dz] = direction(f.dir);
-    return {
-      x0: Math.min(f.x, f.x + dx * f.length) - Math.abs(dz) / 2,
-      x1: Math.max(f.x, f.x + dx * f.length) + Math.abs(dz) / 2,
-      z0: Math.min(f.z, f.z + dz * f.length) - Math.abs(dx) / 2,
-      z1: Math.max(f.z, f.z + dz * f.length) + Math.abs(dx) / 2
-    };
-  });
-  return [...rects, ...plan.landings].map((r) => {
-    const pts = [stairWorldGrid(s, r.x0, r.z0), stairWorldGrid(s, r.x1, r.z1)];
-    return { x0: Math.min(...pts.map((p) => p.x)), x1: Math.max(...pts.map((p) => p.x)), z0: Math.min(...pts.map((p) => p.z)), z1: Math.max(...pts.map((p) => p.z)) };
-  });
+function pick(rng, list) {
+  return list[randInt(rng, list.length)];
 }
+
+// src/economy/market.ts
+var DAY_SECONDS = 60;
+function stepMarket(index, rng) {
+  const x = Math.log(index);
+  const shock = rng() < 0.04 ? gauss(rng) * 0.12 : 0;
+  const next = x - 0.06 * x + gauss(rng) * 0.035 + shock;
+  return Math.round(Math.min(Math.max(Math.exp(next), 0.5), 2) * 1e3) / 1e3;
+}
+var LOCATIONS = [
+  { id: "rural", name: "\u90CA\u5916\u306E\u4F4F\u5B85\u5730", land: 5e6, factor: 0.9 },
+  { id: "town", name: "\u9759\u304B\u306A\u4F4F\u5B85\u8857", land: 12e6, factor: 1 },
+  { id: "station", name: "\u99C5\u8FD1", land: 25e6, factor: 1.15 },
+  { id: "city", name: "\u90FD\u5FC3\u306E\u4E00\u7B49\u5730", land: 6e7, factor: 1.3 }
+];
+function getLocation(id) {
+  return LOCATIONS.find((l) => l.id === id) ?? LOCATIONS[0];
+}
+var TOWNS = ["\u685C\u53F0", "\u7DD1\u30F6\u4E18", "\u6E2F\u5357", "\u6771\u753A", "\u82E5\u8449", "\u65ED", "\u672C\u753A", "\u9752\u8449\u53F0", "\u661F\u5DDD", "\u5927\u548C\u7530", "\u5149\u304C\u4E18", "\u4E2D\u592E"];
+function landOffers(day, rng) {
+  return LOCATIONS.map((loc, i) => ({
+    id: `land-${day}-${i}-${randInt(rng, 1e6).toString(36)}`,
+    name: `${pick(rng, TOWNS)}${randInt(rng, 5) + 1}\u4E01\u76EE`,
+    location: loc.id,
+    variance: Math.round((0.85 + rng() * 0.35) * 100) / 100
+  }));
+}
+function landPrice(location, variance, market, density = 1) {
+  return Math.round(getLocation(location).land * variance * density * market / 1e4) * 1e4;
+}
+
+// src/economy/town.ts
+var PLOT_PITCH = LOT_W * GRID + 4;
+var DISTRICTS = [
+  { location: "town", from: -9, to: -4, color: "#cfe3c0" },
+  { location: "rural", from: -3, to: 2, color: "#e6ecd2" },
+  { location: "station", from: 3, to: 8, color: "#d8e2f0" },
+  { location: "city", from: 9, to: 22, color: "#ecdcea" }
+];
+var START_PLOT = 0;
+var CASINO_PLOT = 0;
+var TOWN_HOUSE_PLOTS = {
+  // 静かな住宅街
+  [-9]: "japanese",
+  [-8]: "wood-ceramic",
+  [-6]: "hiraya",
+  [-5]: "provence",
+  // 郊外の住宅地
+  [-3]: "steel-family",
+  [-1]: "cube",
+  [2]: "nordic",
+  // 駅近
+  [3]: "wood-apartment",
+  [5]: "steel-apartment",
+  [6]: "narrow",
+  [8]: "wood-apartment",
+  // 都心
+  [9]: "mansion",
+  [10]: "residence",
+  [11]: "designers",
+  [12]: "tower",
+  [14]: "mansion",
+  [15]: "tower",
+  [16]: "designers",
+  [18]: "residence"
+};
+var FIRST_PLOT = Math.min(...DISTRICTS.map((d) => d.from));
+var LAST_PLOT = Math.max(...DISTRICTS.map((d) => d.to));
+var BLOCK_COLUMNS = 4;
+var BLOCK_ROWS = 2;
+var LOTS_PER_BLOCK = 4;
+var LOT_WIDTH = LOT_W * GRID;
+var LOT_DEPTH = LOT_D * GRID;
+var BLOCK_W = LOT_WIDTH * 2 + 4;
+var BLOCK_D = LOT_DEPTH * 2 + 6;
+var ROAD_WIDTH = 10;
+function rawPlot(plot) {
+  const index = plot - FIRST_PLOT, block = Math.floor(index / LOTS_PER_BLOCK), local = index % LOTS_PER_BLOCK;
+  return {
+    x: block % BLOCK_COLUMNS * (BLOCK_W + ROAD_WIDTH) + local % 2 * (LOT_WIDTH + 4),
+    z: Math.floor(block / BLOCK_COLUMNS) * (BLOCK_D + ROAD_WIDTH) + Math.floor(local / 2) * (LOT_DEPTH + 6)
+  };
+}
+var TOWN_BOUNDS = {
+  x0: -rawPlot(START_PLOT).x,
+  z0: -rawPlot(START_PLOT).z,
+  x1: BLOCK_COLUMNS * BLOCK_W + (BLOCK_COLUMNS - 1) * ROAD_WIDTH - rawPlot(START_PLOT).x,
+  z1: BLOCK_ROWS * BLOCK_D + (BLOCK_ROWS - 1) * ROAD_WIDTH - rawPlot(START_PLOT).z
+};
+var CIVIC_SITE = { x: TOWN_BOUNDS.x1 - LOT_WIDTH - 30, z: TOWN_BOUNDS.z1 - LOT_DEPTH };
+var TOWN_ROADS = [
+  ...Array.from({ length: BLOCK_COLUMNS + 1 }, (_, i) => {
+    const x = i === 0 ? TOWN_BOUNDS.x0 - 5 : TOWN_BOUNDS.x0 + i * (BLOCK_W + ROAD_WIDTH) - 5;
+    return { x0: x - 5, x1: x + 5, z0: TOWN_BOUNDS.z0 - 10, z1: TOWN_BOUNDS.z1 + 6.2 };
+  }),
+  ...Array.from({ length: BLOCK_ROWS + 1 }, (_, i) => {
+    const z = i === 0 ? TOWN_BOUNDS.z0 - 5 : i === BLOCK_ROWS ? TOWN_BOUNDS.z1 + 3.2 : TOWN_BOUNDS.z0 + i * (BLOCK_D + ROAD_WIDTH) - 5;
+    const half = i === BLOCK_ROWS ? 3 : 5;
+    return { x0: TOWN_BOUNDS.x0 - 10, x1: TOWN_BOUNDS.x1 + 10, z0: z - half, z1: z + half };
+  }),
+  ...Array.from({ length: BLOCK_ROWS }, (_, i) => {
+    const z = TOWN_BOUNDS.z0 + i * (BLOCK_D + ROAD_WIDTH) + LOT_DEPTH + 3;
+    return { x0: TOWN_BOUNDS.x0 - 10, x1: TOWN_BOUNDS.x1 + 10, z0: z - 3, z1: z + 3 };
+  })
+];
+function plotsOf(location) {
+  const d = DISTRICTS.find((x) => x.location === location);
+  if (!d) return [];
+  const out = [];
+  for (let i = d.from; i <= d.to; i++) out.push(i);
+  return out;
+}
+function freePlot(location, taken, rng) {
+  const used = new Set(taken);
+  const free = plotsOf(location).filter((p) => !TOWN_HOUSE_PLOTS[p]).filter((p) => !used.has(p));
+  if (free.length === 0) return null;
+  if (rng) return free[randInt(rng, free.length)];
+  return free.reduce((a, b) => Math.abs(b - CASINO_PLOT) < Math.abs(a - CASINO_PLOT) ? b : a);
+}
+var JOIN_SHIFT = Math.round((LOT_WIDTH + 4) / GRID);
+var JOINED_W = JOIN_SHIFT + LOT_W;
+
+// src/catalog/prices.json
+var prices_default = {
+  note: "\u5358\u4FA1\uFF08\u5186\uFF09\u3002\u7D20\u6750\u306F 1m\xB2 \u3042\u305F\u308A\u3001\u30C9\u30A2\u30FB\u7A93\u30FB\u5BB6\u5177\u306F1\u3064\u3042\u305F\u308A\u3002\u30B5\u30C3\u30B7\u306E\u7A2E\u985E\u306F\u7A93\u30FB\u30C9\u30A2\u306E\u5024\u6BB5\u306B\u500D\u7387\u3092\u304B\u3051\u308B\u3002\u69CB\u9020\uFF08\u57FA\u790E\u30FB\u9AA8\u7D44\u307F\uFF09\u306E\u5358\u4FA1\u306F src/economy/pricing.ts \u306B\u3042\u308B",
+  materials: {
+    siding: 6e3,
+    tile: 15e3,
+    stucco: 9e3,
+    woodboard: 11e3,
+    galvalume: 8e3,
+    wallpaper: 1500,
+    plaster: 5e3,
+    woodpanel: 7e3,
+    kawara: 12e3,
+    slate: 6e3,
+    standing: 9e3,
+    sheet: 7e3,
+    flooring: 9e3,
+    tatami: 12e3,
+    floortile: 14e3,
+    carpet: 7e3,
+    oak: 1e4,
+    "siding-stone": 7500,
+    "siding-brick": 7e3,
+    "metal-v": 9500,
+    alc: 1e4,
+    brick: 25e3,
+    concrete: 2e4,
+    yakisugi: 13e3,
+    cedar: 1e4,
+    "natural-stone": 3e4,
+    shikkui: 12e3,
+    lithin: 5e3,
+    "border-tile": 18e3,
+    "cloth-woven": 2500,
+    washi: 3500,
+    "cloth-stone": 2e3,
+    "shikkui-in": 6e3,
+    paint: 3e3,
+    ecocarat: 16e3,
+    "wall-tile": 12e3,
+    "accent-brick": 1e4,
+    shiplap: 8e3,
+    "concrete-in": 9e3,
+    "kawara-flat": 11e3,
+    "kawara-s": 13e3,
+    shingle: 6500,
+    "stone-coated": 1e4,
+    yokobuki: 9500,
+    copper: 3e4,
+    solar: 35e3,
+    "green-roof": 2e4,
+    frp: 8e3,
+    "solid-oak": 15e3,
+    "hinoki-floor": 14e3,
+    "walnut-floor": 22e3,
+    herringbone: 18e3,
+    "cushion-floor": 3e3,
+    ryukyu: 16e3,
+    marble: 3e4,
+    "big-tile": 16e3,
+    mortar: 6e3,
+    cork: 8e3,
+    deck: 14e3,
+    "terrace-tile": 12e3,
+    walnut: 16e3,
+    maple: 12e3,
+    hinoki: 12e3,
+    pine: 7e3,
+    laminated: 6e3,
+    "wood-sheet": 4e3,
+    "deep-concrete": 18e3,
+    "ceramic-wall": 2e4
+  },
+  openings: {
+    entrance: 35e4,
+    "entrance-wide": 55e4,
+    door: 6e4,
+    "slide-door": 9e4,
+    sliding: 9e4,
+    "sliding-small": 45e3,
+    patio: 14e4,
+    casement: 5e4,
+    fix: 4e4,
+    high: 6e4
+  },
+  furniture: {
+    "bed-double": 12e4,
+    "bed-single": 6e4,
+    sofa: 15e4,
+    dining: 8e4,
+    chair: 2e4,
+    tv: 18e4,
+    desk: 4e4,
+    shelf: 3e4,
+    kitchen: 9e5,
+    fridge: 2e5,
+    bath: 1e6,
+    toilet: 25e4,
+    plant: 15e3,
+    rug: 25e3,
+    pool: 25e5,
+    flowerbed: 4e4,
+    flowerpot: 8e3,
+    "nameplate-post": 18e4,
+    nameplate: 2e4,
+    washbasin: 12e4,
+    "shoe-cabinet": 6e4,
+    "kitchen-island": 9e5,
+    cupboard: 9e4,
+    "low-table": 3e4,
+    zataku: 7e4,
+    washer: 18e4,
+    wardrobe: 15e4,
+    curtain: 3e4,
+    "floor-lamp": 2e4,
+    aircon: 12e4,
+    "sofa-l": 25e4,
+    mailbox: 8e4,
+    tree: 5e4,
+    hedge: 15e3
+  }
+};
 
 // src/catalog/materials.json
 var materials_default = {
@@ -7898,12 +8120,42 @@ function getOpening(id) {
   return def;
 }
 
-// src/building/rules.ts
-var idCounter = 0;
-function newId(prefix) {
-  idCounter += 1;
-  return `${prefix}-${Date.now().toString(36)}-${idCounter.toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+// src/building/stairs.ts
+function stairPlan(shape = "straight") {
+  if (shape === "l") return { flights: [
+    { x: 0.5, z: 0, dir: 0, length: 2, bottom: 0, top: 0.5 },
+    { x: 1, z: 2.5, dir: 1, length: 2, bottom: 0.5, top: 1 }
+  ], landings: [{ x0: 0, z0: 2, x1: 1, z1: 3, height: 0.5 }] };
+  if (shape === "u") return { flights: [
+    { x: 0.5, z: 0, dir: 0, length: 2, bottom: 0, top: 0.5 },
+    { x: 1.5, z: 2, dir: 2, length: 2, bottom: 0.5, top: 1 }
+  ], landings: [{ x0: 0, z0: 2, x1: 2, z1: 3, height: 0.5 }] };
+  return { flights: [{ x: 0.5, z: 0, dir: 0, length: shape === "compact" ? 3 : STAIR_LENGTH, bottom: 0, top: 1 }], landings: [] };
 }
+var direction = (dir) => [[0, 1], [1, 0], [0, -1], [-1, 0]][dir];
+function stairWorldGrid(s, x, z) {
+  const a = x - 0.5, b = z - 0.5;
+  const [rx, rz] = [[a, b], [b, -a], [-a, -b], [-b, a]][s.rot];
+  return { x: s.x + 0.5 + rx, z: s.z + 0.5 + rz };
+}
+function stairRects(s) {
+  const plan = stairPlan(s.shape);
+  const rects = plan.flights.map((f) => {
+    const [dx, dz] = direction(f.dir);
+    return {
+      x0: Math.min(f.x, f.x + dx * f.length) - Math.abs(dz) / 2,
+      x1: Math.max(f.x, f.x + dx * f.length) + Math.abs(dz) / 2,
+      z0: Math.min(f.z, f.z + dz * f.length) - Math.abs(dx) / 2,
+      z1: Math.max(f.z, f.z + dz * f.length) + Math.abs(dx) / 2
+    };
+  });
+  return [...rects, ...plan.landings].map((r) => {
+    const pts = [stairWorldGrid(s, r.x0, r.z0), stairWorldGrid(s, r.x1, r.z1)];
+    return { x0: Math.min(...pts.map((p) => p.x)), x1: Math.max(...pts.map((p) => p.x)), z0: Math.min(...pts.map((p) => p.z)), z1: Math.max(...pts.map((p) => p.z)) };
+  });
+}
+
+// src/building/rules.ts
 function rectInsideLot(r) {
   return r.x0 >= 0 && r.z0 >= 0 && r.x1 <= lotSize.w && r.z1 <= lotSize.d && r.x1 > r.x0 && r.z1 > r.z0;
 }
@@ -8090,216 +8342,6 @@ function canPlaceStair(house, s, ignoreId) {
 }
 var HALF_WALL = WALL_THICKNESS / 2;
 
-// src/building/sample.ts
-var ext = { material: "siding", color: "#f2efe8" };
-var accent = { material: "woodboard", color: "#7a5535" };
-var inner = { material: "wallpaper", color: "#f7f5f0" };
-function sampleHouse() {
-  const walls = [];
-  const openings = [];
-  const wall = (level, x0, z0, x1, z1, exterior = ext) => {
-    const w = { id: newId("wall"), level, x0, z0, x1, z1, exterior, interior: inner };
-    walls.push(w);
-    return w.id;
-  };
-  const open2 = (wallId, kind, type, offset, panelColor = "#5a3e2b") => {
-    openings.push({ id: newId("opening"), wallId, kind, type, offset, sashColor: "#3a3c3f", panelColor });
-  };
-  const f1Front = wall(0, 6, 14, 16, 14);
-  const f1Back = wall(0, 6, 6, 16, 6);
-  const f1Left = wall(0, 6, 6, 6, 14);
-  const f1Right = wall(0, 16, 6, 16, 14);
-  const f1Inner = wall(0, 12, 6, 12, 14);
-  open2(f1Front, "window", "patio", 1.365);
-  open2(f1Front, "window", "patio", 3.64);
-  open2(f1Front, "door", "entrance", 7.735);
-  open2(f1Back, "window", "sliding-small", 2.73);
-  open2(f1Back, "window", "high", 4.55);
-  open2(f1Left, "window", "sliding", 3.64);
-  open2(f1Right, "window", "casement", 5.46);
-  open2(f1Inner, "door", "door", 6.37, "#efedea");
-  const f2Front = wall(1, 6, 14, 16, 14);
-  const f2Back = wall(1, 6, 6, 16, 6);
-  const f2Left = wall(1, 6, 6, 6, 14);
-  const f2Right = wall(1, 16, 6, 16, 14, accent);
-  const f2Inner = wall(1, 11, 6, 11, 14);
-  open2(f2Front, "window", "sliding", 2.275);
-  open2(f2Front, "window", "sliding", 6.825);
-  open2(f2Back, "window", "sliding-small", 1.82);
-  open2(f2Back, "window", "sliding-small", 7.28);
-  open2(f2Left, "window", "fix", 3.64);
-  open2(f2Right, "window", "casement", 2.73);
-  open2(f2Right, "window", "casement", 4.55);
-  open2(f2Inner, "door", "door", 6.37, "#efedea");
-  return {
-    version: 1,
-    floors: [
-      { id: newId("floor"), level: 0, x0: 6, z0: 6, x1: 16, z1: 14, finish: { material: "flooring", color: "#c8a57a" } },
-      { id: newId("floor"), level: 1, x0: 6, z0: 6, x1: 16, z1: 14, finish: { material: "flooring", color: "#a77b52" } }
-    ],
-    walls,
-    openings,
-    stairs: [{ id: newId("stair"), level: 0, x: 14, z: 7, rot: 0, finish: { material: "oak", color: "#a77b52" } }],
-    roofs: [
-      {
-        id: newId("roof"),
-        level: 1,
-        x0: 6,
-        z0: 6,
-        x1: 16,
-        z1: 14,
-        type: "gable",
-        axis: "x",
-        flip: false,
-        pitch: 4,
-        overhang: 0.6,
-        finish: { material: "slate", color: "#2f3133" },
-        gableFinish: ext
-      }
-    ],
-    furniture: [
-      { id: newId("furniture"), level: 0, type: "tv", x: 5.75, z: 11, rotation: 90, color: "#4e3626" },
-      { id: newId("furniture"), level: 0, type: "rug", x: 7, z: 11, rotation: 90, color: "#b9ab97" },
-      { id: newId("furniture"), level: 0, type: "sofa", x: 8.3, z: 11, rotation: 270, color: "#7d8a96" },
-      { id: newId("furniture"), level: 0, type: "dining", x: 8.6, z: 8, rotation: 0, color: "#c8a57a" },
-      { id: newId("furniture"), level: 0, type: "chair", x: 8.2, z: 7.45, rotation: 0, color: "#2f3133" },
-      { id: newId("furniture"), level: 0, type: "chair", x: 9, z: 7.45, rotation: 0, color: "#2f3133" },
-      { id: newId("furniture"), level: 0, type: "chair", x: 8.2, z: 8.55, rotation: 180, color: "#2f3133" },
-      { id: newId("furniture"), level: 0, type: "chair", x: 9, z: 8.55, rotation: 180, color: "#2f3133" },
-      { id: newId("furniture"), level: 0, type: "kitchen", x: 8.6, z: 5.85, rotation: 0, color: "#efedea" },
-      { id: newId("furniture"), level: 0, type: "fridge", x: 10.4, z: 6, rotation: 0, color: "#e8e8e6" },
-      { id: newId("furniture"), level: 0, type: "plant", x: 10.4, z: 12.3, rotation: 0, color: "#4f7a45" },
-      { id: newId("furniture"), level: 1, type: "bed-double", x: 7.8, z: 7, rotation: 0, color: "#e9e4da" },
-      { id: newId("furniture"), level: 1, type: "shelf", x: 9.6, z: 5.75, rotation: 0, color: "#efedea" },
-      { id: newId("furniture"), level: 1, type: "desk", x: 12, z: 12.4, rotation: 180, color: "#c8a57a" },
-      { id: newId("furniture"), level: 1, type: "plant", x: 6, z: 12.4, rotation: 0, color: "#6c8f4e" }
-    ]
-  };
-}
-
-// src/catalog/prices.json
-var prices_default = {
-  note: "\u5358\u4FA1\uFF08\u5186\uFF09\u3002\u7D20\u6750\u306F 1m\xB2 \u3042\u305F\u308A\u3001\u30C9\u30A2\u30FB\u7A93\u30FB\u5BB6\u5177\u306F1\u3064\u3042\u305F\u308A\u3002\u30B5\u30C3\u30B7\u306E\u7A2E\u985E\u306F\u7A93\u30FB\u30C9\u30A2\u306E\u5024\u6BB5\u306B\u500D\u7387\u3092\u304B\u3051\u308B\u3002\u69CB\u9020\uFF08\u57FA\u790E\u30FB\u9AA8\u7D44\u307F\uFF09\u306E\u5358\u4FA1\u306F src/economy/pricing.ts \u306B\u3042\u308B",
-  materials: {
-    siding: 6e3,
-    tile: 15e3,
-    stucco: 9e3,
-    woodboard: 11e3,
-    galvalume: 8e3,
-    wallpaper: 1500,
-    plaster: 5e3,
-    woodpanel: 7e3,
-    kawara: 12e3,
-    slate: 6e3,
-    standing: 9e3,
-    sheet: 7e3,
-    flooring: 9e3,
-    tatami: 12e3,
-    floortile: 14e3,
-    carpet: 7e3,
-    oak: 1e4,
-    "siding-stone": 7500,
-    "siding-brick": 7e3,
-    "metal-v": 9500,
-    alc: 1e4,
-    brick: 25e3,
-    concrete: 2e4,
-    yakisugi: 13e3,
-    cedar: 1e4,
-    "natural-stone": 3e4,
-    shikkui: 12e3,
-    lithin: 5e3,
-    "border-tile": 18e3,
-    "cloth-woven": 2500,
-    washi: 3500,
-    "cloth-stone": 2e3,
-    "shikkui-in": 6e3,
-    paint: 3e3,
-    ecocarat: 16e3,
-    "wall-tile": 12e3,
-    "accent-brick": 1e4,
-    shiplap: 8e3,
-    "concrete-in": 9e3,
-    "kawara-flat": 11e3,
-    "kawara-s": 13e3,
-    shingle: 6500,
-    "stone-coated": 1e4,
-    yokobuki: 9500,
-    copper: 3e4,
-    solar: 35e3,
-    "green-roof": 2e4,
-    frp: 8e3,
-    "solid-oak": 15e3,
-    "hinoki-floor": 14e3,
-    "walnut-floor": 22e3,
-    herringbone: 18e3,
-    "cushion-floor": 3e3,
-    ryukyu: 16e3,
-    marble: 3e4,
-    "big-tile": 16e3,
-    mortar: 6e3,
-    cork: 8e3,
-    deck: 14e3,
-    "terrace-tile": 12e3,
-    walnut: 16e3,
-    maple: 12e3,
-    hinoki: 12e3,
-    pine: 7e3,
-    laminated: 6e3,
-    "wood-sheet": 4e3,
-    "deep-concrete": 18e3,
-    "ceramic-wall": 2e4
-  },
-  openings: {
-    entrance: 35e4,
-    "entrance-wide": 55e4,
-    door: 6e4,
-    "slide-door": 9e4,
-    sliding: 9e4,
-    "sliding-small": 45e3,
-    patio: 14e4,
-    casement: 5e4,
-    fix: 4e4,
-    high: 6e4
-  },
-  furniture: {
-    "bed-double": 12e4,
-    "bed-single": 6e4,
-    sofa: 15e4,
-    dining: 8e4,
-    chair: 2e4,
-    tv: 18e4,
-    desk: 4e4,
-    shelf: 3e4,
-    kitchen: 9e5,
-    fridge: 2e5,
-    bath: 1e6,
-    toilet: 25e4,
-    plant: 15e3,
-    rug: 25e3,
-    pool: 25e5,
-    flowerbed: 4e4,
-    flowerpot: 8e3,
-    "nameplate-post": 18e4,
-    nameplate: 2e4,
-    washbasin: 12e4,
-    "shoe-cabinet": 6e4,
-    "kitchen-island": 9e5,
-    cupboard: 9e4,
-    "low-table": 3e4,
-    zataku: 7e4,
-    washer: 18e4,
-    wardrobe: 15e4,
-    curtain: 3e4,
-    "floor-lamp": 2e4,
-    aircon: 12e4,
-    "sofa-l": 25e4,
-    mailbox: 8e4,
-    tree: 5e4,
-    hedge: 15e3
-  }
-};
-
 // src/economy/pricing.ts
 var MATERIAL_PRICE = prices_default.materials;
 var OPENING_PRICE = prices_default.openings;
@@ -8376,73 +8418,6 @@ function renovationCost(built, design) {
   return sum(changed);
 }
 
-// src/economy/rng.ts
-function gauss(rng) {
-  const u = Math.max(rng(), 1e-12);
-  const v = rng();
-  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-}
-
-// src/economy/market.ts
-var DAY_SECONDS = 60;
-function stepMarket(index, rng) {
-  const x = Math.log(index);
-  const shock = rng() < 0.04 ? gauss(rng) * 0.12 : 0;
-  const next = x - 0.06 * x + gauss(rng) * 0.035 + shock;
-  return Math.round(Math.min(Math.max(Math.exp(next), 0.5), 2) * 1e3) / 1e3;
-}
-
-// src/economy/town.ts
-var PLOT_PITCH = LOT_W * GRID + 4;
-var DISTRICTS = [
-  { location: "town", from: -9, to: -4, color: "#cfe3c0" },
-  { location: "rural", from: -3, to: 2, color: "#e6ecd2" },
-  { location: "station", from: 3, to: 8, color: "#d8e2f0" },
-  { location: "city", from: 9, to: 22, color: "#ecdcea" }
-];
-var START_PLOT = 0;
-var FIRST_PLOT = Math.min(...DISTRICTS.map((d) => d.from));
-var LAST_PLOT = Math.max(...DISTRICTS.map((d) => d.to));
-var BLOCK_COLUMNS = 4;
-var BLOCK_ROWS = 2;
-var LOTS_PER_BLOCK = 4;
-var LOT_WIDTH = LOT_W * GRID;
-var LOT_DEPTH = LOT_D * GRID;
-var BLOCK_W = LOT_WIDTH * 2 + 4;
-var BLOCK_D = LOT_DEPTH * 2 + 6;
-var ROAD_WIDTH = 10;
-function rawPlot(plot) {
-  const index = plot - FIRST_PLOT, block = Math.floor(index / LOTS_PER_BLOCK), local = index % LOTS_PER_BLOCK;
-  return {
-    x: block % BLOCK_COLUMNS * (BLOCK_W + ROAD_WIDTH) + local % 2 * (LOT_WIDTH + 4),
-    z: Math.floor(block / BLOCK_COLUMNS) * (BLOCK_D + ROAD_WIDTH) + Math.floor(local / 2) * (LOT_DEPTH + 6)
-  };
-}
-var TOWN_BOUNDS = {
-  x0: -rawPlot(START_PLOT).x,
-  z0: -rawPlot(START_PLOT).z,
-  x1: BLOCK_COLUMNS * BLOCK_W + (BLOCK_COLUMNS - 1) * ROAD_WIDTH - rawPlot(START_PLOT).x,
-  z1: BLOCK_ROWS * BLOCK_D + (BLOCK_ROWS - 1) * ROAD_WIDTH - rawPlot(START_PLOT).z
-};
-var CIVIC_SITE = { x: TOWN_BOUNDS.x1 - LOT_WIDTH - 30, z: TOWN_BOUNDS.z1 - LOT_DEPTH };
-var TOWN_ROADS = [
-  ...Array.from({ length: BLOCK_COLUMNS + 1 }, (_, i) => {
-    const x = i === 0 ? TOWN_BOUNDS.x0 - 5 : TOWN_BOUNDS.x0 + i * (BLOCK_W + ROAD_WIDTH) - 5;
-    return { x0: x - 5, x1: x + 5, z0: TOWN_BOUNDS.z0 - 10, z1: TOWN_BOUNDS.z1 + 6.2 };
-  }),
-  ...Array.from({ length: BLOCK_ROWS + 1 }, (_, i) => {
-    const z = i === 0 ? TOWN_BOUNDS.z0 - 5 : i === BLOCK_ROWS ? TOWN_BOUNDS.z1 + 3.2 : TOWN_BOUNDS.z0 + i * (BLOCK_D + ROAD_WIDTH) - 5;
-    const half = i === BLOCK_ROWS ? 3 : 5;
-    return { x0: TOWN_BOUNDS.x0 - 10, x1: TOWN_BOUNDS.x1 + 10, z0: z - half, z1: z + half };
-  }),
-  ...Array.from({ length: BLOCK_ROWS }, (_, i) => {
-    const z = TOWN_BOUNDS.z0 + i * (BLOCK_D + ROAD_WIDTH) + LOT_DEPTH + 3;
-    return { x0: TOWN_BOUNDS.x0 - 10, x1: TOWN_BOUNDS.x1 + 10, z0: z - 3, z1: z + 3 };
-  })
-];
-var JOIN_SHIFT = Math.round((LOT_WIDTH + 4) / GRID);
-var JOINED_W = JOIN_SHIFT + LOT_W;
-
 // src/session/edits.ts
 var PARTS = ["floors", "walls", "openings", "stairs", "roofs", "furniture"];
 function applyChanges(house, delta) {
@@ -8498,32 +8473,99 @@ function applyChanges(house, delta) {
 // src/server/sharedWorld.ts
 var SHARED_LIMIT = 10;
 function initialSharedWorld(id) {
-  const square = {
-    id: "shared-square",
-    name: "\u307F\u3093\u306A\u306E\u5E83\u5834",
-    location: "rural",
-    variance: 1,
-    built: sampleHouse(),
-    design: null,
-    construction: null,
-    rented: false,
-    invested: 0,
-    plot: START_PLOT
-  };
-  return {
+  const w = {
     worldId: id,
     doors: {},
     receipts: {},
-    house: square.built ?? emptyHouse(),
-    economy: { day: 1, clock: 0, market: 1, marketHistory: [1], lots: [square], currentLotId: square.id, offers: [] }
+    accounts: {},
+    house: emptyHouse(),
+    economy: { day: 1, clock: 0, market: 1, marketHistory: [1], lots: [], currentLotId: null, offers: [] }
   };
+  w.economy.offers = sharedOffers(w, Math.random);
+  return w;
+}
+function charge(w, id, amount, label) {
+  const a = w.accounts?.[id];
+  if (!a) return "\u53E3\u5EA7\u304C\u3042\u308A\u307E\u305B\u3093";
+  if (amount > 0 && a.money < amount) return "\u304A\u91D1\u304C\u8DB3\u308A\u307E\u305B\u3093";
+  if (!amount) return w;
+  return { ...w, accounts: { ...w.accounts, [id]: { ...a, money: a.money - amount, ledger: [{ day: w.economy.day, label, amount: -amount }, ...a.ledger].slice(0, 50) } } };
+}
+var plotsOfLots = (lots) => lots.flatMap((l) => [l.plot, l.joined].filter((p) => typeof p === "number"));
+function sharedOffers(w, rng) {
+  const taken = new Set(plotsOfLots(w.economy.lots));
+  return landOffers(w.economy.day, rng).flatMap((o) => {
+    const plot = freePlot(o.location, taken, rng);
+    if (plot === null) return [];
+    taken.add(plot);
+    return [{ ...o, plot }];
+  });
+}
+function applyAction(w, sender, name, c, a) {
+  const lots = w.economy.lots, lot = lots.find((l) => l.id === c.lot);
+  if (a.type === "money") {
+    if (!Number.isSafeInteger(a.delta) || Math.abs(a.delta) > 1e13 || typeof a.label !== "string") return "\u91D1\u984D\u304C\u4E0D\u6B63\u3067\u3059";
+    const paid2 = charge(w, sender, -a.delta, a.label.slice(0, 60));
+    return typeof paid2 === "string" ? paid2 : { world: paid2, cost: 0, message: "" };
+  }
+  if (a.type === "cars") {
+    if (!Array.isArray(a.cars) || a.cars.length > 10 || JSON.stringify(a.cars).length > 2e4) return "\u8ECA\u306E\u60C5\u5831\u304C\u4E0D\u6B63\u3067\u3059";
+    const acc = w.accounts?.[sender];
+    if (!acc) return "\u53E3\u5EA7\u304C\u3042\u308A\u307E\u305B\u3093";
+    return { world: { ...w, accounts: { ...w.accounts, [sender]: { ...acc, cars: a.cars } } }, cost: 0, message: "" };
+  }
+  const withLots = (next2) => ({ ...w, economy: { ...w.economy, lots: next2 } });
+  if (a.type === "buyLand") {
+    const offer = w.economy.offers.find((o) => o.id === a.offer);
+    if (!offer || typeof offer.plot !== "number") return "\u305D\u306E\u571F\u5730\u306F\u3082\u3046\u58F2\u308C\u3066\u3057\u307E\u3044\u307E\u3057\u305F";
+    if (plotsOfLots(lots).includes(offer.plot)) return "\u305D\u306E\u533A\u753B\u306F\u3082\u3046\u4F7F\u308F\u308C\u3066\u3044\u307E\u3059";
+    if (lots.length >= 90) return "\u3053\u306E\u753A\u306B\u306F\u3082\u3046\u571F\u5730\u3092\u5897\u3084\u305B\u307E\u305B\u3093";
+    const price2 = landPrice(offer.location, offer.variance, w.economy.market);
+    if (!Number.isSafeInteger(c.reserved) || c.reserved < price2) return "\u5024\u6BB5\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u6700\u65B0\u306E\u72B6\u614B\u3067\u3084\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044";
+    const bought = {
+      id: "lot-" + c.id.slice(0, 40),
+      name: `${offer.name}\uFF08${getLocation(offer.location).name}\uFF09`,
+      location: offer.location,
+      variance: offer.variance,
+      built: null,
+      design: null,
+      construction: null,
+      rented: false,
+      invested: price2,
+      plot: offer.plot,
+      owner: sender,
+      ownerName: name
+    };
+    const paid2 = charge(w, sender, price2, "\u571F\u5730\u306E\u8CFC\u5165\uFF08" + bought.name + "\uFF09");
+    if (typeof paid2 === "string") return paid2;
+    const current = w.economy.currentLotId ?? bought.id;
+    return { world: { ...paid2, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter((o) => o.id !== offer.id) } }, cost: price2, message: bought.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
+  }
+  if (!lot) return "\u305D\u306E\u571F\u5730\u306F\u3042\u308A\u307E\u305B\u3093";
+  if (a.type === "list") {
+    if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u3060\u3051\u58F2\u308A\u306B\u51FA\u305B\u307E\u3059";
+    if (lot.construction) return "\u5DE5\u4E8B\u4E2D\u306F\u58F2\u308A\u306B\u51FA\u305B\u307E\u305B\u3093";
+    if (a.price !== null && !(Number.isSafeInteger(a.price) && a.price > 0 && a.price <= 1e13)) return "\u5024\u6BB5\u304C\u4E0D\u6B63\u3067\u3059";
+    const next2 = lots.map((l) => l.id === lot.id ? { ...l, listing: a.price === null ? void 0 : { price: a.price } } : l);
+    return { world: withLots(next2), cost: 0, message: a.price === null ? "\u58F2\u308A\u306B\u51FA\u3059\u306E\u3092\u3084\u3081\u307E\u3057\u305F" : "\u58F2\u308A\u306B\u51FA\u3057\u307E\u3057\u305F" };
+  }
+  if (!lot.listing || !lot.owner) return "\u305D\u306E\u571F\u5730\u306F\u58F2\u308A\u306B\u51FA\u3066\u3044\u307E\u305B\u3093";
+  if (lot.owner === sender) return "\u81EA\u5206\u306E\u571F\u5730\u306F\u8CB7\u3048\u307E\u305B\u3093";
+  const price = lot.listing.price, seller = lot.owner;
+  if (!Number.isSafeInteger(c.reserved) || c.reserved < price) return "\u5024\u6BB5\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u6700\u65B0\u306E\u72B6\u614B\u3067\u3084\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044";
+  const paid = charge(w, sender, price, `${lot.name}\u306E\u8CFC\u5165`);
+  if (typeof paid === "string") return paid;
+  const received = paid.accounts?.[seller] ? charge(paid, seller, -price, `${lot.name}\u304C${name}\u3055\u3093\u306B\u58F2\u308C\u307E\u3057\u305F`) : paid;
+  if (typeof received === "string") return received;
+  const next = lots.map((l) => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: void 0, invested: price, rented: false } : l);
+  return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: price, message: lot.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
 }
 function canBuildOn(lot, member) {
   return !lot.owner || lot.owner === member;
 }
 function houseOf(w, id) {
   const l = w.economy.lots.find((l2) => l2.id === id);
-  return !l ? null : id === w.economy.currentLotId ? w.house : l.design ?? l.built;
+  return !l ? null : id === w.economy.currentLotId ? w.house : l.design ?? l.built ?? emptyHouse();
 }
 function withHouse(w, id, house) {
   return {
@@ -8532,7 +8574,7 @@ function withHouse(w, id, house) {
     economy: { ...w.economy, lots: w.economy.lots.map((l) => l.id === id ? { ...l, built: house, design: null, construction: null } : l) }
   };
 }
-function applyCommand(w, sender, c) {
+function applyCommand(w, sender, c, name = "\u30B2\u30B9\u30C8") {
   const fail = (message) => ({ world: w, result: { id: c?.id, ok: false, message }, changed: false });
   if (!c || typeof c.id !== "string" || !c.id || c.id.length > 120) return fail("\u64CD\u4F5CID\u304C\u4E0D\u6B63\u3067\u3059");
   const receipts = w.receipts, prior = receipts[c.id];
@@ -8547,6 +8589,12 @@ function applyCommand(w, sender, c) {
       changed: true
     };
   }
+  if (c.action) {
+    const done = applyAction(w, sender, name, c, c.action);
+    if (typeof done === "string") return fail(done);
+    const world = { ...done.world, receipts: { ...receipts, [c.id]: { sender, cost: done.cost } } };
+    return { world, result: { id: c.id, ok: true, cost: done.cost, message: done.message }, changed: true };
+  }
   try {
     const lot = w.economy.lots.find((l) => l.id === c.lot), before = houseOf(w, c.lot);
     if (!lot || !before) return fail("\u7DE8\u96C6\u3059\u308B\u571F\u5730\u304C\u3042\u308A\u307E\u305B\u3093");
@@ -8559,16 +8607,18 @@ function applyCommand(w, sender, c) {
     try {
       Object.assign(lotSize, { w: typeof lot.joined === "number" ? JOINED_W : LOT_W, d: LOT_D });
       next = applyChanges(before, c.delta);
-      cost = c.undoOf ? 0 : renovationCost(before, next).total;
+      cost = 0;
     } finally {
       Object.assign(lotSize, previous);
     }
     if (!Number.isSafeInteger(c.reserved) || c.reserved < cost) return fail("\u8CBB\u7528\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u6700\u65B0\u306E\u72B6\u614B\u3067\u3084\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044");
+    const charged = charge(w, sender, cost, "\u5EFA\u7BC9\uFF08" + lot.name + "\uFF09");
+    if (typeof charged === "string") return fail(charged);
     const nextReceipts = { ...receipts, [c.id]: { sender, cost, delta: c.delta } };
     if (c.undoOf) nextReceipts[c.undoOf] = { ...undo, undone: true };
     const ids = Object.keys(nextReceipts);
     for (const id of ids.slice(0, -800)) if (nextReceipts[id].delta) nextReceipts[id] = { ...nextReceipts[id], delta: void 0 };
-    const world = { ...withHouse(w, c.lot, next), receipts: nextReceipts };
+    const world = { ...withHouse(charged, c.lot, next), receipts: nextReceipts };
     if (JSON.stringify(world).length > 18e5) return fail("\u30EF\u30FC\u30EB\u30C9\u306E\u4FDD\u5B58\u91CF\u304C\u4E0A\u9650\u306B\u9054\u3057\u305F\u305F\u3081\u3001\u3053\u306E\u5909\u66F4\u3092\u78BA\u5B9A\u3067\u304D\u307E\u305B\u3093");
     return { world, result: { id: c.id, ok: true, cost }, changed: true };
   } catch (e) {
@@ -8583,7 +8633,8 @@ function tickWorld(w, dt, rng) {
   day += 1;
   market = stepMarket(market, rng);
   marketHistory = [...marketHistory, market].slice(-60);
-  return { world: { ...w, economy: { ...w.economy, clock, day, market, marketHistory } }, newDay: true };
+  const next = { ...w, economy: { ...w.economy, clock, day, market, marketHistory } };
+  return { world: { ...next, economy: { ...next.economy, offers: sharedOffers(next, rng) } }, newDay: true };
 }
 function validSharedWorld(v) {
   const w = v;
