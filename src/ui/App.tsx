@@ -103,21 +103,22 @@ function TouchLayout({ walking }: { walking: boolean }) {
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
   const [menu, setMenu] = useState(false);
   const closeMenu = useCallback(() => setMenu(false), []);
-  // 歩いているとき（何も持っていない）は、画面には歩く操作だけを出し、ほかはメニューにしまう
+  // 歩いているとき（何も持っていない）は、画面には歩く操作と建てるボタンだけを出し、ほかはメニューにしまう
   const bare = walking && tool === 'select';
   return (
     <>
-      {walking ? <WalkMenu onBuild={() => setMenu(true)} /> : <TouchHud />}
-      {!bare && (
+      {walking ? <WalkMenu /> : <TouchHud />}
+      {!walking && (
         <div className="touch-right">
           <BuildButton label={label} onOpen={() => setMenu(true)} />
-          {!walking && <TouchCameraPad />}
+          <TouchCameraPad />
         </div>
       )}
       {walking ? (
         <>
           <WalkHud />
-          {!overlay && <TouchWalkControls />}
+          <MapButton />
+          {!overlay && <TouchWalkControls build={<BuildButton label={label} onOpen={() => setMenu(true)} />} />}
         </>
       ) : (
         <div className="touch-dock">
@@ -135,12 +136,21 @@ function TouchLayout({ walking }: { walking: boolean }) {
 }
 
 /** 歩いているときの左上：メニューボタンと所持金だけ。建築に戻る・建てる・地図・取り消し・セーブはメニューの中 */
-function WalkMenu({ onBuild }: { onBuild: () => void }) {
+/** 歩いているときの右上の丸い地図ボタン */
+function MapButton() {
+  const setOverlay = useGame((s) => s.setOverlay);
+  return (
+    <button className="touch-map" onClick={() => setOverlay('map')} aria-label="町の地図">
+      🗺️
+    </button>
+  );
+}
+
+function WalkMenu() {
   const [open, setOpen] = useState(false);
   const setMode = useGame((s) => s.setMode);
   const undo = useGame((s) => s.undo);
   const canUndo = useGame((s) => s.past.length > 0);
-  const setOverlay = useGame((s) => s.setOverlay);
   const money = useEconomy((s) => s.money);
   const pick = (f: () => void) => () => {
     setOpen(false);
@@ -157,8 +167,6 @@ function WalkMenu({ onBuild }: { onBuild: () => void }) {
       {open && (
         <div className="walk-menu-list">
           <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>🏗️ 建築に戻る</button>
-          <button className="walk-menu-item" onClick={pick(onBuild)}>🔨 道具を持って建てる</button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>🗺️ 町の地図</button>
           <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>👁 視点を切り替え</button>
           <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>↶ 取り消し</button>
           <SaveMenu />
