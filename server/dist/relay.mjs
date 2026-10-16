@@ -3827,6 +3827,9 @@ var TOWN_HOUSE_PLOTS = {
 };
 var FIRST_PLOT = Math.min(...DISTRICTS.map((d) => d.from));
 var LAST_PLOT = Math.max(...DISTRICTS.map((d) => d.to));
+function plotX(plot) {
+  return rawPlot(plot).x - rawPlot(START_PLOT).x;
+}
 var BLOCK_COLUMNS = 4;
 var BLOCK_ROWS = 2;
 var LOTS_PER_BLOCK = 4;
@@ -3841,6 +3844,9 @@ function rawPlot(plot) {
     x: block % BLOCK_COLUMNS * (BLOCK_W + ROAD_WIDTH) + local % 2 * (LOT_WIDTH + 4),
     z: Math.floor(block / BLOCK_COLUMNS) * (BLOCK_D + ROAD_WIDTH) + Math.floor(local / 2) * (LOT_DEPTH + 6)
   };
+}
+function plotZ(plot) {
+  return rawPlot(plot).z - rawPlot(START_PLOT).z;
 }
 var TOWN_BOUNDS = {
   x0: -rawPlot(START_PLOT).x,
@@ -3880,129 +3886,6 @@ function freePlot(location, taken, rng) {
 }
 var JOIN_SHIFT = Math.round((LOT_WIDTH + 4) / GRID);
 var JOINED_W = JOIN_SHIFT + LOT_W;
-
-// src/catalog/prices.json
-var prices_default = {
-  note: "\u5358\u4FA1\uFF08\u5186\uFF09\u3002\u7D20\u6750\u306F 1m\xB2 \u3042\u305F\u308A\u3001\u30C9\u30A2\u30FB\u7A93\u30FB\u5BB6\u5177\u306F1\u3064\u3042\u305F\u308A\u3002\u30B5\u30C3\u30B7\u306E\u7A2E\u985E\u306F\u7A93\u30FB\u30C9\u30A2\u306E\u5024\u6BB5\u306B\u500D\u7387\u3092\u304B\u3051\u308B\u3002\u69CB\u9020\uFF08\u57FA\u790E\u30FB\u9AA8\u7D44\u307F\uFF09\u306E\u5358\u4FA1\u306F src/economy/pricing.ts \u306B\u3042\u308B",
-  materials: {
-    siding: 6e3,
-    tile: 15e3,
-    stucco: 9e3,
-    woodboard: 11e3,
-    galvalume: 8e3,
-    wallpaper: 1500,
-    plaster: 5e3,
-    woodpanel: 7e3,
-    kawara: 12e3,
-    slate: 6e3,
-    standing: 9e3,
-    sheet: 7e3,
-    flooring: 9e3,
-    tatami: 12e3,
-    floortile: 14e3,
-    carpet: 7e3,
-    oak: 1e4,
-    "siding-stone": 7500,
-    "siding-brick": 7e3,
-    "metal-v": 9500,
-    alc: 1e4,
-    brick: 25e3,
-    concrete: 2e4,
-    yakisugi: 13e3,
-    cedar: 1e4,
-    "natural-stone": 3e4,
-    shikkui: 12e3,
-    lithin: 5e3,
-    "border-tile": 18e3,
-    "cloth-woven": 2500,
-    washi: 3500,
-    "cloth-stone": 2e3,
-    "shikkui-in": 6e3,
-    paint: 3e3,
-    ecocarat: 16e3,
-    "wall-tile": 12e3,
-    "accent-brick": 1e4,
-    shiplap: 8e3,
-    "concrete-in": 9e3,
-    "kawara-flat": 11e3,
-    "kawara-s": 13e3,
-    shingle: 6500,
-    "stone-coated": 1e4,
-    yokobuki: 9500,
-    copper: 3e4,
-    solar: 35e3,
-    "green-roof": 2e4,
-    frp: 8e3,
-    "solid-oak": 15e3,
-    "hinoki-floor": 14e3,
-    "walnut-floor": 22e3,
-    herringbone: 18e3,
-    "cushion-floor": 3e3,
-    ryukyu: 16e3,
-    marble: 3e4,
-    "big-tile": 16e3,
-    mortar: 6e3,
-    cork: 8e3,
-    deck: 14e3,
-    "terrace-tile": 12e3,
-    walnut: 16e3,
-    maple: 12e3,
-    hinoki: 12e3,
-    pine: 7e3,
-    laminated: 6e3,
-    "wood-sheet": 4e3,
-    "deep-concrete": 18e3,
-    "ceramic-wall": 2e4
-  },
-  openings: {
-    entrance: 35e4,
-    "entrance-wide": 55e4,
-    door: 6e4,
-    "slide-door": 9e4,
-    sliding: 9e4,
-    "sliding-small": 45e3,
-    patio: 14e4,
-    casement: 5e4,
-    fix: 4e4,
-    high: 6e4
-  },
-  furniture: {
-    "bed-double": 12e4,
-    "bed-single": 6e4,
-    sofa: 15e4,
-    dining: 8e4,
-    chair: 2e4,
-    tv: 18e4,
-    desk: 4e4,
-    shelf: 3e4,
-    kitchen: 9e5,
-    fridge: 2e5,
-    bath: 1e6,
-    toilet: 25e4,
-    plant: 15e3,
-    rug: 25e3,
-    pool: 25e5,
-    flowerbed: 4e4,
-    flowerpot: 8e3,
-    "nameplate-post": 18e4,
-    nameplate: 2e4,
-    washbasin: 12e4,
-    "shoe-cabinet": 6e4,
-    "kitchen-island": 9e5,
-    cupboard: 9e4,
-    "low-table": 3e4,
-    zataku: 7e4,
-    washer: 18e4,
-    wardrobe: 15e4,
-    curtain: 3e4,
-    "floor-lamp": 2e4,
-    aircon: 12e4,
-    "sofa-l": 25e4,
-    mailbox: 8e4,
-    tree: 5e4,
-    hedge: 15e3
-  }
-};
 
 // src/catalog/materials.json
 var materials_default = {
@@ -8342,6 +8225,303 @@ function canPlaceStair(house, s, ignoreId) {
 }
 var HALF_WALL = WALL_THICKNESS / 2;
 
+// src/building/boutiques.ts
+var BOUTIQUE_IDS = ["maison", "atelier", "urban", "daily"];
+var BOUTIQUE_INFO = {
+  maison: { name: "MAISON V\xC9RANE", tagline: "PARIS \xB7 TOKYO", tier: "\u30CF\u30A4\u30D6\u30E9\u30F3\u30C9", floor: "#d9d2c4", wall: "#f3efe6", trim: "#b89a5a", facade: "#1b1a1c", sign: "#1b1a1c", signText: "#d9bd7a", frame: "#b89a5a", height: 6 },
+  atelier: { name: "ATELIER KOU", tagline: "DESIGNERS & SELECT", tier: "\u30C7\u30B6\u30A4\u30CA\u30FC\u30BA", floor: "#b99a76", wall: "#ece4d7", trim: "#6e5640", facade: "#8b6d50", sign: "#efe7da", signText: "#4a3a2b", frame: "#4a3a2b", height: 5 },
+  urban: { name: "URBAN THREAD", tagline: "CASUAL & STREET", tier: "\u30AB\u30B8\u30E5\u30A2\u30EB", floor: "#9fa6a8", wall: "#e8ecec", trim: "#2f6d8e", facade: "#2f6d8e", sign: "#ffffff", signText: "#2f6d8e", frame: "#24485c", height: 4.6 },
+  daily: { name: "DAILY WEAR", tagline: "\u6BCE\u65E5\u306E\u670D\u3092\u3001\u6BCE\u65E5\u306E\u5024\u6BB5\u3067", tier: "\u30D5\u30A1\u30B9\u30C8\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3", floor: "#e4e1d8", wall: "#ffffff", trim: "#d6332f", facade: "#f4f1ea", sign: "#d6332f", signText: "#ffffff", frame: "#8c8c8c", height: 4.6 }
+};
+var lotD = LOT_D * GRID;
+var BOUTIQUE_W = 9.5;
+var BOUTIQUE_D = 9;
+var BOUTIQUE_GAP = 2;
+var ROW_WEST = -90 - CIVIC_SITE.x;
+var BOUTIQUES = Object.fromEntries(
+  BOUTIQUE_IDS.map((id, i) => {
+    const x0 = ROW_WEST + i * (BOUTIQUE_W + BOUTIQUE_GAP);
+    return [id, { x0, x1: x0 + BOUTIQUE_W, z0: lotD + 9, z1: lotD + 9 + BOUTIQUE_D }];
+  })
+);
+var BOUTIQUE_DOOR = { width: 2.2, height: 2.6 };
+var BOUTIQUE_ACTIONS = [
+  { id: "browse", label: "\u670D\u3092\u898B\u308B\u30FB\u8CB7\u3046", x: 0, z: -1.6 },
+  { id: "rack-l", label: "\u670D\u3092\u898B\u308B\u30FB\u8CB7\u3046", x: -2.9, z: 0.6 },
+  { id: "rack-r", label: "\u670D\u3092\u898B\u308B\u30FB\u8CB7\u3046", x: 2.9, z: 0.6 },
+  { id: "register", label: "\u30EC\u30B8\u3067\u670D\u3092\u8CB7\u3046", x: -1.4, z: 2.6 },
+  { id: "fitting", label: "\u8A66\u7740\u5BA4\u3067\u7740\u66FF\u3048\u308B", x: 3.35, z: 2.4 }
+];
+
+// src/building/landmarks.ts
+var lotW = LOT_W * GRID;
+var lotD2 = LOT_D * GRID;
+var CASINO = {
+  x0: lotW / 2 - 12,
+  x1: lotW / 2 + 12,
+  z0: lotD2 + 9,
+  z1: lotD2 + 23,
+  height: 9,
+  /** 入口（正面の真ん中） */
+  door: { x: lotW / 2, width: 4.2, height: 3.4 },
+  /** 入口のひさし（柱2本で支える） */
+  canopyDepth: 3.6
+};
+var CASINO_PLAZA = { x0: CASINO.x0 - 2, x1: CASINO.x1 + 2, z0: lotD2 + 6.2, z1: CASINO.z0 };
+var PILLAR = 0.25;
+var ESTATE = {
+  x0: lotW / 2 + PLOT_PITCH - 5,
+  x1: lotW / 2 + PLOT_PITCH + 5,
+  z0: lotD2 + 9,
+  z1: lotD2 + 17,
+  height: 4.5,
+  door: { x: lotW / 2 + PLOT_PITCH, width: 2.2 }
+};
+var CASINO_PILLARS = [-1, 1].map((s) => ({
+  x: CASINO.door.x + s * (CASINO.door.width / 2 + 1.2),
+  z: CASINO.z0 - CASINO.canopyDepth + 0.4
+}));
+var CASINO_PLANTERS = [-1, 1].map((s) => {
+  const x = CASINO.door.x + s * 6.5;
+  return { x0: x - 1.3, x1: x + 1.3, z0: CASINO.z0 - 1.8, z1: CASINO.z0 - 0.6 };
+});
+var LANDMARK_COLLIDERS = [
+  ...[-1, 1].map((side) => ({ x0: CASINO.door.x + side * 9 - 1.15, x1: CASINO.door.x + side * 9 + 1.15, z0: CASINO.z0 - 2.75, z1: CASINO.z0 - 0.45 })),
+  { x0: ESTATE.x0, x1: ESTATE.x1, z0: ESTATE.z0, z1: ESTATE.z1 },
+  { x0: CASINO.x0, x1: CASINO.x1, z0: CASINO.z0, z1: CASINO.z1 },
+  ...BOUTIQUE_IDS.map((id) => ({ ...BOUTIQUES[id] })),
+  ...CASINO_PLANTERS,
+  ...CASINO_PILLARS.map((p) => ({ x0: p.x - PILLAR, x1: p.x + PILLAR, z0: p.z - PILLAR, z1: p.z + PILLAR }))
+];
+var CASINO_ARRIVAL = { x: CASINO.door.x, z: CASINO.z0 - 1.6, yaw: Math.PI };
+
+// src/building/dealer.ts
+var LOT_WIDTH2 = 17;
+var GAP = 1.5;
+var WIDTH = 18;
+var X1 = CASINO.x0 - 3 - LOT_WIDTH2 - GAP;
+var DEALER = { x0: X1 - WIDTH, x1: X1, z0: CASINO.z0, z1: CASINO.z0 + 12, height: 5.2 };
+var DEALER_LOT = { x0: DEALER.x1 + GAP, x1: DEALER.x1 + GAP + LOT_WIDTH2, z0: DEALER.z0 - 0.5, z1: DEALER.z0 + 16 };
+var BAY_DEPTH = 5.5;
+var BAY_WIDTH = 3.1;
+var DEALER_BAYS = Array.from({ length: 10 }, (_, i) => {
+  const left = i < 5, row = i % 5;
+  return { x: left ? DEALER_LOT.x0 + BAY_DEPTH / 2 : DEALER_LOT.x1 - BAY_DEPTH / 2, z: DEALER_LOT.z0 + 0.5 + BAY_WIDTH * (row + 0.5), yaw: left ? -Math.PI / 2 : Math.PI / 2 };
+});
+
+// src/building/tuner.ts
+var GAP2 = 2;
+var WIDTH2 = 16;
+var DEPTH = 12;
+var TUNER = { x0: DEALER.x0 - GAP2 - WIDTH2, x1: DEALER.x0 - GAP2, z0: DEALER.z0, z1: DEALER.z0 + DEPTH, height: 5.4 };
+
+// src/building/venues.ts
+var boutiqueVenue = (id) => ({ ...BOUTIQUES[id], name: BOUTIQUE_INFO[id].name, floor: BOUTIQUE_INFO[id].floor, wall: BOUTIQUE_INFO[id].wall, trim: BOUTIQUE_INFO[id].trim });
+var VENUES = {
+  casino: { ...CASINO, name: "GRAND STRIP CASINO", floor: "#b5a487", wall: "#352c30", trim: "#bda065" },
+  estate: { ...ESTATE, name: "\u307E\u3061\u306E\u4E0D\u52D5\u7523", floor: "#d3c1a0", wall: "#f0eee5", trim: "#397e7c" },
+  dealer: { ...DEALER, name: "AVENUE MOTORS", floor: "#8797a0", wall: "#dce3e6", trim: "#203e50" },
+  tuner: { ...TUNER, name: "STANCE GARAGE", floor: "#5d6166", wall: "#2b2e33", trim: "#e0b400" },
+  maison: boutiqueVenue("maison"),
+  atelier: boutiqueVenue("atelier"),
+  urban: boutiqueVenue("urban"),
+  daily: boutiqueVenue("daily")
+};
+var VENUE_ACTIONS = {
+  casino: [{ id: "slots", label: "\u30B9\u30ED\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: -3.2, game: "slots" }, { id: "roulette", label: "\u30EB\u30FC\u30EC\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: 2.6, game: "roulette" }, { id: "highlow", label: "\u30CF\u30A4\uFF06\u30ED\u30FC\u3067\u904A\u3076", x: 6, z: 2.6, game: "highlow" }, { id: "horse", label: "\u7AF6\u99AC\u3067\u904A\u3076", x: 4, z: -3.2, game: "horse" }, { id: "keirin", label: "\u7AF6\u8F2A\u3067\u904A\u3076", x: 6, z: -3.2, game: "keirin" }, { id: "boat", label: "\u30DC\u30FC\u30C8\u30EC\u30FC\u30B9\u3067\u904A\u3076", x: 8, z: -3.2, game: "boat" }, { id: "lobby", label: "\u30B2\u30FC\u30E0\u4E00\u89A7\u3092\u898B\u308B", x: 0, z: 2.7 }],
+  estate: [{ id: "land", label: "\u571F\u5730\u3092\u898B\u308B", x: 0, z: 0.5 }],
+  ...Object.fromEntries(BOUTIQUE_IDS.map((id) => [id, BOUTIQUE_ACTIONS])),
+  tuner: [
+    { id: "custom", label: "\u30AB\u30B9\u30BF\u30E0\u306E\u76F8\u8AC7\u3092\u3059\u308B", x: 0, z: 3.2, tab: "paint" },
+    { id: "paint", label: "\u5857\u88C5\u30FB\u30C7\u30B6\u30A4\u30F3\u3092\u9078\u3076", x: -5.5, z: 3.7, tab: "paint" },
+    { id: "chassis", label: "\u8ECA\u9AD8\u30FB\u30AD\u30E3\u30F3\u30D0\u30FC\u3092\u8ABF\u6574\u3059\u308B", x: -2.5, z: 0.5, tab: "chassis" },
+    { id: "wheels", label: "\u30DB\u30A4\u30FC\u30EB\u3092\u9078\u3076", x: 6.2, z: 0, tab: "wheels" },
+    { id: "engine", label: "\u30A8\u30F3\u30B8\u30F3\u3092\u9078\u3076", x: 4.5, z: -2, tab: "engine" },
+    { id: "aero", label: "\u30EA\u30A2\u30A6\u30A3\u30F3\u30B0\u3092\u9078\u3076", x: 4.6, z: 4.4, tab: "aero" }
+  ],
+  dealer: [{ id: "catalog", label: "\u30AB\u30BF\u30ED\u30B0\u3092\u898B\u308B", x: 0, z: 2.7 }, { id: "moco", label: "MOCO 660 \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: -5.7, z: -2.8, model: "moco" }, { id: "ridge", label: "RIDGE AWD \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: 0, z: -2.8, model: "ridge" }, { id: "raven", label: "RAVEN GT \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: 5.7, z: -2.8, model: "raven" }]
+};
+var VENUE_KINDS = ["casino", "estate", "dealer", "tuner", ...BOUTIQUE_IDS];
+var VENUE_DOORS = {
+  casino: { x: CASINO.door.x, width: CASINO.door.width, height: CASINO.door.height },
+  estate: { x: ESTATE.door.x, width: ESTATE.door.width, height: 2.6 },
+  dealer: { x: (DEALER.x0 + DEALER.x1) / 2, width: 2.2, height: 2.6 },
+  tuner: { x: (TUNER.x0 + TUNER.x1) / 2, width: 2.2, height: 2.6 },
+  ...Object.fromEntries(BOUTIQUE_IDS.map((id) => [id, { x: (BOUTIQUES[id].x0 + BOUTIQUES[id].x1) / 2, ...BOUTIQUE_DOOR }]))
+};
+
+// src/economy/neighborhood.ts
+var NEIGHBOR_RADIUS = 80;
+var TOWN_HOUSE_WEIGHT = {
+  "wood-apartment": 1.5,
+  "steel-apartment": 1.5,
+  narrow: 1.2,
+  mansion: 2.5,
+  residence: 2.5,
+  designers: 2,
+  tower: 3.5
+};
+var VENUE_WEIGHT = (v) => v === "casino" ? 6 : 4;
+function plotCenter(plot) {
+  return { x: plotX(plot) + LOT_W * GRID / 2, z: plotZ(plot) + LOT_D * GRID / 2 };
+}
+var FIXED_BUILDINGS = [
+  ...Object.entries(TOWN_HOUSE_PLOTS).map(([p, id]) => ({ ...plotCenter(Number(p)), weight: TOWN_HOUSE_WEIGHT[id] ?? 1 })),
+  ...VENUE_KINDS.map((v) => {
+    const b = VENUES[v];
+    return { x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, weight: VENUE_WEIGHT(v) };
+  })
+];
+function playerHouseWeight(levels) {
+  return levels > 1 ? 1.5 : 1;
+}
+function neighborScore(plot, buildings) {
+  const c = plotCenter(plot);
+  const own = TOWN_HOUSE_PLOTS[plot] ? plotCenter(plot) : null;
+  let score = 0;
+  for (const b of buildings) {
+    if (own && b.x === own.x && b.z === own.z) continue;
+    const d = Math.hypot(b.x - c.x, b.z - c.z);
+    if (d < 1 || d >= NEIGHBOR_RADIUS) continue;
+    score += b.weight * (1 - d / NEIGHBOR_RADIUS);
+  }
+  return score;
+}
+function densityFactor(score) {
+  return Math.round(Math.min(1.6, Math.max(0.8, 0.8 + score * 0.033)) * 100) / 100;
+}
+function lotsDensity(plot, lots) {
+  const houses = lots.flatMap((l) => {
+    if (!l.built || typeof l.plot !== "number" || l.plot === plot) return [];
+    const levels = new Set(l.built.floors.map((f) => f.level)).size;
+    return [{ ...plotCenter(l.plot), weight: playerHouseWeight(levels) }];
+  });
+  return densityFactor(neighborScore(plot, [...FIXED_BUILDINGS, ...houses]));
+}
+
+// src/catalog/prices.json
+var prices_default = {
+  note: "\u5358\u4FA1\uFF08\u5186\uFF09\u3002\u7D20\u6750\u306F 1m\xB2 \u3042\u305F\u308A\u3001\u30C9\u30A2\u30FB\u7A93\u30FB\u5BB6\u5177\u306F1\u3064\u3042\u305F\u308A\u3002\u30B5\u30C3\u30B7\u306E\u7A2E\u985E\u306F\u7A93\u30FB\u30C9\u30A2\u306E\u5024\u6BB5\u306B\u500D\u7387\u3092\u304B\u3051\u308B\u3002\u69CB\u9020\uFF08\u57FA\u790E\u30FB\u9AA8\u7D44\u307F\uFF09\u306E\u5358\u4FA1\u306F src/economy/pricing.ts \u306B\u3042\u308B",
+  materials: {
+    siding: 6e3,
+    tile: 15e3,
+    stucco: 9e3,
+    woodboard: 11e3,
+    galvalume: 8e3,
+    wallpaper: 1500,
+    plaster: 5e3,
+    woodpanel: 7e3,
+    kawara: 12e3,
+    slate: 6e3,
+    standing: 9e3,
+    sheet: 7e3,
+    flooring: 9e3,
+    tatami: 12e3,
+    floortile: 14e3,
+    carpet: 7e3,
+    oak: 1e4,
+    "siding-stone": 7500,
+    "siding-brick": 7e3,
+    "metal-v": 9500,
+    alc: 1e4,
+    brick: 25e3,
+    concrete: 2e4,
+    yakisugi: 13e3,
+    cedar: 1e4,
+    "natural-stone": 3e4,
+    shikkui: 12e3,
+    lithin: 5e3,
+    "border-tile": 18e3,
+    "cloth-woven": 2500,
+    washi: 3500,
+    "cloth-stone": 2e3,
+    "shikkui-in": 6e3,
+    paint: 3e3,
+    ecocarat: 16e3,
+    "wall-tile": 12e3,
+    "accent-brick": 1e4,
+    shiplap: 8e3,
+    "concrete-in": 9e3,
+    "kawara-flat": 11e3,
+    "kawara-s": 13e3,
+    shingle: 6500,
+    "stone-coated": 1e4,
+    yokobuki: 9500,
+    copper: 3e4,
+    solar: 35e3,
+    "green-roof": 2e4,
+    frp: 8e3,
+    "solid-oak": 15e3,
+    "hinoki-floor": 14e3,
+    "walnut-floor": 22e3,
+    herringbone: 18e3,
+    "cushion-floor": 3e3,
+    ryukyu: 16e3,
+    marble: 3e4,
+    "big-tile": 16e3,
+    mortar: 6e3,
+    cork: 8e3,
+    deck: 14e3,
+    "terrace-tile": 12e3,
+    walnut: 16e3,
+    maple: 12e3,
+    hinoki: 12e3,
+    pine: 7e3,
+    laminated: 6e3,
+    "wood-sheet": 4e3,
+    "deep-concrete": 18e3,
+    "ceramic-wall": 2e4
+  },
+  openings: {
+    entrance: 35e4,
+    "entrance-wide": 55e4,
+    door: 6e4,
+    "slide-door": 9e4,
+    sliding: 9e4,
+    "sliding-small": 45e3,
+    patio: 14e4,
+    casement: 5e4,
+    fix: 4e4,
+    high: 6e4
+  },
+  furniture: {
+    "bed-double": 12e4,
+    "bed-single": 6e4,
+    sofa: 15e4,
+    dining: 8e4,
+    chair: 2e4,
+    tv: 18e4,
+    desk: 4e4,
+    shelf: 3e4,
+    kitchen: 9e5,
+    fridge: 2e5,
+    bath: 1e6,
+    toilet: 25e4,
+    plant: 15e3,
+    rug: 25e3,
+    pool: 25e5,
+    flowerbed: 4e4,
+    flowerpot: 8e3,
+    "nameplate-post": 18e4,
+    nameplate: 2e4,
+    washbasin: 12e4,
+    "shoe-cabinet": 6e4,
+    "kitchen-island": 9e5,
+    cupboard: 9e4,
+    "low-table": 3e4,
+    zataku: 7e4,
+    washer: 18e4,
+    wardrobe: 15e4,
+    curtain: 3e4,
+    "floor-lamp": 2e4,
+    aircon: 12e4,
+    "sofa-l": 25e4,
+    mailbox: 8e4,
+    tree: 5e4,
+    hedge: 15e3
+  }
+};
+
 // src/economy/pricing.ts
 var MATERIAL_PRICE = prices_default.materials;
 var OPENING_PRICE = prices_default.openings;
@@ -8530,7 +8710,7 @@ function applyAction(w, sender, name, c, a) {
     if (!offer || typeof offer.plot !== "number") return "\u305D\u306E\u571F\u5730\u306F\u3082\u3046\u58F2\u308C\u3066\u3057\u307E\u3044\u307E\u3057\u305F";
     if (plotsOfLots(lots).includes(offer.plot)) return "\u305D\u306E\u533A\u753B\u306F\u3082\u3046\u4F7F\u308F\u308C\u3066\u3044\u307E\u3059";
     if (lots.length >= 90) return "\u3053\u306E\u753A\u306B\u306F\u3082\u3046\u571F\u5730\u3092\u5897\u3084\u305B\u307E\u305B\u3093";
-    const price2 = landPrice(offer.location, offer.variance, w.economy.market);
+    const price2 = landPrice(offer.location, offer.variance, w.economy.market, lotsDensity(offer.plot, lots));
     if (!Number.isSafeInteger(c.reserved) || c.reserved < price2) return "\u5024\u6BB5\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u6700\u65B0\u306E\u72B6\u614B\u3067\u3084\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044";
     const bought = {
       id: "lot-" + c.id.slice(0, 40),

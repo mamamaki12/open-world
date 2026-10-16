@@ -5,7 +5,7 @@ import { visitingWorld, onlineWorld, sessionGate } from '../session/gate';
 import { emptyHouse } from '../building/types';
 import type { House } from '../building/types';
 import { autosave, isHouse } from '../save/storage';
-import { FIXED_BUILDINGS, densityFactor, neighborScore, playerHouseWeight, plotCenter } from '../economy/neighborhood';
+import { lotsDensity } from '../economy/neighborhood';
 import { DAY_SECONDS, dailyBill, getLocation, landOffers, landPrice, salePrice, stepMarket } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { appraiseBuilding, buildSeconds, estimateCost, renovationCost } from '../economy/pricing';
@@ -229,12 +229,7 @@ export function lotNumbers(lot: Lot, market: number) {
 
 /** 区画のまわりの建物の多さによる土地代の係数（町の家・お店＋自分の建てた家） */
 export function plotDensity(plot: number, lots: Lot[] = useEconomy.getState().lots): number {
-  const mine = lots.flatMap((l) => {
-    if (!l.built || typeof l.plot !== 'number' || l.plot === plot) return [];
-    const levels = new Set(l.built.floors.map((f) => f.level)).size;
-    return [{ ...plotCenter(l.plot), weight: playerHouseWeight(levels) }];
-  });
-  return densityFactor(neighborScore(plot, [...FIXED_BUILDINGS, ...mine]));
+  return lotsDensity(plot, lots);
 }
 
 /** 売り土地の今の値段（立地・ぶれ・にぎわい・相場） */

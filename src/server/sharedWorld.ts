@@ -5,6 +5,7 @@ import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { DAY_SECONDS, landOffers, landPrice, stepMarket, getLocation } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { JOINED_W, freePlot } from '../economy/town';
+import { lotsDensity } from '../economy/neighborhood';
 import { applyChanges } from '../session/edits';
 import type { Change } from '../session/edits';
 import type { Lot } from '../state/economy';
@@ -79,7 +80,7 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     if (!offer || typeof offer.plot !== 'number') return 'その土地はもう売れてしまいました';
     if (plotsOfLots(lots).includes(offer.plot)) return 'その区画はもう使われています';
     if (lots.length >= 90) return 'この町にはもう土地を増やせません';
-    const price = landPrice(offer.location, offer.variance, w.economy.market);
+    const price = landPrice(offer.location, offer.variance, w.economy.market, lotsDensity(offer.plot, lots));
     if (!Number.isSafeInteger(c.reserved) || c.reserved < price) return '値段が変わりました。最新の状態でやり直してください';
     const bought: Lot = { id: 'lot-' + c.id.slice(0, 40), name: `${offer.name}（${getLocation(offer.location).name}）`, location: offer.location, variance: offer.variance,
       built: null, design: null, construction: null, rented: false, invested: price, plot: offer.plot, owner: sender, ownerName: name };

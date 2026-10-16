@@ -53,3 +53,13 @@ export function neighborScore(plot: number, buildings: Building[]): number {
 export function densityFactor(score: number): number {
   return Math.round(Math.min(1.6, Math.max(0.8, 0.8 + score * 0.033)) * 100) / 100;
 }
+
+/** 区画のまわりのにぎわい（固定の建物＋建っている家）。ひとりモードとみんなのワールドのサーバーで共通 */
+export function lotsDensity(plot: number, lots: { built: { floors: { level: number }[] } | null; plot?: number }[]): number {
+  const houses = lots.flatMap((l) => {
+    if (!l.built || typeof l.plot !== 'number' || l.plot === plot) return [];
+    const levels = new Set(l.built.floors.map((f) => f.level)).size;
+    return [{ ...plotCenter(l.plot), weight: playerHouseWeight(levels) }];
+  });
+  return densityFactor(neighborScore(plot, [...FIXED_BUILDINGS, ...houses]));
+}
