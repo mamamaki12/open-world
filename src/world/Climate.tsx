@@ -36,6 +36,7 @@ const WINDOW_GLOW = new THREE.Color('#ffc978');
 export function ClimateLights({ center, shadowSize }: { center: [number, number, number]; shadowSize: number }) {
   const c = useClimate();
   const scene = useThree((s) => s.scene);
+  const fog = useMemo(() => new THREE.Fog('#dfeaff', 900, 2000), []);
   const sunRef = useRef<THREE.DirectionalLight>(null);
   const hemiRef = useRef<THREE.HemisphereLight>(null);
   const wet = c.weather === 'rain' || c.weather === 'snow';
@@ -63,12 +64,15 @@ export function ClimateLights({ center, shadowSize }: { center: [number, number,
     else grass.color.copy(WHITE);
     scene.environmentIntensity = 0.12 + 0.88 * day * dim;
     const fogColor = DAY_SKY.clone().lerp(GREY, wet ? 0.6 : c.weather === 'cloudy' ? 0.3 : 0).lerp(NIGHT_SKY, k);
-    if (wet || c.weather === 'cloudy') scene.fog = new THREE.Fog(fogColor, wet ? 25 : 60, wet ? 160 : 320);
-    else scene.fog = null;
-  }, [c.night, c.season, c.weather, day, dim, wet, scene]);
+    // 霧は付けたり外したりしない（外すと全部の材質のシェーダーを作り直して重くなる）。晴れの日は遠くへ追いやる
+    fog.color.copy(fogColor);
+    fog.near = wet ? 25 : c.weather === 'cloudy' ? 60 : 900;
+    fog.far = wet ? 160 : c.weather === 'cloudy' ? 320 : 2000;
+  }, [c.night, c.season, c.weather, day, dim, wet, scene, fog]);
 
   return (
     <>
+      <primitive attach="fog" object={fog} />
       <Sky
         sunPosition={skySun}
         turbidity={c.weather === 'clear' ? 4 : 12}
