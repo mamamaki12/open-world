@@ -106,11 +106,8 @@ export function TouchWalkControls() {
     <div className="touch-walk">
       <Joystick />
       <div className="touch-actions">
-        <TapButton className="small" onTap={() => walkActions.resetCamera()}>
-          正面
-        </TapButton>
-        <TapButton className="small" onTap={() => walkActions.toggleView()}>
-          {view === 'first' ? '一人称' : '三人称'}
+        <TapButton className="small view" onTap={() => walkActions.toggleView()}>
+          {view === 'first' ? '👁' : '🧍'}
         </TapButton>
         {driving ? <HoldButton label="ブレーキ" className="jump" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton> : <TapButton className={`jump${climb === 'ok' && !climbing ? ' climb' : ''}`} onTap={() => walkActions.jump()}>
           {climb === 'ok' && !climbing ? '窓から出る' : 'ジャンプ'}
