@@ -8315,6 +8315,12 @@ var WIDTH2 = 16;
 var DEPTH = 12;
 var TUNER = { x0: DEALER.x0 - GAP2 - WIDTH2, x1: DEALER.x0 - GAP2, z0: DEALER.z0, z1: DEALER.z0 + DEPTH, height: 5.4 };
 
+// src/building/exchange.ts
+var GAP3 = 2;
+var WIDTH3 = 11;
+var DEPTH2 = 12;
+var EXCHANGE = { x0: TUNER.x0 - GAP3 - WIDTH3, x1: TUNER.x0 - GAP3, z0: TUNER.z0, z1: TUNER.z0 + DEPTH2, height: 7 };
+
 // src/building/venues.ts
 var boutiqueVenue = (id) => ({ ...BOUTIQUES[id], name: BOUTIQUE_INFO[id].name, floor: BOUTIQUE_INFO[id].floor, wall: BOUTIQUE_INFO[id].wall, trim: BOUTIQUE_INFO[id].trim });
 var VENUES = {
@@ -8322,6 +8328,7 @@ var VENUES = {
   estate: { ...ESTATE, name: "\u307E\u3061\u306E\u4E0D\u52D5\u7523", floor: "#d3c1a0", wall: "#f0eee5", trim: "#397e7c" },
   dealer: { ...DEALER, name: "AVENUE MOTORS", floor: "#8797a0", wall: "#dce3e6", trim: "#203e50" },
   tuner: { ...TUNER, name: "STANCE GARAGE", floor: "#5d6166", wall: "#2b2e33", trim: "#e0b400" },
+  exchange: { ...EXCHANGE, name: "\u307E\u3061\u8A3C\u5238\u53D6\u5F15\u6240", floor: "#c9c2b4", wall: "#eeebe3", trim: "#1e4d8c" },
   maison: boutiqueVenue("maison"),
   atelier: boutiqueVenue("atelier"),
   urban: boutiqueVenue("urban"),
@@ -8330,6 +8337,7 @@ var VENUES = {
 var VENUE_ACTIONS = {
   casino: [{ id: "slots", label: "\u30B9\u30ED\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: -3.2, game: "slots" }, { id: "roulette", label: "\u30EB\u30FC\u30EC\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: 2.6, game: "roulette" }, { id: "highlow", label: "\u30CF\u30A4\uFF06\u30ED\u30FC\u3067\u904A\u3076", x: 6, z: 2.6, game: "highlow" }, { id: "horse", label: "\u7AF6\u99AC\u3067\u904A\u3076", x: 4, z: -3.2, game: "horse" }, { id: "keirin", label: "\u7AF6\u8F2A\u3067\u904A\u3076", x: 6, z: -3.2, game: "keirin" }, { id: "boat", label: "\u30DC\u30FC\u30C8\u30EC\u30FC\u30B9\u3067\u904A\u3076", x: 8, z: -3.2, game: "boat" }, { id: "lobby", label: "\u30B2\u30FC\u30E0\u4E00\u89A7\u3092\u898B\u308B", x: 0, z: 2.7 }],
   estate: [{ id: "land", label: "\u571F\u5730\u3092\u898B\u308B", x: 0, z: 0.5 }],
+  exchange: [{ id: "trade", label: "\u682A\u3092\u58F2\u8CB7\u3059\u308B", x: 0, z: 0.6 }],
   ...Object.fromEntries(BOUTIQUE_IDS.map((id) => [id, BOUTIQUE_ACTIONS])),
   tuner: [
     { id: "custom", label: "\u30AB\u30B9\u30BF\u30E0\u306E\u76F8\u8AC7\u3092\u3059\u308B", x: 0, z: 3.2, tab: "paint" },
@@ -8341,12 +8349,13 @@ var VENUE_ACTIONS = {
   ],
   dealer: [{ id: "catalog", label: "\u30AB\u30BF\u30ED\u30B0\u3092\u898B\u308B", x: 0, z: 2.7 }, { id: "moco", label: "MOCO 660 \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: -5.7, z: -2.8, model: "moco" }, { id: "ridge", label: "RIDGE AWD \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: 0, z: -2.8, model: "ridge" }, { id: "raven", label: "RAVEN GT \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: 5.7, z: -2.8, model: "raven" }]
 };
-var VENUE_KINDS = ["casino", "estate", "dealer", "tuner", ...BOUTIQUE_IDS];
+var VENUE_KINDS = ["casino", "estate", "dealer", "tuner", "exchange", ...BOUTIQUE_IDS];
 var VENUE_DOORS = {
   casino: { x: CASINO.door.x, width: CASINO.door.width, height: CASINO.door.height },
   estate: { x: ESTATE.door.x, width: ESTATE.door.width, height: 2.6 },
   dealer: { x: (DEALER.x0 + DEALER.x1) / 2, width: 2.2, height: 2.6 },
   tuner: { x: (TUNER.x0 + TUNER.x1) / 2, width: 2.2, height: 2.6 },
+  exchange: { x: (EXCHANGE.x0 + EXCHANGE.x1) / 2, width: 2.2, height: 2.8 },
   ...Object.fromEntries(BOUTIQUE_IDS.map((id) => [id, { x: (BOUTIQUES[id].x0 + BOUTIQUES[id].x1) / 2, ...BOUTIQUE_DOOR }]))
 };
 
@@ -8698,6 +8707,12 @@ function applyAction(w, sender, name, c, a) {
     const paid2 = charge(w, sender, -a.delta, a.label.slice(0, 60));
     return typeof paid2 === "string" ? paid2 : { world: paid2, cost: 0, message: "" };
   }
+  if (a.type === "stocks") {
+    if (!a.holdings || typeof a.holdings !== "object" || JSON.stringify(a.holdings).length > 2e4) return "\u682A\u306E\u60C5\u5831\u304C\u4E0D\u6B63\u3067\u3059";
+    const acc = w.accounts?.[sender];
+    if (!acc) return "\u53E3\u5EA7\u304C\u3042\u308A\u307E\u305B\u3093";
+    return { world: { ...w, accounts: { ...w.accounts, [sender]: { ...acc, stocks: a.holdings } } }, cost: 0, message: "" };
+  }
   if (a.type === "cars") {
     if (!Array.isArray(a.cars) || a.cars.length > 10 || JSON.stringify(a.cars).length > 2e4) return "\u8ECA\u306E\u60C5\u5831\u304C\u4E0D\u6B63\u3067\u3059";
     const acc = w.accounts?.[sender];
@@ -9037,7 +9052,7 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
               }
               send(who.socket, { type: "result", result: r.result });
               if (r.changed) {
-                if (command?.action?.type !== "money" && command?.action?.type !== "cars") sharedSend({ type: "world", world: publicWorld(shared.world) });
+                if (!["money", "cars", "stocks"].includes(command?.action?.type)) sharedSend({ type: "world", world: publicWorld(shared.world) });
                 accounts();
               }
             }).catch(() => send(who.socket, { type: "result", result: { id: command?.id, ok: false, message: "\u30B5\u30FC\u30D0\u30FC\u306B\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F" } }));

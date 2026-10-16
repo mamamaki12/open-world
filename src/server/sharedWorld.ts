@@ -14,10 +14,10 @@ import type { WorldSave } from '../session/saves';
 /** 建築以外の操作。家・土地の代金は買った人の口座から売り手の口座へ直接移る（新しい土地だけは不動産屋へ払う） */
 export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; price: number | null } | { type: 'buyLot' }
   | { type: 'offerRent'; rent: number | null } | { type: 'rentLot' } | { type: 'endLease' }
-  | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] };
+  | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] } | { type: 'stocks'; holdings: Record<string, unknown> };
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
 /** みんなのワールドでの所持金と車。自分のワールドとは完全に別（引き継ぐのは見た目と服だけ） */
-export interface Account { name: string; money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[] }
+export interface Account { name: string; money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, unknown> }
 export type SharedWorld = WorldSave & { accounts?: Record<string, Account> };
 export const SHARED_START_MONEY = 1_000_000;
 export interface SharedResult { id: string; ok: boolean; cost?: number; message?: string }
@@ -68,6 +68,11 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     if (!Number.isSafeInteger(a.delta) || Math.abs(a.delta) > 1e13 || typeof a.label !== 'string') return '金額が不正です';
     const paid = charge(w, sender, -a.delta, a.label.slice(0, 60));
     return typeof paid === 'string' ? paid : { world: paid, cost: 0, message: '' };
+  }
+  if (a.type === 'stocks') {
+    if (!a.holdings || typeof a.holdings !== 'object' || JSON.stringify(a.holdings).length > 20000) return '株の情報が不正です';
+    const acc = w.accounts?.[sender]; if (!acc) return '口座がありません';
+    return { world: { ...w, accounts: { ...w.accounts, [sender]: { ...acc, stocks: a.holdings } } }, cost: 0, message: '' };
   }
   if (a.type === 'cars') {
     if (!Array.isArray(a.cars) || a.cars.length > 10 || JSON.stringify(a.cars).length > 20000) return '車の情報が不正です';

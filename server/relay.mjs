@@ -112,7 +112,7 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
               send(who.socket, { type: 'result', result: r.result });
               if (r.changed) {
                 // お金だけの変化は本人の口座だけ送る
-                if (command?.action?.type !== 'money' && command?.action?.type !== 'cars') sharedSend({ type: 'world', world: publicWorld(shared.world) });
+                if (!['money', 'cars', 'stocks'].includes(command?.action?.type)) sharedSend({ type: 'world', world: publicWorld(shared.world) });
                 accounts();
               }
             }).catch(() => send(who.socket, { type: 'result', result: { id: command?.id, ok: false, message: 'サーバーに保存できませんでした' } }));

@@ -17,6 +17,8 @@ import { applyWorld, captureWorld, persist, restoreHome, savedBundle, validWorld
 import type { WorldSave } from './saves';
 import type { Outfit } from '../catalog/clothes';
 import type { OwnedCar } from '../state/vehicles';
+import { useStocks, homeHoldings } from '../state/stocks';
+import type { Holding } from '../economy/stocks';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
 export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; cars: OwnedCar[]; driving?: string | null }
@@ -150,12 +152,12 @@ export async function joinShared(url: string) {
     send({ type: 'command', command: { id, lot, delta: [], reserved, action } });
     return null;
   };
-  useEconomy.setState({ money: 0, ledger: [] }); useVehicles.setState({ cars: [], driving: null, target: null });
+  useEconomy.setState({ money: 0, ledger: [] }); useVehicles.setState({ cars: [], driving: null, target: null }); useStocks.setState({ holdings: {} });
   try { await connectWorld(url, '', true); } catch (e) { restoreHome(); leaveShared(); throw e; }
 }
 /** みんなのワールドの口座（サーバーの正本）に、まだ返事のない自分の出入りを足して表示する */
 const inflight = new Map<string, number>(), actions = new Set<string>();
-let account: { money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[] } | null = null, accountApplying = false;
+let account: { money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, Holding> } | null = null, accountApplying = false;
 function showAccount() {
   if (!account) return;
   accountApplying = true;
@@ -164,9 +166,11 @@ function showAccount() {
     useEconomy.setState({ money, ledger: account.ledger });
     const cars = account.cars.filter(validCar);
     if (JSON.stringify(cars) !== JSON.stringify(useVehicles.getState().cars)) useVehicles.setState({ cars });
+    const stocks = account.stocks ?? {};
+    if (JSON.stringify(stocks) !== JSON.stringify(useStocks.getState().holdings)) useStocks.setState({ holdings: stocks });
   } finally { accountApplying = false; }
 }
-function leaveShared() { sessionGate.shared = false; sessionGate.money = null; sessionGate.act = null; inflight.clear(); actions.clear(); account = null; }
+function leaveShared() { if (sessionGate.shared) useStocks.setState({ holdings: homeHoldings() }); sessionGate.shared = false; sessionGate.money = null; sessionGate.act = null; inflight.clear(); actions.clear(); account = null; }
 export async function connectWorld(url: string, code = '', shared = false) {
   if (!navigator.onLine) throw Error('みんなと遊ぶには通信が必要です');
   endpoint = endpointURL(url); await persist();
@@ -268,6 +272,10 @@ export function startSessionTimers() {
     if (!sessionGate.shared || accountApplying || s.cars === prev.cars || useSession.getState().status !== 'connected') return;
     send({ type: 'command', command: { id: crypto.randomUUID(), lot: '', delta: [], reserved: 0, action: { type: 'cars', cars: s.cars } } });
   });
+  const stocks = useStocks.subscribe((s, prev) => {
+    if (!sessionGate.shared || accountApplying || s.holdings === prev.holdings || useSession.getState().status !== 'connected') return;
+    send({ type: 'command', command: { id: crypto.randomUUID(), lot: '', delta: [], reserved: 0, action: { type: 'stocks', holdings: s.holdings } } });
+  });
   const doors = useDoors.subscribe((s, prev) => {
     if (sessionGate.applying || useSession.getState().status !== 'connected' || s.open === prev.open) return;
     for (const id of new Set([...Object.keys(prev.open), ...Object.keys(s.open)])) if (s.open[id] !== prev.open[id]) send({ type: 'door', id, dir: s.open[id] ?? 0 });
@@ -276,5 +284,5 @@ export function startSessionTimers() {
     if (!sessionGate.applying && s.house !== prev.house && !s.dragBase) void persist().catch(() => undefined);
   });
   const hide = () => { if (document.hidden) void persist(); }; document.addEventListener('visibilitychange', hide);
-  return () => { cars(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
+  return () => { cars(); stocks(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
 }
