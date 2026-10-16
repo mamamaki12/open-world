@@ -74,7 +74,7 @@ export function BuildMenu({
         <div className="build-menu-body">
           <div className="build-menu-tools">
             {tools.map((t) => (
-              <button key={t.id} className={`tool-card${tool === t.id ? ' on' : ''}`} onClick={() => setTool(t.id)}>
+              <button key={t.id} data-tool={t.id} className={`tool-card${tool === t.id ? ' on' : ''}`} onClick={() => setTool(t.id)}>
                 <span className="tool-card-icon">{ICONS[t.id]}</span>
                 <span className="tool-card-name">{walking && t.id === 'select' ? '手ぶら' : t.label}</span>
                 <span className="tool-card-desc">{walking && t.id === 'select' ? '何も持たずに歩く' : DESCRIPTIONS[t.id]}</span>

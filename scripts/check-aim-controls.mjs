@@ -26,7 +26,20 @@ const setup = async (wall = false) => {
   }, wall);
   await page.waitForTimeout(600);
 };
-const tool = async n => page.getByRole('button', { name: new RegExp(`^${n}: `) }).tap();
+// スマホではホットバーを出さないので、右下の「建てる」から建築メニューを開いて選ぶ。
+// 道具を持っているときの右下ボタンは手ぶらに戻すので、先に一度押して手ぶらにする
+const openBuildMenu = async id => {
+  const fab = page.locator('.touch-build .build-fab');
+  if (await fab.evaluate(e => e.classList.contains('holding'))) await fab.tap();
+  await fab.tap();
+  await page.locator(`.tool-card[data-tool="${id}"]`).tap();
+};
+const tool = async n => {
+  const hot = page.getByRole('button', { name: new RegExp(`^${n}: `) });
+  if (await hot.count()) return hot.tap();
+  await openBuildMenu(await page.evaluate(async n => (await import('/src/state/controls.ts')).QUICK_TOOLS[n - 1], n));
+  await page.getByRole('button', { name: '決定' }).tap();
+};
 const swipe = async (dx, dy) => {
   const cdp = await page.context().newCDPSession(page), v = page.viewportSize(), x = v.width / 2, y = v.height / 2;
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
@@ -56,11 +69,10 @@ try {
   await setup(true); await tool(4); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.openings.length), 1);
   await page.evaluate(() => { window.__ow.player.x = 5.2; });
-  await page.getByRole('button', { name: '種類・素材', exact: true }).tap();
-  await page.locator('.inventory-tools').getByRole('button', { name: /家具/ }).tap();
+  await openBuildMenu('furniture');
   await page.getByRole('button', { name: '表札（壁付け）', exact: true }).tap();
   await page.getByRole('textbox', { name: '表札に表示する文字' }).fill('MY HOME');
-  await page.getByRole('button', { name: 'この道具で戻る', exact: true }).tap(); await place();
+  await page.getByRole('button', { name: '決定', exact: true }).tap(); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture[0]?.label), 'MY HOME');
   assert.equal(await page.evaluate(() => window.__ow.game.getState().tool), 'select');
   const platePoint=await page.evaluate(async()=>{const {mountedTransform}=await import('/src/building/mounts.ts');const g=window.__ow.game.getState(),f=g.house.furniture[0],t=mountedTransform(g.house,f.wallMount);return window.__ow.project(t.x,t.y+1.6,t.z);});
@@ -68,9 +80,9 @@ try {
   await page.touchscreen.tap(platePoint.x,platePoint.y);
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.furniture[0].rotation),(plateRotation+45)%360,'mounted sign tap rotates 45 degrees');
   await setup();
-  await tool(8); await page.getByRole('button', { name: '種類・素材', exact: true }).tap();
+  await openBuildMenu('furniture');
   await page.getByRole('button', { name: 'チェア', exact: true }).tap();
-  await page.getByRole('button', { name: 'この道具で戻る', exact: true }).tap(); await place();
+  await page.getByRole('button', { name: '決定', exact: true }).tap(); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture.length), 1);
   const chairBefore=await page.evaluate(()=>({...window.__ow.game.getState().house.furniture[0]}));
   const chairPoint=await page.evaluate(async()=>{

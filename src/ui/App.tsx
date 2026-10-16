@@ -97,11 +97,13 @@ export function App() {
 function TouchLayout({ walking }: { walking: boolean }) {
   const overlay = useGame(s => s.overlay);
   const tool = useGame((s) => s.tool);
+  const setTool = useGame((s) => s.setTool);
   const selected = useGame((s) => s.selection !== null);
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
   const [menu, setMenu] = useState(false);
   const closeMenu = useCallback(() => setMenu(false), []);
-  // 歩いているとき（何も持っていない）は、画面には歩く操作と建てるボタンだけを出し、ほかはメニューにしまう
+  // 歩いているとき（何も持っていない）は、画面には歩く操作と建てるボタンだけを出し、ほかはメニューにしまう。
+  // 歩きながら道具を持っているときは、右下のボタンで手ぶらに戻る
   const bare = walking && tool === 'select';
   return (
     <>
@@ -116,7 +118,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
         <>
           <WalkHud />
           <MapButton />
-          {!overlay && !menu && <TouchWalkControls build={<BuildButton label={label} onOpen={() => setMenu(true)} />} />}
+          {!overlay && !menu && <TouchWalkControls build={<BuildButton label={label} onOpen={() => (tool === 'select' ? setMenu(true) : setTool('select'))} />} />}
         </>
       ) : (
         <div className="touch-dock">
