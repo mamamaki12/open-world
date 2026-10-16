@@ -23,6 +23,7 @@ import { yen } from '../economy/money';
 import { useEconomy } from '../state/economy';
 import { Sheet, TouchCameraPad, TouchWalkControls } from './TouchControls';
 import { useTouchDevice } from './useTouchDevice';
+import { walkActions } from '../state/touch';
 import { reloadLatest } from './reload';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
@@ -157,6 +158,7 @@ function WalkMenu({ onBuild }: { onBuild: () => void }) {
           <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>🏗️ 建築に戻る</button>
           <button className="walk-menu-item" onClick={pick(onBuild)}>🔨 道具を持って建てる</button>
           <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>🗺️ 町の地図</button>
+          <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>👁 視点を切り替え</button>
           <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>↶ 取り消し</button>
           <SaveMenu />
           <button className="walk-menu-item" onClick={pick(reloadLatest)}>🔄 最新版にする</button>

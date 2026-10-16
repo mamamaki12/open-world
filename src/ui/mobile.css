@@ -158,11 +158,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .joystick-hint { position: absolute; top: -22px; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
 .touch-actions {
   position: absolute; right: calc(16px + var(--safe-r)); bottom: calc(20px + var(--safe-b));
-  display: grid; grid-template-columns: repeat(2, auto); grid-template-areas: 'c j'; gap: 12px; align-items: end; justify-items: center;
+  display: grid; grid-template-areas: 'j'; gap: 12px; align-items: end; justify-items: center;
 }
-.touch-actions .touch-btn.small { width: 72px; height: 42px; border-radius: 21px; font-size: 13px; white-space: nowrap; }
-.touch-actions .touch-btn.small { grid-area: c; }
-.touch-actions .touch-btn.small.view { width: 46px; height: 46px; border-radius: 50%; font-size: 22px; }
 .touch-actions .jump { grid-area: j; width: 84px; height: 84px; font-size: 15px; background: rgba(42,108,255,0.9); color: #fff; }
 .touch-actions .jump.climb { background: #ffb347; color: #23262b; font-size: 13px; }
 .touch .door-prompts { bottom: calc(150px + var(--safe-b)); }
@@ -237,8 +234,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .joystick { width: 104px; height: 104px; left: calc(14px + var(--safe-l)); bottom: calc(10px + var(--safe-b)); }
   .joystick-knob { width: 46px; height: 46px; }
   .touch-actions { right: calc(12px + var(--safe-r)); bottom: calc(10px + var(--safe-b)); gap: 6px; }
-  .touch-actions .touch-btn.small { width: 62px; height: 34px; font-size: 12px; }
-  .touch-actions .touch-btn.small.view { width: 40px; height: 40px; font-size: 19px; }
   .touch-actions .jump { width: 70px; height: 70px; font-size: 14px; }
 }
 
