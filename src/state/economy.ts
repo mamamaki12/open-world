@@ -1,6 +1,7 @@
 // お金と不動産の状態（所持金、日付、相場、持っている土地と家、工事、家計簿）。
 // いま画面に出している土地の設計図は useGame の house。ほかの土地の設計図は lot.design に預けておく。
 import { create } from 'zustand';
+import { visitingWorld, onlineWorld } from '../session/gate';
 import { emptyHouse } from '../building/types';
 import type { House } from '../building/types';
 import { autosave, isHouse } from '../save/storage';
@@ -184,6 +185,7 @@ function load(): EconomyData {
 }
 
 export function saveEconomy(): void {
+  if (visitingWorld()) return;
   try {
     const s = useEconomy.getState();
     const data: EconomyData = {
@@ -244,6 +246,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     ...load(),
 
     tick: (dt) => {
+      if (visitingWorld()) return;
       const s = get();
       let { money, ledger } = s;
       let lots = s.lots;
@@ -320,6 +323,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     startConstruction: () => {
+      if (onlineWorld()) return '共同建築中は配置の確定時に本人が費用を支払います';
       const s = get();
       const lot = s.lots.find((l) => l.id === s.currentLotId);
       if (!lot) return '土地がありません。不動産屋で土地を買ってください';
@@ -346,6 +350,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     sell: (id) => {
+      if (onlineWorld()) return '土地の売買はひとりで遊ぶモードで行ってください';
       const s = get();
       const lot = s.lots.find((l) => l.id === id);
       if (!lot) return 'その土地は持っていません';
@@ -365,6 +370,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     setRented: (id, rented) => {
+      if (onlineWorld()) return '賃貸の変更はひとりで遊ぶモードで行ってください';
       const lot = get().lots.find((l) => l.id === id);
       if (!lot) return 'その土地は持っていません';
       if (rented && !lot.built) return '家が建っていないので貸せません';
@@ -374,6 +380,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     buyLand: (offerId) => {
+      if (onlineWorld()) return '土地の売買はひとりで遊ぶモードで行ってください';
       const s = get();
       const offer = s.offers.find((o) => o.id === offerId);
       if (!offer) return 'その土地はもう売れてしまいました';
@@ -422,6 +429,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     joinLots: (id) => {
+      if (onlineWorld()) return '土地の結合はひとりで遊ぶモードで行ってください';
       const s = get();
       const lot = s.lots.find((l) => l.id === id);
       if (!lot || typeof lot.plot !== 'number') return 'その土地は持っていません';

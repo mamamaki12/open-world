@@ -1,5 +1,6 @@
 // ゲーム状態（Zustand）。3D側とメニュー側の両方から使う。
 import { create } from 'zustand';
+import { sessionGate } from '../session/gate';
 import { removePart, removeParts } from '../building/rules';
 import { emptyHouse } from '../building/types';
 import { materialGroup, moveBuildingGroup } from '../building/groups';
@@ -148,6 +149,7 @@ export const useGame = create<GameState>((set, get) => ({
   commit: (next, coalesce) => {
     const { house, past, lastCommit } = get();
     if (next === house) return;
+    if (sessionGate.edit && !sessionGate.applying) { sessionGate.edit(house, next); return; }
     const now = Date.now();
     const merge = coalesce !== undefined && lastCommit?.key === coalesce && now - lastCommit.at < 1500 && past.length > 0;
     set({
@@ -158,11 +160,13 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
   undo: () => {
+    if (sessionGate.edit) return get().notify('共同建築中は確定済みの変更を編集して直してください');
     const { past, house, future } = get();
     if (!past.length) return;
     set({ house: past[past.length - 1], past: past.slice(0, -1), future: [house, ...future], selection: null, marked: [], lastCommit: null });
   },
   redo: () => {
+    if (sessionGate.edit) return;
     const { past, house, future } = get();
     if (!future.length) return;
     set({ house: future[0], past: [...past, house], future: future.slice(1), selection: null, marked: [], lastCommit: null });
@@ -172,6 +176,7 @@ export const useGame = create<GameState>((set, get) => ({
   endDrag: () => {
     const { dragBase, house, past } = get();
     if (!dragBase) return;
+    if (sessionGate.edit) { set({ dragBase: null, house: dragBase }); if (dragBase !== house) sessionGate.edit(dragBase, house); return; }
     if (dragBase === house) {
       set({ dragBase: null });
       return;
