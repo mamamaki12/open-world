@@ -384,7 +384,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     buyLand: (offerId) => {
-      if (sessionGate.shared) return sessionGate.act?.('', { type: 'buyLand', offer: offerId }, Number.MAX_SAFE_INTEGER) ?? '接続していません';
+      if (sessionGate.shared) return sessionGate.act ? sessionGate.act('', { type: 'buyLand', offer: offerId }, Number.MAX_SAFE_INTEGER) : '接続していません';
       if (onlineWorld()) return '土地の売買はひとりで遊ぶモードで行ってください';
       const s = get();
       const offer = s.offers.find((o) => o.id === offerId);

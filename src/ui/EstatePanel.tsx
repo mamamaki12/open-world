@@ -194,7 +194,7 @@ function SharedLot({ lot, sale }: { lot: Lot; sale: number }) {
   const [price, setPrice] = useState(String(lot.listing?.price ?? sale));
   const [rent, setRent] = useState(String(lot.rentOffer?.rent ?? Math.max(10000, Math.round(sale / 300 / 10000) * 10000)));
   const act = (action: Parameters<NonNullable<typeof sessionGate.act>>[1], reserved = 0) => {
-    const err = sessionGate.act?.(lot.id, action, reserved) ?? '接続していません';
+    const err = sessionGate.act ? sessionGate.act(lot.id, action, reserved) : '接続していません';
     if (err) useGame.getState().notify(err);
   };
   const amount = (v: string) => Math.max(0, Math.round(Number(v.replace(/[^0-9]/g, '')) || 0));
