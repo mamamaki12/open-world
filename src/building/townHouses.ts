@@ -343,7 +343,7 @@ function narrowTownhouse(): House {
   k.wall(0, 13, z1, x1, z1, ext, inner);
   const garage = k.wall(0, x0, 10, x1, 10, inner);
   k.open(garage, 'door', 5.5, door);
-  k.open(garage, 'entrance-wide', 2, door);
+  k.open(garage, 'slide-door', 2, door);
   const wet = k.wall(0, x0, 7, x1, 7, inner);
   k.windows(wet, 'door', [1.5, 4, 6], door);
   k.wall(0, 11, z0, 11, 7, inner);
