@@ -5,6 +5,7 @@ import { visitingWorld, onlineWorld } from '../session/gate';
 import { emptyHouse } from '../building/types';
 import type { House } from '../building/types';
 import { autosave, isHouse } from '../save/storage';
+import { climateMarketFactor } from '../world/climate';
 import { DAY_SECONDS, dailyBill, getLocation, landOffers, landPrice, salePrice, stepMarket } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { appraiseBuilding, buildSeconds, estimateCost, renovationCost } from '../economy/pricing';
@@ -278,7 +279,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
       if (clock >= DAY_SECONDS) {
         clock -= DAY_SECONDS;
         day += 1;
-        market = stepMarket(market, Math.random);
+        market = stepMarket(market, Math.random, climateMarketFactor(Date.now()));
         marketHistory = [...marketHistory, market].slice(-HISTORY_LIMIT);
         offers = placeOffers(landOffers(day, Math.random), lots);
         let costs = 0;

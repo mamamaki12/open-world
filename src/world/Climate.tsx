@@ -8,11 +8,16 @@ import { glassMaterial } from './materials';
 import { MAT as STREET } from './Streetscape';
 import { grassMaterial } from './Town';
 
+// 確認用：?climateAt=<UTCミリ秒> でその時刻の空にする
+const AT = Number(new URLSearchParams(globalThis.location?.search ?? '').get('climateAt')) || 0;
+const START = Date.now();
+const now = () => (AT ? AT + (Date.now() - START) : Date.now());
+
 /** 0.5 秒ごとに今の気候を返す（毎フレーム再描画しない） */
 export function useClimate(): Climate {
-  const [c, setC] = useState(() => climateAt(Date.now()));
+  const [c, setC] = useState(() => climateAt(now()));
   useEffect(() => {
-    const id = setInterval(() => setC(climateAt(Date.now())), 500);
+    const id = setInterval(() => setC(climateAt(now())), 500);
     return () => clearInterval(id);
   }, []);
   return c;
@@ -46,6 +51,8 @@ export function ClimateLights({ center, shadowSize }: { center: [number, number,
     g.emissive.copy(WINDOW_GLOW);
     g.emissiveIntensity = k * 0.9;
     const grass = grassMaterial();
+    grass.emissive.set(c.season === 'winter' ? '#c9d0d8' : '#000000');
+    grass.emissiveIntensity = c.season === 'winter' ? 0.55 * (0.3 + 0.7 * day) : 0;
     if (c.season === 'winter') grass.color.set('#e8edf2');
     else if (c.season === 'autumn') grass.color.set('#e9d6a8');
     else if (c.season === 'summer') grass.color.set('#f2ffe8');
@@ -117,42 +124,72 @@ function NightDome() {
 
 const DROPS = 2500;
 const BOX = 40;
+/** 雨粒の長さ（m） */
+const STREAK = 0.45;
 
-/** カメラの周りに雨・雪の粒を降らせる */
+/** カメラの周りに雨・雪を降らせる。雨は細い線、雪は丸い粒 */
 function Precipitation({ snow }: { snow: boolean }) {
   const camera = useThree((s) => s.camera);
+  const per = snow ? 1 : 2;
   const geo = useMemo(() => {
-    const p = new Float32Array(DROPS * 3);
-    for (let i = 0; i < p.length; i++) p[i] = (Math.random() - 0.5) * BOX;
+    const p = new Float32Array(DROPS * per * 3);
+    for (let i = 0; i < DROPS; i++) {
+      const x = (Math.random() - 0.5) * BOX, y = (Math.random() - 0.5) * BOX, z = (Math.random() - 0.5) * BOX;
+      for (let k = 0; k < per; k++) p.set([x + k * 0.05, y + k * STREAK, z], (i * per + k) * 3);
+    }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(p, 3));
     return g;
-  }, []);
-  const ref = useRef<THREE.Points>(null);
+  }, [per]);
+  const ref = useRef<THREE.Group>(null);
   useFrame((state, dt) => {
-    const pts = ref.current;
-    if (!pts) return;
-    pts.position.copy(camera.position);
+    const obj = ref.current;
+    if (!obj) return;
+    obj.position.copy(camera.position);
     const a = geo.attributes.position as THREE.BufferAttribute;
     const arr = a.array as Float32Array;
     const fall = (snow ? 2 : 18) * Math.min(dt, 0.1);
     const t = state.clock.elapsedTime;
-    for (let i = 0; i < DROPS; i++) {
+    for (let i = 0; i < DROPS * per; i++) {
       arr[i * 3 + 1] -= fall;
       if (snow) arr[i * 3] += Math.sin(t + i) * 0.01;
-      if (arr[i * 3 + 1] < -BOX / 2) arr[i * 3 + 1] += BOX;
+    }
+    for (let i = 0; i < DROPS; i++) {
+      const j = i * per * 3 + 1;
+      if (arr[j] < -BOX / 2) for (let k = 0; k < per; k++) arr[j + k * 3] += BOX;
     }
     a.needsUpdate = true;
   });
+  if (!snow) {
+    return (
+      <group ref={ref}>
+        <lineSegments geometry={geo} frustumCulled={false}>
+          <lineBasicMaterial color="#c4d2e0" transparent opacity={0.35} depthWrite={false} />
+        </lineSegments>
+      </group>
+    );
+  }
   return (
-    <points ref={ref} geometry={geo} frustumCulled={false}>
-      <pointsMaterial
-        color={snow ? '#ffffff' : '#b8c8d8'}
-        size={snow ? 0.12 : 0.06}
-        transparent
-        opacity={snow ? 0.9 : 0.55}
-        depthWrite={false}
-      />
-    </points>
+    <group ref={ref}>
+      <points geometry={geo} frustumCulled={false}>
+        <pointsMaterial color="#ffffff" map={flake()} alphaTest={0.3} size={0.14} transparent opacity={0.95} depthWrite={false} />
+      </points>
+    </group>
   );
+}
+
+let flakeTex: THREE.Texture | null = null;
+/** 雪の粒を丸く見せる小さなテクスチャ */
+function flake(): THREE.Texture {
+  if (flakeTex) return flakeTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const g = c.getContext('2d')!;
+  const r = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  r.addColorStop(0, 'rgba(255,255,255,1)');
+  r.addColorStop(0.6, 'rgba(255,255,255,0.8)');
+  r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r;
+  g.fillRect(0, 0, 32, 32);
+  return (flakeTex = new THREE.CanvasTexture(c));
 }
