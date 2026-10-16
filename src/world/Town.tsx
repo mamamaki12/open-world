@@ -15,7 +15,7 @@ import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
 import { FIRST_PLOT, LAST_PLOT, PLOT_PITCH, TOWN_BOUNDS, TOWN_ROADS, CIVIC_SITE, districtOf, plotX, plotZ } from '../economy/town';
-import { lotCells, lotHouse, useCurrentPlot, useEconomy } from '../state/economy';
+import { lotCells, lotHouse, originShift, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
 import { DealerBuilding } from './DealerBuilding';
 import { EstateBuilding } from './EstateBuilding';
@@ -44,6 +44,18 @@ export function Town() {
     for (let x = WEST; x < EAST; x += TILE) for (let z = TOWN_BOUNDS.z0 - 80; z < TOWN_BOUNDS.z1 + 80; z += TILE) out.push({ x: x + TILE / 2, z: z + TILE / 2 });
     return out;
   }, []);
+
+  // 土地をつなげて原点が西の区画に移ったら、見えている場所が変わらないようカメラと人をずらす
+  useLayoutEffect(() => {
+    originShift.listener = (dx, dz) => {
+      camera.position.x += dx; camera.position.z += dz;
+      const orbit = controls as unknown as OrbitControlsImpl | undefined;
+      if (orbit) { orbit.target.x += dx; orbit.target.z += dz; orbit.update(); }
+      camera.updateMatrixWorld();
+      playerMemory.x += dx; playerMemory.z += dz;
+    };
+    return () => { originShift.listener = null; };
+  }, [camera, controls]);
 
   const activate = (id: string, e: ThreeEvent<PointerEvent>, ref?: PartRef) => {
     if (useGame.getState().mode !== 'build' || e.button !== 0) return;

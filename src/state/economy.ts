@@ -15,6 +15,9 @@ import { useGame } from './store';
 import { useInteraction } from './interaction';
 
 export const START_MONEY = 20_000_000;
+
+/** いま開いている土地の原点が動いたとき（土地をつなげたとき）に、カメラ側で受け取る。dx, dz は新しい原点から見た古い原点の位置 */
+export const originShift: { listener: ((dx: number, dz: number) => void) | null } = { listener: null };
 const SAVE_KEY = 'open-world:economy:v1';
 const LEDGER_LIMIT = 120;
 const HISTORY_LIMIT = 60;
@@ -441,11 +444,16 @@ export const useEconomy = create<EconomyState>((set, get) => {
         invested: west.invested + east.invested,
       };
       const wasCurrent = s.currentLotId === west.id || s.currentLotId === east.id;
+      // 名前は家のある方（なければいま開いている方）を残す
+      const keep = [east, west].find((l) => lotHouse(l) || l.id === s.currentLotId) ?? west;
+      merged.name = keep.name;
       const lots = s.lots
         .filter((l) => l.id !== east.id)
         .map((l) => (l.id !== west.id ? l : wasCurrent ? { ...merged, design: null } : merged));
       set({ lots, currentLotId: wasCurrent ? west.id : s.currentLotId });
       if (wasCurrent) showHouse(merged.design ?? emptyHouse());
+      // 東の土地を開いていたら、原点が西の区画に移るので、カメラと人を同じ場所に見えるようずらす
+      if (s.currentLotId === east.id) originShift.listener?.(plotX(east.plot!) - plotX(west.plot!), plotZ(east.plot!) - plotZ(west.plot!));
       notify(`🔗 ${west.name.replace(/（.*）$/, '')} と ${east.name.replace(/（.*）$/, '')} をつなげて、1つの広い土地にしました`);
       saveEconomy();
       return null;

@@ -13,5 +13,6 @@
 ## 進捗
 - 済：town.ts の joinPair/JOIN_SHIFT/JOINED_W＋テスト、join.ts、economy の Lot.joined/joinLots/lotCells/ownedPlots/lotSize 同期、rules/Placement/aimBuild/furnitureSnap/BuildCamera/Scene/Player/Town を lotSize 対応
 - 済：UI（購入時チェック `src/ui/JoinOption.tsx` を LandPurchasePanel・LandShop に、地図の「つなげる」ボタン・つなげた土地を1つの四角に）、join.test.ts
+- 済：つなげたとき名前は家のある方を残し、原点移動でカメラと人をずらす（originShift）。画面で確認済み
 - 次：町並み（新ファイル `src/world/Streetscape.tsx` を Town から描く）
 - 最後：Playwright で PC/スマホ確認 → PR → CI 緑でマージ
