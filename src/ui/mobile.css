@@ -242,6 +242,38 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .mat-tile-name { font-size: 11px; }
 .touch .mat-current { padding: 6px; }
 
+/* 小さい画面でもダイアログを横にはみ出させず、閉じる操作を残す。 */
+.touch .modal-head { flex-shrink: 0; }
+.touch .modal-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.touch .modal-tabs:empty { display: none; }
+.touch .modal-head .close { flex: none; white-space: nowrap; }
+.touch .modal-body { min-width: 0; min-height: 0; }
+.touch .modal .btn, .touch .modal .tool { min-height: 44px; }
+.touch .ledger .btn { white-space: nowrap; min-width: 60px; }
+.touch .touch-hud .chip { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.touch .touch-actions .touch-btn.small.view { width: 76px; height: 44px; border-radius: 22px; font-size: 12px; }
+.touch .touch-actions .touch-btn.reset { width: 56px; height: 44px; border-radius: 22px; font-size: 12px; }
+.touch.driving .touch-actions { grid-template-areas: 'a b' 'c j'; }
+.touch .touch-actions .view { grid-area: a; }
+.touch .touch-actions .reset { grid-area: b; }
+.touch .joystick-hint { white-space: nowrap; }
+.touch .map-controls { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.touch .map-scroll { touch-action: pan-x pan-y; }
+.touch .scroll-hint { font-size: 12px; margin: 4px 0; }
+.touch .dealer-models { max-height: 180px; }
+.touch .dealer-intro { font-size: 22px; margin-top: 0; }
+.touch .car-colors { gap: 6px; flex-wrap: wrap; }
+.touch .car-colors button { width: 36px; height: 36px; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .touch-dock { justify-content: flex-end; }
+  .touch .touch-dock .sheet { flex: 0 1 360px; max-width: 46%; }
+  .touch .sheet-body { max-height: min(42dvh, calc(100dvh - var(--hud-top) - 54px)); }
+  .touch .sheet-head { min-height: 44px; }
+  .touch .dealer-layout { grid-template-columns: 180px minmax(0, 1fr); gap: 12px; }
+  .touch .dealer-models { max-height: 230px; }
+  .touch .dealer-preview { height: 170px; }
+}
+
 /* 運転中は前方を空け、情報は左上・操作は右上と下端へ分ける。
    横向きスマホは幅が640pxを超えるため .touch で判定する。 */
 .touch.driving .touch-hud,
@@ -292,3 +324,21 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .walk-menu-list { max-height: calc(100dvh - 60px); overflow-y: auto; }
   .walk-menu-item, .walk-menu-list .save > .tool { padding: 7px 12px; font-size: 14px; }
 }
+
+@media (max-width: 640px) {
+  .touch .land-offers thead,.touch .owned-lots thead {display:none;}
+  .touch .land-offers tbody,.touch .owned-lots tbody {display:block;}
+  .touch .land-offers tr,.touch .owned-lots tr {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;border-bottom:1px solid var(--line);padding:10px 0;}
+  .touch .land-offers td,.touch .owned-lots td {border:0;padding:2px 4px;}
+  .touch .land-offers td:first-child,.touch .owned-lots td:first-child {font-weight:700;grid-column:1;grid-row:1;}
+  .touch .land-offers td:nth-child(2),.touch .owned-lots td:nth-child(2) {grid-column:1;grid-row:2;}
+  .touch .land-offers td.num,.touch .owned-lots td.num {grid-column:2;grid-row:1;font-size:14px;font-weight:700;}
+  .touch .land-offers td:last-child,.touch .owned-lots td:last-child {grid-column:2;grid-row:2;text-align:right;}
+}
+
+.touch .sheet .btn {min-height:44px;}
+.touch .car-colors button {width:44px;height:44px;}
+.touch input:not([type=range]):not([type=checkbox]):not([type=color]), .touch textarea {font-size:16px;min-height:44px;max-width:100%;}
+
+.touch .choice-list > button, .touch .seg > button {min-height:44px;}
+.touch input[type=range] {max-width:100%;margin-left:0;margin-right:0;}

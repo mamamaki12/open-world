@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { avoidCameraWalls } from './cameraObstruction';
 import { getCar } from '../catalog/cars';
 import { carSamples, integrateDrive } from '../building/driving';
 import type { DrivePose } from '../building/driving';
@@ -108,7 +109,7 @@ export function vehicleInteract(p:Memory) {
   return true;
 }
 let saveClock=0;
-export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memory) {
+export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memory,scene?:THREE.Scene) {
   const state=useVehicles.getState(),car=state.cars.find(c=>c.id===state.driving);
   if(!car)return false;
   const d=getCar(car.model)!;
@@ -131,7 +132,13 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
     const follow=car.yaw;
     const focus=new THREE.Vector3(p.x,d.height*.6,p.z);
     const desired=new THREE.Vector3(p.x+Math.sin(follow)*(d.length+3),d.height+2.8,p.z+Math.cos(follow)*(d.length+3));
-    camera.position.lerp(desired,Math.min(1,dt*7));camera.lookAt(focus);
+    // 納車スペースなど真後ろが建物なら、空いている横側から車を見る。
+    if(scene && avoidCameraWalls(scene,focus,desired).distanceToSquared(focus)<desired.distanceToSquared(focus)*.36){
+      const side=new THREE.Vector3(p.x+Math.cos(follow)*(d.length+3),d.height+2.8,p.z-Math.sin(follow)*(d.length+3));
+      if(avoidCameraWalls(scene,focus,side).distanceToSquared(focus)>side.distanceToSquared(focus)*.64)desired.copy(side);
+    }
+    const next=camera.position.clone().lerp(desired,Math.min(1,dt*7));
+    camera.position.copy(scene ? avoidCameraWalls(scene,focus,next) : next);camera.lookAt(focus);
     p.yaw=car.yaw;
   }
   saveClock+=dt;if(saveClock>5){saveClock=0;saveVehicles();}

@@ -23,7 +23,7 @@ export function EstatePanel() {
   const [tab, setTab] = useState<Tab>('land');
   const close = useGame((s) => s.setOverlay);
   return (
-    <Modal title="🏠 不動産屋" onClose={() => close(null)} tabs={TABS} tab={tab} onTab={setTab}>
+    <Modal title="🏠 不動産屋" onClose={() => close(null)} tabs={TABS} tab={tab} onTab={setTab} className="estate-modal">
       {tab === 'lot' && <CurrentLot onGoLand={() => setTab('land')} />}
       {tab === 'lots' && <LotList />}
       {tab === 'land' && <LandShop />}
@@ -192,7 +192,7 @@ function LotList() {
   const market = useEconomy((s) => s.market);
   if (!lots.length) return <p>土地を持っていません。「土地を買う」から買えます。</p>;
   return (
-    <table className="ledger">
+    <table className="ledger owned-lots">
       <thead>
         <tr><th>土地</th><th>状態</th><th className="num">いま売ると</th><th /></tr>
       </thead>
@@ -221,14 +221,27 @@ function LotList() {
 }
 
 function LandShop() {
+  const [confirmId, setConfirmId] = useState<string | null>(null);
   const offers = useEconomy((s) => s.offers);
   const market = useEconomy((s) => s.market);
   const money = useEconomy((s) => s.money);
   const notify = useGame((s) => s.notify);
+  const selected = offers.find(o => o.id === confirmId);
   return (
     <div>
       <p className="muted">売り土地は毎日入れ替わります。値段は相場で上下します。広さはどれも 24×20 マス（約397m²）。</p>
-      <table className="ledger">
+      {selected && <section className="card" aria-label="土地購入の確認">
+        <h3>{selected.name}を購入しますか？</h3>
+        <p>購入価格 <b>{yen(landPrice(selected.location, selected.variance, market))}</b></p>
+        <p>購入後の残高 {yen(money - landPrice(selected.location, selected.variance, market))}</p>
+        <button className="btn primary" disabled={landPrice(selected.location, selected.variance, market) > money} onClick={() => {
+          const err = useEconomy.getState().buyLand(selected.id);
+          notify(err ?? selected.name + 'を購入しました');
+          if (!err) setConfirmId(null);
+        }}>土地の購入を確定する</button>
+        <button className="btn" onClick={() => setConfirmId(null)}>やめる</button>
+      </section>}
+      <table className="ledger land-offers">
         <thead>
           <tr><th>場所</th><th>立地</th><th className="num">値段</th><th /></tr>
         </thead>
@@ -245,10 +258,7 @@ function LandShop() {
                   <button
                     className="btn small primary"
                     disabled={price > money}
-                    onClick={() => {
-                      const err = useEconomy.getState().buyLand(o.id);
-                      if (err) notify(err);
-                    }}
+                    onClick={() => setConfirmId(o.id)}
                   >
                     買う
                   </button>

@@ -52,7 +52,7 @@ export function App() {
   const walking = useGame((s) => s.mode === 'walk');
   const holding = useGame((s) => s.tool !== 'select');
   const app = useRef<HTMLDivElement>(null);
-  useTopBarHeight(app, touch);
+  useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
   return (
     <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}`}>
@@ -97,6 +97,7 @@ export function App() {
 
 /** スマホ・タブレットの画面：上のバーの代わりに小さなボタンを四隅に置き、建築は「建てる」ボタンから大きなメニューで選ぶ */
 function TouchLayout({ walking }: { walking: boolean }) {
+  const overlay = useGame(s => s.overlay);
   const tool = useGame((s) => s.tool);
   const selected = useGame((s) => s.selection !== null);
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
@@ -116,7 +117,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
       {walking ? (
         <>
           <WalkHud />
-          <TouchWalkControls />
+          {!overlay && <TouchWalkControls />}
         </>
       ) : (
         <div className="touch-dock">
@@ -214,16 +215,16 @@ function useNoPageZoom(touch: boolean) {
 }
 
 /** 上のバー（折り返すと高さが変わる）とお金のバーの下端を CSS 変数にして、その下に他の表示を並べる */
-function useTopBarHeight(app: React.RefObject<HTMLDivElement>, touch: boolean) {
+function useTopBarHeight(app: React.RefObject<HTMLDivElement>, touch: boolean, walking: boolean, driving: boolean) {
   useEffect(() => {
     const root = app.current;
-    const bars = root ? [...root.querySelectorAll('.topbar, .moneybar, .touch-hud')] : [];
+    const bars = root ? [...root.querySelectorAll('.topbar, .moneybar, .touch-hud-row')] : [];
     if (!root || bars.length === 0) return;
     const update = () => {
       const top = root.getBoundingClientRect().top;
       const bottom = (sel: string) => Math.ceil((root.querySelector(sel)?.getBoundingClientRect().bottom ?? top) - top);
       root.style.setProperty('--top-h', `${bottom('.topbar')}px`);
-      root.style.setProperty('--hud-top', `${Math.max(bottom('.topbar'), bottom('.moneybar'), bottom('.touch-hud'))}px`);
+      root.style.setProperty('--hud-top', `${Math.max(bottom('.topbar'), bottom('.moneybar'), ...Array.from(root.querySelectorAll('.touch-hud-row'), b => Math.ceil(b.getBoundingClientRect().bottom - top)))}px`);
     };
     update();
     const ro = new ResizeObserver(update);
@@ -233,7 +234,7 @@ function useTopBarHeight(app: React.RefObject<HTMLDivElement>, touch: boolean) {
       ro.disconnect();
       window.removeEventListener('resize', update);
     };
-  }, [app, touch]);
+  }, [app, touch, walking, driving]);
 }
 
 function ModeButton() {
@@ -397,11 +398,11 @@ function ControlsHelp() {
   if (tool === 'erase' && !walking) {
     const click = eraseMulti ? (touch ? 'タップ：選ぶ・外す' : 'クリック：選ぶ・外す') : touch ? 'タップ：消す' : 'クリック：消す';
     text = touch
-      ? `${click}　なぞる：範囲で選ぶ　2本指：移動・ズーム`
+      ? `${click}　${eraseMulti ? 'なぞる：範囲で選ぶ' : 'なぞる：回す'}　2本指：移動・ズーム`
       : `${click}　ドラッグ：範囲で選ぶ　${eraseMulti ? 'Delete：まとめて削除　' : ''}右ドラッグ：回転`;
   } else if (touch) {
     const place = tool === 'erase' ? 'タップ：消す' : tool === 'floor' || tool === 'roof' || tool === 'wall' ? 'なぞる：置く' : 'タップ：置く';
-    if (walking) text = tool === 'select' ? 'スティック：歩く（端まで倒すと走る）　なぞる：見回す' : `${place}　2本指：見回す`;
+    if (walking) text = tool === 'select' ? 'スティック：歩く（端まで倒すと走る）　なぞる：見回す' : `${place}　${['floor', 'roof', 'wall'].includes(tool) ? '2本指：見回す' : 'なぞる：見回す'}`;
     else text = building || tool === 'erase' ? `${place}　2本指：移動・ズーム` : 'タップ：選ぶ　なぞる：回す　2本指：移動・ズーム';
   } else if (walking) {
     text =

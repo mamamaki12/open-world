@@ -4,17 +4,18 @@ import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useVehicles } from '../state/vehicles';
 import { driveButtons } from '../world/vehicleLogic';
 import { useDoors } from '../state/doors';
+import { useGame } from '../state/store';
 import { RUN_THRESHOLD, touchCamera, touchMove, walkActions } from '../state/touch';
 
 /** スティックを倒せる半径（px） */
 const STICK_RADIUS = 46;
 
-function Joystick() {
+function Joystick({ driving }: { driving: boolean }) {
   const base = useRef<HTMLDivElement>(null);
   const pointer = useRef<number | null>(null);
   const center = useRef({ x: 0, y: 0 });
   const [knob, setKnob] = useState({ x: 0, y: 0 });
-  const running = Math.hypot(knob.x, knob.y) / STICK_RADIUS >= RUN_THRESHOLD;
+  const running = !driving && Math.hypot(knob.x, knob.y) / STICK_RADIUS >= RUN_THRESHOLD;
 
   const release = () => {
     pointer.current = null;
@@ -22,7 +23,13 @@ function Joystick() {
     touchMove.y = 0;
     setKnob({ x: 0, y: 0 });
   };
-  useEffect(() => release, []);
+  useEffect(() => {
+    const reset = () => release();
+    const hidden = () => { if (document.hidden) release(); };
+    window.addEventListener('blur', reset);
+    document.addEventListener('visibilitychange', hidden);
+    return () => { window.removeEventListener('blur', reset); document.removeEventListener('visibilitychange', hidden); release(); };
+  }, []);
 
   const move = (e: ReactPointerEvent) => {
     let dx = e.clientX - center.current.x;
@@ -52,18 +59,20 @@ function Joystick() {
       onPointerMove={(e) => e.pointerId === pointer.current && move(e)}
       onPointerUp={(e) => e.pointerId === pointer.current && release()}
       onPointerCancel={(e) => e.pointerId === pointer.current && release()}
+      onLostPointerCapture={(e) => e.pointerId === pointer.current && release()}
     >
       <div className="joystick-knob" style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
-      <span className="joystick-hint">{running ? '走る' : ''}</span>
+      <span className="joystick-hint">{driving ? '前後・ハンドル' : running ? '走る' : ''}</span>
     </div>
   );
 }
 
 /** 押した瞬間に反応するボタン（タップの遅れをなくす） */
-function TapButton({ className, onTap, children }: { className?: string; onTap: () => void; children: ReactNode }) {
+function TapButton({ className, onTap, children, label }: { className?: string; onTap: () => void; children: ReactNode; label?: string }) {
   return (
     <button
       className={`touch-btn ${className ?? ''}`}
+      aria-label={label}
       onPointerDown={(e) => {
         e.preventDefault();
         onTap();
@@ -88,6 +97,7 @@ function HoldButton({ className, onHold, children, label }: { className?: string
       }}
       onPointerUp={() => onHold(false)}
       onPointerCancel={() => onHold(false)}
+      onLostPointerCapture={() => onHold(false)}
       onContextMenu={(e) => e.preventDefault()}
     >
       {children}
@@ -97,13 +107,20 @@ function HoldButton({ className, onHold, children, label }: { className?: string
 
 export function TouchWalkControls() {
   const driving = useVehicles(s=>s.driving);
+  const view = useGame(s=>s.view);
   useEffect(()=>()=>{driveButtons.brake=false;},[]);
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
   return (
     <div className="touch-walk">
-      <Joystick />
+      <Joystick driving={!!driving} />
       <div className="touch-actions">
+        {driving && <>
+        <TapButton className="small view" label={view === 'first' ? '三人称に切り替え' : '一人称に切り替え'} onTap={() => walkActions.toggleView()}>
+          {view === 'first' ? '三人称へ' : '一人称へ'}
+        </TapButton>
+        <TapButton className="small reset" label="視点を正面に戻す" onTap={() => walkActions.resetCamera()}>正面</TapButton>
+        </>}
         {driving ? <HoldButton label="ブレーキ" className="jump" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton> : <TapButton className={`jump${climb === 'ok' && !climbing ? ' climb' : ''}`} onTap={() => walkActions.jump()}>
           {climb === 'ok' && !climbing ? '窓から出る' : 'ジャンプ'}
         </TapButton>}
