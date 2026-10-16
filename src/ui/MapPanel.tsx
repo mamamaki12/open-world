@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
 import { BLOCK_COLUMNS, BLOCK_ROWS, CIVIC_SITE, FIRST_PLOT, LAST_PLOT, TOWN_BOUNDS, TOWN_ROADS, blockOf, districtOf, plotX, plotZ } from '../economy/town';
@@ -20,6 +20,8 @@ export function MapPanel() {
   const close = useGame(s => s.setOverlay), walking = useGame(s => s.mode === 'walk');
   const lots = useEconomy(s => s.lots), offers = useEconomy(s => s.offers), market = useEconomy(s => s.market);
   const currentId = useEconomy(s => s.currentLotId), here = useCurrentPlot();
+  const map = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
   const [pick, setPick] = useState<Pick>({ kind: 'plot', plot: here });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.code === 'KeyM' && !(e.target instanceof HTMLInputElement)) close(null); };
@@ -30,11 +32,27 @@ export function MapPanel() {
   const selectedOffer = pick?.kind === 'plot' ? offers.find(o => o.plot === pick.plot) : undefined;
   const mx = plotX(here) + (walking ? playerMemory.x : LOT_W * GRID / 2);
   const mz = plotZ(here) + (walking ? playerMemory.z : LOT_D * GRID / 2);
+  const centerHere = () => {
+    setZoom(2);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const el = map.current, svg = el?.querySelector('svg');
+      if (!el || !svg) return;
+      const ratio = svg.getBoundingClientRect().width / WIDTH;
+      el.scrollTo({left: sx(mx) * ratio - el.clientWidth / 2, top: sy(mz) * ratio - el.clientHeight / 2, behavior: 'smooth'});
+    }));
+  };
   return <Modal title="🗺 町の地図" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="map-modal">
     <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span><span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span></div>
     <p className="info">{BLOCK_COLUMNS * BLOCK_ROWS}ブロック・各4区画の住宅街です。南側にカジノ・不動産屋・カーディーラーがあります。</p>
-    <div className="map-scroll" style={{ maxHeight: '55vh', overflow: 'auto' }}>
-      <svg width="100%" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} style={{ minWidth: 560, display: 'block', background: '#e7ebdf', borderRadius: 10 }} role="img" aria-label="8ブロックに32区画が並ぶ町の地図">
+    <div className="map-controls" aria-label="地図の表示">
+      <button className="btn" onClick={() => { setZoom(1); map.current?.scrollTo(0, 0); }}>全体</button>
+      <button className="btn" aria-label="地図を拡大" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, z + .5))}>＋ 拡大</button>
+      <button className="btn" aria-label="地図を縮小" disabled={zoom <= 1} onClick={() => setZoom(z => Math.max(1, z - .5))}>－ 縮小</button>
+      <button className="btn" onClick={centerHere}>現在地</button>
+    </div>
+    <p className="info">拡大すると指で上下左右に動かせます。家・売地・店舗をタップして詳細を表示します。</p>
+    <div ref={map} className="map-scroll" style={{ maxHeight: '55vh', overflow: 'auto' }}>
+      <svg width={`${zoom * 100}%`} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} style={{ minWidth: 0, maxWidth: 'none', display: 'block', background: '#e7ebdf', borderRadius: 10 }} role="img" aria-label="8ブロックに32区画が並ぶ町の地図">
         {TOWN_ROADS.map((road, i) => <g key={i}>
           <rect x={sx(road.x0 - 0.8)} y={sy(road.z0 - 0.8)} width={(road.x1 - road.x0 + 1.6) * SCALE} height={(road.z1 - road.z0 + 1.6) * SCALE} fill="#c1c6bd" />
           <rect x={sx(road.x0)} y={sy(road.z0)} width={(road.x1 - road.x0) * SCALE} height={(road.z1 - road.z0) * SCALE} fill="#657075" />
