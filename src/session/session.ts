@@ -5,6 +5,8 @@ import { useGame } from '../state/store';
 import { useEconomy, currentPlotOf, lotCells } from '../state/economy';
 import { lotSize } from '../building/dimensions';
 import { useWardrobe } from '../state/wardrobe';
+import { useLooks } from '../state/looks';
+import type { Looks } from '../catalog/looks';
 import { useVehicles, validCar } from '../state/vehicles';
 import { useDoors } from '../state/doors';
 import { useVisit } from '../world/visit';
@@ -20,7 +22,7 @@ import type { Outfit } from '../catalog/clothes';
 import type { OwnedCar } from '../state/vehicles';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
-export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; cars: OwnedCar[]; driving?: string | null }
+export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
   role: 'home' | 'host' | 'guest'; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
@@ -213,7 +215,7 @@ export function startSessionTimers() {
     const s = useSession.getState(); if (s.status !== 'connected') return;
     const plot = currentPlotOf(useEconomy.getState()), p = playerMemory;
     send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw,
-      outfit: useWardrobe.getState().outfit, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving } });
+      outfit: useWardrobe.getState().outfit, looks: useLooks.getState().looks, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving } });
     if (s.role === 'host') autoVenueDoors(p, useGame.getState().mode === 'walk');
     const driving = useVehicles.getState().driving;
     if (driving !== wasDriving) { wasDriving = driving; void persist(); }
