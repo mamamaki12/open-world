@@ -33,3 +33,13 @@ it('lets the player walk through an open shop door without changing space',()=>{
     expect(throughDoorway(kind,{x:d.x,z:b.z0+3})).toBeNull();
   }
 });
+it('keeps every shop and the dealer parking lot off the roads and facing the front road',async()=>{
+  const { TOWN_ROADS, CIVIC_SITE } = await import('../economy/town');
+  const { DEALER_LOT } = await import('./dealer');
+  const front = TOWN_ROADS.filter(r => r.x1 - r.x0 > 100).sort((a, b) => b.z1 - a.z1)[0];
+  for (const b of [VENUES.casino, VENUES.estate, VENUES.dealer, DEALER_LOT]) {
+    const g = { x0: b.x0 + CIVIC_SITE.x, x1: b.x1 + CIVIC_SITE.x, z0: b.z0 + CIVIC_SITE.z, z1: b.z1 + CIVIC_SITE.z };
+    for (const r of TOWN_ROADS) expect(g.x0 < r.x1 && g.x1 > r.x0 && g.z0 < r.z1 && g.z1 > r.z0).toBe(false);
+    expect(g.x0).toBeGreaterThanOrEqual(front.x0);expect(g.x1).toBeLessThanOrEqual(front.x1);expect(g.z0 - front.z1).toBeLessThan(4);
+  }
+});
