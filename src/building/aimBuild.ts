@@ -10,7 +10,7 @@ import type { Preview } from '../state/interaction';
 export interface AimPoint { x:number; y:number; z:number; ref?:PartRef }
 export interface Anchor {x:number;z:number;level:number}
 export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number;z:number},rot:0|1|2|3,anchor:Anchor|null) {
-  const level=Math.max(0,Math.min(MAX_LEVEL,Math.floor((p.y-BASE_HEIGHT+.15)/STORY_HEIGHT)));
+  const level=Math.max(0,Math.min(tool==='roof'?MAX_LEVEL+1:MAX_LEVEL,Math.floor((p.y-BASE_HEIGHT+.15)/STORY_HEIGHT)));
   const range=tool==='floor'||tool==='wall'||tool==='roof';
   const point={x:Math.floor(p.x/GRID),z:Math.floor(p.z/GRID),level};
   if(tool==='wall'){point.x=Math.round(p.x/GRID);point.z=Math.round(p.z/GRID);}

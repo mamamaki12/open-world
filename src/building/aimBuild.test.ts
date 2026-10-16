@@ -20,6 +20,13 @@ describe('central aim building',()=>{
     expect(aimPlan(emptyHouse(),'floor',d,{x:-1,y:0,z:1},viewer,0,null).error).toBeTruthy();
     expect(aimPlan(emptyHouse(),'wall',d,{x:2,y:0,z:2},viewer,0,null).error).toBeTruthy();
   });
+  it('puts a roof aimed at the top of second-storey walls on the second storey',()=>{
+    const h=emptyHouse();
+    h.floors=[{id:'upper-floor',level:1,x0:1,z0:1,x1:8,z1:8,finish:d.floor}];
+    h.walls=[{id:'upper-wall',level:1,x0:1,z0:1,x1:8,z1:1,exterior:d.wallExterior,interior:d.wallInterior}];
+    const plan=aimPlan(h,'roof',d,{x:3*GRID,y:6.3,z:3*GRID},viewer,0,{x:2,z:2,level:2});
+    expect(plan.next!.roofs[0].level).toBe(1);
+  });
   it('requires an actual part to erase and a wall for openings',()=>{
     expect(aimPlan(emptyHouse(),'erase',d,{x:1,y:0,z:1},viewer,0,null).error).toBeTruthy();
     expect(aimPlan(emptyHouse(),'door',d,{x:1,y:0,z:1},viewer,0,null).error).toBeTruthy();

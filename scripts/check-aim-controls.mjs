@@ -95,7 +95,7 @@ try {
   for(const sprint of [false,true]){
     await setup(); await page.bringToFront();
     await page.mouse.click(640,360); await page.waitForFunction(()=>document.pointerLockElement!==null);
-    const start=await page.evaluate(()=>window.__ow.player.z);
+    const start=await page.evaluate(()=>({x:window.__ow.player.x,z:window.__ow.player.z}));
     if(sprint){
       // 描画待ちの往復を挟まず、短いキー入力列をそのままゲームへ届ける。
       await page.evaluate(()=>{
@@ -104,9 +104,9 @@ try {
         window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',key:'w'}));
       });
     }else await page.keyboard.down('KeyW');
-    await page.waitForFunction(({sprint,start})=>window.__ow.motion.running===sprint && window.__ow.player.z<start-.4,{sprint,start});
-    console.log('Movement confirmed:',{sprint,distance:start-await page.evaluate(()=>window.__ow.player.z)});
-    await page.keyboard.up('KeyW'); await page.waitForTimeout(400); await page.keyboard.press('Escape');
+    await page.waitForFunction(({sprint,start})=>window.__ow.motion.running===sprint && Math.hypot(window.__ow.player.x-start.x,window.__ow.player.z-start.z)>.4,{sprint,start});
+    console.log('Movement confirmed:',{sprint,position:await page.evaluate(()=>({x:window.__ow.player.x,z:window.__ow.player.z}))});
+    await page.keyboard.up('KeyW'); await page.waitForTimeout(400); await page.keyboard.press('Escape'); await page.waitForFunction(()=>document.pointerLockElement===null);
   }
   await setup(); await page.mouse.click(640,360); await page.waitForFunction(()=>document.pointerLockElement!==null);
   const jumps=await page.evaluate(()=>window.__ow.motion.jumps);
