@@ -4,6 +4,7 @@ import { useWardrobe } from '../state/wardrobe';
 import { useVehicles, validCar } from '../state/vehicles';
 import { sanitizeWardrobe } from '../catalog/clothes';
 import { isHouse } from '../save/storage';
+import { emptyHouse } from '../building/types';
 import { sessionGate, visitingWorld } from './gate';
 import { useDoors } from '../state/doors';
 import { cleanMods } from '../catalog/carMods';
@@ -52,7 +53,7 @@ export function applyWorld(w: WorldSave, preserveSelection = false) {
     const selected = preserveSelection && w.economy.lots.some(l => l.id === local) ? local : w.economy.currentLotId;
     const lots = w.economy.lots.map(l => l.id === w.economy.currentLotId ? { ...l, design: w.house } : l);
     const active = lots.find(l => l.id === selected);
-    const house = selected === w.economy.currentLotId ? w.house : active?.design ?? active?.built ?? w.house;
+    const house = selected === w.economy.currentLotId ? w.house : active ? active.design ?? active.built ?? emptyHouse() : w.house;
     useEconomy.setState({ ...copy(w.economy), currentLotId: selected,
       lots: lots.map(l => l.id === selected ? { ...l, design: null } : l), job: null });
     useGame.setState({ house: copy(house), past: [], future: [], dragBase: null, selection: null, marked: [], lastCommit: null });

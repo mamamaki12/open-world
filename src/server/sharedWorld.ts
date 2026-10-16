@@ -1,23 +1,24 @@
 // みんなのワールドの正本をサーバーで扱う純粋な処理（ブラウザーのstoreには依存しない）
 import type { House } from '../building/types';
 import { emptyHouse } from '../building/types';
-import { sampleHouse } from '../building/sample';
 import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { renovationCost } from '../economy/pricing';
 import { DAY_SECONDS, landOffers, landPrice, stepMarket, getLocation } from '../economy/market';
 import type { LandOffer } from '../economy/market';
-import { JOINED_W, START_PLOT, freePlot } from '../economy/town';
+import { JOINED_W, freePlot } from '../economy/town';
 import { applyChanges } from '../session/edits';
 import type { Change } from '../session/edits';
 import type { Lot } from '../state/economy';
 import type { WorldSave } from '../session/saves';
 
-/** 建築以外の操作。お金はプレイヤーからプレイヤーへ渡す（土地の新規購入だけは不動産屋へ払う） */
-export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; price: number | null } | { type: 'buyLot' } | { type: 'claim'; payout: string };
+/** 建築以外の操作。家・土地の代金は買った人の口座から売り手の口座へ直接移る（新しい土地だけは不動産屋へ払う） */
+export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; price: number | null } | { type: 'buyLot' }
+  | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] };
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
-/** 売れた代金。売り手が受け取るまでサーバーで預かる */
-export interface Payout { to: string; amount: number; label: string }
-export type SharedWorld = WorldSave & { payouts?: Record<string, Payout> };
+/** みんなのワールドでの所持金と車。自分のワールドとは完全に別（引き継ぐのは見た目と服だけ） */
+export interface Account { name: string; money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[] }
+export type SharedWorld = WorldSave & { accounts?: Record<string, Account> };
+export const SHARED_START_MONEY = 1_000_000;
 export interface SharedResult { id: string; ok: boolean; cost?: number; message?: string }
 type Receipt = WorldSave['receipts'][string];
 
@@ -25,13 +26,28 @@ export const SHARED_LIMIT = 10;
 const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
 export function initialSharedWorld(id: string): WorldSave {
-  const square: Lot = { id: 'shared-square', name: 'みんなの広場', location: 'rural', variance: 1, built: sampleHouse(),
-    design: null, construction: null, rented: false, invested: 0, plot: START_PLOT };
-  const w: SharedWorld = { worldId: id, doors: {}, receipts: {}, payouts: {}, house: square.built ?? emptyHouse(),
-    economy: { day: 1, clock: 0, market: 1, marketHistory: [1], lots: [square], currentLotId: square.id, offers: [] } };
+  // 土地はだれも持っていない状態から始まる
+  const w: SharedWorld = { worldId: id, doors: {}, receipts: {}, accounts: {}, house: emptyHouse(),
+    economy: { day: 1, clock: 0, market: 1, marketHistory: [1], lots: [], currentLotId: null, offers: [] } };
   w.economy.offers = sharedOffers(w, Math.random);
   return w;
 }
+
+export function withAccount(w: SharedWorld, id: string, name: string): SharedWorld {
+  const a = w.accounts?.[id];
+  if (a && a.name === name) return w;
+  return { ...w, accounts: { ...w.accounts, [id]: a ? { ...a, name } :
+    { name, money: SHARED_START_MONEY, ledger: [{ day: w.economy.day, label: 'はじめの所持金', amount: SHARED_START_MONEY }], cars: [] } } };
+}
+function charge(w: SharedWorld, id: string, amount: number, label: string): SharedWorld | string {
+  const a = w.accounts?.[id];
+  if (!a) return '口座がありません';
+  if (amount > 0 && a.money < amount) return 'お金が足りません';
+  if (!amount) return w;
+  return { ...w, accounts: { ...w.accounts, [id]: { ...a, money: a.money - amount, ledger: [{ day: w.economy.day, label, amount: -amount }, ...a.ledger].slice(0, 50) } } };
+}
+/** 配信用。口座は本人にだけ送る */
+export function publicWorld(w: SharedWorld): WorldSave { const { accounts: _hidden, ...rest } = w; return rest; }
 
 const plotsOfLots = (lots: Lot[]) => lots.flatMap(l => [l.plot, l.joined].filter((p): p is number => typeof p === 'number'));
 /** 不動産屋の売り土地を、まだだれの土地でもない区画に並べる */
@@ -45,8 +61,19 @@ export function sharedOffers(w: WorldSave, rng: () => number): LandOffer[] {
 }
 
 function applyAction(w: SharedWorld, sender: string, name: string, c: SharedCommand, a: SharedAction): { world: SharedWorld; cost: number; message: string } | string {
-  const lots = w.economy.lots, lot = lots.find(l => l.id === c.lot), payouts = { ...(w.payouts ?? {}) };
-  const withLots = (next: Lot[], extra: Partial<SharedWorld> = {}): SharedWorld => ({ ...w, ...extra, economy: { ...w.economy, ...(extra.economy ?? {}), lots: next } });
+  const lots = w.economy.lots, lot = lots.find(l => l.id === c.lot);
+  if (a.type === 'money') {
+    // カジノやバイトなど端末で計算するお金の出入り（端末の申告を信頼する。将来はサーバーで計算する）
+    if (!Number.isSafeInteger(a.delta) || Math.abs(a.delta) > 1e13 || typeof a.label !== 'string') return '金額が不正です';
+    const paid = charge(w, sender, -a.delta, a.label.slice(0, 60));
+    return typeof paid === 'string' ? paid : { world: paid, cost: 0, message: '' };
+  }
+  if (a.type === 'cars') {
+    if (!Array.isArray(a.cars) || a.cars.length > 10 || JSON.stringify(a.cars).length > 20000) return '車の情報が不正です';
+    const acc = w.accounts?.[sender]; if (!acc) return '口座がありません';
+    return { world: { ...w, accounts: { ...w.accounts, [sender]: { ...acc, cars: a.cars } } }, cost: 0, message: '' };
+  }
+  const withLots = (next: Lot[]): SharedWorld => ({ ...w, economy: { ...w.economy, lots: next } });
   if (a.type === 'buyLand') {
     const offer = w.economy.offers.find(o => o.id === a.offer);
     if (!offer || typeof offer.plot !== 'number') return 'その土地はもう売れてしまいました';
@@ -56,13 +83,10 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     if (!Number.isSafeInteger(c.reserved) || c.reserved < price) return '値段が変わりました。最新の状態でやり直してください';
     const bought: Lot = { id: 'lot-' + c.id.slice(0, 40), name: `${offer.name}（${getLocation(offer.location).name}）`, location: offer.location, variance: offer.variance,
       built: null, design: null, construction: null, rented: false, invested: price, plot: offer.plot, owner: sender, ownerName: name };
-    return { world: { ...withLots([...lots, bought]), economy: { ...w.economy, lots: [...lots, bought], offers: w.economy.offers.filter(o => o.id !== offer.id) } }, cost: price, message: bought.name + 'を買いました' };
-  }
-  if (a.type === 'claim') {
-    const p = payouts[a.payout];
-    if (!p || p.to !== sender) return '受け取る代金がありません';
-    delete payouts[a.payout];
-    return { world: { ...w, payouts }, cost: 0, message: '代金を受け取りました' };
+    const paid = charge(w, sender, price, '土地の購入（' + bought.name + '）');
+    if (typeof paid === 'string') return paid;
+    const current = w.economy.currentLotId ?? bought.id;
+    return { world: { ...paid, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter(o => o.id !== offer.id) } }, cost: price, message: bought.name + 'を買いました' };
   }
   if (!lot) return 'その土地はありません';
   if (a.type === 'list') {
@@ -72,14 +96,17 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     const next = lots.map(l => l.id === lot.id ? { ...l, listing: a.price === null ? undefined : { price: a.price } } : l);
     return { world: withLots(next), cost: 0, message: a.price === null ? '売りに出すのをやめました' : '売りに出しました' };
   }
-  // buyLot: 売りに出ている土地を買う。代金は売り手へ預ける
+  // buyLot: 売りに出ている土地を買う。代金は買った人から売り手へ直接移る
   if (!lot.listing || !lot.owner) return 'その土地は売りに出ていません';
   if (lot.owner === sender) return '自分の土地は買えません';
-  const price = lot.listing.price;
+  const price = lot.listing.price, seller = lot.owner;
   if (!Number.isSafeInteger(c.reserved) || c.reserved < price) return '値段が変わりました。最新の状態でやり直してください';
-  payouts['pay-' + c.id] = { to: lot.owner, amount: price, label: `${lot.name}が${name}さんに売れました` };
+  const paid = charge(w, sender, price, `${lot.name}の購入`);
+  if (typeof paid === 'string') return paid;
+  const received = paid.accounts?.[seller] ? charge(paid, seller, -price, `${lot.name}が${name}さんに売れました`) : paid;
+  if (typeof received === 'string') return received;
   const next = lots.map(l => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: undefined, invested: price, rented: false } : l);
-  return { world: { ...withLots(next), payouts }, cost: price, message: lot.name + 'を買いました' };
+  return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: price, message: lot.name + 'を買いました' };
 }
 
 /** 持ち主のいない土地は誰でも、持ち主のいる土地はその人だけが建てられる */
@@ -87,9 +114,9 @@ export function canBuildOn(lot: Lot, member: string): boolean { return !lot.owne
 
 function houseOf(w: WorldSave, id: string): House | null {
   const l = w.economy.lots.find(l => l.id === id);
-  return !l ? null : id === w.economy.currentLotId ? w.house : l.design ?? l.built;
+  return !l ? null : id === w.economy.currentLotId ? w.house : l.design ?? l.built ?? emptyHouse();
 }
-function withHouse(w: WorldSave, id: string, house: House): WorldSave {
+function withHouse(w: SharedWorld, id: string, house: House): SharedWorld {
   return { ...w, house: id === w.economy.currentLotId ? house : w.house,
     economy: { ...w.economy, lots: w.economy.lots.map(l => l.id === id ? { ...l, built: house, design: null, construction: null } : l) } };
 }
@@ -130,11 +157,13 @@ export function applyCommand(w: SharedWorld, sender: string, c: SharedCommand, n
       cost = c.undoOf ? 0 : renovationCost(before, next).total;
     } finally { Object.assign(lotSize, previous); }
     if (!Number.isSafeInteger(c.reserved) || c.reserved < cost) return fail('費用が変わりました。最新の状態でやり直してください');
+    const charged = charge(w, sender, cost, '建築（' + lot.name + '）');
+    if (typeof charged === 'string') return fail(charged);
     const nextReceipts: Record<string, Receipt> = { ...receipts, [c.id]: { sender, cost, delta: c.delta } };
     if (c.undoOf) nextReceipts[c.undoOf] = { ...undo!, undone: true };
     const ids = Object.keys(nextReceipts);
     for (const id of ids.slice(0, -800)) if (nextReceipts[id].delta) nextReceipts[id] = { ...nextReceipts[id], delta: undefined };
-    const world = { ...withHouse(w, c.lot, next), receipts: nextReceipts };
+    const world = { ...withHouse(charged, c.lot, next), receipts: nextReceipts };
     if (JSON.stringify(world).length > 1800000) return fail('ワールドの保存量が上限に達したため、この変更を確定できません');
     return { world, result: { id: c.id, ok: true, cost }, changed: true };
   } catch (e) { return fail(e instanceof Error ? e.message : '変更できませんでした'); }
