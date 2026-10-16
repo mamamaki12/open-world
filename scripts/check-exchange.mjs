@@ -1,0 +1,35 @@
+// 証券取引所の外観・店内・売買を確認する（vite dev server を 5173 で起動してから）
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+const proxy=process.env.HTTPS_PROXY?['--proxy-server='+process.env.HTTPS_PROXY,'--proxy-bypass-list=127.0.0.1;localhost']:[];
+const browser=await chromium.launch({headless:true,args:[...proxy,'--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-certificate-errors']});
+const tag=process.argv[2]??'pc';
+const page=await browser.newPage({viewport:tag==='phone'?{width:844,height:390}:{width:1280,height:800},deviceScaleFactor:1});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+page.setDefaultTimeout(90000);
+await page.goto('http://127.0.0.1:5173/'+(tag==='phone'?'?touch=1':''));
+await page.getByRole('button',{name:'ひとりで遊ぶ',exact:false}).click();
+await page.waitForFunction(()=>window.__ow);
+const place=async(dx,dz,yaw)=>{await page.evaluate(async({dx,dz,yaw})=>{
+  const {VENUES}=await import('/src/building/venues.ts');const {civicOffset}=await import('/src/state/economy.ts');
+  const g=window.__ow;g.game.getState().setOverlay(null);g.game.getState().setMode('walk');
+  const b=VENUES.exchange,o=civicOffset();Object.assign(g.player,{x:o.x+(b.x0+b.x1)/2+dx,z:o.z+(b.z0+b.z1)/2+dz,y:0,yaw,bodyYaw:yaw,pitch:-.1});
+},{dx,dz,yaw});await page.waitForTimeout(2500);};
+await page.evaluate(()=>window.__ow.economy.setState({money:1000000}));
+await place(3,-17,Math.PI+.15);
+await page.screenshot({path:`browser-checks/exchange-${tag}-outside.png`});
+await place(0,-3.5,Math.PI);
+await page.screenshot({path:`browser-checks/exchange-${tag}-inside.png`});
+await place(0,.6,0);
+await page.getByRole('button',{name:/株を売買する/}).click();
+await page.getByText('1口 =').waitFor();
+await page.screenshot({path:`browser-checks/exchange-${tag}-panel.png`});
+await page.getByRole('button',{name:/^買う/}).click();
+await page.getByText(/買いました/).waitFor();
+const money=await page.evaluate(()=>window.__ow.economy.getState().money);
+const held=await page.evaluate(async()=>{const {useStocks}=await import('/src/state/stocks.ts');return useStocks.getState().holdings;});
+assert.ok(Object.values(held).some(h=>Math.abs(h.cost-100000)<=10),'10万円ぶん保有 '+JSON.stringify(held));
+await page.getByRole('button',{name:/^保有/}).click();
+await page.screenshot({path:`browser-checks/exchange-${tag}-portfolio.png`});
+console.log('money',money,'errors',errors.slice(0,5));
+await browser.close();

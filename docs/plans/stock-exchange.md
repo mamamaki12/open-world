@@ -19,5 +19,7 @@
 - 済: 方針決定、計画をpush
 - 済: 取得ワークフロー動作確認（market-data ブランチに quotes.json、raw から CORS 可で 200）
 - 済: `src/economy/stocks.ts`(計算+テスト)、`src/state/stocks.ts`(口座)、`src/ui/ExchangePanel.tsx`(売買画面)、`src/building/exchange.ts`+`src/world/ExchangeBuilding.tsx`(建物・電光掲示・店内ボード)、venues/地図/当たり判定へ追加
-- 次: 画面で見た目確認 → PR
+- 済: ブラウザ確認 `node scripts/check-exchange.mjs pc`（vite dev 5173）：外観・店内ボード・売買・保有が動作、例外なし
+- 次: PR → CI → マージ。マージ後 schedule が main で動き出すことを確認
+- 課題: 株の保有はこの端末の localStorage（`open-world:stocks:v1`）。オンラインのプロフィール持ち込みには未対応
 - 課題: ワークフローの定期実行は main にマージ後に有効。Yahoo が GitHub の IP を拒否したら Stooq に切り替え。
