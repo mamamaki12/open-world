@@ -1,4 +1,5 @@
 import { TunerBuilding } from './TunerBuilding';
+import { ExchangeBuilding } from './ExchangeBuilding';
 import { BuildingDetail } from './BuildingDetail';
 import { houseEnvelope } from './buildingLod';
 import { DistantHouse } from './DistantHouse';
@@ -110,7 +111,7 @@ export function Town() {
           </group>;
         })}
         <Streetscape />
-        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><VenueExteriorDetail kind="casino"><CasinoBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="estate"><EstateBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="dealer"><DealerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="tuner"><TunerBuilding /></VenueExteriorDetail><BoutiqueBuildings /></group>
+        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><VenueExteriorDetail kind="casino"><CasinoBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="estate"><EstateBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="dealer"><DealerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="tuner"><TunerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="exchange"><ExchangeBuilding /></VenueExteriorDetail><BoutiqueBuildings /></group>
         {/* 地区の境目の看板 */}
         {[FIRST_PLOT, ...[3, 9].filter((p) => p <= LAST_PLOT)].map((p) => (
           <DistrictSign key={p} plot={p} />
