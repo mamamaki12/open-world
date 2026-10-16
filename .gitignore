@@ -3,3 +3,4 @@ dist
 *.tsbuildinfo
 world-session-checks/
 player-shop-checks/
+job-checks/
