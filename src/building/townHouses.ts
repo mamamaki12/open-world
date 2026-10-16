@@ -398,7 +398,7 @@ function narrowTownhouse(): House {
 
 // ---------------------------------------------------------------------------
 // 集合住宅（アパート・マンション）。どの階も同じ間取りの部屋を横に並べる。
-// 道路側（+Z）にバルコニー、奥に共用廊下、東の端に外階段（折り返し階段）。
+// 道路側（+Z）にバルコニー、奥に共用廊下、東の端に外階段（廊下に沿った直階段を上下の階で交互に）。
 // 1階の真ん中をエントランスホールにすることもできる
 // ---------------------------------------------------------------------------
 interface ApartmentStyle {
@@ -456,7 +456,9 @@ function apartment(st: ApartmentStyle): House {
       for (let u = 0; u <= st.units; u++) k.wall(level, x0 + u * W, zf, x0 + u * W, zf + 2, st.railing, st.railing, 'half');
     }
     if (level < st.floors - 1) {
-      k.stair(level, x1, c - 1, 0, stairFinish, 'u');
+      // 共用廊下に沿った直階段。上下の階で重ならないよう、偶数階は外側の列を東へ、奇数階は内側の列を西へ上る
+      if (level % 2 === 0) k.stair(level, x1 - 4, c - 2, 1, stairFinish);
+      else k.stair(level, x1 - 1, c - 1, 3, stairFinish);
       // 階段室の外壁（上の階の踊り場の床を支える）
       k.wall(level, x1 + 2, c - 2, x1 + 2, c + 2, st.railing, st.railing);
     }
