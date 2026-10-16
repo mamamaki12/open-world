@@ -12,6 +12,7 @@ import { isBoutique } from '../building/boutiques';
 import { BoutiqueInterior } from './BoutiqueBuildings';
 import { CarModel, Wheel } from './CarModel';
 import { CARS } from '../catalog/cars';
+import { ExchangeInterior } from './ExchangeBuilding';
 import { STOCK_MODS } from '../catalog/carMods';
 import type { CarMods } from '../catalog/carMods';
 function Box({p,s,c,metal=0}:{p:[number,number,number];s:[number,number,number];c:string;metal?:number}){
@@ -134,10 +135,11 @@ function Shell({kind}:{kind:Venue}){
     {[-1,1].map(side=><Box key={side} p={[side*(w/2-.2),.15,0]} s={[.07,.13,d]} c={b.trim} metal={.5}/>)}
   </>;
 }
-const HEIGHT:Record<Venue,number>={casino:6.4,estate:3.2,dealer:4.5,tuner:4.8,maison:4.2,atelier:3.6,urban:3.6,daily:3.6};
+const HEIGHT:Record<Venue,number>={casino:6.4,estate:3.2,dealer:4.5,tuner:4.8,exchange:5,maison:4.2,atelier:3.6,urban:3.6,daily:3.6};
 const LIGHT:Record<Venue,{y:number;intensity:number;color:string;distance:number}>={
   casino:{y:4,intensity:20,color:'#ffd9a0',distance:20},estate:{y:2.5,intensity:12,color:'#fff0db',distance:12},dealer:{y:4.2,intensity:25,color:'#e2f2ff',distance:20},
   tuner:{y:4.3,intensity:24,color:'#f4f6ff',distance:18},
+  exchange:{y:4.2,intensity:16,color:'#f4f6ff',distance:14},
   maison:{y:3.6,intensity:14,color:'#ffe6bf',distance:12},atelier:{y:3.1,intensity:12,color:'#fff0db',distance:12},urban:{y:3.1,intensity:12,color:'#f4f8ff',distance:12},daily:{y:3.1,intensity:13,color:'#ffffff',distance:12},
 };
 /** 店内の照明はひとつだけ置き、近くの店へ動かす（ライトの数が変わるとシェーダーを作り直して一瞬止まるため）。 */
@@ -163,8 +165,8 @@ export function VenueInteriors(){
       return <group key={kind} position={[cx,0,cz]}>
         <VenueInteriorDetail kind={kind} centred>
         <Shell kind={kind}/>
-        {(kind==='casino'||kind==='estate')&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':'#ffe5a6'}/>)}
-        {kind==='casino'?<CasinoInterior/>:kind==='estate'?<EstateInterior/>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:<DealerInterior/>}</VenueInteriorDetail>
+        {(kind==='casino'||kind==='estate'||kind==='exchange')&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':kind==='exchange'?'#1e4d8c':'#ffe5a6'}/>)}
+        {kind==='casino'?<CasinoInterior/>:kind==='estate'?<EstateInterior/>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:kind==='exchange'?<ExchangeInterior/>:<DealerInterior/>}</VenueInteriorDetail>
       </group>;
     })}
   </group>;

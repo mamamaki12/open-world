@@ -13,7 +13,7 @@ async function open(width,height,shop='daily'){
 const page=await open(1280,900,'maison');
 await page.locator('.garment').filter({hasText:'テーラードジャケット'}).click();
 const before=await page.evaluate(async()=>{const {useWardrobe}=await import('/src/state/wardrobe.ts');return {outfit:useWardrobe.getState().outfit,money:window.__ow.economy.getState().money};});
-assert.equal(before.outfit.top,'starter-tee','trying does not equip');assert.equal(before.money,20000000,'trying is free');
+assert.equal(before.outfit.top,'starter-tee','trying does not equip');assert.equal(before.money,1000000,'trying is free');
 await page.screenshot({path:out+'/desktop.png'});
 await page.getByRole('button',{name:/購入して着る/}).click();
 const after=await page.evaluate(async()=>{const {useWardrobe}=await import('/src/state/wardrobe.ts');return {outfit:useWardrobe.getState().outfit,money:window.__ow.economy.getState().money,saved:JSON.parse(localStorage.getItem('open-world:wardrobe:v1'))};});

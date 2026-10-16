@@ -1,4 +1,5 @@
 import { TunerBuilding } from './TunerBuilding';
+import { ExchangeBuilding } from './ExchangeBuilding';
 import { BuildingDetail } from './BuildingDetail';
 import { houseEnvelope } from './buildingLod';
 import { DistantHouse } from './DistantHouse';
@@ -17,10 +18,10 @@ import { activateOwnedHouse } from '../state/ownedEditing';
 import { beginPartDrag } from './partDrag';
 import { playerMemory } from './Player';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
-import { getLocation, landPrice } from '../economy/market';
+import { getLocation } from '../economy/market';
 import { yen } from '../economy/money';
 import { FIRST_PLOT, LAST_PLOT, PLOT_PITCH, TOWN_BOUNDS, TOWN_ROADS, CIVIC_SITE, districtOf, plotX, plotZ } from '../economy/town';
-import { lotCells, lotHouse, originShift, useCurrentPlot, useEconomy } from '../state/economy';
+import { lotCells, lotHouse, offerPrice, originShift, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
 import { Streetscape } from './Streetscape';
 import { DealerBuilding } from './DealerBuilding';
@@ -29,6 +30,12 @@ import { EstateBuilding } from './EstateBuilding';
 import { HouseParts } from './HouseView';
 import { TownHouses } from './TownHouses';
 import { grassTexture } from './textures';
+
+let grassMat: THREE.MeshStandardMaterial | null = null;
+/** 町の草地（冬は Climate が白っぽくする） */
+export function grassMaterial(): THREE.MeshStandardMaterial {
+  return (grassMat ??= new THREE.MeshStandardMaterial({ map: grassTexture(), roughness: 1 }));
+}
 
 const lotW = LOT_W * GRID;
 const lotD = LOT_D * GRID;
@@ -94,7 +101,7 @@ export function Town() {
         {tiles.map(({ x, z }) => (
           <mesh key={`${x},${z}`} rotation-x={-Math.PI / 2} position={[x, -0.02, z]} receiveShadow>
             <planeGeometry args={[TILE, TILE]} />
-            <meshStandardMaterial map={grassTexture()} roughness={1} />
+            <primitive object={grassMaterial()} attach="material" />
           </mesh>
         ))}
         {TOWN_ROADS.map((road, i) => {
@@ -110,7 +117,7 @@ export function Town() {
           </group>;
         })}
         <Streetscape />
-        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><VenueExteriorDetail kind="casino"><CasinoBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="estate"><EstateBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="dealer"><DealerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="tuner"><TunerBuilding /></VenueExteriorDetail><BoutiqueBuildings /></group>
+        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><VenueExteriorDetail kind="casino"><CasinoBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="estate"><EstateBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="dealer"><DealerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="tuner"><TunerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="exchange"><ExchangeBuilding /></VenueExteriorDetail><BoutiqueBuildings /></group>
         {/* 地区の境目の看板 */}
         {[FIRST_PLOT, ...[3, 9].filter((p) => p <= LAST_PLOT)].map((p) => (
           <DistrictSign key={p} plot={p} />
@@ -146,7 +153,7 @@ export function Town() {
           return (
             <group key={o.id} position={[plotX(o.plot) + shift, 0, plotZ(o.plot) + shiftZ]}>
               <SaleRope />
-              <Signboard lines={['売地', o.name, yen(landPrice(o.location, o.variance, market))]} tone="sale" />
+              <Signboard lines={['売地', o.name, yen(offerPrice(o, market))]} tone="sale" />
             </group>
           );
         })}

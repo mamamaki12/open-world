@@ -5,6 +5,8 @@ import { visitingWorld, onlineWorld } from '../session/gate';
 import { emptyHouse } from '../building/types';
 import type { House } from '../building/types';
 import { autosave, isHouse } from '../save/storage';
+import { climateMarketFactor } from '../world/climate';
+import { FIXED_BUILDINGS, densityFactor, neighborScore, playerHouseWeight, plotCenter } from '../economy/neighborhood';
 import { DAY_SECONDS, dailyBill, getLocation, landOffers, landPrice, salePrice, stepMarket } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { appraiseBuilding, buildSeconds, estimateCost, renovationCost } from '../economy/pricing';
@@ -15,7 +17,7 @@ import { mergeHouses } from '../building/join';
 import { useGame } from './store';
 import { useInteraction } from './interaction';
 
-export const START_MONEY = 20_000_000;
+export const START_MONEY = 1_000_000;
 
 /** いま開いている土地の原点が動いたとき（土地をつなげたとき）に、カメラ側で受け取る。dx, dz は新しい原点から見た古い原点の位置 */
 export const originShift: { listener: ((dx: number, dz: number) => void) | null } = { listener: null };
@@ -79,13 +81,6 @@ export interface Txn {
   amount: number;
 }
 
-export interface Job {
-  label: string;
-  pay: number;
-  total: number;
-  remaining: number;
-}
-
 interface EconomyData {
   money: number;
   day: number;
@@ -98,7 +93,6 @@ interface EconomyData {
   offers: LandOffer[];
   ledger: Txn[];
   gamble: { bet: number; won: number };
-  job: Job | null;
 }
 
 interface EconomyState extends EconomyData {
@@ -117,7 +111,6 @@ interface EconomyState extends EconomyData {
   switchLot: (lotId: string) => void;
   /** 隣り合う2つの自分の土地をつなげて1つにする。できなければ理由を返す */
   joinLots: (lotId: string) => string | null;
-  startJob: () => void;
   reset: () => void;
 }
 
@@ -162,7 +155,6 @@ function initialData(): EconomyData {
     offers: placeOffers(landOffers(1, Math.random), [first]),
     ledger: [{ day: 1, label: 'はじめの所持金', amount: START_MONEY }],
     gamble: { bet: 0, won: 0 },
-    job: null,
   };
 }
 
@@ -175,7 +167,7 @@ function load(): EconomyData {
         // 区画のない古いセーブの土地・売り土地には、ここで区画を決める
         const lots = assignPlots(d.lots, d.lots.flatMap((l) => (typeof l.joined === 'number' ? [l.joined] : [])));
         const offers = placeOffers(Array.isArray(d.offers) ? d.offers : [], lots);
-        return { ...initialData(), ...d, lots, offers, job: null };
+        return { ...initialData(), ...d, lots, offers };
       }
     }
   } catch {
@@ -199,8 +191,7 @@ export function saveEconomy(): void {
       offers: s.offers,
       ledger: s.ledger,
       gamble: s.gamble,
-      job: null,
-    };
+      };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   } catch {
     // 保存できない環境では何もしない
@@ -214,16 +205,33 @@ export function lotNumbers(lot: Lot, market: number) {
   const loc = getLocation(lot.location);
   const buildCost = lot.built ? estimateCost(lot.built).total : 0;
   const appraisal = lot.built ? appraiseBuilding(lot.built, loc.factor) : 0;
-  const landValue = Math.round(loc.land * lot.variance);
+  const density = typeof lot.plot === 'number' ? plotDensity(lot.plot) : 1;
+  const landValue = Math.round(loc.land * lot.variance * density);
   return {
     location: loc,
+    density,
     buildCost,
     appraisal,
     landValue,
-    landNow: landPrice(lot.location, lot.variance, market),
-    sale: salePrice(appraisal, lot.location, lot.variance, market),
+    landNow: landPrice(lot.location, lot.variance, market, density),
+    sale: salePrice(appraisal, lot.location, lot.variance, market, density),
     bill: dailyBill({ buildCost, appraisal, landValue, rented: lot.rented, market }),
   };
+}
+
+/** 区画のまわりの建物の多さによる土地代の係数（町の家・お店＋自分の建てた家） */
+export function plotDensity(plot: number, lots: Lot[] = useEconomy.getState().lots): number {
+  const mine = lots.flatMap((l) => {
+    if (!l.built || typeof l.plot !== 'number' || l.plot === plot) return [];
+    const levels = new Set(l.built.floors.map((f) => f.level)).size;
+    return [{ ...plotCenter(l.plot), weight: playerHouseWeight(levels) }];
+  });
+  return densityFactor(neighborScore(plot, [...FIXED_BUILDINGS, ...mine]));
+}
+
+/** 売り土地の今の値段（立地・ぶれ・にぎわい・相場） */
+export function offerPrice(o: LandOffer, market: number, lots?: Lot[]): number {
+  return landPrice(o.location, o.variance, market, typeof o.plot === 'number' ? plotDensity(o.plot, lots) : 1);
 }
 
 /** いま画面に出している土地の設計図 */
@@ -260,25 +268,13 @@ export const useEconomy = create<EconomyState>((set, get) => {
           return { ...l, built: l.construction.target, construction: null };
         });
       }
-      // バイト
-      let job = s.job;
-      if (job) {
-        const remaining = job.remaining - dt;
-        if (remaining > 0) job = { ...job, remaining };
-        else {
-          money += job.pay;
-          ledger = [{ day: s.day, label: job.label, amount: job.pay }, ...ledger].slice(0, LEDGER_LIMIT);
-          notify(`${job.label}：${yen(job.pay)} もらいました`);
-          job = null;
-        }
-      }
       // 日付
       let { clock, day, market, marketHistory, offers } = s;
       clock += dt;
       if (clock >= DAY_SECONDS) {
         clock -= DAY_SECONDS;
         day += 1;
-        market = stepMarket(market, Math.random);
+        market = stepMarket(market, Math.random, climateMarketFactor(Date.now()));
         marketHistory = [...marketHistory, market].slice(-HISTORY_LIMIT);
         offers = placeOffers(landOffers(day, Math.random), lots);
         let costs = 0;
@@ -301,7 +297,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
         const arrow = market > prev ? '▲' : market < prev ? '▼' : '→';
         notify(`${day}日目　相場 ${market.toFixed(2)} ${arrow}${rent ? `　家賃 +${yen(rent)}` : ''}${costs ? `　維持費・税 -${yen(costs)}` : ''}`);
       }
-      set({ lots, money, ledger, job, clock, day, market, marketHistory, offers });
+      set({ lots, money, ledger, clock, day, market, marketHistory, offers });
     },
 
     pay: (amount, label) => {
@@ -323,7 +319,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     startConstruction: () => {
-      if (onlineWorld()) return '共同建築中は配置の確定時に本人が費用を支払います';
+      if (onlineWorld()) return '共同建築中は配置するとそのまま反映されます（無料）';
       const s = get();
       const lot = s.lots.find((l) => l.id === s.currentLotId);
       if (!lot) return '土地がありません。不動産屋で土地を買ってください';
@@ -336,14 +332,11 @@ export const useEconomy = create<EconomyState>((set, get) => {
         set({ lots: updateLot(lot.id, { built: design }) });
         return null;
       }
-      if (est.total > s.money) return `お金が足りません（工事費 ${yen(est.total)}）`;
+      // 着工は無料（工事の時間だけかかる）。売るときは建物の査定ぶんお金が付く
       const total = buildSeconds(est.total);
       set({
-        money: s.money - est.total,
-        ledger: addTxn(`${lot.built ? '改築' : '新築'}工事（${lot.name}）`, -est.total),
         lots: updateLot(lot.id, {
-          construction: { target: design, cost: est.total, total, remaining: total },
-          invested: lot.invested + est.total,
+          construction: { target: design, cost: 0, total, remaining: total },
         }),
       });
       return null;
@@ -384,7 +377,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
       const s = get();
       const offer = s.offers.find((o) => o.id === offerId);
       if (!offer) return 'その土地はもう売れてしまいました';
-      const price = landPrice(offer.location, offer.variance, s.market);
+      const price = offerPrice(offer, s.market, s.lots);
       if (price > s.money) return `お金が足りません（${yen(price)}）`;
       const taken = ownedPlots(s.lots);
       const plot = typeof offer.plot === 'number' && !taken.includes(offer.plot) ? offer.plot : freePlot(offer.location, taken);
@@ -465,11 +458,6 @@ export const useEconomy = create<EconomyState>((set, get) => {
       notify(`🔗 ${west.name.replace(/（.*）$/, '')} と ${east.name.replace(/（.*）$/, '')} をつなげて、1つの広い土地にしました`);
       saveEconomy();
       return null;
-    },
-
-    startJob: () => {
-      if (get().job) return;
-      set({ job: { label: '日雇いバイト（チラシ配り）', pay: 12_000, total: 10, remaining: 10 } });
     },
 
     reset: () => {

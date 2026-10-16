@@ -2,6 +2,7 @@
 // 座標は2種類：
 //  - グリッド座標（整数）：1マス = 910mm。壁・床・屋根・階段はこれで置く
 //  - メートル座標：家具の位置、窓・ドアの壁上の位置
+import type { FurnitureDef } from '../catalog';
 
 /** 素材＋色の組み合わせ。素材IDは catalog/materials.json を参照 */
 export interface Finish {
@@ -101,7 +102,9 @@ export interface RoofPart {
 export interface FurniturePart {
   id: string;
   level: number;
-  type: string; // catalog/furniture.json の id
+  type: string; // catalog/furniture.json の id、またはデザインした家具の design:…
+  /** デザインした家具の形（type と同じ id）。セーブ・共有でもそのまま伝わる */
+  design?: FurnitureDef;
   x: number;
   z: number;
   rotation: number;

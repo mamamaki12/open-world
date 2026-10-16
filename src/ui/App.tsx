@@ -15,11 +15,13 @@ import { WalkHud } from './WalkHud';
 import { DealerPanel } from './DealerPanel';
 import { BoutiquePanel } from './BoutiquePanel';
 import { TunerPanel } from './TunerPanel';
+import { ExchangePanel } from './ExchangePanel';
 import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
 import { MapPanel } from './MapPanel';
 import { BuildChip, MoneyBar, useEconomyClock } from './MoneyBar';
+import { JobsPanel } from './jobs/JobsPanel';
 import { BuildButton, BuildMenu } from './BuildMenu';
 import { yen } from '../economy/money';
 import { useEconomy } from '../state/economy';
@@ -28,6 +30,7 @@ import { useTouchDevice } from './useTouchDevice';
 import { walkActions } from '../state/touch';
 import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
 import { reloadLatest } from './reload';
+import { FurnitureDesigner } from './FurnitureDesigner';
 import { leaveWorld, useSession } from '../session/session';
 import { downloadBackup } from '../session/saves';
 
@@ -63,7 +66,7 @@ export function App() {
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('map')}>地図</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>服</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('map')}>地図</button><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>服</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
@@ -89,12 +92,15 @@ export function App() {
       {overlay === 'inventory' && <InventoryPanel />}
       {overlay === 'dealer' && <DealerPanel />}
       {overlay === 'tuner' && <TunerPanel />}
+      {overlay === 'exchange' && <ExchangePanel />}
       {overlay === 'boutique' && <BoutiquePanel />}
       {overlay === 'closet' && <BoutiquePanel closetOnly />}
       {overlay === 'land' && <LandPurchasePanel />}
       {overlay === 'estate' && <EstatePanel />}
       {overlay === 'casino' && <CasinoPanel />}
       {overlay === 'map' && <MapPanel />}
+      {overlay === 'jobs' && <JobsPanel />}
+      <FurnitureDesigner />
       <Toast />
     </div>
   );
@@ -211,6 +217,9 @@ function TouchHud() {
         <span className={`touch-cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
         <button className="tool icon labeled" onClick={() => setOverlay('map')} aria-label="町の地図">
           🗺<span>マップ</span>
+        </button>
+        <button className="tool icon labeled" onClick={() => setOverlay('jobs')} aria-label="バイト">
+          💼<span>バイト</span>
         </button>
         <BuildChip />
       </div>

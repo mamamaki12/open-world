@@ -1,0 +1,26 @@
+# 実際の相場を約15分ごとに取得し、market-data ブランチの quotes.json に上書きする（履歴は1コミットだけ残す）。
+name: market-data
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  push:
+    paths: ['scripts/fetch-market.mjs', '.github/workflows/market-data.yml']
+permissions:
+  contents: write
+concurrency: market-data
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: mkdir -p out && node scripts/fetch-market.mjs out/quotes.json
+      - name: market-data ブランチへ push
+        run: |
+          cd out
+          git init -q -b market-data
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git add quotes.json && git commit -qm "market data $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" market-data

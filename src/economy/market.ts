@@ -9,10 +9,11 @@ export const DAY_SECONDS = 60;
  * 相場（1.0 が平均）を1日進める。平均へ戻ろうとする力のあるランダムウォーク（対数で計算）。
  * たまに好況・不況の大きな動きが出る。
  */
-export function stepMarket(index: number, rng: Rng): number {
-  const x = Math.log(index);
+export function stepMarket(index: number, rng: Rng, bias = 1): number {
+  // bias: 季節・天気で少しずれる「平均」（src/world/climate.ts climateMarketFactor）
+  const x = Math.log(index) - Math.log(bias);
   const shock = rng() < 0.04 ? gauss(rng) * 0.12 : 0;
-  const next = x - 0.06 * x + gauss(rng) * 0.035 + shock;
+  const next = Math.log(bias) + x - 0.06 * x + gauss(rng) * 0.035 + shock;
   return Math.round(Math.min(Math.max(Math.exp(next), 0.5), 2) * 1000) / 1000;
 }
 
@@ -59,13 +60,13 @@ export function landOffers(day: number, rng: Rng): LandOffer[] {
 }
 
 /** 土地の今の値段 */
-export function landPrice(location: string, variance: number, market: number): number {
-  return Math.round((getLocation(location).land * variance * market) / 10000) * 10000;
+export function landPrice(location: string, variance: number, market: number, density = 1): number {
+  return Math.round((getLocation(location).land * variance * density * market) / 10000) * 10000;
 }
 
-/** 家と土地をまとめて売るときの値段 = (建物の査定 + 土地) × 相場 */
-export function salePrice(buildingAppraisal: number, location: string, variance: number, market: number): number {
-  return Math.round(((buildingAppraisal + getLocation(location).land * variance) * market) / 10000) * 10000;
+/** 家と土地をまとめて売るときの値段 = (建物の査定 + 土地 × にぎわい) × 相場 */
+export function salePrice(buildingAppraisal: number, location: string, variance: number, market: number, density = 1): number {
+  return Math.round(((buildingAppraisal + getLocation(location).land * variance * density) * market) / 10000) * 10000;
 }
 
 /** 毎日の出入り */
