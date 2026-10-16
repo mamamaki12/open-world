@@ -3,6 +3,7 @@ import { Environment, Grid, Lightformer, OrbitControls, Sky } from '@react-three
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W, floorY } from '../building/dimensions';
 import { useGame } from '../state/store';
+import { useTouchDevice } from '../ui/useTouchDevice';
 import { useInteraction } from '../state/interaction';
 import { BuildCamera } from './BuildCamera';
 import { DebugBridge } from './DebugBridge';
@@ -18,6 +19,8 @@ const CENTER: [number, number, number] = [(LOT_W * GRID) / 2, 0, (LOT_D * GRID) 
 const SUN: [number, number, number] = [CENTER[0] + 14, 26, CENTER[2] + 12];
 
 export function Scene() {
+  const touch=useTouchDevice();
+  const shadowSize=touch?1024:2048;
   const tool = useGame((s) => s.tool);
   const mode = useGame((s) => s.mode);
   const select = useGame((s) => s.select);
@@ -32,6 +35,7 @@ export function Scene() {
   return (
     <Canvas
       shadows
+      dpr={touch ? [1,1.5] : [1,2]}
       frameloop={paused ? 'never' : 'always'}
       camera={{ position: [CENTER[0] + 13, 15, CENTER[2] + 19], fov: 45, near: 0.1, far: 700 }}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
@@ -45,7 +49,7 @@ export function Scene() {
       }}
     >
       <Sky sunPosition={SUN} turbidity={4} rayleigh={1.2} mieCoefficient={0.004} mieDirectionalG={0.85} />
-      <Environment resolution={256}>
+      <Environment resolution={touch?128:256}>
         <Lightformer intensity={1.6} position={[0, 10, 0]} rotation-x={Math.PI / 2} scale={[40, 40, 1]} color="#dfe9f5" />
         <Lightformer intensity={0.8} position={[-20, 4, 0]} rotation-y={Math.PI / 2} scale={[40, 8, 1]} color="#f7efe2" />
         <Lightformer intensity={0.6} position={[20, 4, 0]} rotation-y={-Math.PI / 2} scale={[40, 8, 1]} color="#e3ecf7" />
@@ -57,7 +61,7 @@ export function Scene() {
         intensity={2.6}
         color="#fff3e2"
         castShadow
-        shadow-mapSize={[4096, 4096]}
+        shadow-mapSize={[shadowSize, shadowSize]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
         shadow-camera-left={-36}

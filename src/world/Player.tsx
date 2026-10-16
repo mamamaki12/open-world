@@ -51,6 +51,9 @@ export const playerMemory = {
   distance: 4.2,
 };
 
+/** 開発用の操作確認にも使う、実際のフレームの移動状態。 */
+export const playerMotion = { running:false, jumps:0 };
+
 /** プレイヤーが入力として使うキー（e.code）。HUD の説明と合わせる */
 export const WALK_KEYS = {
   forward: ['KeyW', 'ArrowUp'],
@@ -251,6 +254,7 @@ export function Player() {
         st.vz = 0;
         playClimbSound();
       } else {
+        playerMotion.jumps++;
         st.velY = JUMP_SPEED;
         st.grounded = false;
       }
@@ -375,6 +379,7 @@ export function Player() {
     window.addEventListener('pointerup', onTouchUp);
     window.addEventListener('pointercancel', onTouchUp);
     return () => {
+      playerMotion.running = false;
       clearTimeout(touchTimer);
       Object.assign(walkActions, { jump: () => undefined, toggleView: () => undefined, resetCamera: () => undefined });
       touchMove.x = 0;
@@ -436,6 +441,7 @@ export function Player() {
     }
     const running = (pressed(WALK_KEYS.run) || k.has('DoubleSprint') || stick >= RUN_THRESHOLD);
     if(pressed(WALK_KEYS.jump)&&st.grounded&&!seated&&!action.current)walkActions.jump();
+    playerMotion.running = running && mlen > 0 && !seated;
     const analog = stick > 0 ? Math.min(1, stick / 0.7) : 1;
     const speedGoal = mlen === 0 ? 0 : (running ? RUN_SPEED : WALK_SPEED) * (running ? 1 : analog);
 

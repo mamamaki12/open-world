@@ -4,7 +4,7 @@ import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
-import { playerMemory } from './Player';
+import { playerMemory, playerMotion } from './Player';
 
 export function DebugBridge() {
   const { camera, size } = useThree();
@@ -14,6 +14,7 @@ export function DebugBridge() {
       game: useGame,
       economy: useEconomy,
       player: playerMemory,
+      motion: playerMotion,
       project: (x: number, y: number, z: number) => {
         const v = new THREE.Vector3(x, y, z).project(camera);
         return { x: ((v.x + 1) / 2) * size.width, y: ((1 - v.y) / 2) * size.height };

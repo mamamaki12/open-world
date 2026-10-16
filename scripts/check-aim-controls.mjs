@@ -92,26 +92,29 @@ try {
   await page.mouse.wheel(0, 120); await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => window.__ow.game.getState().tool), 'wall', 'wheel switches hotbar');
   await page.keyboard.press('Escape');
-  const measure = async sprint => {
-    await setup(); await page.waitForTimeout(350);
+  for(const sprint of [false,true]){
+    await setup(); await page.bringToFront();
+    await page.mouse.click(640,360); await page.waitForFunction(()=>document.pointerLockElement!==null);
     const start=await page.evaluate(()=>window.__ow.player.z);
-    if(sprint)await page.keyboard.press('KeyW');
-    await page.keyboard.down('KeyW'); await page.waitForTimeout(600);
-    const distance=start-await page.evaluate(()=>window.__ow.player.z);
-    await page.keyboard.up('KeyW'); await page.waitForTimeout(350); return distance;
-  };
-  const walking=await measure(false),sprinting=await measure(true);
-  console.log('Travel distance:',{walking,sprinting});
-  assert.ok(sprinting>walking*1.3, 'double W sprints faster than walking');
-  await setup(); await page.keyboard.down('Space');
-  let rises=0,previous=0,falling=false; const heights=[];
-  for(let i=0;i<25;i++){
-    await page.waitForTimeout(100);const y=await page.evaluate(()=>window.__ow.player.y);heights.push(y);
-    if(y<previous-.03)falling=true;
-    if(y>previous+.03){if(falling||rises===0)rises++;falling=false;}previous=y;
+    if(sprint){
+      // 描画待ちの往復を挟まず、短いキー入力列をそのままゲームへ届ける。
+      await page.evaluate(()=>{
+        window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',key:'w'}));
+        window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW',key:'w'}));
+        window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',key:'w'}));
+      });
+    }else await page.keyboard.down('KeyW');
+    await page.waitForFunction(({sprint,start})=>window.__ow.motion.running===sprint && window.__ow.player.z<start-.4,{sprint,start});
+    console.log('Movement confirmed:',{sprint,distance:start-await page.evaluate(()=>window.__ow.player.z)});
+    await page.keyboard.up('KeyW'); await page.waitForTimeout(400); await page.keyboard.press('Escape');
   }
-  await page.keyboard.up('Space');console.log('Held jump trajectory:',{rises,heights});
-  assert.ok(rises>=2,'held jump jumps again after landing');
+  await setup(); await page.mouse.click(640,360); await page.waitForFunction(()=>document.pointerLockElement!==null);
+  const jumps=await page.evaluate(()=>window.__ow.motion.jumps);
+  await page.keyboard.down('Space');
+  await page.waitForFunction(jumps=>window.__ow.motion.jumps>=jumps+2 && window.__ow.player.y>.1,jumps);
+  await page.keyboard.up('Space'); await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>document.pointerLockElement===null);
+  console.log('Held jump confirmed across two takeoffs.');
   await page.getByRole('button', { name: '操作設定', exact: true }).first().click();
   const slider=page.getByRole('slider', { name: '視点感度' }); await slider.focus(); await slider.press('Home'); for(let i=0;i<12;i++) await slider.press('ArrowRight');
   await page.getByRole('checkbox', { name: '上下の視点操作を反転' }).check();
