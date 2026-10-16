@@ -27,6 +27,8 @@ test('room permissions, sender identity, isolated routing and world resume', asy
     while (!(await guest.next('members')).members.find(x => x.id === 'guest').canBuild) {}
     guest.send({ type: 'command', command: { id: 'y' }, sender: 'host' }); assert.equal((await host.next('command')).sender, 'guest');
     host.send({ type: 'world', world: { sample: 1 } }); assert.deepEqual((await guest.next('world')).world, { sample: 1 });
+    guest.send({ type: 'trade', target: 'host', trade: { kind: 'offer', id: 't' }, sender: 'x' });
+    const traded = await host.next('trade'); assert.equal(traded.sender, 'guest'); assert.equal(traded.trade.id, 't');
     host.socket.close(); await guest.next('paused');
     const resumed = await client(url); resumed.send({ type: 'resume', id: 'host', name: 'ホスト', code: room.code, token: room.token });
     await resumed.next('welcome'); assert.deepEqual((await resumed.next('world')).world, { sample: 1 }); await guest.next('resumed');

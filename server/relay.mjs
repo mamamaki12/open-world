@@ -73,6 +73,7 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
         if (data.type === 'result' && member.id === room.host) { send(room.members.get(data.target)?.socket, { type: 'result', result: data.result }); return; }
         if (data.type === 'clock' && member.id === room.host) { room.members.forEach(m => { if (m !== member) send(m.socket, { type: 'clock', clock: data.clock }); }); return; }
         if (data.type === 'pose') { room.members.forEach(m => { if (m !== member) send(m.socket, { type: 'pose', sender: member.id, pose: data.pose }); }); return; }
+        if (data.type === 'trade') { const to = room.members.get(data.target); if (to && to !== member) send(to.socket, { type: 'trade', sender: member.id, trade: data.trade }); return; }
         if (data.type === 'door') broadcast(room, { type: 'door', sender: member.id, id: data.id, dir: data.dir });
       } catch (e) { send(socket, { type: 'error', message: e.message }); if (!member) socket.close(1008); }
     });
