@@ -2,7 +2,7 @@
 
 - ブランチ: `claude/project-thread-ryjetk`（mamamaki12/open-world）
 - 依頼: しんご「リアルなバイトを何個か入れたい。バイトはミニゲーム的に何かの作業をユーザにやらせる」
-- PR: （出したら書く）
+- PR: #69
 
 ## 方針
 - 仮の「チラシ配り」（`src/state/economy.ts` の `startJob`、`src/ui/EstatePanel.tsx` の `Ledger`）をバイト一覧に置き換える。
