@@ -82,6 +82,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --test server/relay.test.mjs
+      - name: Check deployed relay over HTTPS and WSS
+        run: node scripts/check-public-relay.mjs
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Check two-player sessions and production offline launch

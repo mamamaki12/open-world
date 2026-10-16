@@ -3,7 +3,7 @@
 - ブランチ: `feat/guest-world-multiplayer`（mamamaki12/open-world）
 - 依頼: ログインなしで開始方法を選び、友達のワールドで共同建築。将来はアカウントへ移行。進捗をこまめに記録する。
 - ベース: main `89286832dd25ce86a469512685d9fc340142b5ab`
-- PR: https://github.com/mamamaki12/open-world/pull/64 （draft。公開用WSS未配置）
+- PR: https://github.com/mamamaki12/open-world/pull/64 （公開用WSS配置済み。ゲーム本体の公開準備中）
 
 ## 合意済み仕様
 - 開始画面: ひとりで遊ぶ／自分のワールドを開く／友達のワールドに入る。
@@ -37,6 +37,10 @@
 - 課題: 公開用の常時接続サーバー配置先とWSS URLは未確定。中継サーバーと起動/配置手順を先に具体化する。公開サイトのオンライン動作は実際のサーバー配置なしに完了扱いにしない。
 - 課題: ログインなしの個人資産は端末保存を信頼する方式。オンライン同時参加は同一ゲストIDにつき1セッションに制限する。アカウントや経済の不正対策は後続設計。
 ## 再開チェックポイント（2026-10-17 JST）
+- 公開準備: ユーザーのEC2 t3.micro / シドニー / Amazon Linux 2023に配置。Node 22.23.2、ws 8.22.0、`/home/ec2-user/open-world-relay/relay.mjs`（`8c0a3af`から取得）。systemd `open-world-relay` / ポート8787、ALLOWED_ORIGINSは`https://mamamaki12.github.io`。Caddyで80/443→127.0.0.1:8787、DuckDNSは`shingo-open-world.duckdns.org`。ユーザーのHTTPS `/health` 確認成功、こちらのNode fetchも200 ok。
+- 公開準備: `.env.production`に公開WSSを設定する。実サーバーとのHTTPS/WSS・2クライアントの参加/権限/送信者固定/世界配信/退出を`node scripts/check-public-relay.mjs`で検査。CI run `38929899970`は全3ジョブ成功を確認済み。次は接続先設定の本番ビルドとCI、公開サイトの2ブラウザー参加確認。
+- 検査環境: ローカルNode fetchのHTTPSは成功したが、wsの直通TCPは実行環境のEACCESで拒否。公開relay検査をCIのworld-sessionジョブにも追加し、GitHub側のネットワークから実行する。
+- 運用引継ぎ: SSH秘密鍵紛失のためEC2 Instance Connectで接続。シドニーの接続元範囲は確認時`13.239.158.0/29`。HTTP/HTTPSは外部許可、8787は外部開放不要。DuckDNSのIPはEC2のパブリックIPv4に合わせ、EC2停止/起動で変わった場合は更新する。管理用認証情報はリポジトリに記載しない。
 - 最終検証: `7c8c16f`のCI run `38928785547`は全3ジョブ成功（既存操作5種・建物LOD・共同建築/オフラインを含む）。再入室修正とテストの時計固定を含む`08579c4`のrun `38929899970`でもworld-session成功。既存操作/LODの同一内容の再実行は進行中。コードはPR #64へpush済み、mainと公開サイトは未変更。
 - 次の担当: PR #64の最新CIを確認する。公開用WSSの配置先をユーザーと決め、`server/README.md`に従って1インスタンス配置し、実URLで2端末接続を検証。その後にdraft解除・マージ・公開検証を進める。ログイン対応は別段階で、現在のゲストID/プロフィールをアカウントへ移管する。
 - CI: `7c8c16f`では共同建築/オフラインと建物LODが通過。`58530ff`では再接続建築待ちがタイムアウト（ブラウザ例外なし）。相場変動による費用再見積りの影響を除くため、共同建築ブラウザテストの経済tickを固定し、時計配送は明示変更で別検証。再検証中。
