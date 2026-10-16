@@ -38,7 +38,7 @@ export function TouchFurnitureEdit(){
       const item=g.house.furniture.find(f=>f.id===g.selection!.id);
       if(!item)return;
       cast(e);
-      const objects=['house','neighbors','casino','estate','dealer','boutiques','vehicles'].map(n=>scene.getObjectByName(n)).filter((o):o is THREE.Object3D=>!!o);
+      const objects=['house','neighbors','casino','estate','dealer','tuner','boutiques','vehicles'].map(n=>scene.getObjectByName(n)).filter((o):o is THREE.Object3D=>!!o);
       const hit=ray.intersectObjects(objects,true).find(h=>{
         let o:THREE.Object3D|null=h.object;while(o){if(!o.visible)return false;o=o.parent;}
         const m=(h.object as THREE.Mesh).material,mat=Array.isArray(m)?m[h.face?.materialIndex??0]:m;

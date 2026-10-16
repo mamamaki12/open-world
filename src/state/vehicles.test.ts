@@ -24,3 +24,16 @@ it('delivers into the parking lot beside the dealer, visible from the front road
   useVehicles.setState({cars:[]});
   const bay=deliveryBay([])!;expect(bay.x-CIVIC_SITE.x).toBeGreaterThan(DEALER.x1);expect(bay.z-CIVIC_SITE.z).toBeLessThan(DEALER.z0+4);
 });
+it('customises an owned car only inside the shop and charges just the changes',async()=>{
+  const { customizeCar } = await import('./vehicles');
+  const { STOCK_MODS, ENGINES } = await import('../catalog/carMods');
+  vi.stubGlobal('localStorage',{getItem:()=>null,setItem:()=>undefined});
+  useVehicles.setState({cars:[],driving:null});useEconomy.setState({money:10000000});
+  buyCar(CARS[0].id,'#abcdef',true);
+  const car=useVehicles.getState().cars[0],money=useEconomy.getState().money,mods={...STOCK_MODS,engine:'turbo' as const,camber:4};
+  expect(customizeCar(car.id,car.color,mods,false)).not.toBeNull();expect(useEconomy.getState().money).toBe(money);
+  expect(customizeCar(car.id,car.color,mods,true)).toBeNull();
+  expect(useEconomy.getState().money).toBe(money-ENGINES[1].price-80000);
+  expect(useVehicles.getState().cars[0].mods.engine).toBe('turbo');expect(validCar(useVehicles.getState().cars[0])).toBe(true);
+  expect(customizeCar(car.id,car.color,mods,true)).toBe('変更がありません');
+});
