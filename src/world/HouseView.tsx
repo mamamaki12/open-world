@@ -1,3 +1,6 @@
+import { BuildingDetail } from './BuildingDetail';
+import { houseEnvelope, isInteriorPart } from './buildingLod';
+import { DistantHouse } from './DistantHouse';
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
@@ -29,7 +32,7 @@ export function HouseView() {
   return (
     <>
       <group name="house">
-        <HouseParts house={house} showRoofs={showRoofs} />
+        <BuildingDetail bounds={houseEnvelope(house).bounds} forceFull={!walking || tool !== 'select' || editingFurniture}>{tier => tier === 'distant' ? <DistantHouse house={house}/> : <HouseParts house={house} showRoofs={showRoofs} exteriorOnly={tier === 'exterior'}/>}</BuildingDetail>
       </group>
       {/* プレビューは家の外に置く（マウスの下の面を調べるときに当たらないように） */}
       <PreviewView />
@@ -38,7 +41,7 @@ export function HouseView() {
 }
 
 /** 家の部品をまとめて描く（いまの土地の家と、町に建っているほかの土地の家で使う） */
-export function HouseParts({ house, showRoofs = true, activate }: { house: House; showRoofs?: boolean; activate?: ActivateHouse }) {
+export function HouseParts({ house, showRoofs = true, activate, exteriorOnly = false }: { house: House; showRoofs?: boolean; activate?: ActivateHouse; exteriorOnly?: boolean }) {
   const openingsByWall = useMemo(() => {
     const m = new Map<string, House['openings']>();
     for (const o of house.openings) m.set(o.wallId, [...(m.get(o.wallId) ?? []), o]);
@@ -50,13 +53,13 @@ export function HouseParts({ house, showRoofs = true, activate }: { house: House
       {house.floors.map((f) => (
         <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} stairwells={stairHoles(house, f.level + 1)} roofs={house.roofs.filter((r) => r.level === f.level)} />
       ))}
-      {house.walls.map((w) => (
+      {house.walls.filter(w => !exteriorOnly || !isInteriorPart(house, {kind:'wall',id:w.id})).map((w) => (
         <Wall key={w.id} wall={w} openings={openingsByWall.get(w.id) ?? []} outside={wallOutsideSide(house, w)} />
       ))}
-      {house.stairs.map((s) => (
+      {house.stairs.filter(s => !exteriorOnly || !isInteriorPart(house, {kind:'stair',id:s.id})).map((s) => (
         <Stair key={s.id} stair={s} />
       ))}
-      {house.furniture.map((f) => (
+      {house.furniture.filter(f => !exteriorOnly || !isInteriorPart(house, {kind:'furniture',id:f.id})).map((f) => (
         <Furniture key={f.id} item={f} />
       ))}
       {showRoofs && house.roofs.map((r) => (
@@ -163,4 +166,5 @@ function PreviewView() {
     }
   }
 }
+
 

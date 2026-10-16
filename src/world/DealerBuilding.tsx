@@ -1,3 +1,4 @@
+import { VenueInteriorDetail } from './VenueDetail';
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { CARS } from '../catalog/cars';
@@ -49,9 +50,9 @@ export function DealerBuilding(){
     <Box p={[x,.018,d.z0-1.3]} s={[3,.03,1.3]} c="#223843"/>
     <Sign/>
     {/* 展示車は鼻先を道路（正面のガラス）へ向け、少し入口側へ振る */}
-    {[0,4,6].map((n,i)=><group key={n} position={[x-5.7+i*5.7,.25,z+.3]} rotation-y={[-.28,0,.28][i]}>
+    <VenueInteriorDetail kind="dealer">{[0,4,6].map((n,i)=><group key={n} position={[x-5.7+i*5.7,.25,z+.3]} rotation-y={[-.28,0,.28][i]}>
       <CarModel def={CARS[n]} color={['#e4e7e4','#275882','#bc283a'][i]}/>
-    </group>)}
+    </group>)}</VenueInteriorDetail>
     {/* 店の横の駐車場（納車スペース）。表の道路から見える */}
     <Box p={[(lot.x0+lot.x1)/2,-.02,(lot.z0+lot.z1)/2-2]} s={[lot.x1-lot.x0+1,.06,lot.z1-lot.z0+4]} c="#5d6368"/>
     {DEALER_BAYS.map((b,i)=><group key={i} position={[b.x,0,b.z]}>

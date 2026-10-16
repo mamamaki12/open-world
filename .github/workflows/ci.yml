@@ -39,3 +39,31 @@ jobs:
             control-checks/
             fashion-checks/
           if-no-files-found: ignore
+
+  building-detail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Compare desktop geometry and verify detail switching
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/open-world-lod-vite.log 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-building-detail.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: building-detail-checks
+          path: building-detail-checks/
+          if-no-files-found: ignore

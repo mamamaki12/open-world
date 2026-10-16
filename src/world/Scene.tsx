@@ -1,3 +1,4 @@
+import { BuildingDetailProvider } from './BuildingDetail';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Grid, Lightformer, OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
@@ -76,6 +77,7 @@ export function Scene() {
         <object3D attach="target" position={CENTER} />
       </directionalLight>
 
+      <BuildingDetailProvider>
       <Ground />
       <Town />
       <CarFleet />
@@ -114,6 +116,7 @@ export function Scene() {
         }}
       />
       <BuildCamera />
+      </BuildingDetailProvider>
     </Canvas>
   );
 }

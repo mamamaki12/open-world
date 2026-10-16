@@ -1,3 +1,8 @@
+import { TunerBuilding } from './TunerBuilding';
+import { BuildingDetail } from './BuildingDetail';
+import { houseEnvelope } from './buildingLod';
+import { DistantHouse } from './DistantHouse';
+import { VenueExteriorDetail } from './VenueDetail';
 // 町：大通りと、その沿いに並ぶ区画（ほかの持っている土地の家・売り土地の看板）とカジノ。
 // いま建てている土地はいつも原点にあるので、ほかのものは区画の番号の差だけ横にずらして描く
 import { useLayoutEffect, useMemo } from 'react';
@@ -21,7 +26,6 @@ import { Streetscape } from './Streetscape';
 import { DealerBuilding } from './DealerBuilding';
 import { BoutiqueBuildings } from './BoutiqueBuildings';
 import { EstateBuilding } from './EstateBuilding';
-import { TunerBuilding } from './TunerBuilding';
 import { HouseParts } from './HouseView';
 import { TownHouses } from './TownHouses';
 import { grassTexture } from './textures';
@@ -106,7 +110,7 @@ export function Town() {
           </group>;
         })}
         <Streetscape />
-        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><CasinoBuilding /><EstateBuilding /><DealerBuilding /><TunerBuilding /><BoutiqueBuildings /></group>
+        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><VenueExteriorDetail kind="casino"><CasinoBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="estate"><EstateBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="dealer"><DealerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="tuner"><TunerBuilding /></VenueExteriorDetail><BoutiqueBuildings /></group>
         {/* 地区の境目の看板 */}
         {[FIRST_PLOT, ...[3, 9].filter((p) => p <= LAST_PLOT)].map((p) => (
           <DistrictSign key={p} plot={p} />
@@ -129,7 +133,7 @@ export function Town() {
                   <meshStandardMaterial color="#b9b2a3" roughness={1} />
                 </mesh>
               )}
-              {!current && house && <HouseParts house={house} showRoofs={showRoofs} activate={(e, ref) => activate(l.id, e, ref)} />}
+              {!current && house && <BuildingDetail bounds={houseEnvelope(house).bounds}>{tier => tier === 'distant' ? <group onPointerDown={e => activate(l.id,e)}><DistantHouse house={house}/></group> : <HouseParts house={house} showRoofs={showRoofs} exteriorOnly={tier === 'exterior'} activate={(e, ref) => activate(l.id, e, ref)}/>}</BuildingDetail>}
               <Signboard
                 lines={['あなたの土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
                 tone="owned"

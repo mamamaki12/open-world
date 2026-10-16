@@ -1,3 +1,4 @@
+import { VenueInteriorDetail } from './VenueDetail';
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
@@ -160,9 +161,10 @@ export function VenueInteriors(){
     {VENUE_KINDS.map(kind=>{
       const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
       return <group key={kind} position={[cx,0,cz]}>
+        <VenueInteriorDetail kind={kind} centred>
         <Shell kind={kind}/>
         {(kind==='casino'||kind==='estate')&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':'#ffe5a6'}/>)}
-        {kind==='casino'?<CasinoInterior/>:kind==='estate'?<EstateInterior/>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:<DealerInterior/>}
+        {kind==='casino'?<CasinoInterior/>:kind==='estate'?<EstateInterior/>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:<DealerInterior/>}</VenueInteriorDetail>
       </group>;
     })}
   </group>;

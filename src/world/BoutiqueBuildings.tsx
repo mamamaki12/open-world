@@ -1,3 +1,4 @@
+import { VenueExteriorDetail } from './VenueDetail';
 // 服屋さん4店舗の外観と売り場。正面は大きなショーウィンドウで、中のマネキンが通りから見える
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
@@ -97,7 +98,7 @@ function Exterior({ id }: { id: BoutiqueId }) {
 
 /** 町の南の通りに並ぶ4店舗（civic site 基準） */
 export function BoutiqueBuildings() {
-  return <group name="boutiques">{BOUTIQUE_IDS.map((id) => <Exterior key={id} id={id} />)}</group>;
+  return <group name="boutiques">{BOUTIQUE_IDS.map((id) => <VenueExteriorDetail key={id} kind={id}><Exterior id={id} /></VenueExteriorDetail>)}</group>;
 }
 
 /** ハンガーにかかった服（ラックの横棒にそって並べる） */
