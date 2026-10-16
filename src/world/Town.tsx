@@ -19,6 +19,7 @@ import { lotCells, lotHouse, originShift, useCurrentPlot, useEconomy } from '../
 import { CasinoBuilding } from './CasinoBuilding';
 import { Streetscape } from './Streetscape';
 import { DealerBuilding } from './DealerBuilding';
+import { BoutiqueBuildings } from './BoutiqueBuildings';
 import { EstateBuilding } from './EstateBuilding';
 import { HouseParts } from './HouseView';
 import { grassTexture } from './textures';
@@ -102,7 +103,7 @@ export function Town() {
           </group>;
         })}
         <Streetscape />
-        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><CasinoBuilding /><EstateBuilding /><DealerBuilding /></group>
+        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><CasinoBuilding /><EstateBuilding /><DealerBuilding /><BoutiqueBuildings /></group>
         {/* 地区の境目の看板 */}
         {[FIRST_PLOT, ...[3, 9].filter((p) => p <= LAST_PLOT)].map((p) => (
           <DistrictSign key={p} plot={p} />

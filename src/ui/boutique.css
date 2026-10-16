@@ -1,0 +1,36 @@
+.boutique-modal { width:min(1060px,100%); }
+.boutique-intro { font:600 22px Georgia,'Yu Mincho',serif; margin:4px 0; color:#3a3330; letter-spacing:.04em; }
+.shop-maison .modal-head { background:#1b1a1c; color:#d9bd7a; }
+.shop-atelier .modal-head { background:#efe7da; color:#4a3a2b; }
+.shop-urban .modal-head { background:#2f6d8e; color:#fff; }
+.shop-daily .modal-head { background:#d6332f; color:#fff; }
+.boutique-layout { display:grid; grid-template-columns:300px minmax(0,1fr); gap:20px; min-width:0; }
+.boutique-layout > section { min-width:0; }
+.boutique-preview { height:380px; border-radius:12px; overflow:hidden; }
+.boutique-wearing { display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; margin-top:8px; font-size:12px; }
+.boutique-wearing small { display:block; color:#6b6660; }
+.boutique-items { max-height:560px; overflow:auto; }
+.boutique-items h3 { margin:10px 0 6px; font-size:14px; }
+.garment-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+.garment { display:flex; flex-direction:column; align-items:flex-start; gap:3px; padding:10px; background:#fff; color:#2b2724; border:1px solid #d3cec4; border-radius:8px; text-align:left; min-width:0; overflow-wrap:anywhere; }
+.garment.on { border-color:#2a6cff; box-shadow:0 0 0 2px #2a6cff55; }
+.garment.worn { background:#f3f7ef; }
+.garment b { font-size:13px; }
+.garment small { color:#7a736a; font-size:11px; }
+.garment em { font-style:normal; font-size:11px; color:#3b7d3a; font-weight:700; }
+.garment-price { color:#6b5020; font-weight:700; }
+.garment-swatch { width:40px; height:40px; border-radius:8px; border:1px solid #0002; }
+.garment-swatch.none { background:repeating-linear-gradient(45deg,#eee,#eee 5px,#fff 5px,#fff 10px); }
+.boutique-buy { position:sticky; bottom:0; background:#fff7e6; border:1px solid #d8bc79; border-radius:10px; padding:12px; margin-top:12px; }
+.boutique-buy p { margin:0 0 8px; }
+@media(max-width:700px){
+  .boutique-layout { grid-template-columns:minmax(0,1fr); gap:10px; }
+  .boutique-preview { height:220px; }
+  .boutique-items { max-height:none; }
+  .garment-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-height:500px) and (orientation:landscape){
+  .boutique-layout { grid-template-columns:200px minmax(0,1fr); }
+  .boutique-preview { height:200px; }
+  .boutique-wearing { display:none; }
+}
