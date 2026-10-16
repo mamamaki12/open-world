@@ -13,3 +13,21 @@
 .drive-hud {position:absolute;left:50%;bottom:90px;transform:translateX(-50%);padding:12px 24px;background:#101f2bec;color:#fff;border:1px solid #bba16b;border-radius:14px;z-index:4;text-align:center;pointer-events:none;box-shadow:0 8px 30px #0005;}
 .drive-speed {font-size:36px;font-weight:800;font-variant-numeric:tabular-nums;}.drive-speed small {font-size:13px;margin-left:6px;}.drive-hud p {margin:0;color:#e4dccb;font-size:12px;}.drive-hud button {pointer-events:auto;background:#f1dfb4;color:#292010;border:0;border-radius:6px;padding:6px 12px;margin-top:5px;font-weight:700;}
 @media(max-width:640px){.dealer-layout{grid-template-columns:minmax(0,1fr);gap:12px;}.dealer-models{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:190px;}.dealer-model{padding:8px;}.dealer-preview{height:230px;}.drive-hud{bottom:110px;padding:8px 14px;}.drive-hud p{max-width:200px;}.drive-speed{font-size:26px;}}
+.tuner-modal .dealer-preview {height:280px;}
+.tuner-part h3 {margin:12px 0 6px;font-size:14px;color:#2b3740;}
+.tuner-options {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;}
+.tuner-option {display:flex;flex-direction:column;gap:2px;text-align:left;padding:8px 10px;background:#fff;color:#20313d;border:1px solid #c9d0d3;border-radius:8px;min-width:0;}
+.tuner-option span {color:#6b5020;font-weight:700;font-size:12px;}.tuner-option small {color:#5b6b75;font-size:11px;}
+.tuner-option.on {background:#fff6d6;border-color:#c99a00;box-shadow:inset 3px 0 #c99a00;}
+.tuner-swatches {flex-wrap:wrap;margin:6px 0;}
+.tuner-picker {position:relative;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:2px dashed #9aa3a8;border-radius:50%;font-size:14px;cursor:pointer;overflow:hidden;}
+.tuner-picker input {position:absolute;inset:0;opacity:0;cursor:pointer;}
+.tuner-slider {display:flex;flex-direction:column;gap:4px;margin:12px 0;}.tuner-slider span {display:flex;justify-content:space-between;font-size:14px;}.tuner-slider input {width:100%;}
+.tuner-up {color:#1f7a3a;}
+.tuner-dot {display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;border:1px solid #0003;}
+.tuner-quote {margin-top:12px;}.tuner-quote ul {list-style:none;margin:0 0 8px;padding:0;font-size:13px;}.tuner-quote li {display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dashed #e2cf9c;}
+.tuner-actions {display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+@media(max-width:640px){.tuner-modal .dealer-preview{height:200px;}.tuner-options{grid-template-columns:repeat(2,minmax(0,1fr));}}
+/* 部品を選んでいるあいだも車が見えるように、プレビューを上に止めておく */
+.tuner-modal .dealer-preview {position:sticky;top:0;z-index:1;box-shadow:0 6px 14px #0002;}
+@media(max-height:520px){.tuner-modal .dealer-preview{height:150px;}}

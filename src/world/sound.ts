@@ -1,7 +1,7 @@
 // ドアの効果音を、音声ファイルを使わずにその場で合成する（Web Audio）
 let ctx: AudioContext | null = null;
 
-function audio(): AudioContext | null {
+export function audio(): AudioContext | null {
   try {
     ctx ??= new AudioContext();
     if (ctx.state === 'suspended') void ctx.resume();

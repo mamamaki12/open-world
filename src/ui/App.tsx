@@ -13,6 +13,7 @@ import { ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
 import { DealerPanel } from './DealerPanel';
+import { TunerPanel } from './TunerPanel';
 import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
@@ -84,6 +85,7 @@ export function App() {
       {overlay === 'controls' && <ControlsPanel />}
       {overlay === 'inventory' && <InventoryPanel />}
       {overlay === 'dealer' && <DealerPanel />}
+      {overlay === 'tuner' && <TunerPanel />}
       {overlay === 'land' && <LandPurchasePanel />}
       {overlay === 'estate' && <EstatePanel />}
       {overlay === 'casino' && <CasinoPanel />}

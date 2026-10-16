@@ -11,7 +11,7 @@ import { useVehicles } from '../state/vehicles';
 import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract, resolveParkedCars } from './vehicleLogic';
 import { useVenue } from '../state/venue';
 import { resolveVenue, throughDoorway, VENUE_KINDS, venueDoorId } from '../building/venues';
-import { DEALER } from '../building/dealer';
+import { SHOP_BOXES } from '../building/tuner';
 import { useSeating } from '../state/seating';
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
@@ -139,8 +139,8 @@ function resolveTown(p: { x: number; z: number }, feetY: number, height: number)
   if(inside){const q=resolveVenue(inside,{x:p.x-site.x,z:p.z-site.z});return {x:q.x+site.x,z:q.z+site.z};}
   const c = resolveLandmarks({ x: p.x - site.x, z: p.z - site.z });
   let q = { x: c.x + site.x, z: c.z + site.z };
-  if (q.x > site.x+DEALER.x0-.25 && q.x < site.x+DEALER.x1+.25 && q.z > site.z+DEALER.z0-.25 && q.z < site.z+DEALER.z1+.25) {
-    const b={x0:site.x+DEALER.x0-.25,x1:site.x+DEALER.x1+.25,z0:site.z+DEALER.z0-.25,z1:site.z+DEALER.z1+.25};
+  for (const shop of SHOP_BOXES) if (q.x > site.x+shop.x0-.25 && q.x < site.x+shop.x1+.25 && q.z > site.z+shop.z0-.25 && q.z < site.z+shop.z1+.25) {
+    const b={x0:site.x+shop.x0-.25,x1:site.x+shop.x1+.25,z0:site.z+shop.z0-.25,z1:site.z+shop.z1+.25};
     q=[{x:b.x0,z:q.z,d:q.x-b.x0},{x:b.x1,z:q.z,d:b.x1-q.x},{x:q.x,z:b.z0,d:q.z-b.z0},{x:q.x,z:b.z1,d:b.z1-q.z}].sort((a,b)=>a.d-b.d)[0];
   }
   // ほかの土地の家は中に入れない（入るときはその土地へワープする）
@@ -661,7 +661,7 @@ export function Player() {
       const focus = new THREE.Vector3(playerMemory.x, eye - 0.1, playerMemory.z);
       let dist = playerMemory.distance;
       // 壁や屋根でカメラが埋もれないよう、手前に寄せる
-      const blockers = ['house', 'casino', 'estate', 'dealer', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
+      const blockers = ['house', 'casino', 'estate', 'dealer', 'tuner', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
       if (blockers.length) {
         raycaster.current.set(focus, dir.clone().negate());
         raycaster.current.far = dist;
