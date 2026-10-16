@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5fb3e6"/>
+      <stop offset="1" stop-color="#bfe4f6"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c0533a"/>
+      <stop offset="1" stop-color="#8e3526"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="392" cy="122" r="46" fill="#ffd45a"/>
+  <path d="M0 392c90-30 180-36 270-20s170 14 242-6v146H0z" fill="#79bf5e"/>
+  <path d="M0 430c110-22 230-26 340-12 64 8 120 6 172-4v98H0z" fill="#5ea548"/>
+  <!-- house -->
+  <g id="fg">
+  <rect x="320" y="170" width="28" height="60" fill="#8e3526"/>
+  <rect x="146" y="250" width="220" height="160" fill="#f6f0e4"/>
+  <rect x="146" y="250" width="220" height="16" fill="#e2d8c4"/>
+  <path d="M112 266 256 140l144 126" fill="none" stroke="url(#roof)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="226" y="314" width="56" height="96" rx="6" fill="#7a5a3a"/>
+  <circle cx="270" cy="364" r="5" fill="#f2c94c"/>
+  <rect x="174" y="292" width="40" height="40" rx="4" fill="#9fd3f0" stroke="#fff" stroke-width="6"/>
+  <rect x="300" y="292" width="40" height="40" rx="4" fill="#9fd3f0" stroke="#fff" stroke-width="6"/>
+  <!-- coin -->
+  <circle cx="392" cy="402" r="52" fill="#f2b632" stroke="#c98a12" stroke-width="10"/>
+  <text x="392" y="426" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="66" fill="#8a5a00">¥</text>
+  </g>
+</svg>

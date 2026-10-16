@@ -23,6 +23,7 @@ import { yen } from '../economy/money';
 import { useEconomy } from '../state/economy';
 import { Sheet, TouchCameraPad, TouchWalkControls } from './TouchControls';
 import { useTouchDevice } from './useTouchDevice';
+import { reloadLatest } from './reload';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
@@ -158,6 +159,7 @@ function WalkMenu({ onBuild }: { onBuild: () => void }) {
           <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>🗺️ 町の地図</button>
           <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>↶ 取り消し</button>
           <SaveMenu />
+          <button className="walk-menu-item" onClick={pick(reloadLatest)}>🔄 最新版にする</button>
         </div>
       )}
     </div>
@@ -370,6 +372,12 @@ function SaveMenu() {
             >
               {confirmClear ? 'もう一度押すと全部消します' : '更地にする'}
             </button>
+          </div>
+          <div className="row update">
+            <button className="btn" onClick={() => void reloadLatest()} title="セーブしてからページを読み込み直します">
+              🔄 最新版にする
+            </button>
+            <small>今の版：{new Date(__BUILD_TIME__).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>
           </div>
         </div>
       )}
