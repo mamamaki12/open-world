@@ -19,4 +19,11 @@ describe('collaborative building', () => {
     expect(() => applyChanges(h, changes(h, a))).toThrow();
     const d = changes(emptyHouse(), h); expect(() => applyChanges(emptyHouse(), [...d, d[0]])).toThrow();
   });
+  it('revalidates placement after another builder adds a floor at the same position', () => {
+    const h = sampleHouse(), a = structuredClone(h), b = structuredClone(h);
+    a.floors = [{ ...h.floors[0], id: 'new-floor-a' }];
+    b.floors = [{ ...h.floors[0], id: 'new-floor-b' }];
+    const first = applyChanges(emptyHouse(), changes(emptyHouse(), { ...emptyHouse(), floors: a.floors }));
+    expect(() => applyChanges(first, changes(emptyHouse(), { ...emptyHouse(), floors: b.floors }))).toThrow();
+  });
 });

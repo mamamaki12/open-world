@@ -5,12 +5,14 @@ import { useVehicles, validCar } from '../state/vehicles';
 import { sanitizeWardrobe } from '../catalog/clothes';
 import { isHouse } from '../save/storage';
 import { sessionGate, visitingWorld } from './gate';
+import { useDoors } from '../state/doors';
+import { cleanMods } from '../catalog/carMods';
 import { readSave, writeSave } from './database';
 
 const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 export function captureWorld() {
   const e = useEconomy.getState();
-  return copy({ worldId: sessionGate.worldId, house: useGame.getState().house, receipts: sessionGate.receipts, economy: {
+  return copy({ worldId: sessionGate.worldId, doors: useDoors.getState().open, house: useGame.getState().house, receipts: sessionGate.receipts, economy: {
     day: e.day, clock: e.clock, market: e.market, marketHistory: e.marketHistory,
     lots: e.lots, currentLotId: e.currentLotId, offers: e.offers,
   }});
@@ -45,6 +47,7 @@ export function applyWorld(w: WorldSave, preserveSelection = false) {
   try {
     sessionGate.receipts = copy(w.receipts ?? {});
     sessionGate.worldId = w.worldId || crypto.randomUUID();
+    useDoors.setState({ open: copy(w.doors ?? {}) });
     const local = useEconomy.getState().currentLotId;
     const selected = preserveSelection && w.economy.lots.some(l => l.id === local) ? local : w.economy.currentLotId;
     const lots = w.economy.lots.map(l => l.id === w.economy.currentLotId ? { ...l, design: w.house } : l);
@@ -58,7 +61,7 @@ export function applyWorld(w: WorldSave, preserveSelection = false) {
 export function applyProfile(p: GuestProfile) {
   useEconomy.setState({ money: p.money, ledger: copy(p.ledger), gamble: p.gamble });
   useWardrobe.setState(sanitizeWardrobe(p.wardrobe));
-  useVehicles.setState({ cars: copy(p.cars), driving: null, target: null });
+  useVehicles.setState({ cars: copy(p.cars).map(c => ({ ...c, mods: cleanMods(c.mods) })), driving: null, target: null });
 }
 let bundle: SaveBundle;
 let saving = Promise.resolve();

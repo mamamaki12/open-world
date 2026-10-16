@@ -1,5 +1,6 @@
 import type { House } from '../building/types';
 import { renovationCost } from '../economy/pricing';
+import { canChangeWallHeight, canPlaceFloor, canPlaceOpening, canPlaceRoof, canPlaceStair, canPlaceWall } from '../building/rules';
 export const PARTS = ['floors', 'walls', 'openings', 'stairs', 'roofs', 'furniture'] as const;
 type Kind = typeof PARTS[number];
 export interface Change { kind: Kind; id: string; before: unknown; after: unknown }
@@ -33,6 +34,28 @@ export function applyChanges(house: House, delta: Change[]): House {
     if (v && typeof v === 'object') Object.values(v).forEach(x => scan(x, depth + 1));
   };
   scan(result);
+  for (const change of delta) {
+    if (change.after === null) continue;
+    let error: string | null = null;
+    if (change.kind === 'floors') {
+      const p = result.floors.find(p => p.id === change.id)!;
+      error = canPlaceFloor({ ...result, floors: result.floors.filter(f => f.id !== p.id) }, p.level, p);
+    } else if (change.kind === 'walls') {
+      const p = result.walls.find(p => p.id === change.id)!;
+      error = canPlaceWall({ ...result, walls: result.walls.filter(w => w.id !== p.id) }, p) || canChangeWallHeight(result, p.id, p.height ?? 'full');
+      if (!error) for (const o of result.openings.filter(o => o.wallId === p.id)) error ||= canPlaceOpening(result, p.id, o.type, o.offset, o.id);
+    } else if (change.kind === 'roofs') {
+      const p = result.roofs.find(p => p.id === change.id)!;
+      error = canPlaceRoof({ ...result, roofs: result.roofs.filter(r => r.id !== p.id) }, p.level, p);
+    } else if (change.kind === 'openings') {
+      const p = result.openings.find(p => p.id === change.id)!;
+      error = canPlaceOpening(result, p.wallId, p.type, p.offset, p.id);
+    } else if (change.kind === 'stairs') {
+      const p = result.stairs.find(p => p.id === change.id)!;
+      error = canPlaceStair(result, p, p.id);
+    }
+    if (error) throw new Error(error);
+  }
   const cost = renovationCost(house, result).total;
   if (!Number.isSafeInteger(cost) || cost < 0) throw new Error('費用を計算できません');
   return result;

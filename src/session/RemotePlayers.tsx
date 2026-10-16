@@ -34,5 +34,5 @@ function RemoteCars({ pose }: { pose: RemotePose }) {
 }
 export function RemotePlayers() {
   const poses = useSession(s => s.poses);
-  return <group name="remote-players">{Object.entries(poses).map(([id, pose]) => <group key={id}><RemotePlayer id={id} pose={pose}/><RemoteCars pose={pose}/></group>)}</group>;
+  return <group name="remote-players">{Object.entries(poses).map(([id, pose]) => <group key={id}>{!pose.driving && <RemotePlayer id={id} pose={pose}/>}<RemoteCars pose={pose}/></group>)}</group>;
 }

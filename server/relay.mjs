@@ -5,24 +5,27 @@ import { WebSocketServer, WebSocket } from 'ws';
 
 export function createRelay({ origins = [], graceMs = 30000 } = {}) {
   const rooms = new Map();
+  const identities = new Map();
   const http = createServer((req, res) => { res.writeHead(req.url === '/health' ? 200 : 404); res.end(req.url === '/health' ? 'ok' : 'not found'); });
   const wss = new WebSocketServer({ server: http, maxPayload: 2 * 1024 * 1024,
     verifyClient: ({ origin }) => !origins.length || origins.includes(origin) });
   const send = (s, data) => { if (s?.readyState === WebSocket.OPEN) s.send(JSON.stringify(data)); };
   const broadcast = (r, data) => r.members.forEach(m => send(m.socket, data));
   const roster = r => broadcast(r, { type: 'members', members: [...r.members.values()].map(m => ({ id: m.id, name: m.name, host: m.id === r.host, canBuild: m.canBuild })) });
-  const closeRoom = (code, room) => { clearTimeout(room.timer); broadcast(room, { type: 'closed', message: 'ホストが退出しました' }); room.members.forEach(m => m.socket?.close()); rooms.delete(code); };
+  const closeRoom = (code, room) => { clearTimeout(room.timer); broadcast(room, { type: 'closed', message: 'ホストが退出しました' }); room.members.forEach(m => { identities.delete(m.id); m.socket?.close(); }); rooms.delete(code); };
   wss.on('connection', socket => {
-    let member, room, code, count = 0, windowAt = Date.now();
+    let member, room, code, count = 0, bytes = 0, windowAt = Date.now();
     const handshake = setTimeout(() => socket.close(1008, 'handshake timeout'), 10000);
     socket.on('message', raw => {
       try {
-        if (Date.now() - windowAt > 1000) { count = 0; windowAt = Date.now(); }
-        if (++count > 60) return socket.close(1008, 'rate limit');
+        if (Date.now() - windowAt > 1000) { count = 0; bytes = 0; windowAt = Date.now(); }
+        bytes += raw.length;
+        if (++count > 60 || bytes > 6 * 1024 * 1024) return socket.close(1008, 'rate limit');
         const data = JSON.parse(raw.toString());
         if (!member) {
           const id = data.id, name = data.name;
           if (typeof id !== 'string' || id.length > 100 || typeof name !== 'string' || !name.length || name.length > 24) throw Error('参加者情報が不正です');
+          if (data.type !== 'resume' && identities.has(id)) throw Error('このゲストはすでに別のタブで参加しています');
           if (data.type === 'create') {
             if (rooms.size >= 100) throw Error('部屋が満員です');
             do { code = randomBytes(4).toString('hex').toUpperCase(); } while (rooms.has(code));
@@ -42,6 +45,7 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
             if (data.type === 'join' && !room.members.get(room.host)?.socket) throw Error('ホストの再接続を待っています');
             member = { id, name, token: randomUUID(), socket: null, canBuild: id === room.host };
             room.members.set(id, member);
+            identities.set(id, code);
           }
           clearTimeout(handshake); member.socket = socket;
           if (id === room.host) { clearTimeout(room.timer); room.timer = null; }
@@ -50,7 +54,7 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
           roster(room); if (id === room.host) broadcast(room, { type: 'resumed' });
           return;
         }
-        if (data.type === 'leave') { if (member.id === room.host) closeRoom(code, room); else { room.members.delete(member.id); socket.close(); roster(room); } return; }
+        if (data.type === 'leave') { if (member.id === room.host) closeRoom(code, room); else { room.members.delete(member.id); identities.delete(member.id); socket.close(); roster(room); } return; }
         if (data.type === 'world' && member.id === room.host) {
           room.world = data.world;
           room.members.forEach(m => { if (m !== member) send(m.socket, { type: 'world', world: data.world }); }); return;
@@ -67,6 +71,7 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
           send(room.members.get(room.host)?.socket, { type: 'command', sender: member.id, command: { id: data.id, settle: true } }); return;
         }
         if (data.type === 'result' && member.id === room.host) { send(room.members.get(data.target)?.socket, { type: 'result', result: data.result }); return; }
+        if (data.type === 'clock' && member.id === room.host) { room.members.forEach(m => { if (m !== member) send(m.socket, { type: 'clock', clock: data.clock }); }); return; }
         if (data.type === 'pose') { room.members.forEach(m => { if (m !== member) send(m.socket, { type: 'pose', sender: member.id, pose: data.pose }); }); return; }
         if (data.type === 'door') broadcast(room, { type: 'door', sender: member.id, id: data.id, dir: data.dir });
       } catch (e) { send(socket, { type: 'error', message: e.message }); if (!member) socket.close(1008); }
@@ -80,7 +85,7 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
         room.timer = setTimeout(() => closeRoom(code, room), graceMs);
       } else {
         const lost = member;
-        setTimeout(() => { if (!lost.socket && rooms.has(code)) { room.members.delete(lost.id); roster(room); } }, graceMs).unref();
+        setTimeout(() => { if (!lost.socket && rooms.has(code)) { room.members.delete(lost.id); identities.delete(lost.id); roster(room); } }, graceMs).unref();
       }
     });
   });

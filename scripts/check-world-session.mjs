@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
+import { createRelay } from '../server/relay.mjs';
+const relay = createRelay(); await new Promise(resolve => relay.http.listen(0, '127.0.0.1', resolve));
+const relayURL = 'ws://127.0.0.1:' + relay.http.address().port;
+let interruptNextEdit = false;
+relay.wss.on('connection', socket => socket.on('message', raw => {
+  const data = JSON.parse(raw.toString()); if (interruptNextEdit && data.type === 'command') { interruptNextEdit = false; socket.terminate(); }
+}));
 const out = 'world-session-checks'; fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], headless: true });
@@ -10,7 +17,7 @@ async function open(name) {
   const context = await browser.newContext({ viewport: { width: 900, height: 650 } }), page = await context.newPage();
   pages.push(page);
   page.setDefaultTimeout(120000); page.on('pageerror', e => errors.push(e.message));
-  await page.goto('http://127.0.0.1:5173/?touch=0'); await page.getByLabel('あなたの名前').fill(name);
+  await page.goto('http://127.0.0.1:5173/?touch=0&relay=' + encodeURIComponent(relayURL)); await page.getByLabel('あなたの名前').fill(name);
   return { context, page };
 }
 try {
@@ -36,6 +43,23 @@ try {
   await guest.waitForFunction(async () => !(await import('/src/session/session.ts')).useSession.getState().busy && window.__ow.game.getState().house.furniture.some(f => f.id === 'guest-built'));
   assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), budget - cost, 'only builder pays');
   assert.equal(await guest.evaluate(async () => JSON.stringify((await import('/src/session/saves.ts')).savedBundle().home)), original, 'visiting never overwrites home');
+  await host.evaluate(() => { const s = window.__ow.game.getState(), h = structuredClone(s.house); h.furniture.find(f => f.id === 'guest-built').color = '#112233'; s.commit(h); });
+  await guest.waitForFunction(() => window.__ow.game.getState().house.furniture.find(f => f.id === 'guest-built')?.color === '#112233');
+  await guest.evaluate(() => window.__ow.game.getState().undo());
+  await guest.waitForFunction(async () => !(await import('/src/session/session.ts')).useSession.getState().busy);
+  assert.equal(await guest.evaluate(() => window.__ow.game.getState().house.furniture.find(f => f.id === 'guest-built')?.color), '#112233', 'undo cannot erase another builders later change');
+  const beforeDisconnect = await guest.evaluate(() => window.__ow.economy.getState().money);
+  interruptNextEdit = true;
+  await guest.evaluate(() => { const s = window.__ow.game.getState(), h = structuredClone(s.house); h.furniture.push({ ...h.furniture[0], id: 'reconnected-build', x: 3 }); s.commit(h); });
+  await guest.waitForFunction(async () => (await import('/src/session/session.ts')).useSession.getState().status === 'connected' && !(await import('/src/session/session.ts')).useSession.getState().busy);
+  await guest.waitForFunction(() => window.__ow.game.getState().house.furniture.some(f => f.id === 'reconnected-build'));
+  assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), beforeDisconnect - cost, 'reconnect and duplicate receipt charge only once');
+  await guest.evaluate(() => window.__ow.game.getState().undo());
+  await host.waitForFunction(() => !window.__ow.game.getState().house.furniture.some(f => f.id === 'reconnected-build'));
+  await guest.waitForFunction(async () => !(await import('/src/session/session.ts')).useSession.getState().busy);
+  assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), beforeDisconnect - cost, 'undo does not create currency');
+  await host.evaluate(() => window.__ow.economy.setState({ day: 99 }));
+  await guest.waitForFunction(() => window.__ow.economy.getState().day === 99);
   await host.waitForFunction(async () => Object.keys((await import('/src/session/session.ts')).useSession.getState().poses).length === 1);
   await host.screenshot({ path: out + '/host-and-guest.png' });
   await guest.evaluate(async () => (await import('/src/session/session.ts')).leaveWorld());
@@ -51,4 +75,4 @@ try {
   console.log('browser errors', errors);
   for (const [i, page] of pages.entries()) { console.log('page', i, await page.locator('body').innerText()); await page.screenshot({ path: out + '/failure-' + i + '.png' }); }
   throw e;
-} finally { await browser.close(); }
+} finally { await browser.close(); relay.close(); }

@@ -9,6 +9,7 @@ export const sessionGate: {
   undo: null | (() => void);
   receipts: Record<string, { sender: string; cost: number; delta?: Change[]; undone?: boolean }>;
   worldId: string;
-} = { role: 'home', applying: false, edit: null, undo: null, receipts: {}, worldId: '' };
+  visitors: () => { x: number; y: number; z: number }[];
+} = { role: 'home', applying: false, edit: null, undo: null, receipts: {}, worldId: '', visitors: () => [] };
 export const visitingWorld = () => sessionGate.role === 'guest';
 export const onlineWorld = () => sessionGate.role !== 'home';
