@@ -6,10 +6,12 @@ const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROM
 const errors=[];
 async function open(touch=false,full=false){
  const page=await browser.newPage({viewport:{width:1280,height:720},deviceScaleFactor:1,hasTouch:touch});page.setDefaultTimeout(120000);page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{let seed=12345;Math.random=()=>((seed=(1664525*seed+1013904223)>>>0)/4294967296);});
  await page.goto(`http://127.0.0.1:5173/?touch=${touch?1:0}${full?'&buildingDetail=full':''}`);await page.waitForFunction(()=>window.__ow?.scene?.getObjectByName('town-houses')?.userData.baking===false);return page;
 }
 async function view(page,position=[80,75,140],target=[-30,5,12]){
- await page.evaluate(async({position,target})=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState();s.camera.position.set(...position);s.controls.target.set(...target);s.controls.update();},{position,target});await page.waitForTimeout(1500);
+ const frame=await page.evaluate(async({position,target})=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState();s.camera.position.set(...position);s.controls.target.set(...target);s.controls.update();window.__buildingTestState=s;return s.gl.info.render.frame;},{position,target});await page.waitForTimeout(1500);
+ await page.waitForFunction(frame=>window.__buildingTestState.gl.info.render.frame>=frame+6,frame);
  return page.evaluate(async()=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState();s.scene.updateMatrixWorld(true);s.gl.info.reset();s.gl.render(s.scene,s.camera);const tiers={near:0,exterior:0,distant:0};s.scene.traverse(o=>{if(o.userData.buildingDetail)tiers[o.userData.buildingDetail]++;});return {calls:s.gl.info.render.calls,triangles:s.gl.info.render.triangles,tiers,dpr:s.gl.getPixelRatio(),shadow:s.gl.shadowMap.type};});
 }
 const baseline=await open(false,true),before=await view(baseline);await baseline.screenshot({path:out+'/pc-before.png'});await baseline.close();
@@ -20,6 +22,7 @@ assert.ok(after.triangles<before.triangles*.7,'overview meaningfully reduces tri
 const plot=await pc.evaluate(async()=>Number(Object.keys((await import('/src/building/townHouses.ts')).TOWN_HOUSE_PLOTS)[0]));
 const at=await pc.evaluate(async plot=>{const {plotOffset,plotOffsetZ}=await import('/src/state/economy.ts');return {x:plotOffset(plot),z:plotOffsetZ(plot)};},plot);
 await view(pc,[at.x+10,5,at.z-12],[at.x+10,3,at.z+8]);
+await pc.waitForFunction(p=>window.__ow.scene.getObjectByName('town-house-'+p).userData.buildingDetail==='near',plot);
 assert.equal(await pc.evaluate(p=>window.__ow.scene.getObjectByName('town-house-'+p).userData.buildingDetail,plot),'near');
 await pc.screenshot({path:out+'/pc-near.png'});
 await pc.evaluate(async plot=>(await import('/src/world/visit.ts')).useVisit.setState({plot}),plot);await view(pc);
