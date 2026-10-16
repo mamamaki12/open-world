@@ -149,10 +149,12 @@ try {
   const accel=await center('アクセル'),left=await center('左にハンドルを切る'),right=await center('右にハンドルを切る'),brake=await center('ブレーキ');
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...accel,id:1},{...left,id:2}]});
   await page.waitForFunction(()=>{const d=window.__driveTest,c=d.useVehicles.getState().cars[0];return d.driveButtons.accelerator&&d.driveButtons.left&&c.speed>.3&&c.steer<-.02;});
+  await page.waitForFunction(async()=>{const {maxSteer}=await import('/src/building/driving.ts');const c=window.__driveTest.useVehicles.getState().cars[0];return c.steer < -maxSteer(c.speed)*1.05;});
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await page.waitForFunction(()=>!window.__driveTest.driveButtons.accelerator&&!window.__driveTest.driveButtons.left);
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...accel,id:1},{...right,id:2}]});
   await page.waitForFunction(()=>{const d=window.__driveTest;return d.driveButtons.right&&d.useVehicles.getState().cars[0].steer>.02;});
+  await page.waitForFunction(async()=>{const {maxSteer}=await import('/src/building/driving.ts');const c=window.__driveTest.useVehicles.getState().cars[0];return c.steer > maxSteer(c.speed)*1.05;});
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
   await page.waitForFunction(()=>!Object.values(window.__driveTest.driveButtons).some(Boolean));
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...brake,id:1}]});
