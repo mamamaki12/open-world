@@ -5,7 +5,7 @@
 // - 窓：開いた窓から出入りできるか（窓枠の高さ・すき間の大きさ）
 // - 家具：床に置いた箱として押し返す
 // - 階段の手すり：横から越えられない（下をくぐるのはよい）
-import { furnitureBounds, getFurniture, getOpening } from '../catalog';
+import { furnitureBounds, furnitureDef, getOpening } from '../catalog';
 import { GRID, SLAB_THICKNESS, STAIR_RAIL_HEIGHT, STORY_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import { roofHeightAt } from './roof';
 import { furnitureBaseY, stairHoles, wallBaseY, wallHeight } from './rules';
@@ -222,7 +222,7 @@ export function resolveCollisions(
     }
     for (const f of house.furniture) {
       const y0 = furnitureBaseY(house, f);
-      const def = getFurniture(f.type);
+      const def = furnitureDef(f);
       const bounds = def.collisionParts ? def.parts.filter((p,i) => !(f.type === 'garage-shutter' && isOpen(f.id) && i >= 3) && y0 + p.pos[1] - p.size[1] / 2 < headY && y0 + p.pos[1] + p.size[1] / 2 > feetY).map(p => ({
         minX: p.pos[0] - p.size[0] / 2, maxX: p.pos[0] + p.size[0] / 2,
         minZ: p.pos[2] - p.size[2] / 2, maxZ: p.pos[2] + p.size[2] / 2, top: p.pos[1] + p.size[1] / 2,

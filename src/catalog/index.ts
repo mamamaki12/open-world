@@ -96,6 +96,8 @@ export interface FurniturePiece {
   size: [number, number, number];
   pos: [number, number, number];
   paint: Paint;
+  /** 動く部品：引き出しは手前（+Z）へ引き出す。扉は左右どちらかの縦の辺を軸に開く */
+  move?: 'drawer' | 'door-l' | 'door-r';
 }
 
 export interface FurnitureDef {
@@ -110,6 +112,8 @@ export interface FurnitureDef {
   label?: { pos: [number, number, number]; size: [number, number] };
   colors: string[];
   parts: FurniturePiece[];
+  /** 座れる家具：座面の高さ（m）と、座る位置の前後のずれ（+Z が前） */
+  seat?: { height: number; z: number };
 }
 
 export const MATERIAL_CATEGORY_NAMES = materialsData.categories as Record<MaterialCategory, string>;
@@ -151,9 +155,27 @@ export function openingsOf(kind: OpeningKind): OpeningDef[] {
   return OPENINGS.filter((o) => o.kind === kind);
 }
 
-export function getFurniture(id: string): FurnitureDef {
-  return furnitureById.get(id) ?? FURNITURE[0];
+/** プレイヤーがデザインした家具（id は design:…）。自分のライブラリと、置いた家具に入っていたもの */
+const designById = new Map<string, FurnitureDef>();
+export function registerDesign(def: FurnitureDef) {
+  designById.set(def.id, def);
 }
+
+export function getFurniture(id: string): FurnitureDef {
+  return furnitureById.get(id) ?? designById.get(id) ?? FURNITURE[0];
+}
+
+/** 置いた家具の形。デザインした家具は家具そのものに入っている形を使う（ほかの人の家でも見える） */
+export function furnitureDef(item: { type?: string; design?: FurnitureDef }): FurnitureDef {
+  if (item.design && item.design.id === item.type) {
+    if (!designById.has(item.type)) registerDesign(item.design);
+    return item.design;
+  }
+  return getFurniture(item.type ?? '');
+}
+
+/** 動く部品（引き出し・扉）があるか */
+export const hasMovingParts = (def: FurnitureDef) => def.parts.some((p) => p.move);
 
 /** 家具の床面での大きさ（回転前、m）。部品の外形から求める */
 export function furnitureFootprint(def: FurnitureDef): { w: number; d: number } {
