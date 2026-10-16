@@ -24,9 +24,10 @@ export function QuickBar(){
   const name=tool==='furniture'?getFurniture(furniture).name:NAMES[tool];
   return <>
     <div className="quick-tools" aria-label="道具のホットバー">
-      <div className="quick-slots" ref={slots}>{QUICK_TOOLS.map((t,i)=><button key={t} aria-label={`${i+1}: ${NAMES[t]}`} aria-pressed={t===tool} onClick={()=>setTool(t)}><kbd>{i+1}</kbd><span>{toolIcon(t)}</span><small>{NAMES[t]}</small></button>)}</div>
+      {/* スマホでは道具の選択バーを出さず、右下の「建てる」ボタンから選ぶ */}
+      {!touch&&<div className="quick-slots" ref={slots}>{QUICK_TOOLS.map((t,i)=><button key={t} aria-label={`${i+1}: ${NAMES[t]}`} aria-pressed={t===tool} onClick={()=>setTool(t)}><kbd>{i+1}</kbd><span>{toolIcon(t)}</span><small>{NAMES[t]}</small></button>)}</div>}
       {tool!=='select'&&<BuildHistory/>}
-      <div className="quick-meta"><span>{name}<small className="quick-swipe-hint"> · 左右スワイプで道具</small></span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>⚙</button></div>
+      {!touch&&<div className="quick-meta"><span>{name}<small className="quick-swipe-hint"> · 左右スワイプで道具</small></span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>⚙</button></div>}
       {touch&&tool==='select'&&selectedFurniture&&<div className="furniture-edit-hint">青い家具をドラッグで移動・タップで45°回転</div>}
     </div>
     {centered&&<>
