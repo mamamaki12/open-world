@@ -30,6 +30,12 @@ import { HouseParts } from './HouseView';
 import { TownHouses } from './TownHouses';
 import { grassTexture } from './textures';
 
+let grassMat: THREE.MeshStandardMaterial | null = null;
+/** 町の草地（冬は Climate が白っぽくする） */
+export function grassMaterial(): THREE.MeshStandardMaterial {
+  return (grassMat ??= new THREE.MeshStandardMaterial({ map: grassTexture(), roughness: 1 }));
+}
+
 const lotW = LOT_W * GRID;
 const lotD = LOT_D * GRID;
 const ROAD_Z = lotD + 3.2;
@@ -94,7 +100,7 @@ export function Town() {
         {tiles.map(({ x, z }) => (
           <mesh key={`${x},${z}`} rotation-x={-Math.PI / 2} position={[x, -0.02, z]} receiveShadow>
             <planeGeometry args={[TILE, TILE]} />
-            <meshStandardMaterial map={grassTexture()} roughness={1} />
+            <primitive object={grassMaterial()} attach="material" />
           </mesh>
         ))}
         {TOWN_ROADS.map((road, i) => {
