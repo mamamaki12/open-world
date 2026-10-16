@@ -44,13 +44,24 @@ try {
       const z = plotZ(p)-oz + (wall.z0+wall.z1)*GRID/2;
       town.push({ plot:p, blocked:blockedAt(x,z,.2,1.5) });
     }
-    return { stopped, escaped, town };
+    // A facility corner must use the same full-body test, in civic-site coordinates.
+    const { ESTATE } = await import('/src/building/landmarks.ts');
+    const { civicOffset } = await import('/src/state/economy.ts');
+    const site = civicOffset(), start = ESTATE.z0 + oz + site.z - d.length/2 - .1;
+    Object.assign(car, { x: ESTATE.x0+ox+site.x-d.width/2+.02, z:start, yaw:0, speed:0, steer:0, slipAngle:0, reverseHold:0 });
+    useVehicles.setState({ cars:[car], driving:car.id, target:car.id });
+    for(let i=0;i<100;i++) driveFrame(g.camera,new Set(['KeyS']),.025,memory);
+    const facility = { distance:car.z-start, speed:car.speed };
+    useVehicles.setState({ cars:[], driving:null, target:null });
+    return { stopped, escaped, town, facility };
   });
   assert.equal(result.stopped.speed, 0, 'front-right corner contact stops the car');
   assert.ok(result.stopped.z >= 9.98, 'car does not enter the wall at the formerly missing corner');
   assert.ok(result.escaped > result.stopped.z+.05, 'reverse can leave the wall after stopping');
   assert.ok(result.town.length > 0);
   assert.ok(result.town.every(x=>x.blocked), 'every available default house fence blocks cars');
+  assert.equal(result.facility.speed,0,'facility corner stops the vehicle');
+  assert.ok(result.facility.distance>=0 && result.facility.distance<.07,'facility wall catches the full rear corner');
   assert.deepEqual(errors, []);
   console.log('PASS vehicle wall corners, backing away and default-house fences:', JSON.stringify(result));
 } finally { await browser.close(); }
