@@ -11,6 +11,7 @@
 - カタログ：`src/ui/DealerPanel.tsx` / `vehicles.css` のみ触る（共通UIは別スレッドが修正中なので触らない）。
 
 ## 進捗
-- 済: 計画
-- 次: 車体ロフト → 内装 → カタログ
+- 済: 計画。車体を断面ロフト（`src/world/carShape.ts`）に作り直し（丸い前後・フェンダー・ホイールアーチ・タンブルホーム・窓に沿った柱・ドアの合わせ目・ミラー・ドアノブ・形のあるライト/グリル・丸いタイヤ）。内装（ダッシュ・メーター針・ナビ画面・回るハンドル・シート・コンソール・内張り・天井・ルームミラー）を `CarModel.tsx` の `Interior` に。`driverEye` は運転席を少し後ろ（フロントガラスの付け根+1m）へ。
+- 確認用: `scripts/check-car-views.mjs`（ディーラーのプレビューで各車を撮影）、`scripts/check-car-cockpit.mjs`、`scripts/check-car-catalog.mjs`。出力は browser-checks/（git管理外）。
+- 次: 運転席視点の確認、カタログUI（DealerPanel / vehicles.css）
 - 課題: なし
