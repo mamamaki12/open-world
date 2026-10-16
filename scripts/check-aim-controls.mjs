@@ -12,7 +12,7 @@ const open = async (touch, viewport) => {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`http://127.0.0.1:5173/?touch=${touch ? 1 : 0}`);
   await page.waitForFunction(() => window.__ow);
-  await page.getByRole('button', { name: '歩いてみる', exact: true }).click();
+  await page.locator('.tool.mode').click();
   await setup(); return context;
 };
 const setup = async (wall = false) => {
@@ -81,6 +81,7 @@ try {
     assert.ok(action.x >= 0 && action.x + action.width <= viewport.width, 'action stays on screen');
     await page.screenshot({ path: `control-checks/mobile-${viewport.width}.png` });
   }
+  console.log('PASS mobile: floor/wall/opening/nameplate/furniture, hold removal, one-finger look, 320/390/844px layouts.');
   await mobile.close();
   const desktop = await open(false, { width: 1280, height: 720 });
   await page.mouse.click(640, 360); await page.waitForFunction(() => document.pointerLockElement !== null);
