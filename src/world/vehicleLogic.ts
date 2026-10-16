@@ -125,10 +125,13 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   const key=(...codes:string[])=>codes.some(c=>keys.has(c));
   const paused=!!useGame.getState().overlay;
   const throttle=paused?0:(key('KeyW','ArrowUp')?1:0)-(key('KeyS','ArrowDown')?1:0)||(!paused?(driveButtons.accelerator?1:touchMove.y):0);
-  const steering=paused?0:(key('KeyD','ArrowRight')?1:0)-(key('KeyA','ArrowLeft')?1:0)||(!paused?(Number(driveButtons.right)-Number(driveButtons.left)||touchMove.x):0);
+  const keyboardSteering=(key('KeyD','ArrowRight')?1:0)-(key('KeyA','ArrowLeft')?1:0);
+  const buttonDirection=Number(driveButtons.right)-Number(driveButtons.left);
+  const steering=paused?0:keyboardSteering||buttonDirection||touchMove.x;
+  const buttonSteering=!paused&&!keyboardSteering&&buttonDirection!==0;
   const o=origin();
   const previousYaw=car.yaw;
-  integrateDrive(car,{throttle,steering,brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
+  integrateDrive(car,{throttle,steering,buttonSteering,brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
     carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id)));
   engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
   p.yaw+=car.yaw-previousYaw;
