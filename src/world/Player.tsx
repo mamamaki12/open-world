@@ -23,6 +23,7 @@ import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
+import { useVisit, visitAt } from './visit';
 import { lotCells, lotHouse, plotOffset, plotOffsetZ, civicOffset, currentPlotOf, useEconomy } from '../state/economy';
 import { TOWN_BOUNDS, plotX, plotZ } from '../economy/town';
 import { buildMenuOpen, useControls, cycleTool } from '../state/controls';
@@ -73,8 +74,9 @@ export function toggleTargetDoor() {
   const doors = useDoors.getState();
   const id = doors.target;
   if (!id || doors.climbing) return;
-  const { house } = useGame.getState();
-  const spot = nearestOpening(house, playerMemory.x, playerMemory.z, playerMemory.y);
+  const vis = visitAt(playerMemory.x, playerMemory.z);
+  const house = vis?.house ?? useGame.getState().house;
+  const spot = nearestOpening(house, playerMemory.x - (vis?.ox ?? 0), playerMemory.z - (vis?.oz ?? 0), playerMemory.y);
   // 開く向き：プレイヤーがいる側と反対へ
   const dir = (spot && spot.id === id ? -spot.side : 1) as 1 | -1;
   const opened = doors.toggle(id, dir);
@@ -163,7 +165,7 @@ function resolveTown(p: { x: number; z: number }, feetY: number, height: number)
     if (Math.abs(q.x - ox - (LOT_W * GRID) / 2) > LOT_W * GRID || Math.abs(q.z - oz - (LOT_D * GRID) / 2) > LOT_D * GRID) continue;
     const house = townHouseAt(plot);
     if (!house) continue;
-    const r = resolveCollisions(house, { x: q.x - ox, z: q.z - oz }, feetY, height, () => false);
+    const r = resolveCollisions(house, { x: q.x - ox, z: q.z - oz }, feetY, height, isDoorOpen);
     q = { x: r.x + ox, z: r.z + oz };
   }
   return resolveParkedCars(q,feetY);
@@ -526,7 +528,10 @@ export function Player() {
             ? { x: nx, z: nz }
             : resolveTown(resolveCollisions(house, { x: nx, z: nz }, playerMemory.y, height, isDoorOpen), playerMemory.y, height);
           // 屋根の斜面に横からぶつかったら止まる（片方の向きだけなら沿って動く）。もう埋まっているときは抜け出せるようにする
-          const blocked = (q: { x: number; z: number }) => roofBlocks(house, q.x, q.z, playerMemory.y, height);
+          const blocked = (q: { x: number; z: number }) => {
+            const vis = visitAt(q.x, q.z);
+            return vis ? roofBlocks(vis.house, q.x - vis.ox, q.z - vis.oz, playerMemory.y, height) : roofBlocks(house, q.x, q.z, playerMemory.y, height);
+          };
           if (blocked(next) && !blocked(playerMemory)) {
             const alongX = { x: next.x, z: playerMemory.z };
             const alongZ = { x: playerMemory.x, z: next.z };
@@ -546,7 +551,10 @@ export function Player() {
         if (v === 'first') playerMemory.bodyYaw = playerMemory.yaw;
 
         // 高さ：重力・ジャンプ・段差と階段
-        const ground = surfaceHeight(house, playerMemory.x, playerMemory.z, playerMemory.y);
+        // ほかの住人の家の区画にいるときは、その家の床・階段の上を歩く
+        const vis = visitAt(playerMemory.x, playerMemory.z);
+        const ph = vis?.house ?? house, lx = playerMemory.x - (vis?.ox ?? 0), lz = playerMemory.z - (vis?.oz ?? 0);
+        const ground = surfaceHeight(ph, lx, lz, playerMemory.y);
         if (st.grounded && st.velY <= 0 && playerMemory.y - ground < 0.35) {
           playerMemory.y = ground; // 段差を上る・階段を下りるときは地面に沿わせる
         } else {
@@ -558,7 +566,7 @@ export function Player() {
           // 頭が屋根や上の階の床にぶつかったら、それ以上は上がらない
           if (st.velY > 0) {
             const height = PLAYER.height;
-            const ceil = ceilingHeight(house, playerMemory.x, playerMemory.z, before + height - 0.1);
+            const ceil = ceilingHeight(ph, lx, lz, before + height - 0.1);
             if (playerMemory.y + height > ceil) {
               playerMemory.y = Math.max(before, ceil - height);
               st.velY = 0;
@@ -577,7 +585,15 @@ export function Player() {
 
     // 近くのドア・窓を操作対象にする。開いた窓なら出られるかも調べる
     const doors = useDoors.getState();
-    if (!action.current) {
+    const visit = visitAt(playerMemory.x, playerMemory.z);
+    if (useVisit.getState().plot !== (visit?.plot ?? null)) useVisit.setState({ plot: visit?.plot ?? null });
+    if (visit && !action.current) {
+      // 訪ねた家ではドア・窓の開け閉めだけできる（座る・窓を乗り越えるのは自分の家だけ）
+      const spot = !seated ? nearestOpening(visit.house, playerMemory.x - visit.ox, playerMemory.z - visit.oz, playerMemory.y) : null;
+      if (useSeating.getState().target) useSeating.setState({ target: null });
+      doors.setTarget(spot?.id ?? null);
+      doors.setClimb(null, false);
+    } else if (!action.current) {
       const seat = !seated && st.grounded ? nearestSeat(house, playerMemory.x, playerMemory.y, playerMemory.z, isDoorOpen) : null;
       const spot = !seated ? nearestOpening(house, playerMemory.x, playerMemory.z, playerMemory.y) : null;
       const seatCloser = seat && (!spot || seat.distance < Math.hypot(playerMemory.x - spot.x, playerMemory.z - spot.z));

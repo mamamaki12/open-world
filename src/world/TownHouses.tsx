@@ -8,6 +8,15 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
 import { plotX, plotZ } from '../economy/town';
 import { HouseParts } from './HouseView';
+import { useGame } from '../state/store';
+import { VISIT_READ_ONLY, useVisit } from './visit';
+import type { ActivateHouse } from './HouseScope';
+
+/** ほかの人の家に建築モードで触ったとき：何も変えずに知らせるだけ */
+const readOnly: ActivateHouse = (e) => {
+  e.stopPropagation();
+  useGame.getState().notify(VISIT_READ_ONLY);
+};
 
 interface BakedPart { geometry: THREE.BufferGeometry; material: THREE.Material }
 const baked = new Map<string, BakedPart[]>();
@@ -73,6 +82,7 @@ function Baker({ id, onDone }: { id: string; onDone: (id: string) => void }) {
 /** 持ち主のいない区画（自分の土地・売り土地を除く）に建っている家 */
 export function TownHouses({ shiftX, shiftZ, skip }: { shiftX: number; shiftZ: number; skip: Set<number> }) {
   const [, setVersion] = useState(0);
+  const visiting = useVisit((v) => v.plot);
   const designs = useMemo(() => [...new Set(Object.values(TOWN_HOUSE_PLOTS))], []);
   const next = designs.find((d) => !baked.has(d));
   return (
@@ -81,7 +91,17 @@ export function TownHouses({ shiftX, shiftZ, skip }: { shiftX: number; shiftZ: n
       {Object.entries(TOWN_HOUSE_PLOTS).map(([p, id]) => {
         const plot = Number(p);
         const parts = baked.get(id);
-        if (skip.has(plot) || !parts) return null;
+        if (skip.has(plot)) return null;
+        // 訪ねている家だけは部品ごとに描く（ドアが開け閉めでき、建築モードで触るとお知らせが出る）
+        const house = plot === visiting ? townHouseAt(plot) : null;
+        if (house) {
+          return (
+            <group key={plot} position={[plotX(plot) + shiftX, 0, plotZ(plot) + shiftZ]}>
+              <HouseParts house={house} showRoofs activate={readOnly} />
+            </group>
+          );
+        }
+        if (!parts) return null;
         return (
           <group key={plot} position={[plotX(plot) + shiftX, 0, plotZ(plot) + shiftZ]}>
             {parts.map((part, i) => <mesh key={i} geometry={part.geometry} material={part.material} castShadow receiveShadow />)}

@@ -659,19 +659,29 @@ export const TOWN_HOUSE_DESIGNS: TownHouseDesign[] = [
   },
 ];
 
-const cache = new Map<string, House>();
+const cache = new Map<number, House>();
 export function townHouseDesign(id: string): TownHouseDesign | undefined {
   return TOWN_HOUSE_DESIGNS.find((d) => d.id === id);
 }
-/** その区画に建っている家（なければ null）。作った家は使い回す */
+/** その区画に建っている家（なければ null）。同じデザインでも区画ごとに部品の ID を分ける（ドアの開け閉めが別々になるように） */
 export function townHouseAt(plot: number): House | null {
   const id = TOWN_HOUSE_PLOTS[plot];
   const design = id ? townHouseDesign(id) : undefined;
   if (!design) return null;
-  let house = cache.get(id);
+  let house = cache.get(plot);
   if (!house) {
-    house = design.build();
-    cache.set(id, house);
+    const h = design.build();
+    const tag = (pid: string) => `${pid}@${plot}`;
+    house = {
+      ...h,
+      floors: h.floors.map((f) => ({ ...f, id: tag(f.id) })),
+      walls: h.walls.map((w) => ({ ...w, id: tag(w.id) })),
+      openings: h.openings.map((o) => ({ ...o, id: tag(o.id), wallId: tag(o.wallId) })),
+      stairs: h.stairs.map((st) => ({ ...st, id: tag(st.id) })),
+      roofs: h.roofs.map((r) => ({ ...r, id: tag(r.id) })),
+      furniture: h.furniture.map((f) => ({ ...f, id: tag(f.id), ...(f.wallMount ? { wallMount: { ...f.wallMount, wallId: tag(f.wallMount.wallId) } } : {}) })),
+    };
+    cache.set(plot, house);
   }
   return house;
 }
