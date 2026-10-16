@@ -17,8 +17,8 @@
 - 開閉: シャッターと同じ仕組み（`useDoors.open[家具id]`、Eキー/操作ボタン）。
 
 ## 進捗
-- [ ] 計画
-- [ ] データ型・ライブラリ・価格
-- [ ] 開閉・座る
+- [x] 計画
+- [x] データ型・ライブラリ・価格（src/catalog/designs.ts, furnitureDef）
+- [x] 開閉・座る（Furniture.tsx の Piece、vehicleLogic の furn: ターゲット、seating.ts）
 - [ ] デザイン画面
 - [ ] テスト・PR

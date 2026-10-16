@@ -1,14 +1,14 @@
-import { furnitureBounds, getFurniture } from '../catalog';
+import { furnitureBounds, furnitureDef } from '../catalog';
 import { GRID, lotSize } from './dimensions';
 import { snapFurniture } from './rules';
 import type { FurniturePart, House } from './types';
 
-type Item = Pick<FurniturePart, 'type' | 'rotation' | 'level'> & { id?: string };
+type Item = Pick<FurniturePart, 'type' | 'rotation' | 'level' | 'design'> & { id?: string };
 const REACH = 0.15;
 
 /** 回転と原点からの偏りも含めた、家具のワールド座標での外形。 */
 function offsets(item: Item) {
-  const b = furnitureBounds(getFurniture(item.type));
+  const b = furnitureBounds(furnitureDef(item));
   const a = item.rotation * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
   const points = [b.minX, b.maxX].flatMap(x => [b.minZ, b.maxZ].map(z => ({ x: x * c + z * s, z: -x * s + z * c })));
   return {
