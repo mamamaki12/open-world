@@ -103,10 +103,15 @@ export function vehicleInteract(p:Memory) {
   useGame.setState({view:'third'});
   useGame.getState().setTool('select');
   useDoors.getState().setTarget(null);
-  Object.assign(p,{yaw:c.yaw,bodyYaw:c.yaw,pitch:-.2});
+  Object.assign(p,{yaw:c.yaw,bodyYaw:c.yaw,pitch:DRIVE_PITCH});
   return true;
 }
 let saveClock=0;
+/** 乗ったときの見下ろし具合（pitch）。カメラの高さ角は driveElevation で決まる。 */
+export const DRIVE_PITCH=-.2;
+/** pitch（下を見るほど負）から、車を見るカメラの高さ角(rad)へ。乗った直後は約0.38。 */
+export function driveElevation(pitch:number){return Math.min(1.2,Math.max(.06,.38-(pitch-DRIVE_PITCH)));}
+const lookMemory={yaw:0,pitch:0,idle:9};
 export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memory,scene?:THREE.Scene) {
   const state=useVehicles.getState(),car=state.cars.find(c=>c.id===state.driving);
   if(!car)return false;
@@ -127,17 +132,26 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
     camera.position.set(p.x-Math.cos(car.yaw)*d.width*.24,Math.min(d.height-.12,1.18),p.z);
     camera.lookAt(p.x-Math.sin(p.yaw)*10,camera.position.y+Math.sin(p.pitch)*4,p.z-Math.cos(p.yaw)*10);
   }else{
-    const follow=car.yaw;
+    // 見回した分（マウス・指で動かした yaw/pitch）だけ、車のまわりをカメラが回る。
+    // 手を離して走っていると、少しして車の後ろへゆっくり戻る。
+    let offset=Math.atan2(Math.sin(p.yaw-car.yaw),Math.cos(p.yaw-car.yaw));
+    const looked=Math.abs(p.yaw-lookMemory.yaw)>1e-4||Math.abs(p.pitch-lookMemory.pitch)>1e-4;
+    lookMemory.idle=looked?0:lookMemory.idle+dt;
+    if(lookMemory.idle>1.5&&Math.abs(car.speed)>1){
+      const k=Math.min(1,dt*1.5);offset-=offset*k;p.pitch+=(DRIVE_PITCH-p.pitch)*k;
+    }
+    p.yaw=car.yaw+offset;lookMemory.yaw=p.yaw;lookMemory.pitch=p.pitch;
+    const follow=p.yaw,elev=driveElevation(p.pitch),reach=Math.hypot(d.length+3,2.8+d.height*.4);
     const focus=new THREE.Vector3(p.x,d.height*.6,p.z);
-    const desired=new THREE.Vector3(p.x+Math.sin(follow)*(d.length+3),d.height+2.8,p.z+Math.cos(follow)*(d.length+3));
-    // 納車スペースなど真後ろが建物なら、空いている横側から車を見る。
-    if(scene && avoidCameraWalls(scene,focus,desired).distanceToSquared(focus)<desired.distanceToSquared(focus)*.36){
-      const side=new THREE.Vector3(p.x+Math.cos(follow)*(d.length+3),d.height+2.8,p.z-Math.sin(follow)*(d.length+3));
+    const back=(yaw:number)=>new THREE.Vector3(p.x+Math.sin(yaw)*Math.cos(elev)*reach,focus.y+Math.sin(elev)*reach,p.z+Math.cos(yaw)*Math.cos(elev)*reach);
+    const desired=back(follow);
+    // 納車スペースなど真後ろが建物なら、空いている横側から車を見る（見回していないときだけ）。
+    if(scene && Math.abs(offset)<.05 && avoidCameraWalls(scene,focus,desired).distanceToSquared(focus)<desired.distanceToSquared(focus)*.36){
+      const side=back(follow+Math.PI/2);
       if(avoidCameraWalls(scene,focus,side).distanceToSquared(focus)>side.distanceToSquared(focus)*.64)desired.copy(side);
     }
-    const next=camera.position.clone().lerp(desired,Math.min(1,dt*7));
+    const next=camera.position.clone().lerp(desired,Math.min(1,dt*(lookMemory.idle<.3?14:7)));
     camera.position.copy(scene ? avoidCameraWalls(scene,focus,next) : next);camera.lookAt(focus);
-    p.yaw=car.yaw;
   }
   saveClock+=dt;if(saveClock>5){saveClock=0;saveVehicles();}
   return true;
