@@ -4,7 +4,7 @@ import { GRID } from './dimensions';
 import { carSamples, integrateDrive } from './driving';
 import { emptyHouse } from './types';
 import type { House } from './types';
-import { carHitsWalls } from './vehicleWalls';
+import { carHitsBox, carHitsWalls } from './vehicleWalls';
 
 const def = { width: 2, length: 4, height: 1.5 };
 const pose = () => ({ x: 0, z: 0, yaw: 0, speed: 0, steer: 0, wheelSpin: 0, braking: false });
@@ -64,5 +64,20 @@ describe('車体全体と壁の当たり判定', () => {
       for (let i = 0; i < 20; i++) integrateDrive(p, { throttle: speed > 0 ? -1 : 1, steering: 0, brake: false }, .025, CARS[0], q => carHitsWalls(q, CARS[0], h));
       expect(Math.abs(p.z - before)).toBeGreaterThan(.05);
     }
+  });
+});
+
+describe('施設の外壁と車体の四隅', () => {
+  it('covers building corners while retaining clearance and containment', () => {
+    expect(carHitsBox(pose(), def, { x0:.98,x1:1.2,z0:1.98,z1:2.2 })).toBe(true);
+    expect(carHitsBox(pose(), def, { x0:1.2,x1:1.4,z0:1.98,z1:2.2 })).toBe(false);
+    expect(carHitsBox(pose(), def, { x0:-.1,x1:.1,z0:-.1,z1:.1 })).toBe(true);
+    expect(carHitsBox(pose(), def, { x0:-10,x1:10,z0:-10,z1:10 })).toBe(true);
+  });
+  it('uses oriented separation axes and civic offsets rather than world bounding boxes', () => {
+    const p = { ...pose(), yaw:Math.PI/4 };
+    expect(carHitsBox(p, def, { x0:1.5,x1:1.7,z0:1.5,z1:1.7 })).toBe(false);
+    expect(carHitsBox(p, def, { x0:.8,x1:1,z0:.8,z1:1 })).toBe(true);
+    expect(carHitsBox({ ...pose(),x:50,z:70 }, def, { x0:.98,x1:1.2,z0:1.98,z1:2.2 }, { x:50,z:70 })).toBe(true);
   });
 });
