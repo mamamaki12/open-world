@@ -79,13 +79,6 @@ export interface Txn {
   amount: number;
 }
 
-export interface Job {
-  label: string;
-  pay: number;
-  total: number;
-  remaining: number;
-}
-
 interface EconomyData {
   money: number;
   day: number;
@@ -98,7 +91,6 @@ interface EconomyData {
   offers: LandOffer[];
   ledger: Txn[];
   gamble: { bet: number; won: number };
-  job: Job | null;
 }
 
 interface EconomyState extends EconomyData {
@@ -117,7 +109,6 @@ interface EconomyState extends EconomyData {
   switchLot: (lotId: string) => void;
   /** 隣り合う2つの自分の土地をつなげて1つにする。できなければ理由を返す */
   joinLots: (lotId: string) => string | null;
-  startJob: () => void;
   reset: () => void;
 }
 
@@ -162,7 +153,6 @@ function initialData(): EconomyData {
     offers: placeOffers(landOffers(1, Math.random), [first]),
     ledger: [{ day: 1, label: 'はじめの所持金', amount: START_MONEY }],
     gamble: { bet: 0, won: 0 },
-    job: null,
   };
 }
 
@@ -175,7 +165,7 @@ function load(): EconomyData {
         // 区画のない古いセーブの土地・売り土地には、ここで区画を決める
         const lots = assignPlots(d.lots, d.lots.flatMap((l) => (typeof l.joined === 'number' ? [l.joined] : [])));
         const offers = placeOffers(Array.isArray(d.offers) ? d.offers : [], lots);
-        return { ...initialData(), ...d, lots, offers, job: null };
+        return { ...initialData(), ...d, lots, offers };
       }
     }
   } catch {
@@ -199,8 +189,7 @@ export function saveEconomy(): void {
       offers: s.offers,
       ledger: s.ledger,
       gamble: s.gamble,
-      job: null,
-    };
+      };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   } catch {
     // 保存できない環境では何もしない
@@ -260,18 +249,6 @@ export const useEconomy = create<EconomyState>((set, get) => {
           return { ...l, built: l.construction.target, construction: null };
         });
       }
-      // バイト
-      let job = s.job;
-      if (job) {
-        const remaining = job.remaining - dt;
-        if (remaining > 0) job = { ...job, remaining };
-        else {
-          money += job.pay;
-          ledger = [{ day: s.day, label: job.label, amount: job.pay }, ...ledger].slice(0, LEDGER_LIMIT);
-          notify(`${job.label}：${yen(job.pay)} もらいました`);
-          job = null;
-        }
-      }
       // 日付
       let { clock, day, market, marketHistory, offers } = s;
       clock += dt;
@@ -301,7 +278,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
         const arrow = market > prev ? '▲' : market < prev ? '▼' : '→';
         notify(`${day}日目　相場 ${market.toFixed(2)} ${arrow}${rent ? `　家賃 +${yen(rent)}` : ''}${costs ? `　維持費・税 -${yen(costs)}` : ''}`);
       }
-      set({ lots, money, ledger, job, clock, day, market, marketHistory, offers });
+      set({ lots, money, ledger, clock, day, market, marketHistory, offers });
     },
 
     pay: (amount, label) => {
@@ -465,11 +442,6 @@ export const useEconomy = create<EconomyState>((set, get) => {
       notify(`🔗 ${west.name.replace(/（.*）$/, '')} と ${east.name.replace(/（.*）$/, '')} をつなげて、1つの広い土地にしました`);
       saveEconomy();
       return null;
-    },
-
-    startJob: () => {
-      if (get().job) return;
-      set({ job: { label: '日雇いバイト（チラシ配り）', pay: 12_000, total: 10, remaining: 10 } });
     },
 
     reset: () => {
