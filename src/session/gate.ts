@@ -7,7 +7,7 @@ export const sessionGate: {
   applying: boolean;
   edit: null | ((before: House, after: House) => void);
   undo: null | (() => void);
-  receipts: Record<string, { sender: string; cost: number; delta?: Change[]; undone?: boolean }>;
+  receipts: Record<string, { sender: string; cost: number; delta?: Change[]; undone?: boolean; cancelled?: boolean }>;
   worldId: string;
   visitors: () => { x: number; y: number; z: number }[];
 } = { role: 'home', applying: false, edit: null, undo: null, receipts: {}, worldId: '', visitors: () => [] };

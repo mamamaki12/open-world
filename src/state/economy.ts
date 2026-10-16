@@ -48,6 +48,8 @@ export interface Lot {
   plot?: number;
   /** 隣の区画とつなげて1つの土地にしているとき、その東側の区画（plot は西側） */
   joined?: number;
+  /** みんなのワールドでの持ち主（ゲストID）。ひとりで遊ぶときは使わない */
+  owner?: string;
 }
 
 /** その土地が使っている区画（つなげていれば2つ） */
