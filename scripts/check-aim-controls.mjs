@@ -113,6 +113,7 @@ try {
   await page.reload(); await page.waitForFunction(() => window.__ow);
   const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('open-world:controls:v1')));
   assert.equal(prefs.sensitivity, 1.5); assert.equal(prefs.invertY, true);
+  await page.locator('.tool.mode').click();
   await page.screenshot({ path: 'control-checks/desktop.png' });
   await desktop.close();
   assert.deepEqual(errors, [], 'no browser runtime errors');

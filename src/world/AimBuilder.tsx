@@ -51,7 +51,7 @@ export function AimBuilder() {
       if(e.pointerType==='touch'||!aimBuilding()||document.pointerLockElement!==gl.domElement)return;
       if(e.button===0||e.button===2){e.preventDefault();aimActions.place();}
     };
-    const escape=(e:KeyboardEvent)=>{if(e.code==='Escape')clear();};
+    const escape=(e:KeyboardEvent)=>{if(e.code==='Escape'){clear();if(document.pointerLockElement===gl.domElement)document.exitPointerLock();}};
     const unsub=useGame.subscribe((s,p)=>{if(s.tool!==p.tool||s.mode!==p.mode||s.view!==p.view||s.overlay!==p.overlay)clear();});
     gl.domElement.addEventListener('pointerdown',down);window.addEventListener('keydown',escape);
     return()=>{unsub();gl.domElement.removeEventListener('pointerdown',down);window.removeEventListener('keydown',escape);aimActions.place=()=>{};aimActions.cancel=()=>{};aimActions.rotate=()=>{};clear();};
