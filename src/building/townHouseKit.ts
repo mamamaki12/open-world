@@ -85,6 +85,7 @@ export class HouseKit {
 
   /** 完成時に、上階の床端と階段穴の側面を腰壁で保護する。 */
   finish(): House {
+    const guardStart = this.house.walls.length;
     const guard = fin('metal-v', '#6f7377');
     const add = (level: number, x0: number, z0: number, x1: number, z1: number, height: WallHeight) => {
       const edge = { x0, z0, x1, z1 };
@@ -135,6 +136,23 @@ export class HouseKit {
         }
       }
     }
+    // 連続する腰壁・塀をまとめて、部品数と衝突判定の負荷を抑える。
+    const merged: WallPart[] = [];
+    const added = this.house.walls.splice(guardStart);
+    added.sort((a, b) => a.level - b.level ||
+      String(a.height).localeCompare(String(b.height)) ||
+      Number(a.x0 === a.x1) - Number(b.x0 === b.x1) ||
+      (a.x0 === a.x1 ? a.x0 - b.x0 || a.z0 - b.z0 : a.z0 - b.z0 || a.x0 - b.x0));
+    for (const w of added) {
+      const prev = merged[merged.length - 1];
+      if (prev && prev.level === w.level && prev.height === w.height &&
+        ((prev.x0 === prev.x1 && w.x0 === w.x1 && prev.x0 === w.x0 && prev.z1 === w.z0) ||
+         (prev.z0 === prev.z1 && w.z0 === w.z1 && prev.z0 === w.z0 && prev.x1 === w.x0))) {
+        prev.x1 = w.x1;
+        prev.z1 = w.z1;
+      } else merged.push(w);
+    }
+    this.house.walls.push(...merged);
     return this.house;
   }
 
