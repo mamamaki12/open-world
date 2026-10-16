@@ -5,6 +5,7 @@ export const sessionGate: {
   role: 'home' | 'host' | 'guest';
   applying: boolean;
   edit: null | ((before: House, after: House) => void);
-} = { role: 'home', applying: false, edit: null };
+  receipts: Record<string, { sender: string; cost: number }>;
+} = { role: 'home', applying: false, edit: null, receipts: {} };
 export const visitingWorld = () => sessionGate.role === 'guest';
 export const onlineWorld = () => sessionGate.role !== 'home';

@@ -10,7 +10,7 @@ const open = async (touch, viewport) => {
   const context = await browser.newContext({ viewport, isMobile: touch, hasTouch: touch, deviceScaleFactor: 1 });
   page = await context.newPage(); page.setDefaultTimeout(30000);
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto(`http://127.0.0.1:5173/?touch=${touch ? 1 : 0}`);
+  await page.goto(`http://127.0.0.1:5173/?play=1&touch=${touch ? 1 : 0}`);
   await page.waitForFunction(() => window.__ow);
   await page.locator('.tool.mode').click();
   await setup(); return context;

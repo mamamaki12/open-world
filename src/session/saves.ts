@@ -10,7 +10,7 @@ import { readSave, writeSave } from './database';
 const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 export function captureWorld() {
   const e = useEconomy.getState();
-  return copy({ house: useGame.getState().house, economy: {
+  return copy({ house: useGame.getState().house, receipts: sessionGate.receipts, economy: {
     day: e.day, clock: e.clock, market: e.market, marketHistory: e.marketHistory,
     lots: e.lots, currentLotId: e.currentLotId, offers: e.offers,
   }});
@@ -22,7 +22,8 @@ export function captureProfile(id: string, name: string) {
     wardrobe: { owned: w.owned, outfit: w.outfit }, cars: useVehicles.getState().cars });
 }
 export type GuestProfile = ReturnType<typeof captureProfile>;
-export interface SaveBundle { version: 1; savedAt: number; profile: GuestProfile; home: WorldSave }
+export interface Escrow { id: string; room: string; amount: number }
+export interface SaveBundle { version: 1; savedAt: number; profile: GuestProfile; home: WorldSave; pending?: Escrow[] }
 export function validWorld(v: unknown): v is WorldSave {
   if (!v || typeof v !== 'object') return false;
   const w = v as WorldSave, e = w.economy;
@@ -42,6 +43,7 @@ export function validBundle(v: unknown): v is SaveBundle {
 export function applyWorld(w: WorldSave, preserveSelection = false) {
   const previous = sessionGate.applying; sessionGate.applying = true;
   try {
+    sessionGate.receipts = copy(w.receipts ?? {});
     const local = useEconomy.getState().currentLotId;
     const selected = preserveSelection && w.economy.lots.some(l => l.id === local) ? local : w.economy.currentLotId;
     const lots = w.economy.lots.map(l => l.id === w.economy.currentLotId ? { ...l, design: w.house } : l);
@@ -61,7 +63,7 @@ let bundle: SaveBundle;
 let saving = Promise.resolve();
 export const savedBundle = () => bundle;
 export function snapshot(): SaveBundle {
-  bundle = { version: 1, savedAt: Date.now(), profile: captureProfile(bundle.profile.id, bundle.profile.name),
+  bundle = { ...bundle, version: 1, savedAt: Date.now(), profile: captureProfile(bundle.profile.id, bundle.profile.name),
     home: visitingWorld() ? bundle.home : captureWorld() };
   return copy(bundle);
 }
