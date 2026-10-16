@@ -455,7 +455,11 @@ function apartment(st: ApartmentStyle): House {
       k.wall(level, x0, zf + 2, x1, zf + 2, st.railing, st.railing, 'half');
       for (let u = 0; u <= st.units; u++) k.wall(level, x0 + u * W, zf, x0 + u * W, zf + 2, st.railing, st.railing, 'half');
     }
-    if (level < st.floors - 1) k.stair(level, x1, c - 1, 0, stairFinish, 'u');
+    if (level < st.floors - 1) {
+      k.stair(level, x1, c - 1, 0, stairFinish, 'u');
+      // 階段室の外壁（上の階の踊り場の床を支える）
+      k.wall(level, x1 + 2, c - 2, x1 + 2, c + 2, st.railing, st.railing);
+    }
   }
   // 1階：共用廊下と、専用庭の柵
   k.floor(0, x0, c - 2, x1 + 2, c, corridor, 'terrace');
