@@ -4,6 +4,7 @@ import { getCar } from '../catalog/cars';
 import { carSamples, integrateDrive } from '../building/driving';
 import type { DrivePose } from '../building/driving';
 import { useVenue, syncVenue, autoVenueDoors } from '../state/venue';
+import { isBoutique } from '../building/boutiques';
 import { venueAction } from '../building/venues';
 import { atSaleSign } from '../building/landSale';
 import { atDealerDoor, DEALER } from '../building/dealer';
@@ -79,7 +80,7 @@ export function parkVehicle(){const s=useVehicles.getState();const c=s.cars.find
 export function vehicleInteract(p:Memory) {
   refreshVehicleTarget(p);
   const venue=useVenue.getState().inside;
-  if(venue){ const o=civicOffset(),action=venueAction(venue,p.x-o.x,p.z-o.z);if(!action)return false;useVenue.setState({game:action.game??null,model:action.model??null,dealerIntent:action.model?'buy':'catalog'});useGame.getState().setOverlay(venue);return true; }
+  if(venue){ const o=civicOffset(),action=venueAction(venue,p.x-o.x,p.z-o.z);if(!action)return false;useVenue.setState({game:action.game??null,model:action.model??null,dealerIntent:action.model?'buy':'catalog'});if(isBoutique(venue)){useVenue.setState({shopTab:action.id==='fitting'?'closet':'shop'});useGame.getState().setOverlay('boutique');return true;}useGame.getState().setOverlay(venue);return true; }
   const s=useVehicles.getState();
   if(s.driving){
     const car=s.cars.find(c=>c.id===s.driving)!;

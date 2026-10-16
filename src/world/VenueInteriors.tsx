@@ -7,6 +7,8 @@ import type { Venue } from '../building/venues';
 import { civicOffset, useCurrentPlot } from '../state/economy';
 import { playerMemory } from './Player';
 import { CIVIC_SITE, plotX, plotZ } from '../economy/town';
+import { isBoutique } from '../building/boutiques';
+import { BoutiqueInterior } from './BoutiqueBuildings';
 function Box({p,s,c,metal=0}:{p:[number,number,number];s:[number,number,number];c:string;metal?:number}){
   return <mesh position={p} castShadow receiveShadow><boxGeometry args={s}/><meshStandardMaterial color={c} roughness={metal ? .28:.65} metalness={metal}/></mesh>;
 }
@@ -84,7 +86,7 @@ function Shell({kind}:{kind:Venue}){
     <Box p={[0,h,0]} s={[w,.12,d]} c={kind==='casino'?'#26242a':'#f0f1ed'}/>
     {[-1,1].map(side=><Box key={side} p={[side*(w/2-.12),h/2,0]} s={[.15,h,d]} c={b.wall}/>)}
     <Box p={[0,h/2,d/2-.12]} s={[w,h,.15]} c={b.wall}/>
-    {kind!=='dealer'&&<>
+    {kind!=='dealer'&&!isBoutique(kind)&&<>
       <Box p={[-w/2+left/2,h/2,fz]} s={[left,h,.15]} c={b.wall}/>
       <Box p={[w/2-right/2,h/2,fz]} s={[right,h,.15]} c={b.wall}/>
       <Box p={[dx,(h+door.height)/2,fz]} s={[door.width,h-door.height,.15]} c={b.wall}/>
@@ -93,9 +95,10 @@ function Shell({kind}:{kind:Venue}){
     {[-1,1].map(side=><Box key={side} p={[side*(w/2-.2),.15,0]} s={[.07,.13,d]} c={b.trim} metal={.5}/>)}
   </>;
 }
-const HEIGHT:Record<Venue,number>={casino:6.4,estate:3.2,dealer:4.5};
+const HEIGHT:Record<Venue,number>={casino:6.4,estate:3.2,dealer:4.5,maison:4.2,atelier:3.6,urban:3.6,daily:3.6};
 const LIGHT:Record<Venue,{y:number;intensity:number;color:string;distance:number}>={
   casino:{y:4,intensity:20,color:'#ffd9a0',distance:20},estate:{y:2.5,intensity:12,color:'#fff0db',distance:12},dealer:{y:4.2,intensity:25,color:'#e2f2ff',distance:20},
+  maison:{y:3.6,intensity:14,color:'#ffe6bf',distance:12},atelier:{y:3.1,intensity:12,color:'#fff0db',distance:12},urban:{y:3.1,intensity:12,color:'#f4f8ff',distance:12},daily:{y:3.1,intensity:13,color:'#ffffff',distance:12},
 };
 /** 店内の照明はひとつだけ置き、近くの店へ動かす（ライトの数が変わるとシェーダーを作り直して一瞬止まるため）。 */
 function VenueLight(){
@@ -119,8 +122,8 @@ export function VenueInteriors(){
       const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
       return <group key={kind} position={[cx,0,cz]}>
         <Shell kind={kind}/>
-        {kind!=='dealer'&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':'#ffe5a6'}/>)}
-        {kind==='casino'?<CasinoInterior/>:kind==='estate'?<EstateInterior/>:<DealerInterior/>}
+        {(kind==='casino'||kind==='estate')&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':'#ffe5a6'}/>)}
+        {kind==='casino'?<CasinoInterior/>:kind==='estate'?<EstateInterior/>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:<DealerInterior/>}
       </group>;
     })}
   </group>;
