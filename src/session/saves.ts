@@ -24,7 +24,7 @@ export function captureProfile(id: string, name: string) {
     wardrobe: { owned: w.owned, outfit: w.outfit }, cars: useVehicles.getState().cars });
 }
 export type GuestProfile = ReturnType<typeof captureProfile>;
-export interface Escrow { id: string; room: string; worldId: string; amount: number }
+export interface Escrow { id: string; room: string; worldId: string; amount: number; kind?: 'build' | 'purchase'; label?: string }
 export interface SaveBundle { version: 1; savedAt: number; profile: GuestProfile; home: WorldSave; pending?: Escrow[] }
 export function validWorld(v: unknown): v is WorldSave {
   if (!v || typeof v !== 'object') return false;

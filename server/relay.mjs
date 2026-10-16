@@ -67,6 +67,10 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
           if (!member.canBuild || !room.members.get(room.host)?.socket) { send(socket, { type: 'denied', id: data.command?.id, message: '共同建築が許可されていません' }); return; }
           send(room.members.get(room.host).socket, { type: 'command', sender: member.id, command: data.command }); return;
         }
+        if (data.type === 'purchase' && typeof data.command?.id === 'string' && data.command.purchase && typeof data.command.purchase === 'object') {
+          // お店での買い物は建築の許可がなくてもホストへ届ける（記録と確定はホストが行う）
+          send(room.members.get(room.host)?.socket, { type: 'command', sender: member.id, command: { id: data.command.id, purchase: data.command.purchase } }); return;
+        }
         if (data.type === 'settle' && typeof data.id === 'string') {
           send(room.members.get(room.host)?.socket, { type: 'command', sender: member.id, command: { id: data.id, settle: true } }); return;
         }

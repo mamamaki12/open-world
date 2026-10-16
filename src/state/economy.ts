@@ -14,6 +14,7 @@ import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { mergeHouses } from '../building/join';
 import { useGame } from './store';
 import { useInteraction } from './interaction';
+import type { Shop } from '../economy/shop';
 
 export const START_MONEY = 20_000_000;
 
@@ -48,6 +49,8 @@ export interface Lot {
   plot?: number;
   /** 隣の区画とつなげて1つの土地にしているとき、その東側の区画（plot は西側） */
   joined?: number;
+  /** お店に指定していれば、その店（src/economy/shop.ts） */
+  shop?: Shop;
 }
 
 /** その土地が使っている区画（つなげていれば2つ） */
@@ -118,6 +121,8 @@ interface EconomyState extends EconomyData {
   /** 隣り合う2つの自分の土地をつなげて1つにする。できなければ理由を返す */
   joinLots: (lotId: string) => string | null;
   startJob: () => void;
+  /** 土地をお店に指定する・店の中身を変える（null で閉店） */
+  setShop: (lotId: string, shop: Shop | null) => void;
   reset: () => void;
 }
 
@@ -470,6 +475,15 @@ export const useEconomy = create<EconomyState>((set, get) => {
     startJob: () => {
       if (get().job) return;
       set({ job: { label: '日雇いバイト（チラシ配り）', pay: 12_000, total: 10, remaining: 10 } });
+    },
+
+    setShop: (lotId, shop) => {
+      set({ lots: get().lots.map((l) => {
+        if (l.id !== lotId) return l;
+        const { shop: _old, ...rest } = l;
+        return shop ? { ...rest, shop } : rest;
+      }) });
+      saveEconomy();
     },
 
     reset: () => {

@@ -14,6 +14,8 @@ import { plotX, plotZ } from '../economy/town';
 import { applyChanges, changes } from './edits';
 import type { Change } from './edits';
 import { sessionGate } from './gate';
+import { cleanShop, recordSale } from '../economy/shop';
+import type { ShopItem } from '../economy/shop';
 import { applyWorld, captureWorld, persist, restoreHome, savedBundle, validWorld } from './saves';
 import type { WorldSave } from './saves';
 import type { Outfit } from '../catalog/clothes';
@@ -32,9 +34,11 @@ let approving = false;
 let intendedLeave = false, epoch = 0, remoteWorld: WorldSave | null = null;
 const send = (data: unknown) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); };
 export const currentEndpoint = () => endpoint;
-interface Command { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string }
+interface Command { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; purchase?: { lot: string; item: string; price: number } }
 interface Result { id: string; ok: boolean; cost?: number; message?: string }
 let pending: Command | null = null;
+let purchasing: string | null = null;
+const SETTLED = '未確定だった建築費を返しました';
 const ownHistory: Command[] = [];
 const syncHistory = () => { if (sessionGate.edit) useGame.setState({ past: ownHistory.map(() => useGame.getState().house), future: [] }); };
 function currentWorldHouse(w: WorldSave, id: string): House | null {
@@ -49,6 +53,15 @@ function publishWorld() { if (!approving) send({ type: 'world', world: captureWo
 async function finish(result: Result) {
   const b = savedBundle(), escrow = b.pending?.find(p => p.id === result.id);
   if (!escrow) return;
+  if (escrow.kind === 'purchase') {
+    // 買い物：確定なら預けたお金はそのまま店の持ち主へ。届かなかった・断られたら全額戻す
+    b.pending = b.pending?.filter(p => p.id !== result.id);
+    if (!result.ok) useEconomy.getState().receive(escrow.amount, `買い物の取消：${escrow.label ?? ''}`);
+    if (purchasing === result.id) purchasing = null;
+    useSession.setState({ message: result.ok ? `「${escrow.label}」を買いました` : result.message === SETTLED ? 'お店に届かなかったので返金しました' : result.message ?? '買えませんでした' });
+    await persist();
+    return;
+  }
   const refund = result.ok ? escrow.amount - (result.cost ?? escrow.amount) : escrow.amount;
   if (refund > 0) useEconomy.getState().receive(refund, result.ok ? '共同建築の精算' : '共同建築の取消');
   b.pending = b.pending?.filter(p => p.id !== result.id);
@@ -63,12 +76,30 @@ async function finish(result: Result) {
 }
 async function accept(sender: string, command: Command) {
   const answer = (r: Result) => sender === savedBundle().profile.id ? void finish(r) : send({ type: 'result', target: sender, result: r });
-  let rollback: WorldSave | null = null;
+  let rollback: WorldSave | null = null, credited = 0;
   try {
     if (!command || typeof command.id !== 'string' || command.id.length > 120) throw Error('操作IDが不正です');
     const prior = sessionGate.receipts[command.id];
     if (prior) { if (prior.sender !== sender) throw Error('操作IDが重複しました'); answer({ id: command.id, ok: true, cost: prior.cost }); return; }
-    if (command.settle) { answer({ id: command.id, ok: false, message: '未確定だった建築費を返しました' }); return; }
+    if (command.settle) { answer({ id: command.id, ok: false, message: SETTLED }); return; }
+    if (command.purchase) {
+      const { lot, item, price } = command.purchase;
+      if (sender === savedBundle().profile.id) throw Error('自分のお店では買えません');
+      const w = captureWorld(), shop = cleanShop(w.economy.lots.find(l => l.id === lot)?.shop);
+      if (!shop) throw Error('このお店は閉まっています');
+      const buyer = useSession.getState().members.find(m => m.id === sender)?.name ?? 'お客さん';
+      const sale = recordSale(shop, { id: command.id, day: w.economy.day, buyer, itemId: item, price });
+      if (typeof sale === 'string') throw Error(sale);
+      rollback = w; approving = true;
+      sessionGate.receipts[command.id] = { sender, cost: price };
+      useEconomy.getState().setShop(lot, sale.shop);
+      useEconomy.getState().receive(price, `お店の売上：${sale.item.name}（${buyer}さん）`);
+      credited = price;
+      await persist(); // 売上と受領記録を保存してから買い手へ確定を返す
+      approving = false;
+      publishWorld(); answer({ id: command.id, ok: true, cost: price });
+      return;
+    }
     if (!useSession.getState().members.some(m => m.id === sender && m.canBuild)) throw Error('共同建築の許可が必要です');
     const w = captureWorld(), before = currentWorldHouse(w, command.lot);
     if (!before) throw Error('編集する土地がありません');
@@ -95,6 +126,7 @@ async function accept(sender: string, command: Command) {
     approving = false;
     publishWorld(); answer({ id: command.id, ok: true, cost });
   } catch (e) {
+    if (credited) useEconomy.setState(s => ({ money: s.money - credited }));
     if (rollback) { applyWorld(rollback, true); syncHistory(); void persist().catch(() => undefined); }
     answer({ id: command?.id, ok: false, message: e instanceof Error ? e.message : '変更できませんでした' });
   } finally { approving = false; }
@@ -123,6 +155,20 @@ async function submit(before: House, after: House) {
   savedBundle().pending = [...(savedBundle().pending ?? []), { id, room: s.code, worldId: sessionGate.worldId, amount: cost }];
   try { await persist(); if (s.role === 'host') { const command = pending; approvalQueue = approvalQueue.then(() => accept(me, command)); } else send({ type: 'command', command: pending }); }
   catch { await finish({ id, ok: false, message: '保存できないため操作を取り消しました' }).catch(() => undefined); }
+}
+/** 同じワールドのお店で一回払いの買い物をする。客はお金を預け、持ち主（ホスト）が記録・保存してから確定する */
+export async function buyFromShop(lot: string, item: ShopItem): Promise<string | null> {
+  const s = useSession.getState();
+  if (s.role !== 'guest' || s.status !== 'connected') return 'ほかのプレイヤーのワールドに参加しているときに買えます';
+  if (purchasing) return '前の買い物を確定しています';
+  if (!useEconomy.getState().pay(item.price, `買い物（確定待ち）：${item.name}`)) return '所持金が足りません';
+  const id = crypto.randomUUID();
+  purchasing = id;
+  savedBundle().pending = [...(savedBundle().pending ?? []), { id, room: s.code, worldId: sessionGate.worldId, amount: item.price, kind: 'purchase', label: item.name }];
+  try { await persist(); }
+  catch { await finish({ id, ok: false, message: '保存できないため買い物を取り消しました' }).catch(() => undefined); return '保存できないため買い物を取り消しました'; }
+  send({ type: 'purchase', command: { id, purchase: { lot, item: item.id, price: item.price } } });
+  return null;
 }
 function endpointURL(value: string) {
   const u = new URL(value);
@@ -220,7 +266,7 @@ export function startSessionTimers() {
   }, 100);
   const save = setInterval(() => {
     if (useSession.getState().role === 'host' && useSession.getState().status === 'connected') {
-      const e = useEconomy.getState(), lots = JSON.stringify(e.lots.map(l => [l.id, l.built, l.construction]));
+      const e = useEconomy.getState(), lots = JSON.stringify(e.lots.map(l => [l.id, l.built, l.construction, l.shop]));
       if (lots !== lastLots) { lastLots = lots; publishWorld(); }
       send({ type: 'clock', clock: { day: e.day, clock: e.clock, market: e.market, marketHistory: e.marketHistory } });
     }
