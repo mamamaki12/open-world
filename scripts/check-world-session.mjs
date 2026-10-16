@@ -33,11 +33,11 @@ try {
   const code = 'SHARED';
   const ids = await guest.evaluate(async () => ({ id: (await import('/src/session/saves.ts')).savedBundle().profile.id, n: window.__ow.game.getState().house.furniture.length }));
   const budget = await guest.evaluate(() => window.__ow.economy.getState().money);
-  const cost = await guest.evaluate(async () => { const s = window.__ow.game.getState(), h = structuredClone(s.house); h.furniture.push({ ...h.furniture[0], id: 'guest-built', x: 2 });
-    const cost = (await import('/src/economy/pricing.ts')).renovationCost(s.house, h).total; s.commit(h); return cost; });
+  // 着工は無料なので、共同建築でもお金は減らない
+  await guest.evaluate(() => { const s = window.__ow.game.getState(), h = structuredClone(s.house); h.furniture.push({ ...h.furniture[0], id: 'guest-built', x: 2 }); s.commit(h); });
   await host.waitForFunction(() => window.__ow?.game.getState().house.furniture.some(f => f.id === 'guest-built'));
   await guest.waitForFunction(async () => !(await import('/src/session/session.ts')).useSession.getState().busy && window.__ow.game.getState().house.furniture.some(f => f.id === 'guest-built'));
-  assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), budget - cost, 'only builder pays');
+  assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), budget, 'building is free');
   assert.equal(await guest.evaluate(async () => JSON.stringify((await import('/src/session/saves.ts')).savedBundle().home)), original, 'visiting never overwrites home');
   await host.evaluate(() => { const s = window.__ow.game.getState(), h = structuredClone(s.house); h.furniture.find(f => f.id === 'guest-built').color = '#112233'; s.commit(h); });
   await guest.waitForFunction(() => window.__ow.game.getState().house.furniture.find(f => f.id === 'guest-built')?.color === '#112233');
@@ -49,11 +49,11 @@ try {
   await guest.evaluate(() => { const s = window.__ow.game.getState(), h = structuredClone(s.house); h.furniture.push({ ...h.furniture[0], id: 'reconnected-build', x: 3 }); s.commit(h); });
   await guest.waitForFunction(async () => (await import('/src/session/session.ts')).useSession.getState().status === 'connected' && !(await import('/src/session/session.ts')).useSession.getState().busy);
   await guest.waitForFunction(() => window.__ow.game.getState().house.furniture.some(f => f.id === 'reconnected-build'));
-  assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), beforeDisconnect - cost, 'reconnect and duplicate receipt charge only once');
+  assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), beforeDisconnect, 'reconnect and duplicate receipt charge only once');
   await guest.evaluate(() => window.__ow.game.getState().undo());
   await host.waitForFunction(() => !window.__ow.game.getState().house.furniture.some(f => f.id === 'reconnected-build'));
   await guest.waitForFunction(async () => !(await import('/src/session/session.ts')).useSession.getState().busy);
-  assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), beforeDisconnect - cost, 'undo does not create currency');
+  assert.equal(await guest.evaluate(() => window.__ow.economy.getState().money), beforeDisconnect, 'undo does not create currency');
   const clock = await guest.evaluate(() => window.__ow.economy.getState().clock);
   await guest.waitForFunction(c => window.__ow.economy.getState().clock !== c, clock);
   await host.waitForFunction(async () => Object.keys((await import('/src/session/session.ts')).useSession.getState().poses).length === 1);
@@ -67,7 +67,7 @@ try {
   await host.evaluate(async () => (await import('/src/session/session.ts')).leaveWorld()); // construction stays on the server after everyone left
   const backup = await host.evaluate(async () => { const m = await import('/src/session/saves.ts'); await m.persist(); return JSON.stringify(m.snapshot()); });
   await host.evaluate(async backup => (await import('/src/session/saves.ts')).importSave(backup), backup);
-  console.log(JSON.stringify({ code, cost, budget, result: 'shared join / build / payment / home isolation / presence / backup passed' }));
+  console.log(JSON.stringify({ code, budget, result: 'shared join / build / payment / home isolation / presence / backup passed' }));
   assert.deepEqual(errors, []);
 } catch (e) {
   console.log('browser errors', errors);

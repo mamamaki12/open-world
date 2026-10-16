@@ -29,7 +29,7 @@ describe('shared world', () => {
     expect(before).toBeLessThan(1e8);
     expect(applyCommand(w, 'b', { id: 'c0', lot: lot.id, delta: addFloor(w, lot.id), reserved: 1e9 }).result.message).toContain('ほかの人');
     const built = ok(w, 'a', { id: 'c1', lot: lot.id, delta: addFloor(w, lot.id), reserved: 1e9 });
-    expect(built.accounts!.a.money).toBeLessThan(before);
+    expect(built.accounts!.a.money).toBe(before); // 着工は無料
     expect(applyCommand(built, 'b', { id: 'c1', lot: lot.id, delta: [], reserved: 0 }).result.ok).toBe(false);
   });
   it('moves money from the buyer to the seller when a listed lot sells', () => {

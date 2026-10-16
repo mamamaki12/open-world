@@ -55,7 +55,7 @@ export function applyWorld(w: WorldSave, preserveSelection = false) {
     const active = lots.find(l => l.id === selected);
     const house = selected === w.economy.currentLotId ? w.house : active ? active.design ?? active.built ?? emptyHouse() : w.house;
     useEconomy.setState({ ...copy(w.economy), currentLotId: selected,
-      lots: lots.map(l => l.id === selected ? { ...l, design: null } : l), job: null });
+      lots: lots.map(l => l.id === selected ? { ...l, design: null } : l) });
     useGame.setState({ house: copy(house), past: [], future: [], dragBase: null, selection: null, marked: [], lastCommit: null });
   } finally { sessionGate.applying = previous; }
 }

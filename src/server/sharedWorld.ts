@@ -2,7 +2,6 @@
 import type { House } from '../building/types';
 import { emptyHouse } from '../building/types';
 import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
-import { renovationCost } from '../economy/pricing';
 import { DAY_SECONDS, landOffers, landPrice, stepMarket, getLocation } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { JOINED_W, freePlot } from '../economy/town';
@@ -154,7 +153,7 @@ export function applyCommand(w: SharedWorld, sender: string, c: SharedCommand, n
     try {
       Object.assign(lotSize, { w: typeof lot.joined === 'number' ? JOINED_W : LOT_W, d: LOT_D });
       next = applyChanges(before, c.delta);
-      cost = c.undoOf ? 0 : renovationCost(before, next).total;
+      cost = 0; // 着工は無料（ひとりモードと同じ）
     } finally { Object.assign(lotSize, previous); }
     if (!Number.isSafeInteger(c.reserved) || c.reserved < cost) return fail('費用が変わりました。最新の状態でやり直してください');
     const charged = charge(w, sender, cost, '建築（' + lot.name + '）');
