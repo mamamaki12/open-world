@@ -30,7 +30,11 @@ try {
   await host.getByRole('button', { name: '自分のワールドを開く', exact: false }).click();
   await host.waitForFunction(async () => (await import('/src/session/session.ts')).useSession.getState().status === 'connected');
   const code = await host.evaluate(async () => (await import('/src/session/session.ts')).useSession.getState().code);
-  await guest.getByLabel('招待コード').fill(code); await guest.getByRole('button', { name: '友達のワールドに入る', exact: true }).click();
+  assert.match(code, /^[A-F0-9]{8}$/, 'host returned a complete invitation code');
+  const codeInput = guest.getByLabel('招待コード');
+  await codeInput.fill(''); await codeInput.pressSequentially(code, { delay: 80 }); await codeInput.blur();
+  assert.equal(await codeInput.inputValue(), code, 'invitation code was entered completely');
+  await guest.getByRole('button', { name: '友達のワールドに入る', exact: true }).click();
   await guest.waitForFunction(async () => (await import('/src/session/session.ts')).useSession.getState().members.length === 2 && !!window.__ow);
   await guest.waitForFunction(() => !!window.__ow);
   await host.waitForFunction(() => !!window.__ow);
@@ -76,6 +80,8 @@ try {
   assert.deepEqual(errors, []);
 } catch (e) {
   console.log('browser errors', errors);
-  for (const [i, page] of pages.entries()) { console.log('page', i, await page.locator('body').innerText()); await page.screenshot({ path: out + '/failure-' + i + '.png' }); }
+  for (const [i, page] of pages.entries()) { console.log('page', i, await page.locator('body').innerText());
+    console.log('session', await page.evaluate(async () => ({ state: (await import('/src/session/session.ts')).useSession.getState(), inputs: [...document.querySelectorAll('input')].map(i => ({ value: i.value, type: i.type })) })));
+    await page.screenshot({ path: out + '/failure-' + i + '.png' }); }
   throw e;
 } finally { await browser.close(); relay.close(); }

@@ -37,6 +37,8 @@
 - 課題: 公開用の常時接続サーバー配置先とWSS URLは未確定。中継サーバーと起動/配置手順を先に具体化する。公開サイトのオンライン動作は実際のサーバー配置なしに完了扱いにしない。
 - 課題: ログインなしの個人資産は端末保存を信頼する方式。オンライン同時参加は同一ゲストIDにつき1セッションに制限する。アカウントや経済の不正対策は後続設計。
 ## 再開チェックポイント（2026-10-17 JST）
+- 公開検証: `95f49c9`のCIで実EC2へのHTTPS/WSS・参加/権限/送信者固定/世界配信/退出が通過。本番ビルドを公開サイトのoriginで動かした2ブラウザーもEC2に参加成功。ローカルブラウザーは環境のHTTPSプロキシ経由で検証。
+- CI修正: ローカル共同建築テストが招待コード入力後のdisabledボタン待ちで停止したため、入力を実キーイベントに変更し、コード完全性・DOM入力値の検査と失敗時状態ログを追加。再実行する。公開ブラウザーの権限チェックはサーバー応答後に反映されるため、click後のchecked状態を待って検証する。
 - 公開準備: ユーザーのEC2 t3.micro / シドニー / Amazon Linux 2023に配置。Node 22.23.2、ws 8.22.0、`/home/ec2-user/open-world-relay/relay.mjs`（`8c0a3af`から取得）。systemd `open-world-relay` / ポート8787、ALLOWED_ORIGINSは`https://mamamaki12.github.io`。Caddyで80/443→127.0.0.1:8787、DuckDNSは`shingo-open-world.duckdns.org`。ユーザーのHTTPS `/health` 確認成功、こちらのNode fetchも200 ok。
 - 公開準備: `.env.production`に公開WSSを設定する。実サーバーとのHTTPS/WSS・2クライアントの参加/権限/送信者固定/世界配信/退出を`node scripts/check-public-relay.mjs`で検査。CI run `38929899970`は全3ジョブ成功を確認済み。次は接続先設定の本番ビルドとCI、公開サイトの2ブラウザー参加確認。
 - 検査環境: ローカルNode fetchのHTTPSは成功したが、wsの直通TCPは実行環境のEACCESで拒否。公開relay検査をCIのworld-sessionジョブにも追加し、GitHub側のネットワークから実行する。
