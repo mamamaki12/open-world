@@ -24,8 +24,9 @@ export function WorldActionHud(){
     <div className="drive-dashboard">
       <b className="drive-model">{getCar(car.model)!.name}</b>
       <div className="drive-speed">{car.speed<-.1?'R ':''}{Math.round(Math.abs(car.speed)*3.6)}<small>km/h</small></div>
+      {car.drifting ? <b className="drive-drift">DRIFT</b> : car.handbraking ? <b className="drive-drift">サイドブレーキ</b> : null}
     </div>
-    <div className="drive-keyboard-help"><p>W/S 前後 · A/D ハンドル · Space ブレーキ</p><p>Q 視点 · L ライト {car.lights?'ON':'OFF'}</p></div>
+    <div className="drive-keyboard-help"><p>W/S 前後 · A/D ハンドル · Space ブレーキ</p><p>Shift サイドブレーキ · Q 視点 · L ライト {car.lights?'ON':'OFF'}</p></div>
     <div className="drive-actions">
       <button onClick={()=>interact()}><span className="drive-key">F · </span>停車して降りる</button>
       <button aria-pressed={car.lights} onClick={()=>{car.lights=!car.lights;tick(v=>v+1);}}>ライト {car.lights?'ON':'OFF'}</button>
