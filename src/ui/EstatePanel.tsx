@@ -1,10 +1,10 @@
 // 不動産屋：工事（着工・改築）、査定、売る・貸す、土地を買う、相場、家計簿
 import { useMemo, useState } from 'react';
-import { DAILY, DAY_SECONDS, getLocation, landPrice } from '../economy/market';
+import { DAILY, DAY_SECONDS, getLocation } from '../economy/market';
 import { yen } from '../economy/money';
 import { COST_CATEGORY_NAMES, buildSeconds, quality, renovationCost } from '../economy/pricing';
 import type { CostCategory } from '../economy/pricing';
-import { buyLandAndJoin, lotNumbers, useCurrentLot, useEconomy } from '../state/economy';
+import { buyLandAndJoin, lotNumbers, offerPrice, useCurrentLot, useEconomy } from '../state/economy';
 import type { Lot } from '../state/economy';
 import { useGame } from '../state/store';
 import { Modal } from './Modal';
@@ -38,7 +38,6 @@ function CurrentLot({ onGoLand }: { onGoLand: () => void }) {
   const lot = useCurrentLot();
   const house = useGame((s) => s.house);
   const market = useEconomy((s) => s.market);
-  const money = useEconomy((s) => s.money);
   const est = useMemo(() => (lot ? renovationCost(lot.built, house) : null), [lot?.built, house]);
   const notify = useGame((s) => s.notify);
   if (!lot || !est) {
@@ -60,7 +59,7 @@ function CurrentLot({ onGoLand }: { onGoLand: () => void }) {
     <div className="estate">
       <h3>{lot.name}</h3>
       <p className="muted">
-        立地：{n.location.name}（建物の査定 ×{n.location.factor}）　土地の評価：{yen(n.landNow)}
+        立地：{n.location.name}（建物の査定 ×{n.location.factor}）　まわりのにぎわい ×{n.density.toFixed(2)}　土地の評価：{yen(n.landNow)}
       </p>
 
       <section className="card">
@@ -68,14 +67,14 @@ function CurrentLot({ onGoLand }: { onGoLand: () => void }) {
         {lot.construction ? (
           <>
             <p>
-              工事中です。あと {Math.ceil(lot.construction.remaining)} 秒で完成します（工事費 {yen(lot.construction.cost)} 支払い済み）。
+              工事中です。あと {Math.ceil(lot.construction.remaining)} 秒で完成します（着工は無料）。
             </p>
             <div className="bar"><i style={{ width: `${(1 - lot.construction.remaining / lot.construction.total) * 100}%` }} /></div>
           </>
         ) : designDiffers ? (
           <>
             <p>
-              {lot.built ? '設計を変えた部分の改築費' : '設計どおりに建てる工事費'}：<b className="big">{yen(est.total)}</b>
+              工事費：<b className="big">無料</b>（{lot.built ? '変えた部分' : '建物'}の価値 {yen(est.total)} は売るときの査定に入ります）
               <span className="muted">（工事 {buildSeconds(est.total)} 秒・{est.parts}か所）</span>
             </p>
             <table className="ledger compact">
@@ -88,14 +87,13 @@ function CurrentLot({ onGoLand }: { onGoLand: () => void }) {
                 ))}
               </tbody>
             </table>
-            <button className="btn primary" disabled={est.total > money || lot.rented} onClick={start}>
-              {lot.built ? '改築する' : '着工する'}（{yen(est.total)}）
+            <button className="btn primary" disabled={lot.rented} onClick={start}>
+              {lot.built ? '改築する' : '着工する'}（無料）
             </button>
-            {est.total > money && <p className="warn">お金が {yen(est.total - money)} 足りません。バイトやカジノで稼ぐか、設計を小さくしましょう。</p>}
             {lot.rented && <p className="warn">貸している間は工事できません。</p>}
           </>
         ) : lot.built ? (
-          <p>設計どおりに建っています。設計を変えると、変えた部分だけ改築費がかかります。</p>
+          <p>設計どおりに建っています。設計を変えると、無料で改築できます。</p>
         ) : (
           <p>まだ何も建っていません。建築モードで設計すると見積もりが出ます（設計はタダ）。</p>
         )}
@@ -126,7 +124,7 @@ function Appraisal({ lot }: { lot: Lot }) {
             <tr><td>品質係数</td><td className="num">×{q.factor.toFixed(2)}</td></tr>
             <tr><td>立地</td><td className="num">×{n.location.factor}</td></tr>
             <tr><td>建物の査定</td><td className="num">{yen(n.appraisal)}</td></tr>
-            <tr><td>土地</td><td className="num">{yen(n.landValue)}</td></tr>
+            <tr><td>土地（にぎわい ×{n.density.toFixed(2)}）</td><td className="num">{yen(n.landValue)}</td></tr>
             <tr><td>相場</td><td className="num">×{market.toFixed(2)}</td></tr>
             <tr className="total"><td>いま売ると</td><td className="num">{yen(n.sale)}</td></tr>
             <tr><td>これまでにかけたお金</td><td className="num">{yen(lot.invested)}</td></tr>
@@ -234,10 +232,10 @@ function LandShop() {
       <p className="muted">売り土地は毎日入れ替わります。値段は相場で上下します。広さはどれも 24×20 マス（約397m²）。</p>
       {selected && <section className="card" aria-label="土地購入の確認">
         <h3>{selected.name}を購入しますか？</h3>
-        <p>購入価格 <b>{yen(landPrice(selected.location, selected.variance, market))}</b></p>
-        <p>購入後の残高 {yen(money - landPrice(selected.location, selected.variance, market))}</p>
+        <p>購入価格 <b>{yen(offerPrice(selected, market))}</b></p>
+        <p>購入後の残高 {yen(money - offerPrice(selected, market))}</p>
         <JoinOption plot={selected.plot} checked={join} onChange={setJoin} />
-        <button className="btn primary" disabled={landPrice(selected.location, selected.variance, market) > money} onClick={() => {
+        <button className="btn primary" disabled={offerPrice(selected, market) > money} onClick={() => {
           const err = buyLandAndJoin(selected.id, join);
           notify(err ?? selected.name + 'を購入しました');
           if (!err) setConfirmId(null);
@@ -250,7 +248,7 @@ function LandShop() {
         </thead>
         <tbody>
           {offers.map((o) => {
-            const price = landPrice(o.location, o.variance, market);
+            const price = offerPrice(o, market);
             const loc = getLocation(o.location);
             return (
               <tr key={o.id}>
@@ -310,24 +308,16 @@ function MarketView() {
 
 function Ledger() {
   const ledger = useEconomy((s) => s.ledger);
-  const job = useEconomy((s) => s.job);
   const gamble = useEconomy((s) => s.gamble);
-  const startJob = useEconomy((s) => s.startJob);
+  const setOverlay = useGame((s) => s.setOverlay);
   const [confirmReset, setConfirmReset] = useState(false);
   const net = gamble.won - gamble.bet;
   return (
     <div>
       <section className="card">
-        <div className="card-title">バイト（仮）</div>
-        <p className="muted">ミニゲームのバイトは次の段階で作ります。それまでの、お金が尽きたときの立て直し用です。</p>
-        {job ? (
-          <>
-            <p>{job.label}：あと {Math.ceil(job.remaining)} 秒</p>
-            <div className="bar"><i style={{ width: `${(1 - job.remaining / job.total) * 100}%` }} /></div>
-          </>
-        ) : (
-          <button className="btn primary" onClick={startJob}>チラシ配りをする（10秒で ¥12,000）</button>
-        )}
+        <div className="card-title">バイト</div>
+        <p className="muted">コンビニのレジ・倉庫の仕分けなど、作業をして給料をもらえます。</p>
+        <button className="btn primary" onClick={() => setOverlay('jobs')}>💼 バイトを探す</button>
       </section>
       <p>
         ギャンブル通算：賭けた {yen(gamble.bet)}・払戻 {yen(gamble.won)}・収支{' '}

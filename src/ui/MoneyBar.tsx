@@ -28,6 +28,9 @@ export function MoneyBar() {
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">
         🗺 マップ
       </button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('jobs'); }} title="バイトで働いてお金をかせぐ">
+        💼 バイト
+      </button>
       <BuildChip />
     </div>
   );
@@ -38,7 +41,7 @@ export function BuildChip() {
   const lot = useCurrentLot();
   const house = useGame((s) => s.house);
   const est = useMemo(() => (lot ? renovationCost(lot.built, house) : null), [lot?.built, house]);
-  if (onlineWorld()) return <span className="chip">共同建築 · 配置時に本人が精算</span>;
+  if (onlineWorld()) return <span className="chip">共同建築 · 着工無料</span>;
   if (!lot) {
     return (
       <span className="chip warn">土地は不動産屋で購入できます</span>
@@ -55,7 +58,7 @@ export function BuildChip() {
   }
   if (!est || est.parts === 0) return null;
   return (
-    <span className="chip go" title="不動産屋の店舗で着工できます">🔨 工事見積 {yen(est.total)}（不動産屋で着工）</span>
+    <span className="chip go" title="不動産屋の店舗で着工できます">🔨 設計変更あり（不動産屋で無料着工）</span>
   );
 }
 

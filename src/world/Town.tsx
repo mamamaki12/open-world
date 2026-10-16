@@ -17,10 +17,10 @@ import { activateOwnedHouse } from '../state/ownedEditing';
 import { beginPartDrag } from './partDrag';
 import { playerMemory } from './Player';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
-import { getLocation, landPrice } from '../economy/market';
+import { getLocation } from '../economy/market';
 import { yen } from '../economy/money';
 import { FIRST_PLOT, LAST_PLOT, PLOT_PITCH, TOWN_BOUNDS, TOWN_ROADS, CIVIC_SITE, districtOf, plotX, plotZ } from '../economy/town';
-import { lotCells, lotHouse, originShift, useCurrentPlot, useEconomy } from '../state/economy';
+import { lotCells, lotHouse, offerPrice, originShift, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
 import { Streetscape } from './Streetscape';
 import { DealerBuilding } from './DealerBuilding';
@@ -152,7 +152,7 @@ export function Town() {
           return (
             <group key={o.id} position={[plotX(o.plot) + shift, 0, plotZ(o.plot) + shiftZ]}>
               <SaleRope />
-              <Signboard lines={['売地', o.name, yen(landPrice(o.location, o.variance, market))]} tone="sale" />
+              <Signboard lines={['売地', o.name, yen(offerPrice(o, market))]} tone="sale" />
             </group>
           );
         })}
