@@ -1,8 +1,9 @@
 // 町の家を組み立てるための道具。プレイヤーが建築モードで置くのと同じ部品（壁・床・窓・ドア・階段・屋根・家具）だけを使う。
 // 位置はグリッド（1マス = 910mm）で書く。家具もマス単位で書いて、メートルに直す
 import { getFurniture, getOpening } from '../catalog';
-import { GRID } from './dimensions';
-import { snapOpeningOffset, wallLength } from './rules';
+import { GRID, LOT_W, LOT_D } from './dimensions';
+import { snapOpeningOffset, wallLength, stairHoles, wallsOverlap } from './rules';
+import { stairPlan, stairWorldGrid } from './stairs';
 import { emptyHouse } from './types';
 import type { Finish, FloorKind, House, OpeningPart, RoofPart, StairPart, StairShape, WallHeight, WallPart } from './types';
 
@@ -79,7 +80,62 @@ export class HouseKit {
   }
 
   stair(level: number, x: number, z: number, rot: StairPart['rot'], finish: Finish, shape?: StairShape) {
-    this.house.stairs.push({ id: this.id('stair'), level, x, z, rot, finish, ...(shape ? { shape } : {}) });
+    this.house.stairs.push({ id: this.id('stair'), level, x, z, rot, finish, rail: 'both', ...(shape ? { shape } : {}) });
+  }
+
+  /** 完成時に、上階の床端と階段穴の側面を腰壁で保護する。 */
+  finish(): House {
+    const guard = fin('metal-v', '#6f7377');
+    const add = (level: number, x0: number, z0: number, x1: number, z1: number, height: WallHeight) => {
+      const edge = { x0, z0, x1, z1 };
+      if (!this.house.walls.some(w => w.level === level && wallsOverlap(w, edge))) {
+        this.wall(level, x0, z0, x1, z1, guard, guard, height);
+      }
+    };
+    // 外構は地面から立てる。道路側は玄関と車庫のために広く開ける。
+    for (let x = 0; x < LOT_W; x++) {
+      add(0, x, 0, x + 1, 0, 'fence');
+      if (x < 8) add(0, x, LOT_D, x + 1, LOT_D, 'fence');
+    }
+    for (let z = 0; z < LOT_D; z++) {
+      add(0, 0, z, 0, z + 1, 'fence');
+      add(0, LOT_W, z, LOT_W, z + 1, 'fence');
+    }
+    for (const level of new Set(this.house.floors.map(f => f.level))) {
+      if (level === 0) continue;
+      const holes = stairHoles(this.house, level);
+      const covered = (x: number, z: number) => this.house.floors.some(f => f.level === level &&
+        x > f.x0 && x < f.x1 && z > f.z0 && z < f.z1) &&
+        !holes.some(h => x > h.x0 && x < h.x1 && z > h.z0 && z < h.z1);
+      // 階段の上端だけは通れるままにする。側面・下端は床から落ちないよう囲む。
+      const exits = this.house.stairs.filter(s => s.level === level - 1).map(s => {
+        const flights = stairPlan(s.shape).flights;
+        const f = flights[flights.length - 1];
+        const [dx, dz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][f.dir];
+        const p = stairWorldGrid(s, f.x + dx * f.length, f.z + dz * f.length);
+        return { p, alongX: (f.dir + s.rot) % 2 === 1 };
+      });
+      for (const s of this.house.stairs.filter(s => s.level === level)) {
+        const f = stairPlan(s.shape).flights[0];
+        exits.push({ p: stairWorldGrid(s, f.x, f.z), alongX: (f.dir + s.rot) % 2 === 1 });
+      }
+      const entrance = (x0: number, z0: number, x1: number, z1: number) =>
+        exits.some(e => e.alongX === (x0 === x1) &&
+          Math.abs(e.p.x - (x0 + x1) / 2) < 0.01 && Math.abs(e.p.z - (z0 + z1) / 2) < 0.01);
+      for (let z = 0; z < LOT_D; z++) for (let x = 0; x < LOT_W; x++) {
+        if (!covered(x + 0.5, z + 0.5)) continue;
+        const edges = [
+          [x, z, x + 1, z, x + 0.5, z - 0.5],
+          [x, z + 1, x + 1, z + 1, x + 0.5, z + 1.5],
+          [x, z, x, z + 1, x - 0.5, z + 0.5],
+          [x + 1, z, x + 1, z + 1, x + 1.5, z + 0.5],
+        ];
+        for (const [ax, az, bx, bz, nx, nz] of edges) {
+          if (!covered(nx, nz) && !entrance(ax, az, bx, bz)) add(level, ax, az, bx, bz, 'half');
+        }
+      }
+    }
+    return this.house;
   }
 
   roof(level: number, x0: number, z0: number, x1: number, z1: number, type: RoofPart['type'], finish: Finish, gableFinish: Finish,
