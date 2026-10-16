@@ -4,7 +4,6 @@ import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useVehicles } from '../state/vehicles';
 import { driveButtons, resetDriveButtons } from '../world/vehicleLogic';
 import { useDoors } from '../state/doors';
-import { useGame } from '../state/store';
 import { RUN_THRESHOLD, touchCamera, touchMove, walkActions } from '../state/touch';
 
 /** スティックを倒せる半径（px） */
@@ -131,7 +130,6 @@ function HoldButton({ className, onHold, children, label }: { className?: string
 /** 歩きモードの操作：左下のスティック（2回タップでジャンプ）と、右下の建てるボタン（運転中はブレーキ） */
 export function TouchWalkControls({ build }: { build: ReactNode }) {
   const driving = useVehicles(s=>s.driving);
-  const view = useGame(s=>s.view);
   useEffect(()=>{
     resetDriveButtons();
     const hidden=()=>{if(document.hidden)resetDriveButtons();};
@@ -148,17 +146,11 @@ export function TouchWalkControls({ build }: { build: ReactNode }) {
           <HoldButton label="右にハンドルを切る" onHold={on=>{driveButtons.right=on;}}>→</HoldButton>
         </div>
         <div className="drive-pedals" role="group" aria-label="ペダル">
-          <HoldButton label="ブレーキ" className="drive-brake" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton>
-          <HoldButton label="アクセル" className="drive-accelerator" onHold={on=>{driveButtons.accelerator=on;}}>アクセル</HoldButton>
+          <HoldButton label="ブレーキ" className="drive-pedal drive-brake" onHold={on=>{driveButtons.brake=on;}}><span className="pedal-pad"/><span className="pedal-name">ブレーキ</span></HoldButton>
+          <HoldButton label="アクセル" className="drive-pedal drive-accelerator" onHold={on=>{driveButtons.accelerator=on;}}><span className="pedal-pad"/><span className="pedal-name">アクセル</span></HoldButton>
         </div>
       </> : <Joystick driving={false} />}
       <div className="touch-actions">
-        {driving && <>
-        <TapButton className="small view" label={view === 'first' ? '三人称に切り替え' : '一人称に切り替え'} onTap={() => walkActions.toggleView()}>
-          {view === 'first' ? '三人称へ' : '一人称へ'}
-        </TapButton>
-        <TapButton className="small reset" label="視点を正面に戻す" onTap={() => walkActions.resetCamera()}>正面</TapButton>
-        </>}
         {!driving && <>
           {climb === 'ok' && !climbing && <TapButton className="jump climb" onTap={() => walkActions.jump()}>窓から出る</TapButton>}
           <div className="touch-build">{build}</div>
