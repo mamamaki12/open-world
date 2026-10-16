@@ -23,6 +23,8 @@ test('room permissions, sender identity, isolated routing and world resume', asy
     const guest = await client(url); guest.send({ type: 'join', id: 'guest', name: '友達', code: room.code });
     const joined = await guest.next('welcome'); assert.equal(joined.canBuild, false);
     guest.send({ type: 'command', command: { id: 'x' }, sender: 'host' }); assert.equal((await guest.next('denied')).id, 'x');
+    guest.send({ type: 'purchase', command: { id: 'p', delta: [1], purchase: { lot: 'l', item: 'i', price: 5 } } });
+    const bought = await host.next('command'); assert.equal(bought.sender, 'guest'); assert.deepEqual(bought.command, { id: 'p', purchase: { lot: 'l', item: 'i', price: 5 } });
     host.send({ type: 'permission', target: 'guest', canBuild: true });
     while (!(await guest.next('members')).members.find(x => x.id === 'guest').canBuild) {}
     guest.send({ type: 'command', command: { id: 'y' }, sender: 'host' }); assert.equal((await host.next('command')).sender, 'guest');
