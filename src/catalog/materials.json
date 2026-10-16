@@ -18,7 +18,8 @@
     {"id": "shikkui", "name": "漆喰（しっくい）", "category": "exterior", "pattern": "stucco", "roughness": 0.92, "metalness": 0, "bump": 0.006, "colors": ["#fbfaf6", "#f1ede3", "#e3dccb", "#d4d0c8"], "note": "白くなめらかな昔ながらの塗り壁"},
     {"id": "lithin", "name": "モルタル吹付け（リシン）", "category": "exterior", "pattern": "stucco", "roughness": 0.98, "metalness": 0, "bump": 0.018, "colors": ["#efeae0", "#d9d1c1", "#bfb6a5", "#9e9a92", "#7d7a74"], "note": "ざらっとした質感。費用をおさえたいときに"},
     {"id": "border-tile", "name": "ボーダータイル", "category": "exterior", "pattern": "border", "roughness": 0.6, "metalness": 0, "bump": 0.02, "colors": ["#e6e0d4", "#b8a68c", "#7d6a58", "#4a4643", "#2e2f31", "#c4b6a0"], "note": "細長いタイルでスタイリッシュに"},
-
+    {"id": "deep-concrete", "name": "彫りの深いコンクリート外壁", "category": "exterior", "pattern": "stone", "roughness": 0.9, "metalness": 0, "bump": 0.05, "colors": ["#e3dccd", "#cbbfa8", "#a99c86", "#8b8478", "#5f5a55"], "note": "厚いコンクリートの板に深い彫り。鉄骨の大手メーカー住宅の定番風"},
+    {"id": "ceramic-wall", "name": "陶版外壁（焼き物の板）", "category": "exterior", "pattern": "border", "roughness": 0.65, "metalness": 0, "bump": 0.03, "colors": ["#ece6da", "#cdbfa9", "#9b8670", "#6b5a4b", "#4a4643"], "note": "土を焼いた陶板。色あせず汚れも雨で落ちる。木造の高級住宅向け"},
     {"id": "wallpaper", "name": "ビニールクロス", "category": "interior", "pattern": "fabric", "roughness": 0.9, "metalness": 0, "bump": 0.004, "colors": ["#f7f5f0", "#efe9df", "#e3e7ea", "#dfe8dc", "#f0e0d8", "#5a5d61"], "note": "室内の定番。安くて張り替えも簡単"},
     {"id": "plaster", "name": "珪藻土", "category": "interior", "pattern": "stucco", "roughness": 0.95, "metalness": 0, "bump": 0.008, "colors": ["#f3efe6", "#e8dfcf", "#d9cdb7", "#cfd3cf"], "note": "湿気を吸ったり吐いたりする塗り壁"},
     {"id": "woodpanel", "name": "板張り", "category": "interior", "pattern": "boardV", "roughness": 0.7, "metalness": 0, "bump": 0.01, "colors": ["#d8b98f", "#b88b5c", "#8a6240", "#e8d8bf"], "note": "木の香りがする縦張りの板"},
@@ -32,7 +33,6 @@
     {"id": "accent-brick", "name": "レンガタイル（室内）", "category": "interior", "pattern": "brick", "roughness": 0.85, "metalness": 0, "bump": 0.025, "colors": ["#b0563f", "#e8e2d6", "#8a7766", "#5a4b40"], "note": "一面だけ貼ってカフェ風に"},
     {"id": "shiplap", "name": "板張り（横張り）", "category": "interior", "pattern": "clapboard", "roughness": 0.7, "metalness": 0, "bump": 0.01, "colors": ["#e8dcc6", "#c49a6c", "#8a6240", "#f2efe8", "#5b6b70"], "note": "横向きの板でナチュラルに"},
     {"id": "concrete-in", "name": "コンクリート調パネル", "category": "interior", "pattern": "concrete", "roughness": 0.8, "metalness": 0, "bump": 0.008, "colors": ["#bdbcb8", "#a5a49f", "#d2d0ca", "#8d8c88"], "note": "打ち放し風のクールな壁"},
-
     {"id": "kawara", "name": "瓦", "category": "roof", "pattern": "kawara", "roughness": 0.5, "metalness": 0.1, "bump": 0.04, "colors": ["#3d4148", "#5a5f66", "#6b4a3a", "#8a8d90", "#2a2c30"], "note": "和風の家の定番。とても長持ち"},
     {"id": "slate", "name": "スレート（コロニアル）", "category": "roof", "pattern": "slate", "roughness": 0.75, "metalness": 0, "bump": 0.025, "colors": ["#2f3133", "#4b4f54", "#5c4436", "#3f4a3d", "#344255"], "note": "薄くて軽い。洋風の家の定番"},
     {"id": "standing", "name": "ガルバリウム立平葺き", "category": "roof", "pattern": "seam", "roughness": 0.35, "metalness": 0.65, "bump": 0.02, "colors": ["#2c2e31", "#6a6e73", "#a8adb2", "#3a4a5c", "#5b3b2e"], "note": "すっきりした金属屋根。ゆるい勾配にも"},
@@ -46,7 +46,6 @@
     {"id": "solar", "name": "太陽光パネル一体型屋根", "category": "roof", "pattern": "solar", "roughness": 0.2, "metalness": 0.4, "bump": 0.01, "colors": ["#e6e9ee", "#cfd6e2", "#b8c0cc"], "note": "屋根全体で発電するパネル"},
     {"id": "green-roof", "name": "屋上緑化（芝）", "category": "roof", "pattern": "turf", "roughness": 1, "metalness": 0, "bump": 0.03, "colors": ["#6f8f4e", "#5b7d3f", "#8aa35d", "#4e6b39"], "note": "平らな屋根に芝。夏の暑さをやわらげる"},
     {"id": "frp", "name": "FRP防水", "category": "roof", "pattern": "stucco", "roughness": 0.5, "metalness": 0, "bump": 0.004, "colors": ["#a8aaa9", "#8f9294", "#c9cbca", "#6f7173"], "note": "ベランダや陸屋根のつるっとした防水"},
-
     {"id": "flooring", "name": "フローリング", "category": "floor", "pattern": "planks", "roughness": 0.45, "metalness": 0, "bump": 0.006, "colors": ["#c8a57a", "#a77b52", "#7c5534", "#e0c9a6", "#5a4030", "#b9b2a6"], "note": "定番の合板フローリング"},
     {"id": "tatami", "name": "畳", "category": "floor", "pattern": "tatami", "roughness": 0.85, "metalness": 0, "bump": 0.01, "colors": ["#c7c48a", "#b5b07a", "#d7cf9a"], "note": "い草の香りの和室"},
     {"id": "floortile", "name": "タイル", "category": "floor", "pattern": "tile", "roughness": 0.3, "metalness": 0, "bump": 0.01, "colors": ["#e9e6df", "#c9c4ba", "#8b8780", "#3f3f3f"], "note": "水まわりや玄関に強い"},
@@ -63,7 +62,6 @@
     {"id": "cork", "name": "コルクタイル", "category": "floor", "pattern": "tile", "roughness": 0.9, "metalness": 0, "bump": 0.012, "colors": ["#c49a6c", "#a77b52", "#d8b98f"], "note": "やわらかく暖かい。子ども部屋に"},
     {"id": "deck", "name": "ウッドデッキ", "category": "floor", "pattern": "wideplank", "roughness": 0.8, "metalness": 0, "bump": 0.014, "colors": ["#8a6447", "#a77b52", "#6b4a33", "#9c9488", "#c49a6c"], "note": "屋外のテラス向け。雨に強い樹脂木・ハードウッド"},
     {"id": "terrace-tile", "name": "テラスタイル", "category": "floor", "pattern": "bigTile", "roughness": 0.75, "metalness": 0, "bump": 0.01, "colors": ["#c9c3b6", "#a8a196", "#8c8478", "#d9d2c4"], "note": "屋外用の滑りにくい石目のタイル"},
-
     {"id": "oak", "name": "オーク材", "category": "wood", "pattern": "grain", "roughness": 0.55, "metalness": 0, "bump": 0.004, "colors": ["#c8a57a", "#a77b52", "#7c5534", "#4e3626", "#e8e3da"], "note": "かたくて丈夫な定番の木"},
     {"id": "walnut", "name": "ウォルナット", "category": "wood", "pattern": "grain", "roughness": 0.5, "metalness": 0, "bump": 0.004, "colors": ["#5a3e2b", "#6e4c35", "#4a3224", "#7d5a40"], "note": "深い茶色の高級な木"},
     {"id": "maple", "name": "メープル", "category": "wood", "pattern": "grain", "roughness": 0.5, "metalness": 0, "bump": 0.003, "colors": ["#e3c9a0", "#d6b588", "#efdcbc"], "note": "白っぽくなめらかな木"},
