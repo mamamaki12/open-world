@@ -169,6 +169,9 @@ try {
   // ソフトウェア描画のフレーム間隔に依存させず、既知のカメラ姿勢で固定中の配置入力を検証する。
   await page.evaluate(()=>{
     const g=window.__ow,c=g.camera,canvas=document.querySelector('canvas');
+    // Initial React mounts can precede the first software-rendered world-matrix update.
+    // Synchronize objects as well as the camera before dispatching synthetic input.
+    g.scene.updateMatrixWorld(true);
     c.position.set(8,1.6,12);c.lookAt(8,0,10);c.updateMatrixWorld(true);
     canvas.dispatchEvent(new PointerEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true,bubbles:true}));
     canvas.dispatchEvent(new PointerEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true,bubbles:true}));
