@@ -24,7 +24,7 @@ export function QuickBar(){
   return <>
     <div className="quick-tools" aria-label="道具のホットバー">
       <div className="quick-slots" ref={slots}>{QUICK_TOOLS.map((t,i)=><button key={t} aria-label={`${i+1}: ${NAMES[t]}`} aria-pressed={t===tool} onClick={()=>setTool(t)}><kbd>{i+1}</kbd><span>{toolIcon(t)}</span><small>{NAMES[t]}</small></button>)}</div>
-      <div className="quick-meta"><span>{name}</span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>⚙</button></div>
+      <div className="quick-meta"><span>{name}<small className="quick-swipe-hint"> · 左右スワイプで道具</small></span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>⚙</button></div>
     </div>
     {centered&&<>
       <div className={`aim-reticle${target.valid?' valid':''}`} aria-hidden="true">＋</div>

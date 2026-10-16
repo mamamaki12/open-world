@@ -23,3 +23,5 @@
 @media(orientation:landscape) and (max-height:500px){.touch .quick-tools{width:min(460px,calc(100% - 180px));top:calc(42px + env(safe-area-inset-top,0px));}.touch .quick-meta{padding:1px 6px;}.touch .aim-buttons{bottom:calc(94px + var(--safe-b));}.touch .aim-message{font-size:10px;}}
 
 .touch.walk:has(.aim-reticle) .door-prompts{bottom:calc(190px + var(--safe-b));}
+
+.quick-swipe-hint{display:none;}.touch .quick-swipe-hint{display:inline;font-size:10px;color:#c9d0d8;}

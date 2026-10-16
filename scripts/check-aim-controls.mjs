@@ -64,6 +64,7 @@ try {
   await page.getByRole('button', { name: 'チェア', exact: true }).tap();
   await page.getByRole('button', { name: 'この道具で戻る', exact: true }).tap(); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture.length), 1);
+  await swipe(0, -90); // 地面を狙って置いたので、椅子の座面へ視点を上げる
   await tool(9); await page.locator('.aim-place').tap();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture.length), 1, 'brief tap must not delete');
   const box = await page.locator('.aim-place').boundingBox(), cdp = await page.context().newCDPSession(page);
@@ -116,6 +117,7 @@ try {
   console.log('PASS: mobile aim floor/wall/opening/nameplate/furniture, hold-to-delete, one-finger look, 3 viewport layouts, desktop pointer-lock, right-click, wheel, double-W sprint, held jump and saved controls.');
 } catch (error) {
   console.error('Browser errors:', errors);
+  console.error('Player/house:',await page?.evaluate(()=>({p:window.__ow?.player,h:window.__ow?.game.getState().house})).catch(()=>null));
   console.error('Visible UI:', await page?.locator('body').innerText().catch(() => 'unavailable'));
   await page?.screenshot({ path: 'control-checks/failure.png' }).catch(() => {});
   throw error;
