@@ -56,7 +56,7 @@ export function ShopPanel() {
     save(next); setDraft(null); setError('');
   };
 
-  return <Modal title={shop.name} onClose={onClose} tabs={[{ id: 'items', label: owner ? '商品' : '買う' }, { id: 'sales', label: '売上' }]} tab={tab} onTab={setTab}>
+  return <Modal className="shop-panel" title={shop.name} onClose={onClose} tabs={[{ id: 'items', label: '商品' }, { id: 'sales', label: '売上' }]} tab={tab} onTab={setTab}>
     {tab === 'sales' ? <>
       <p>売上合計 <b className="big">{yen(shop.revenue)}</b>（{shop.sales.length}件・誰でも見られます）</p>
       <ul className="shop-sales">{[...shop.sales].reverse().map((s) => <li key={s.id}>{s.day}日目 · {s.buyer}さん · {s.item} · {yen(s.price)}</li>)}</ul>

@@ -7,3 +7,4 @@
 .shop-preview { display: block; width: 200px; max-width: 100%; border-radius: 6px; margin-bottom: 6px; }
 .shop-note { font-size: 12px; color: #666; }
 .shop-sales { padding-left: 18px; font-size: 13px; }
+.shop-panel .btn + .btn { margin-left: 6px; }
