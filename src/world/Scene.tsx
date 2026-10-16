@@ -8,6 +8,7 @@ import { BuildCamera } from './BuildCamera';
 import { DebugBridge } from './DebugBridge';
 import { HouseView } from './HouseView';
 import { PlacementController } from './PlacementController';
+import { AimBuilder } from './AimBuilder';
 import { Player } from './Player';
 import { VenueInteriors } from './VenueInteriors';
 import { CarFleet } from './CarFleet';
@@ -77,6 +78,7 @@ export function Scene() {
       <HouseView />
       {walking && <Player />}
       <PlacementController />
+      <AimBuilder />
       {import.meta.env.DEV && <DebugBridge />}
 
       {/* 歩きモード中も消さずに止めておく（戻ったときに見ていた場所を保つ） */}
@@ -114,7 +116,7 @@ function Ground() {
   const lotW = LOT_W * GRID;
   const lotD = LOT_D * GRID;
   return (
-    <mesh rotation-x={-Math.PI / 2} position={[lotW / 2, 0, lotD / 2]} receiveShadow>
+    <mesh name="ground" rotation-x={-Math.PI / 2} position={[lotW / 2, 0, lotD / 2]} receiveShadow>
       <planeGeometry args={[lotW, lotD]} />
       <meshStandardMaterial color="#b9b2a3" roughness={1} />
     </mesh>

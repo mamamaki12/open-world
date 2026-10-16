@@ -24,6 +24,7 @@ import { useEconomy } from '../state/economy';
 import { Sheet, TouchCameraPad, TouchWalkControls } from './TouchControls';
 import { useTouchDevice } from './useTouchDevice';
 import { walkActions } from '../state/touch';
+import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
 import { reloadLatest } from './reload';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
@@ -50,7 +51,6 @@ export function App() {
   const overlay = useGame((s) => s.overlay);
   const touch = useTouchDevice();
   const walking = useGame((s) => s.mode === 'walk');
-  const holding = useGame((s) => s.tool !== 'select');
   const app = useRef<HTMLDivElement>(null);
   useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
@@ -59,18 +59,13 @@ export function App() {
       <Scene />
       {!touch && (
         <>
-          <TopBar />
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('map')}>地図</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
       {touch ? <TouchLayout walking={walking} /> : walking ? (
         <>
           <WalkHud />
-          {holding && (
-            <div className="side left">
-              <ToolOptions />
-            </div>
-          )}
           <ControlsHelp />
         </>
       ) : (
@@ -85,6 +80,9 @@ export function App() {
         </>
       )}
       {walking && <WorldActionHud />}
+      {walking && <QuickBar />}
+      {overlay === 'controls' && <ControlsPanel />}
+      {overlay === 'inventory' && <InventoryPanel />}
       {overlay === 'dealer' && <DealerPanel />}
       {overlay === 'land' && <LandPurchasePanel />}
       {overlay === 'estate' && <EstatePanel />}
@@ -118,7 +116,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
         <>
           <WalkHud />
           <MapButton />
-          {!overlay && <TouchWalkControls build={<BuildButton label={label} onOpen={() => setMenu(true)} />} />}
+          {!overlay && !menu && <TouchWalkControls build={<BuildButton label={label} onOpen={() => setMenu(true)} />} />}
         </>
       ) : (
         <div className="touch-dock">
@@ -168,6 +166,7 @@ function WalkMenu() {
         <div className="walk-menu-list">
           <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>🏗️ 建築に戻る</button>
           <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>👁 視点を切り替え</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>⚙ 操作設定</button>
           <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>↶ 取り消し</button>
           <SaveMenu />
           <button className="walk-menu-item" onClick={pick(reloadLatest)}>🔄 最新版にする</button>
@@ -496,6 +495,7 @@ function useKeyboard() {
         return;
       }
       if (ctrl) return;
+      if (e.code === 'KeyB' && walking) { e.preventDefault();s.setOverlay('inventory');return; }
       if (e.code === 'KeyM') {
         s.setOverlay('map');
         return;
@@ -504,7 +504,7 @@ function useKeyboard() {
       if (digit) {
         const t = TOOLS.find((x) => x.key === digit[1]);
         // 持っているツールの数字をもう一度押すと手ぶら（選択）に戻る
-        if (t) s.setTool(t.id === s.tool ? 'select' : t.id);
+        if (t) s.setTool(walking ? t.id : t.id === s.tool ? 'select' : t.id);
         return;
       }
       if (e.key === 'Escape') {

@@ -8,6 +8,7 @@ import { useGame } from '../../state/store';
 import { useInteraction } from '../../state/interaction';
 import { finishMaterial } from '../materials';
 import { wallGeometry } from '../geometry';
+import { aimBuilding } from '../aimMode';
 import { usePart } from './usePart';
 import { Opening } from './Opening';
 import { nameplateMount, mountedTransform } from '../../building/mounts';
@@ -77,6 +78,7 @@ export function Wall({ wall, openings, outside }: Props) {
   const openingHandlers = openingTool
     ? {
         onPointerMove: (e: ThreeEvent<PointerEvent>) => {
+          if (aimBuilding()) return;
           e.stopPropagation();
           previewAt(e.point);
         },
@@ -85,6 +87,7 @@ export function Wall({ wall, openings, outside }: Props) {
           if (p?.kind === 'opening' && p.wallId === wall.id) useInteraction.getState().setPreview(null);
         },
         onClick: (e: ThreeEvent<MouseEvent>) => {
+          if (aimBuilding()) return;
           e.stopPropagation();
           if (e.delta > 8) return; // カメラを動かしたドラッグの終わり
           // 指でタップしたときは、事前にカーソルを当てていないので、ここで位置を決める
@@ -119,12 +122,14 @@ export function Wall({ wall, openings, outside }: Props) {
     return mount;
   };
   const nameplateHandlers = placingNameplate && !foreign ? {
-    onPointerMove: (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); previewNameplate(e); },
+    onPointerMove: (e: ThreeEvent<PointerEvent>) => {
+          if (aimBuilding()) return; e.stopPropagation(); previewNameplate(e); },
     onPointerOut: () => {
       const p = useInteraction.getState().preview;
       if (p?.kind === 'nameplate' && p.mount.wallId === wall.id) useInteraction.getState().setPreview(null);
     },
     onClick: (e: ThreeEvent<MouseEvent>) => {
+          if (aimBuilding()) return;
       e.stopPropagation();
       if (e.delta > 12) return;
       const game = useGame.getState();

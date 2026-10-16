@@ -1,5 +1,6 @@
 // スマホ用の建築メニュー：「建てる」ボタンから開き、道具を大きなカードで選び、その下で種類・素材・色を選ぶ
 import { useEffect } from 'react';
+import { buildMenuOpen } from '../state/controls';
 import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { ToolOptions } from './ToolOptions';
@@ -56,9 +57,10 @@ export function BuildMenu({
   const tool = useGame((s) => s.tool);
   const setTool = useGame((s) => s.setTool);
   useEffect(() => {
+    buildMenuOpen.current = true;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => { buildMenuOpen.current = false; window.removeEventListener('keydown', onKey); };
   }, [onClose]);
   return (
     <div className="overlay build-menu-overlay" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>

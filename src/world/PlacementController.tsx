@@ -24,6 +24,7 @@ import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { snapFurniturePlacement } from '../building/furnitureSnap';
 import { moveBuildingGroup } from '../building/groups';
+import { aimBuilding } from './aimMode';
 import { placementPoint } from './placementRay';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
@@ -211,6 +212,7 @@ export function PlacementController() {
     };
 
     const onDown = (e: PointerEvent) => {
+      if (aimBuilding()) return;
       if (e.button !== 0) return;
       if (Date.now() < useInteraction.getState().ignorePartClickUntil) return;
       if (useGame.getState().tool === 'furniture' && useGame.getState().defaults.furnitureType === 'nameplate') return;
@@ -285,6 +287,7 @@ export function PlacementController() {
     };
 
     const onMove = (e: PointerEvent) => {
+      if (aimBuilding()) return;
       const building = useInteraction.getState().buildingDrag;
       if (building) {
         if (Math.hypot(e.clientX - building.startX, e.clientY - building.startY) < 5) return;
@@ -317,6 +320,7 @@ export function PlacementController() {
     };
 
     const onUp = (e: PointerEvent) => {
+      if (aimBuilding()) return;
       const pendingErase = useInteraction.getState().pendingErase;
       if (pendingErase) {
         useInteraction.setState({ pendingErase: null });
@@ -461,7 +465,7 @@ export function PlacementController() {
 
   useFrame(() => {
     const g = useGame.getState();
-    if (g.mode === 'walk' && g.tool !== 'select' && g.tool !== 'erase') refresh.current?.();
+    if (!aimBuilding() && g.mode === 'walk' && g.tool !== 'select' && g.tool !== 'erase') refresh.current?.();
   });
 
   // ツールを持ち替えたらプレビューを消す

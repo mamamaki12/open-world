@@ -4,6 +4,8 @@ import { useContext, useState } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { removePart } from '../../building/rules';
 import type { PartRef } from '../../building/types';
+import { useAim } from '../../state/controls';
+import { aimBuilding } from '../aimMode';
 import { useGame } from '../../state/store';
 import { useInteraction } from '../../state/interaction';
 import type { Highlight } from '../materials';
@@ -20,11 +22,12 @@ export function usePart(ref: PartRef) {
   const walking = useGame((s) => s.mode === 'walk');
   const selected = useGame((s) => !scope.activate && !!s.selection && materialGroup(s.house, s.selection, s.groupSelection).some(r => r.kind === ref.kind && r.id === ref.id));
   const marked = useGame((s) => !scope.activate && s.marked.some((m) => m.kind === ref.kind && m.id === ref.id));
+  const aimed = useAim(s => !scope.activate && s.target?.kind === ref.kind && s.target.id === ref.id);
   const [hover, setHover] = useState(false);
   // 歩きモードでは選択はせず、削除ツールだけ効く
   const interactive = scope.activate ? !walking : walking ? tool === 'erase' : tool === 'select' || tool === 'erase';
 
-  const highlight: Highlight = marked ? 'erase' : selected ? 'selected' : hover && interactive ? (tool === 'erase' ? 'erase' : 'hover') : 'none';
+  const highlight: Highlight = marked ? 'erase' : selected ? 'selected' : (aimed || hover && interactive) ? (tool === 'erase' ? 'erase' : 'hover') : 'none';
 
   const handlers = interactive
     ? {
@@ -36,6 +39,7 @@ export function usePart(ref: PartRef) {
           beginPartDrag(ref, e.ray, e.clientX, e.clientY);
         },
         onClick: (e: ThreeEvent<MouseEvent>) => {
+          if (aimBuilding()) return;
           e.stopPropagation();
           if (scope.activate) return;
           if (Date.now() < useInteraction.getState().ignorePartClickUntil) return;
@@ -58,6 +62,6 @@ export function usePart(ref: PartRef) {
       }
     : {};
 
-  return { highlight, handlers, selected };
+  return { highlight, handlers: { ...handlers, userData: { partRef: ref } }, selected };
 }
 
