@@ -509,3 +509,19 @@ export function useLotCells(): { w: number; d: number } {
   const w = useEconomy((s) => lotCells(s.lots.find((l) => l.id === s.currentLotId)).w);
   return { w, d: LOT_D };
 }
+
+/** その区画の、道路をはさまない隣にある自分の土地（まだつなげていないもの） */
+export function ownedNeighbor(lots: Lot[], plot: number | undefined): Lot | null {
+  const n = typeof plot === 'number' ? joinNeighbor(plot) : null;
+  return n === null ? null : lots.find((l) => l.plot === n && typeof l.joined !== 'number') ?? null;
+}
+
+/** 土地を買い、join なら隣の自分の土地とつなげる */
+export function buyLandAndJoin(offerId: string, join: boolean): string | null {
+  const eco = useEconomy.getState();
+  const offer = eco.offers.find((o) => o.id === offerId);
+  const err = eco.buyLand(offerId);
+  if (err || !join || !offer) return err;
+  const lot = useEconomy.getState().lots.find((l) => l.plot === offer.plot);
+  return lot ? useEconomy.getState().joinLots(lot.id) : null;
+}

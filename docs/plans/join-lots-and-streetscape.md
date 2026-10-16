@@ -12,6 +12,6 @@
 
 ## 進捗
 - 済：town.ts の joinPair/JOIN_SHIFT/JOINED_W＋テスト、join.ts、economy の Lot.joined/joinLots/lotCells/ownedPlots/lotSize 同期、rules/Placement/aimBuild/furnitureSnap/BuildCamera/Scene/Player/Town を lotSize 対応
-- 次：UI（購入時「隣とつなげる」チェック：WorldActionHud の LandPurchasePanel と EstatePanel の LandShop、地図の土地詳細に「つなげる」ボタン、地図でつなげた土地を1つの四角に）、join.ts のテスト
+- 済：UI（購入時チェック `src/ui/JoinOption.tsx` を LandPurchasePanel・LandShop に、地図の「つなげる」ボタン・つなげた土地を1つの四角に）、join.test.ts
 - 次：町並み（新ファイル `src/world/Streetscape.tsx` を Town から描く）
 - 最後：Playwright で PC/スマホ確認 → PR → CI 緑でマージ
