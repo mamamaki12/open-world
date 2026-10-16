@@ -23,9 +23,9 @@ export interface Member { id: string; name: string; host: boolean; canBuild: boo
 export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; cars: OwnedCar[]; driving?: string | null }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
-  role: 'home' | 'host' | 'guest'; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
+  role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
 }
-export const useSession = create<SessionState>(() => ({ screen: 'menu', status: 'offline', role: 'home', code: '', message: '', members: [], poses: {}, busy: false }));
+export const useSession = create<SessionState>(() => ({ screen: 'menu', status: 'offline', role: 'home', shared: false, code: '', message: '', members: [], poses: {}, busy: false }));
 let socket: WebSocket | null = null, token = '', endpoint = '', reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 let approvalQueue = Promise.resolve();
 let approving = false;
@@ -133,20 +133,22 @@ export async function enterOffline() {
   intendedLeave = true; ++epoch; clearTimeout(reconnectTimer); socket?.close(); socket = null;
   if (sessionGate.role === 'guest' && remoteWorld) restoreHome();
   sessionGate.role = 'home'; sessionGate.edit = null; sessionGate.undo = null;
-  await persist(); useSession.setState({ screen: 'game', role: 'home', status: 'offline', message: '', members: [], poses: {}, code: '' });
+  await persist(); useSession.setState({ screen: 'game', role: 'home', shared: false, status: 'offline', message: '', members: [], poses: {}, code: '' });
 }
-export async function connectWorld(url: string, code = '') {
-  if (!navigator.onLine) throw Error('友達と遊ぶには通信が必要です');
+/** みんなのワールド（サーバーが正本を持つ1つの町）に入る。自宅は訪問中と同じく上書きしない */
+export async function joinShared(url: string) { await connectWorld(url, '', true); }
+export async function connectWorld(url: string, code = '', shared = false) {
+  if (!navigator.onLine) throw Error('みんなと遊ぶには通信が必要です');
   endpoint = endpointURL(url); await persist();
   intendedLeave = false; token = ''; remoteWorld = null;
-  sessionGate.role = code ? 'guest' : 'host';
-  useSession.setState({ role: sessionGate.role, status: 'connecting', code: code.toUpperCase(), message: '', members: [], poses: {} });
+  sessionGate.role = code || shared ? 'guest' : 'host';
+  useSession.setState({ role: sessionGate.role, shared, status: 'connecting', code: code.toUpperCase(), message: '', members: [], poses: {} });
   openConnection(++epoch, false);
 }
 function openConnection(generation: number, resume: boolean) {
   const p = savedBundle().profile, state = useSession.getState();
   socket = new WebSocket(endpoint);
-  socket.onopen = () => send({ type: resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token });
+  socket.onopen = () => send({ type: state.shared ? 'shared' : resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token });
   socket.onmessage = async event => {
     if (generation !== epoch) return;
     try {
@@ -165,7 +167,7 @@ function openConnection(generation: number, resume: boolean) {
         syncHistory();
         for (const escrow of savedBundle().pending ?? []) {
           const receipt = m.world.receipts?.[escrow.id];
-          if (receipt?.sender === p.id) await finish({ id: escrow.id, ok: true, cost: receipt.cost });
+          if (receipt?.sender === p.id) await finish(receipt.cancelled ? { id: escrow.id, ok: false, message: '未確定だった建築費を返しました' } : { id: escrow.id, ok: true, cost: receipt.cost });
           else if (escrow.worldId === m.world.worldId && escrow.id !== pending?.id) send({ type: 'settle', id: escrow.id });
         }
       } else if (m.type === 'members') {
@@ -202,7 +204,7 @@ export async function leaveWorld() {
   sessionGate.edit = null; sessionGate.undo = null; ownHistory.length = 0; restoreHome();
   useDoors.setState({ target: null, climb: null, climbing: false }); useVisit.setState({ plot: null }); useVenue.setState({ inside: null });
   pending = null;
-  useSession.setState({ screen: 'menu', role: 'home', status: 'offline', code: '', members: [], poses: {}, message: '', busy: false }); await persist();
+  useSession.setState({ screen: 'menu', role: 'home', shared: false, status: 'offline', code: '', members: [], poses: {}, message: '', busy: false }); await persist();
 }
 /** Install once outside React effects; subscriptions never outlive the page. */
 export function startSessionTimers() {

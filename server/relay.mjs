@@ -64,7 +64,7 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
             if (!prev && [...shared.members.values()].filter(m => m.socket).length >= SHARED_LIMIT) throw Error(`みんなのワールドは${SHARED_LIMIT}人までです`);
             member = prev ?? { id, shared: true }; member.name = name; member.socket = socket; shared.members.set(id, member);
             clearTimeout(handshake);
-            send(socket, { type: 'welcome', code: 'SHARED', token: '', host: '', canBuild: true, shared: true });
+            send(socket, { type: 'welcome', code: 'SHARED', token: randomUUID(), host: '', canBuild: true, shared: true });
             send(socket, { type: 'world', world: shared.world }); sharedRoster();
             return;
           }

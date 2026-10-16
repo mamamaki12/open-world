@@ -8686,7 +8686,7 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
             member.socket = socket;
             shared.members.set(id, member);
             clearTimeout(handshake);
-            send(socket, { type: "welcome", code: "SHARED", token: "", host: "", canBuild: true, shared: true });
+            send(socket, { type: "welcome", code: "SHARED", token: randomUUID(), host: "", canBuild: true, shared: true });
             send(socket, { type: "world", world: shared.world });
             sharedRoster();
             return;
