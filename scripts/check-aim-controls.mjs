@@ -64,8 +64,9 @@ try {
   await page.getByRole('button', { name: 'チェア', exact: true }).tap();
   await page.getByRole('button', { name: 'この道具で戻る', exact: true }).tap(); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture.length), 1);
-  await swipe(0, -90); // 地面を狙って置いたので、椅子の座面へ視点を上げる
-  await tool(9); await page.locator('.aim-place').tap();
+  await tool(9);
+  for(let i=0;i<12&&!await page.locator('.aim-place').isEnabled();i++){await swipe(0,-8);await page.waitForTimeout(150);}
+  await page.locator('.aim-place').tap();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture.length), 1, 'brief tap must not delete');
   const box = await page.locator('.aim-place').boundingBox(), cdp = await page.context().newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });

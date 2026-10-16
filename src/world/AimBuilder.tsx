@@ -9,6 +9,7 @@ import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { useVenue } from '../state/venue';
 import { aimBuilding } from './aimMode';
+import { aimFurnitureTarget } from './aimFurnitureTarget';
 
 export function AimBuilder() {
   const { camera, gl, scene } = useThree();
@@ -17,11 +18,15 @@ export function AimBuilder() {
   const pick=()=>{
     ray.current.setFromCamera(new THREE.Vector2(0,0),camera);ray.current.far=AIM_REACH;
     const objects=['house','ground','casino','estate','dealer','venue-interior','neighbors','vehicles'].map(n=>scene.getObjectByName(n)).filter((o):o is THREE.Object3D=>!!o);
-    const hit=ray.current.intersectObjects(objects,true).find(h=>{
+    let hit:THREE.Intersection|undefined=ray.current.intersectObjects(objects,true).find(h=>{
       const mat=(h.object as THREE.Mesh).material,m=Array.isArray(mat)?mat[h.face?.materialIndex??0]:mat;
       let o:THREE.Object3D|null=h.object;while(o){if(!o.visible)return false;o=o.parent;}
       return m&&m.visible&&(!m.transparent||m.opacity>=.99);
     });
+    if(useGame.getState().tool==='erase'){
+      const furniture=aimFurnitureTarget(scene.getObjectByName('house'),ray.current.ray,Math.min(AIM_REACH,hit?.distance??AIM_REACH));
+      if(furniture)hit=furniture;
+    }
     if(!hit)return null;
     let o:THREE.Object3D|null=hit.object,ref:PartRef|undefined,editable=false;
     while(o){ref??=o.userData.partRef;if(o.name==='house'||o.name==='ground')editable=true;o=o.parent;}
