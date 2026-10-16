@@ -9,7 +9,28 @@ import { plotOffset, plotOffsetZ, useEconomy } from '../state/economy';
 /** いま訪ねている区画（家を細かく描き、ドアを開けられるようにする） */
 export const useVisit = create<{ plot: number | null }>(() => ({ plot: null }));
 
-export interface Visit { plot: number; house: House; ox: number; oz: number }
+export interface Visit {
+  plot: number;
+  house: House;
+  ox: number;
+  oz: number;
+  /** いまの土地の座標にずらした家（床・階段・ドア・椅子・窓の判定はこれで、プレイヤーの座標のまま行う） */
+  world: House;
+}
+
+const shifted = new Map<string, House>();
+/** 家を ox, oz（m）だけ動かした写し */
+function shiftHouse(h: House, ox: number, oz: number): House {
+  const dx = ox / GRID, dz = oz / GRID;
+  return {
+    ...h,
+    floors: h.floors.map((f) => ({ ...f, x0: f.x0 + dx, x1: f.x1 + dx, z0: f.z0 + dz, z1: f.z1 + dz })),
+    walls: h.walls.map((w) => ({ ...w, x0: w.x0 + dx, x1: w.x1 + dx, z0: w.z0 + dz, z1: w.z1 + dz })),
+    roofs: h.roofs.map((r) => ({ ...r, x0: r.x0 + dx, x1: r.x1 + dx, z0: r.z0 + dz, z1: r.z1 + dz })),
+    stairs: h.stairs.map((st) => ({ ...st, x: st.x + dx, z: st.z + dz })),
+    furniture: h.furniture.map((f) => ({ ...f, x: f.x + ox, z: f.z + oz })),
+  };
+}
 
 /** 自分の土地・売り土地になっていて、町の家が建っていない区画 */
 export function takenPlots(s = useEconomy.getState()): Set<number> {
@@ -27,7 +48,14 @@ export function visitAt(x: number, z: number): Visit | null {
     taken ??= takenPlots(s);
     if (taken.has(plot)) continue;
     const house = townHouseAt(plot);
-    if (house) return { plot, house, ox, oz };
+    if (!house) continue;
+    const cacheKey = `${plot}:${ox}:${oz}`;
+    let world = shifted.get(cacheKey);
+    if (!world) {
+      world = shiftHouse(house, ox, oz);
+      shifted.set(cacheKey, world);
+    }
+    return { plot, house, ox, oz, world };
   }
   return null;
 }
