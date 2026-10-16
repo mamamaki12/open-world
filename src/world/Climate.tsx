@@ -13,11 +13,15 @@ const AT = Number(new URLSearchParams(globalThis.location?.search ?? '').get('cl
 const START = Date.now();
 const now = () => (AT ? AT + (Date.now() - START) : Date.now());
 
-/** 0.5 秒ごとに今の気候を返す（毎フレーム再描画しない） */
+/** 今の気候を返す（毎フレーム再描画しない） */
 export function useClimate(): Climate {
   const [c, setC] = useState(() => climateAt(now()));
   useEffect(() => {
-    const id = setInterval(() => setC(climateAt(now())), 500);
+    // 再描画はゲーム内10分（実10秒）ごと、または天気・季節が変わったときだけ
+    const id = setInterval(() => {
+      const n = climateAt(now());
+      setC((o) => (Math.floor(o.hour * 6) === Math.floor(n.hour * 6) && o.weather === n.weather && o.season === n.season ? o : n));
+    }, 1000);
     return () => clearInterval(id);
   }, []);
   return c;
