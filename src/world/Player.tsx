@@ -22,6 +22,7 @@ import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
+import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
 import { lotCells, lotHouse, plotOffset, plotOffsetZ, civicOffset, currentPlotOf, useEconomy } from '../state/economy';
 import { TOWN_BOUNDS, plotX, plotZ } from '../economy/town';
 import { buildMenuOpen, useControls, cycleTool } from '../state/controls';
@@ -151,6 +152,18 @@ function resolveTown(p: { x: number; z: number }, feetY: number, height: number)
     const half = (lotCells(l).w * GRID) / 2;
     if (Math.abs(q.x - ox - half) > half + LOT_W * GRID / 2) continue;
     const r = resolveCollisions(other, { x: q.x - ox, z: q.z - oz }, feetY, height, () => false);
+    q = { x: r.x + ox, z: r.z + oz };
+  }
+  // 町に最初から建っている家（中には入れない）
+  const taken = new Set([...s.lots.flatMap((l) => [l.plot, l.joined]), ...s.offers.map((o) => o.plot)]);
+  for (const key of Object.keys(TOWN_HOUSE_PLOTS)) {
+    const plot = Number(key);
+    if (taken.has(plot)) continue;
+    const ox = plotOffset(plot, s), oz = plotOffsetZ(plot, s);
+    if (Math.abs(q.x - ox - (LOT_W * GRID) / 2) > LOT_W * GRID || Math.abs(q.z - oz - (LOT_D * GRID) / 2) > LOT_D * GRID) continue;
+    const house = townHouseAt(plot);
+    if (!house) continue;
+    const r = resolveCollisions(house, { x: q.x - ox, z: q.z - oz }, feetY, height, () => false);
     q = { x: r.x + ox, z: r.z + oz };
   }
   return resolveParkedCars(q,feetY);

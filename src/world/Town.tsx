@@ -22,6 +22,7 @@ import { DealerBuilding } from './DealerBuilding';
 import { BoutiqueBuildings } from './BoutiqueBuildings';
 import { EstateBuilding } from './EstateBuilding';
 import { HouseParts } from './HouseView';
+import { TownHouses } from './TownHouses';
 import { grassTexture } from './textures';
 
 const lotW = LOT_W * GRID;
@@ -41,6 +42,7 @@ export function Town() {
   const offers = useEconomy((s) => s.offers);
   const market = useEconomy((s) => s.market);
   const shift = -plotX(here), shiftZ = -plotZ(here);
+  const taken = useMemo(() => new Set([...lots.flatMap((l) => [l.plot, l.joined]), ...offers.map((o) => o.plot)].filter((p): p is number => typeof p === 'number')), [lots, offers]);
   const tiles = useMemo(() => {
     const out: { x: number; z: number }[] = [];
     for (let x = WEST; x < EAST; x += TILE) for (let z = TOWN_BOUNDS.z0 - 80; z < TOWN_BOUNDS.z1 + 80; z += TILE) out.push({ x: x + TILE / 2, z: z + TILE / 2 });
@@ -111,6 +113,7 @@ export function Town() {
       </group>
 
       <group name="neighbors">
+        <TownHouses shiftX={shift} shiftZ={shiftZ} skip={taken} />
         {lots.map((l) => {
           if (typeof l.plot !== 'number') return null;
           const house = lotHouse(l);

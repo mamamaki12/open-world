@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
+import { TOWN_HOUSE_PLOTS, townHouseDesign } from '../building/townHouses';
 import { BLOCK_COLUMNS, BLOCK_ROWS, CIVIC_SITE, FIRST_PLOT, LAST_PLOT, TOWN_BOUNDS, TOWN_ROADS, blockOf, districtOf, plotX, plotZ } from '../economy/town';
 import { joinCandidate, lotCells, lotPlots, useCurrentPlot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
@@ -66,11 +67,12 @@ export function MapPanel() {
           const lot = lots.find(l => l.plot === plot), offer = offers.find(o => o.plot === plot);
           const w = lotCells(lot).w * GRID;
           const picked = pick?.kind === 'plot' && pick.plot === plot;
-          const name = lot ? lot.name.replace(/（.*）$/, '') : offer ? '売地' : '区画';
+          const resident = !lot && !offer ? townHouseDesign(TOWN_HOUSE_PLOTS[plot] ?? '') : undefined;
+          const name = lot ? lot.name.replace(/（.*）$/, '') : offer ? '売地' : resident ? resident.name : '区画';
           const district = districtOf(plot);
           return <g key={plot} role="button" aria-label={name} tabIndex={0} onClick={() => setPick({ kind: 'plot', plot })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind: 'plot', plot }); }} style={{ cursor: 'pointer' }}>
             <rect x={sx(plotX(plot))} y={sy(plotZ(plot))} width={w * SCALE} height={LOT_D * GRID * SCALE} rx={3}
-              fill={lot ? '#e0e9f2' : offer ? '#fff4d8' : district?.color ?? '#dce2d5'} stroke={picked ? '#255db1' : lot ? '#7897ae' : '#bdc6b6'} strokeWidth={picked ? 3 : 1} />
+              fill={lot ? '#e0e9f2' : offer ? '#fff4d8' : resident ? '#d9d6cf' : district?.color ?? '#dce2d5'} stroke={picked ? '#255db1' : lot ? '#7897ae' : '#bdc6b6'} strokeWidth={picked ? 3 : 1} />
             {lot && <path d="M-9 0 L0 -8 L9 0 L7 0 L7 10 L-7 10 L-7 0 Z" transform={`translate(${sx(plotX(plot) + w / 2)},${sy(plotZ(plot) + 5)})`} fill="#457591" />}
             <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + (lot ? 12 : 9))} textAnchor="middle" fontSize={lot ? 7 : 9} fill={offer ? '#ac4c30' : '#3a5553'}>{name.slice(0, 10)}</text>
             <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + 16)} textAnchor="middle" fontSize={6} fill="#78877c">BLOCK {String(blockOf(plot) + 1).padStart(2, '0')} · {plot - FIRST_PLOT + 1}</text>
@@ -95,6 +97,7 @@ export function MapPanel() {
       : selectedOffer ? <><h3>売り土地：{selectedOffer.name}</h3><p>価格 {yen(landPrice(selectedOffer.location, selectedOffer.variance, market))}</p><p className="info">看板の前でFを押すと、この土地を購入できます。不動産屋でも購入できます。</p></>
       : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : 'まちの不動産'}</h3><p>住宅街の南側にあります。店舗の入口でFキー（スマホは入場ボタン）を押してください。</p></>
       : pick?.kind === 'boutique' ? <><h3>{BOUTIQUE_INFO[pick.id].name}</h3><p className="muted">服屋さん・{BOUTIQUE_INFO[pick.id].tier}</p><p>住宅街の南側、車屋より西のファッション通りにあります。中で服を選んで試着・購入できます。</p></>
+      : pick?.kind === 'plot' && townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot] ?? '') ? <><h3>{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.name}</h3><p className="muted">ほかの住人の家・{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.model}</p></>
       : <p className="muted">地図の家・土地・店舗を選んでください。</p>}
     </div>
     <section className="map-mylots"><div className="card-title">あなたの家・土地（{lots.length}）</div><ul>

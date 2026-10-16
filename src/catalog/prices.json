@@ -66,7 +66,9 @@
     "hinoki": 12000,
     "pine": 7000,
     "laminated": 6000,
-    "wood-sheet": 4000
+    "wood-sheet": 4000,
+    "deep-concrete": 18000,
+    "ceramic-wall": 20000
   },
   "openings": {
     "entrance": 350000,
@@ -99,6 +101,21 @@
     "flowerbed": 40000,
     "flowerpot": 8000,
     "nameplate-post": 180000,
-    "nameplate": 20000
+    "nameplate": 20000,
+    "washbasin": 120000,
+    "shoe-cabinet": 60000,
+    "kitchen-island": 900000,
+    "cupboard": 90000,
+    "low-table": 30000,
+    "zataku": 70000,
+    "washer": 180000,
+    "wardrobe": 150000,
+    "curtain": 30000,
+    "floor-lamp": 20000,
+    "aircon": 120000,
+    "sofa-l": 250000,
+    "mailbox": 80000,
+    "tree": 50000,
+    "hedge": 15000
   }
 }

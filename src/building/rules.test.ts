@@ -18,7 +18,7 @@ import {
 import { sampleHouse } from './sample';
 import { emptyHouse } from './types';
 import type { House, RoofPart, WallPart } from './types';
-import { GRID, wallTopY } from './dimensions';
+import { GRID, MAX_LEVEL, wallTopY } from './dimensions';
 
 const finish = { material: 'siding', color: '#ffffff' };
 const wall = (id: string, x0: number, z0: number, x1: number, z1: number, level = 0): WallPart => ({
@@ -113,8 +113,20 @@ describe('床・階段', () => {
   it('階段は向きに応じて1×4マスを占め、最上階には置けない', () => {
     expect(stairFootprint({ x: 5, z: 5, rot: 0 })).toEqual({ x0: 5, z0: 5, x1: 6, z1: 9 });
     expect(stairFootprint({ x: 5, z: 5, rot: 3 })).toEqual({ x0: 2, z0: 5, x1: 6, z1: 6 });
-    expect(canPlaceStair(emptyHouse(), { level: 1, x: 5, z: 5, rot: 0 })).not.toBeNull();
+    expect(canPlaceStair(emptyHouse(), { level: MAX_LEVEL, x: 5, z: 5, rot: 0 })).not.toBeNull();
     expect(canPlaceStair(emptyHouse(), { level: 0, x: 5, z: 5, rot: 0 })).toBeNull();
+    // 2階から3階へも架けられる
+    expect(canPlaceStair(emptyHouse(), { level: 1, x: 5, z: 5, rot: 0 })).toBeNull();
+  });
+
+  it('3階以上も、下の階の壁の上なら床を張れる', () => {
+    expect(MAX_LEVEL).toBeGreaterThanOrEqual(2);
+    const ring = (l: number) => [wall(`n${l}`, 0, 0, 4, 0, l), wall(`e${l}`, 4, 0, 4, 4, l), wall(`s${l}`, 4, 4, 0, 4, l), wall(`w${l}`, 0, 4, 0, 0, l)];
+    const h: House = { ...emptyHouse(), walls: [...ring(0), ...ring(1), ...ring(2)] };
+    const r = { x0: 0, z0: 0, x1: 4, z1: 4 };
+    expect(canPlaceFloor(h, 2, r)).toBeNull();
+    expect(canPlaceFloor(h, 3, r)).toBeNull();
+    expect(canPlaceFloor(h, 4, r)).not.toBeNull();
   });
 });
 
