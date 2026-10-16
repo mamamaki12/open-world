@@ -29,6 +29,7 @@ jobs:
             if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
             sleep 1
           done
+          node scripts/check-double-tap-jump.mjs
           node scripts/check-aim-controls.mjs
           node scripts/check-fashion.mjs
       - uses: actions/upload-artifact@v4
