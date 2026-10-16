@@ -17,5 +17,7 @@
 
 ## 進捗
 - 済: 方針決定、計画をpush
-- 次: 取得スクリプトとワークフロー → 状態とパネル → 建物
+- 済: 取得ワークフロー動作確認（market-data ブランチに quotes.json、raw から CORS 可で 200）
+- 済: `src/economy/stocks.ts`(計算+テスト)、`src/state/stocks.ts`(口座)、`src/ui/ExchangePanel.tsx`(売買画面)、`src/building/exchange.ts`+`src/world/ExchangeBuilding.tsx`(建物・電光掲示・店内ボード)、venues/地図/当たり判定へ追加
+- 次: 画面で見た目確認 → PR
 - 課題: ワークフローの定期実行は main にマージ後に有効。Yahoo が GitHub の IP を拒否したら Stooq に切り替え。

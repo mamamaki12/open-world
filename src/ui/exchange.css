@@ -1,0 +1,37 @@
+.exchange-modal { max-width: 980px; }
+.exchange-modal .up { color: #d13a32; }
+.exchange-modal .down { color: #12875a; }
+.ex-status small { display: block; opacity: .7; margin-top: 2px; }
+.ex-layout { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 16px; }
+.ex-list { display: flex; flex-direction: column; gap: 4px; max-height: 60vh; overflow: auto; }
+.ex-row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid #d9dde3; border-radius: 8px; background: #fff; color: #1c2430; text-align: left; cursor: pointer; }
+.ex-row.on { border-color: #1e4d8c; box-shadow: inset 3px 0 #1e4d8c; background: #eef3fb; }
+.ex-row small { display: block; font-size: 11px; opacity: .75; }
+.ex-num { text-align: right; font-variant-numeric: tabular-nums; }
+.ex-detail h2 { margin: 0 0 4px; font-size: 20px; }
+.ex-detail h2 small { font-size: 12px; font-weight: 400; opacity: .7; margin-left: 6px; }
+.ex-price { font-size: 26px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+.ex-price span { font-size: 15px; margin-left: 8px; }
+.ex-sub { margin: 4px 0; font-size: 13px; }
+.ex-range { display: flex; gap: 6px; margin: 8px 0 4px; }
+.ex-chart { width: 100%; height: 170px; background: #0f1b2b; border-radius: 8px; display: block; }
+.ex-chart polyline { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.ex-chart.up polyline { stroke: #ff6a5f; }
+.ex-chart.down polyline { stroke: #3fd193; }
+.ex-chart .ex-base { stroke: #7b8796; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.ex-chart.empty { display: grid; place-items: center; color: #9aa6b4; }
+.ex-trade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.ex-trade > div { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid #d9dde3; border-radius: 8px; }
+.ex-trade label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.ex-trade input { font-size: 16px; padding: 6px 8px; }
+.ex-quick { display: flex; flex-wrap: wrap; gap: 4px; }
+.ex-msg { font-weight: 600; }
+.ex-portfolio table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ex-portfolio th, .ex-portfolio td { padding: 6px 8px; border-bottom: 1px solid #e1e4e8; text-align: right; }
+.ex-portfolio th:first-child, .ex-portfolio td:first-child { text-align: left; }
+.ex-portfolio tbody tr { cursor: pointer; }
+.ex-total td { font-weight: 700; }
+@media (max-width: 700px) {
+  .ex-layout, .ex-trade { grid-template-columns: 1fr; }
+  .ex-list { max-height: 30vh; }
+}
