@@ -50,6 +50,9 @@ export interface Lot {
   joined?: number;
   /** みんなのワールドでの持ち主（ゲストID）。ひとりで遊ぶときは使わない */
   owner?: string;
+  ownerName?: string;
+  /** みんなのワールドで売りに出している値段 */
+  listing?: { price: number };
 }
 
 /** その土地が使っている区画（つなげていれば2つ） */
