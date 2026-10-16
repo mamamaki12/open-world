@@ -53,10 +53,10 @@ export const venueDoorId=(kind:Venue)=>'venue:'+kind;
 export function venueAt(x:number,z:number):Venue|null {
   return VENUE_KINDS.find(k=>{const b=VENUES[k];return x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1;})??null;
 }
-/** 入口の扉の前（外側でも内側でも）に立っている店 */
+/** 自動ドアのセンサーが人を感じる範囲：外は扉の前2.4m、中は戸口から1.5mまで（店に入って奥へ進むと閉まる） */
 export function venueDoorAt(x:number,z:number,y=0):Venue|null {
   if(Math.abs(y)>=.6)return null;
-  return VENUE_KINDS.find(k=>{const d=VENUE_DOORS[k],z0=VENUES[k].z0;return Math.abs(x-d.x)<d.width/2+.6&&z>z0-2.4&&z<z0+2.2;})??null;
+  return VENUE_KINDS.find(k=>{const d=VENUE_DOORS[k],z0=VENUES[k].z0;return Math.abs(x-d.x)<d.width/2+.6&&z>z0-2.4&&z<z0+VENUE_WALL+1.5;})??null;
 }
 /** 開いた入口の中（壁の厚みの部分）にいれば、入口の幅に収めた位置を返す。いなければ null */
 export function throughDoorway(kind:Venue,p:{x:number;z:number},radius=.25) {

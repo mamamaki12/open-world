@@ -3,9 +3,8 @@ import { avoidCameraWalls } from './cameraObstruction';
 import { getCar } from '../catalog/cars';
 import { carSamples, integrateDrive } from '../building/driving';
 import type { DrivePose } from '../building/driving';
-import { useVenue, syncVenue, toggleVenueDoor } from '../state/venue';
-import { venueAction, venueDoorAt } from '../building/venues';
-import type { Venue } from '../building/venues';
+import { useVenue, syncVenue, autoVenueDoors } from '../state/venue';
+import { venueAction } from '../building/venues';
 import { atSaleSign } from '../building/landSale';
 import { atDealerDoor, DEALER } from '../building/dealer';
 import { resolveLandmarks } from '../building/landmarks';
@@ -52,14 +51,12 @@ export function blockedAt(x:number,z:number,radius:number,height:number,skip?:st
 }
 export function refreshVehicleTarget(p:Memory) {
   const state=useVehicles.getState();
+  autoVenueDoors(p,!state.driving);
   let target:string|null=null;
   if(!state.driving){
     syncVenue(p);
-    const o=civicOffset(),door=venueDoorAt(p.x-o.x,p.z-o.z,p.y),venue=useVenue.getState().inside;
-    const action=venue?venueAction(venue,p.x-o.x,p.z-o.z):null;
-    if(door&&!action)target='door:'+door;
-    else if(venue)target=action?'venue:'+action.id:null;
-    if(door||venue){if(state.target!==target)useVehicles.setState({target});return;}
+    const o=civicOffset(),venue=useVenue.getState().inside;
+    if(venue){const action=venueAction(venue,p.x-o.x,p.z-o.z);target=action?'venue:'+action.id:null;if(state.target!==target)useVehicles.setState({target});return;}
   }
   if(state.driving)target=state.driving;
   else if(Math.abs(p.y)<.5){
@@ -81,8 +78,6 @@ export function refreshVehicleTarget(p:Memory) {
 export function parkVehicle(){const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c)c.speed=0;useVehicles.setState({driving:null,target:null});saveVehicles();}
 export function vehicleInteract(p:Memory) {
   refreshVehicleTarget(p);
-  const doorTarget=useVehicles.getState().target;
-  if(doorTarget?.startsWith('door:'))return toggleVenueDoor(doorTarget.slice(5) as Venue,p);
   const venue=useVenue.getState().inside;
   if(venue){ const o=civicOffset(),action=venueAction(venue,p.x-o.x,p.z-o.z);if(!action)return false;useVenue.setState({game:action.game??null,model:action.model??null,dealerIntent:action.model?'buy':'catalog'});useGame.getState().setOverlay(venue);return true; }
   const s=useVehicles.getState();

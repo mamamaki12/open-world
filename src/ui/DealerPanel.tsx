@@ -33,10 +33,10 @@ export function DealerPanel(){
         <dl className="car-specs"><dt>全長 × 全幅 × 全高</dt><dd>{model.length.toFixed(2)} × {model.width.toFixed(2)} × {model.height.toFixed(2)} m</dd><dt>最高速度（街中）</dt><dd>{Math.round(model.maxSpeed*3.6)} km/h</dd><dt>{model.id==='volt'?'電費':'燃費'}</dt><dd>{model.economy.toFixed(1)} {model.id==='volt'?'km/kWh':'km/L'}</dd><dt>乗車定員</dt><dd>{model.seats}名</dd><dt>販売価格</dt><dd>{yen(model.price)}</dd></dl>
         <div className="car-colors" aria-label="ボディカラー">{CAR_COLORS.map(c=><button key={c} aria-label={'カラー '+c} aria-pressed={c===color} style={{background:c}} onClick={()=>setColor(c)}/>)}</div>
         {error&&<p role="alert" className="warn">{error}</p>}
-        {confirm?<div className="dealer-confirm"><p>{model.name} を <b>{yen(model.price)}</b> で購入しますか？</p><p>購入後は店舗裏の納車区画に置かれ、Fで乗れます。</p><button className="btn primary big-btn" onClick={()=>{const err=buyCar(model.id,color,useGame.getState().mode==='walk'&&atCarDealer(playerMemory));if(err)setError(err);else{setConfirm(false);close(null);}}}>購入を確定する</button><button className="btn" onClick={()=>setConfirm(false)}>戻る</button></div>:
+        {confirm?<div className="dealer-confirm"><p>{model.name} を <b>{yen(model.price)}</b> で購入しますか？</p><p>購入後は店の横の駐車場に置かれ、Fで乗れます。</p><button className="btn primary big-btn" onClick={()=>{const err=buyCar(model.id,color,useGame.getState().mode==='walk'&&atCarDealer(playerMemory));if(err)setError(err);else{setConfirm(false);close(null);}}}>購入を確定する</button><button className="btn" onClick={()=>setConfirm(false)}>戻る</button></div>:
         <button className="btn primary big-btn" disabled={money<model.price||cars.length>=10} onClick={()=>setConfirm(true)}>この車を購入する · {yen(model.price)}</button>}
       </section>
     </div>
-    <p className="info">納車場所は店舗裏。運転はW/Sで前進・後退、A/Dでハンドル、Spaceでブレーキ。Fで乗降、Lでライト、Qで視点切替。スマホはスティックと画面ボタンで操作できます。</p>
+    <p className="info">納車場所は店の横の駐車場（表の道路から見えます）。運転はW/Sで前進・後退、A/Dでハンドル、Spaceでブレーキ。Fで乗降、Lでライト、Qで視点切替。スマホはスティックと画面ボタンで操作できます。</p>
   </Modal>;
 }
