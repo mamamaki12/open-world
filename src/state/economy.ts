@@ -8,7 +8,7 @@ import { DAY_SECONDS, dailyBill, getLocation, landOffers, landPrice, salePrice, 
 import type { LandOffer } from '../economy/market';
 import { appraiseBuilding, buildSeconds, estimateCost, renovationCost } from '../economy/pricing';
 import { yen } from '../economy/money';
-import { START_PLOT, assignPlots, freePlot, plotX, plotZ, CIVIC_SITE, JOINED_W, JOIN_SHIFT, joinNeighbor, joinPair } from '../economy/town';
+import { START_PLOT, TOWN_HOUSE_PLOTS, assignPlots, freePlot, plotX, plotZ, CIVIC_SITE, JOINED_W, JOIN_SHIFT, joinNeighbor, joinPair } from '../economy/town';
 import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { mergeHouses } from '../building/join';
 import { useGame } from './store';
@@ -128,7 +128,7 @@ export function placeOffers(offers: LandOffer[], lots: Lot[]): LandOffer[] {
   const taken = new Set(ownedPlots(lots));
   const out: LandOffer[] = [];
   for (const o of offers) {
-    const plot = typeof o.plot === 'number' && !taken.has(o.plot) ? o.plot : freePlot(o.location, taken, Math.random);
+    const plot = typeof o.plot === 'number' && !taken.has(o.plot) && !TOWN_HOUSE_PLOTS[o.plot] ? o.plot : freePlot(o.location, taken, Math.random);
     if (plot === null) continue;
     taken.add(plot);
     out.push({ ...o, plot });
