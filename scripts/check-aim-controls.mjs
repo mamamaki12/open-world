@@ -152,9 +152,13 @@ try {
   await mobile.close();
   const desktop = await open(false, { width: 1280, height: 720 });
   await page.mouse.click(640, 360); await page.waitForFunction(() => document.pointerLockElement !== null);
-  await page.evaluate(()=>Object.assign(window.__ow.player,{yaw:0,pitch:-.7}));await page.waitForTimeout(300);
-  await page.keyboard.press('Digit2'); await page.keyboard.press('Digit2'); await page.mouse.down({button:'right'}); await page.mouse.up({button:'right'});
-  await page.mouse.down({button:'right'}); await page.mouse.up({button:'right'});
+  await page.keyboard.press('Digit2'); await page.keyboard.press('Digit2');
+  await page.evaluate(()=>Object.assign(window.__ow.player,{yaw:0,pitch:-.7}));
+  await page.waitForFunction(async()=>{const {useAim}=await import('/src/state/controls.ts');return useAim.getState().valid;});
+  // CDPの絶対座標マウス入力はロック中に偽の相対移動を生成するため、固定済みcanvasへ配置イベントを届ける。
+  await page.locator('canvas').dispatchEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true});
+  await page.waitForFunction(async()=>{const {useAim}=await import('/src/state/controls.ts');return useAim.getState().range;});
+  await page.locator('canvas').dispatchEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true});
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.floors.length), 1, 'mouse places at central aim');
   assert.ok(await page.evaluate(() => !!document.pointerLockElement), 'switching tools keeps pointer lock');
   await page.mouse.wheel(0, 120); await page.waitForTimeout(200);
