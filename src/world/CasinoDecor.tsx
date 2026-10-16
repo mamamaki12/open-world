@@ -76,9 +76,11 @@ export function CasinoDecor() {
     {[-9, -6, -3, 3, 6, 9].map((x) => <Box key={'bx' + x} p={[x, 6.28, 0]} s={[0.12, 0.1, 13.6]} c={GOLD} metal={0.8} />)}
     {[-4.5, 4.5].map((z) => <Box key={'bz' + z} p={[0, 6.28, z]} s={[23.6, 0.1, 0.12]} c={GOLD} metal={0.8} />)}
     {[-10.5, -7.5, -4.5, 4.5, 7.5, 10.5].flatMap((x) => [-5.7, 0, 5.7].map((z) => <mesh key={x + ',' + z} position={[x, 6.32, z]} rotation-x={Math.PI / 2}><circleGeometry args={[0.18, 16]} /><meshBasicMaterial color="#ffe8b0" side={THREE.DoubleSide} /></mesh>))}
-    {/* 入口の壁の内側の看板 */}
-    <Sign p={[-6, 3.6, -6.78]} w={5} h={1.25} text="★ JACKPOT ★" color="#ffcf4a" font="bold 150px Georgia, serif" />
-    <Sign p={[6, 3.6, -6.78]} w={5} h={1.25} text="RACE BOOK" color="#7fe0ff" font="bold 150px sans-serif" />
+    {/* 入口の壁の内側を暗い色でおおい、看板を貼る */}
+    {[-1, 1].map((s) => <Box key={'fw' + s} p={[s * 7.05, 3.2, -6.7]} s={[9.7, 6.4, 0.04]} c="#352c30" />)}
+    <Box p={[0, 4.9, -6.7]} s={[4.4, 3, 0.04]} c="#352c30" />
+    <Sign p={[-6, 3.6, -6.66]} w={5} h={1.25} text="★ JACKPOT ★" color="#ffcf4a" font="bold 150px Georgia, serif" />
+    <Sign p={[6, 3.6, -6.66]} w={5} h={1.25} text="RACE BOOK" color="#7fe0ff" font="bold 150px sans-serif" />
     {/* 左の壁ぞいのスロット */}
     {[-1.2, 0, 1.2].map((z, i) => <Slot key={z} x={-11.3} z={z} rot={Math.PI / 2} c={['#7a1d2c', '#1d4a7a', '#6a4a12'][i]} />)}
     {/* 右奥のポーカー台 */}
@@ -144,7 +146,7 @@ export function EstateDecor() {
   });
   return <>
     {/* 奥の壁の物件ボード */}
-    <mesh position={[0, 2.05, 3.82]} rotation-y={Math.PI}><planeGeometry args={[3.6, 1.8]} /><meshStandardMaterial map={board} roughness={0.8} /></mesh>
+    <mesh position={[-2.9, 1.65, 3.78]} rotation-y={Math.PI}><planeGeometry args={[2.4, 1.2]} /><meshStandardMaterial map={board} roughness={0.8} /></mesh>
     {/* 入口左の待合ソファと雑誌の台 */}
     <group position={[-3.4, 0, -3.45]}>
       <Box p={[0, 0.22, 0]} s={[1.9, 0.44, 0.7]} c="#4f7f7c" /><Box p={[0, 0.65, -0.28]} s={[1.9, 0.5, 0.16]} c="#4f7f7c" />

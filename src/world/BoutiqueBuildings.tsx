@@ -210,7 +210,7 @@ function BoutiqueDecor({ id }: { id: BoutiqueId }) {
       {[-0.3, 0, 0.3].map((x, i) => <mesh key={x} position={[x, 0.86, 0]}>{i === 1 ? <torusGeometry args={[0.07, 0.018, 8, 20]} /> : <boxGeometry args={[0.18, 0.1, 0.12]} />}<meshStandardMaterial color={i === 1 ? '#d4af37' : colors[i % colors.length]} metalness={i === 1 ? 0.9 : 0} roughness={0.35} /></mesh>)}
     </group>
     {/* 奥の壁のロゴ（レジの上） */}
-    <mesh position={[-1.4, 2.55, 4.33]} rotation-y={Math.PI}><planeGeometry args={[2.8, 0.7]} /><meshBasicMaterial map={sign} toneMapped={false} /></mesh>
+    <mesh position={[-1.4, 2.55, 4.28]} rotation-y={Math.PI}><planeGeometry args={[2.8, 0.7]} /><meshBasicMaterial map={sign} toneMapped={false} /></mesh>
     {/* レジ横の紙袋 */}
     {[0, 1].map((i) => <group key={i} position={[-3.3 + i * 0.32, 0, 3.55]}>
       <Block p={[0, 0.2, 0]} s={[0.28, 0.4, 0.14]} c={lux ? '#1b1a1c' : info.sign} />
