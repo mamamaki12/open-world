@@ -153,12 +153,14 @@ try {
   const desktop = await open(false, { width: 1280, height: 720 });
   await page.mouse.click(640, 360); await page.waitForFunction(() => document.pointerLockElement !== null);
   await page.keyboard.press('Digit2'); await page.keyboard.press('Digit2');
-  await page.evaluate(()=>Object.assign(window.__ow.player,{yaw:0,pitch:-.7}));
-  await page.waitForFunction(async()=>{const {useAim}=await import('/src/state/controls.ts');return useAim.getState().valid;});
-  // CDPの絶対座標マウス入力はロック中に偽の相対移動を生成するため、固定済みcanvasへ配置イベントを届ける。
-  await page.locator('canvas').dispatchEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true});
-  await page.waitForFunction(async()=>{const {useAim}=await import('/src/state/controls.ts');return useAim.getState().range;});
-  await page.locator('canvas').dispatchEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true});
+  assert.equal(await page.evaluate(()=>window.__ow.game.getState().tool),'floor');
+  // ソフトウェア描画のフレーム間隔に依存させず、既知のカメラ姿勢で固定中の配置入力を検証する。
+  await page.evaluate(()=>{
+    const g=window.__ow,c=g.camera,canvas=document.querySelector('canvas');
+    c.position.set(8,1.6,12);c.lookAt(8,0,10);c.updateMatrixWorld(true);
+    canvas.dispatchEvent(new PointerEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true,bubbles:true}));
+    canvas.dispatchEvent(new PointerEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true,bubbles:true}));
+  });
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.floors.length), 1, 'mouse places at central aim');
   assert.ok(await page.evaluate(() => !!document.pointerLockElement), 'switching tools keeps pointer lock');
   await page.mouse.wheel(0, 120); await page.waitForTimeout(200);

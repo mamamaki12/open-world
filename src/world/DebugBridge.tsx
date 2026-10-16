@@ -11,6 +11,7 @@ export function DebugBridge() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     (window as unknown as Record<string, unknown>).__ow = {
+      camera,
       game: useGame,
       economy: useEconomy,
       player: playerMemory,
