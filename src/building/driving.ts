@@ -1,7 +1,7 @@
 import type { CarDef } from '../catalog/cars';
 
 export interface DrivePose { x: number; z: number; yaw: number; speed: number; steer: number; wheelSpin: number; braking: boolean }
-export interface DriveInput { throttle: number; steering: number; brake: boolean }
+export interface DriveInput { throttle: number; steering: number; brake: boolean; buttonSteering?: boolean }
 export function carSamples(p: Pick<DrivePose, 'x'|'z'|'yaw'>, def: CarDef) {
   return [-1, 0, 1].map(end => ({ x: p.x - Math.sin(p.yaw) * end * (def.length - def.width) / 2,
     z: p.z - Math.cos(p.yaw) * end * (def.length - def.width) / 2 }));
@@ -15,8 +15,8 @@ export function integrateDrive(p: DrivePose, input: DriveInput, elapsed: number,
   const dt = Math.min(elapsed, .25) / steps;
   for (let i = 0; i < steps; i++) {
     // 速いほど切れ角を小さくし、ハンドルはゆっくり切る・戻す（効きすぎないように）
-    const lock = maxSteer(p.speed, def.grip);
-    const rate = input.steering ? 2.2 : 4;
+    const lock = Math.min(.7, maxSteer(p.speed, def.grip) * (input.buttonSteering ? 1.6 : 1));
+    const rate = input.steering ? (input.buttonSteering ? 3.6 : 2.2) : 4;
     p.steer += (input.steering * lock - p.steer) * Math.min(1, dt * rate);
     p.braking = input.brake || input.throttle * p.speed < -.05;
     if (input.brake) p.speed *= Math.exp(-dt * 10);
