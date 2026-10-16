@@ -15,7 +15,8 @@ Branch: `claude/project-thread-05s2pt`（しんご 2026-10-16）
 - `START_MONEY = 1_000_000`
 
 ## Progress
-- [ ] plan
-- [ ] neighborhood + tests
-- [ ] free construction + UI
-- [ ] start money, docs/economy.md
+- [x] plan
+- [x] neighborhood + tests（係数は町の区画で 0.9〜1.6）
+- [x] free construction + UI（共同建築も無料）
+- [x] start money, docs/economy.md
+- next: CI → merge

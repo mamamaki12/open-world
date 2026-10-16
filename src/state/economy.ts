@@ -5,6 +5,7 @@ import { visitingWorld, onlineWorld } from '../session/gate';
 import { emptyHouse } from '../building/types';
 import type { House } from '../building/types';
 import { autosave, isHouse } from '../save/storage';
+import { FIXED_BUILDINGS, densityFactor, neighborScore, playerHouseWeight, plotCenter } from '../economy/neighborhood';
 import { DAY_SECONDS, dailyBill, getLocation, landOffers, landPrice, salePrice, stepMarket } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { appraiseBuilding, buildSeconds, estimateCost, renovationCost } from '../economy/pricing';
@@ -15,7 +16,7 @@ import { mergeHouses } from '../building/join';
 import { useGame } from './store';
 import { useInteraction } from './interaction';
 
-export const START_MONEY = 20_000_000;
+export const START_MONEY = 1_000_000;
 
 /** いま開いている土地の原点が動いたとき（土地をつなげたとき）に、カメラ側で受け取る。dx, dz は新しい原点から見た古い原点の位置 */
 export const originShift: { listener: ((dx: number, dz: number) => void) | null } = { listener: null };
@@ -214,16 +215,33 @@ export function lotNumbers(lot: Lot, market: number) {
   const loc = getLocation(lot.location);
   const buildCost = lot.built ? estimateCost(lot.built).total : 0;
   const appraisal = lot.built ? appraiseBuilding(lot.built, loc.factor) : 0;
-  const landValue = Math.round(loc.land * lot.variance);
+  const density = typeof lot.plot === 'number' ? plotDensity(lot.plot) : 1;
+  const landValue = Math.round(loc.land * lot.variance * density);
   return {
     location: loc,
+    density,
     buildCost,
     appraisal,
     landValue,
-    landNow: landPrice(lot.location, lot.variance, market),
-    sale: salePrice(appraisal, lot.location, lot.variance, market),
+    landNow: landPrice(lot.location, lot.variance, market, density),
+    sale: salePrice(appraisal, lot.location, lot.variance, market, density),
     bill: dailyBill({ buildCost, appraisal, landValue, rented: lot.rented, market }),
   };
+}
+
+/** 区画のまわりの建物の多さによる土地代の係数（町の家・お店＋自分の建てた家） */
+export function plotDensity(plot: number, lots: Lot[] = useEconomy.getState().lots): number {
+  const mine = lots.flatMap((l) => {
+    if (!l.built || typeof l.plot !== 'number' || l.plot === plot) return [];
+    const levels = new Set(l.built.floors.map((f) => f.level)).size;
+    return [{ ...plotCenter(l.plot), weight: playerHouseWeight(levels) }];
+  });
+  return densityFactor(neighborScore(plot, [...FIXED_BUILDINGS, ...mine]));
+}
+
+/** 売り土地の今の値段（立地・ぶれ・にぎわい・相場） */
+export function offerPrice(o: LandOffer, market: number, lots?: Lot[]): number {
+  return landPrice(o.location, o.variance, market, typeof o.plot === 'number' ? plotDensity(o.plot, lots) : 1);
 }
 
 /** いま画面に出している土地の設計図 */
@@ -323,7 +341,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     startConstruction: () => {
-      if (onlineWorld()) return '共同建築中は配置の確定時に本人が費用を支払います';
+      if (onlineWorld()) return '共同建築中は配置するとそのまま反映されます（無料）';
       const s = get();
       const lot = s.lots.find((l) => l.id === s.currentLotId);
       if (!lot) return '土地がありません。不動産屋で土地を買ってください';
@@ -336,14 +354,11 @@ export const useEconomy = create<EconomyState>((set, get) => {
         set({ lots: updateLot(lot.id, { built: design }) });
         return null;
       }
-      if (est.total > s.money) return `お金が足りません（工事費 ${yen(est.total)}）`;
+      // 着工は無料（工事の時間だけかかる）。売るときは建物の査定ぶんお金が付く
       const total = buildSeconds(est.total);
       set({
-        money: s.money - est.total,
-        ledger: addTxn(`${lot.built ? '改築' : '新築'}工事（${lot.name}）`, -est.total),
         lots: updateLot(lot.id, {
-          construction: { target: design, cost: est.total, total, remaining: total },
-          invested: lot.invested + est.total,
+          construction: { target: design, cost: 0, total, remaining: total },
         }),
       });
       return null;
@@ -384,7 +399,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
       const s = get();
       const offer = s.offers.find((o) => o.id === offerId);
       if (!offer) return 'その土地はもう売れてしまいました';
-      const price = landPrice(offer.location, offer.variance, s.market);
+      const price = offerPrice(offer, s.market, s.lots);
       if (price > s.money) return `お金が足りません（${yen(price)}）`;
       const taken = ownedPlots(s.lots);
       const plot = typeof offer.plot === 'number' && !taken.includes(offer.plot) ? offer.plot : freePlot(offer.location, taken);
