@@ -73,8 +73,8 @@ export function streetLayout(): Layout {
         }
       }
     }
-    // 交差点：横断歩道（幅の広い道路どうし）と信号
-    if (!h || i >= N_MAIN) return;
+    // 交差点：すべての交差点に横断歩道、幅の広い道路どうしには信号も
+    if (!h) return;
     for (const v of others) {
       if (roads.indexOf(v) >= N_VERTICAL) continue;
       const box = { x0: v.x0, x1: v.x1, z0: r.z0, z1: r.z1 };
@@ -85,6 +85,9 @@ export function streetLayout(): Layout {
       }
       // 横断歩道の白線（交差点の4方向）
       const zebra = (x0: number, x1: number, z0: number, z1: number, alongX: boolean) => {
+        // 道路の外（町の端の先など）には描かない
+        const road = alongX ? v : r;
+        if (x0 < road.x0 || x1 > road.x1 || z0 < road.z0 || z1 > road.z1) return;
         const len = alongX ? x1 - x0 : z1 - z0;
         for (let t = 0.3; t < len - 0.3; t += 0.9) {
           stripes.push(alongX ? { x0: x0 + t, x1: x0 + t + 0.45, z0, z1 } : { x0, x1, z0: z0 + t, z1: z0 + t + 0.45 });
@@ -94,6 +97,7 @@ export function streetLayout(): Layout {
       zebra(box.x0 + vw, box.x1 - vw, box.z1 + 0.8, box.z1 + 3.2, true);
       zebra(box.x0 - 3.2, box.x0 - 0.8, box.z0 + sw, box.z1 - sw, false);
       zebra(box.x1 + 0.8, box.x1 + 3.2, box.z0 + sw, box.z1 - sw, false);
+      if (i >= N_MAIN) continue;
       // 信号は角の歩道に立てる（sx, sz は交差点の外向き）
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
         signals.push({ x: sx < 0 ? box.x0 + vw / 2 : box.x1 - vw / 2, z: sz < 0 ? box.z0 + sw / 2 : box.z1 - sw / 2, sx, sz });
