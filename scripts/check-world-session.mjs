@@ -18,6 +18,9 @@ async function open(name) {
   pages.push(page);
   page.setDefaultTimeout(120000); page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://127.0.0.1:5173/?touch=0&relay=' + encodeURIComponent(relayURL)); await page.getByLabel('あなたの名前').fill(name);
+  // Keep quotes stable while software-rendered CI browsers take different amounts of time.
+  // Shared clock delivery is verified explicitly below; economic ticking has unit coverage.
+  await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ tick: () => {} }));
   return { context, page };
 }
 try {
