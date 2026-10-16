@@ -4,7 +4,6 @@ import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useVehicles } from '../state/vehicles';
 import { driveButtons } from '../world/vehicleLogic';
 import { useDoors } from '../state/doors';
-import { useGame } from '../state/store';
 import { RUN_THRESHOLD, touchCamera, touchMove, walkActions } from '../state/touch';
 
 /** スティックを倒せる半径（px） */
@@ -99,16 +98,12 @@ function HoldButton({ className, onHold, children, label }: { className?: string
 export function TouchWalkControls() {
   const driving = useVehicles(s=>s.driving);
   useEffect(()=>()=>{driveButtons.brake=false;},[]);
-  const view = useGame((s) => s.view);
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
   return (
     <div className="touch-walk">
       <Joystick />
       <div className="touch-actions">
-        <TapButton className="small view" onTap={() => walkActions.toggleView()}>
-          {view === 'first' ? '👁' : '🧍'}
-        </TapButton>
         {driving ? <HoldButton label="ブレーキ" className="jump" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton> : <TapButton className={`jump${climb === 'ok' && !climbing ? ' climb' : ''}`} onTap={() => walkActions.jump()}>
           {climb === 'ok' && !climbing ? '窓から出る' : 'ジャンプ'}
         </TapButton>}
