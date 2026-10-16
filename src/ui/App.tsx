@@ -28,6 +28,7 @@ import { useTouchDevice } from './useTouchDevice';
 import { walkActions } from '../state/touch';
 import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
 import { reloadLatest } from './reload';
+import { FurnitureDesigner } from './FurnitureDesigner';
 import { leaveWorld, useSession } from '../session/session';
 import { downloadBackup } from '../session/saves';
 
@@ -95,6 +96,7 @@ export function App() {
       {overlay === 'estate' && <EstatePanel />}
       {overlay === 'casino' && <CasinoPanel />}
       {overlay === 'map' && <MapPanel />}
+      <FurnitureDesigner />
       <Toast />
     </div>
   );
