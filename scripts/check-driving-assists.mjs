@@ -50,5 +50,19 @@ try {
   await page.keyboard.up('Shift'); await page.keyboard.up('ArrowLeft');
   await page.waitForFunction(() => !window.__driveTest.useVehicles.getState().cars[0].handbraking);
   console.log('PASS: Shift enables handbrake drift');
+  // Hold the service brake from forward motion: first decelerate, then reverse.
+  await page.evaluate(() => Object.assign(window.__driveTest.useVehicles.getState().cars[0], window.__driveTest.start, { speed: 6, reverseHold: 0, slipAngle: 0 }));
+  const brake = await center('ブレーキ');
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...brake, id: 1 }] });
+  await page.waitForFunction(() => { const c = window.__driveTest.useVehicles.getState().cars[0]; return c.speed > 0 && c.speed < 5; });
+  await page.waitForFunction(() => window.__driveTest.useVehicles.getState().cars[0].speed < -.3);
+  const reverseSpeed = await page.evaluate(() => window.__driveTest.useVehicles.getState().cars[0].speed);
+  assert.ok(reverseSpeed >= -3, 'reverse speed stays capped');
+  await page.locator('.drive-speed').filter({ hasText: 'R' }).waitFor();
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await page.waitForFunction(() => !window.__driveTest.driveButtons.brake && window.__driveTest.useVehicles.getState().cars[0].reverseHold === 0);
+  const releasedSpeed = await page.evaluate(() => window.__driveTest.useVehicles.getState().cars[0].speed);
+  await page.waitForFunction(v => window.__driveTest.useVehicles.getState().cars[0].speed > v + .05, releasedSpeed);
+  console.log('PASS: holding brake slows forward motion, reverses after stop, shows R, and cancellation stops reverse acceleration');
   assert.deepEqual(errors, []);
 } finally { await browser.close(); }
