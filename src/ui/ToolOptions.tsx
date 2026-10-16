@@ -38,6 +38,7 @@ export function ToolOptions() {
   const tool = useGame((s) => s.tool);
   const d = useGame((s) => s.defaults);
   const set = useGame((s) => s.setDefaults);
+  const eraseMulti = useGame(s => s.eraseMulti);
   const stairRot = useInteraction((s) => s.stairRot);
 
   let body = null;
@@ -157,7 +158,7 @@ export function ToolOptions() {
 
   return (
     <div className="panel tool-options">
-      <p className="help">{(touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
+      <p className="help">{touch && tool === 'erase' && !eraseMulti ? 'タップして消します。1本指でなぞると視点を回せます。範囲で消すときは「まとめて選ぶ」に切り替えてください。' : (touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
       {touch && (tool === 'wall' || tool === 'floor') && <p className="info">真上から指の位置に合わせて配置します。2本指で移動・ズームできます。</p>}
       {tool === 'select' && <p className="info">床・壁・屋根・階段は同じ素材・色でまとめて移動できます。選択後、ドラッグまたは1マス移動ボタンを使ってください。</p>}
       {tool === 'furniture' && d.furnitureType === 'nameplate' && <p className="info">表示する文字を入力し、取り付けたい壁面をタップしてください。壁の手前側に固定します。</p>}
@@ -239,7 +240,7 @@ export function WallHeightButtons({ value = 'full', onChange }: { value?: WallHe
       <div className="field-label">壁・塀の種類</div>
       <div className="choice-list">
         {(Object.keys(WALL_HEIGHT_NAMES) as WallHeight[]).map((h) => (
-          <button key={h} className={h === value ? 'on' : ''} onClick={() => onChange(h)}>
+          <button key={h} className={`choice${h === value ? ' on' : ''}`} onClick={() => onChange(h)}>
             {WALL_HEIGHT_NAMES[h]}
           </button>
         ))}
