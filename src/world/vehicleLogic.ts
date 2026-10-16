@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { avoidCameraWalls } from './cameraObstruction';
+import { driverEye } from './CarModel';
 import { getCar } from '../catalog/cars';
 import { carSamples, integrateDrive } from '../building/driving';
 import type { DrivePose } from '../building/driving';
@@ -129,7 +130,9 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   Object.assign(p,{x:car.x-o.x,y:0,z:car.z-o.z,bodyYaw:car.yaw});
   const first=useGame.getState().view==='first';
   if(first){
-    camera.position.set(p.x-Math.cos(car.yaw)*d.width*.24,Math.min(d.height-.12,1.18),p.z);
+    // 運転席（ハンドルの後ろ）に座った目の高さ。車の座標を向きに合わせて回す。
+    const eye=driverEye(d),c=Math.cos(car.yaw),s=Math.sin(car.yaw);
+    camera.position.set(p.x+eye.x*c+eye.z*s,eye.y,p.z-eye.x*s+eye.z*c);
     camera.lookAt(p.x-Math.sin(p.yaw)*10,camera.position.y+Math.sin(p.pitch)*4,p.z-Math.cos(p.yaw)*10);
   }else{
     // 見回した分（マウス・指で動かした yaw/pitch）だけ、車のまわりをカメラが回る。

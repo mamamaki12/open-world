@@ -20,12 +20,19 @@ function Box({p,s,c,metal=0,glow=0}:{p:[number,number,number];s:[number,number,n
 function Pillar({x,from:[z0,y0],to:[z1,y1],size,color}:{x:number;from:[number,number];to:[number,number];size:number;color:string}){
   return <mesh position={[x,(y0+y1)/2,(z0+z1)/2]} rotation-x={Math.atan2(z1-z0,y1-y0)} castShadow><boxGeometry args={[size,Math.hypot(z1-z0,y1-y0),size]}/><meshStandardMaterial color={color} metalness={.5} roughness={.3}/></mesh>;
 }
+/** 窓の下端（ベルトライン）の高さ。車内の配置の基準。 */
+export function carBelt(d:CarDef){return d.height*(d.body==='van'?.55:d.body==='coupe'||d.body==='roadster'?.51:.52);}
+/** 運転席の目の位置（車の座標：x 左右、y 高さ、z 前後で前が −）。ハンドルの真後ろ。 */
+export function driverEye(d:CarDef){
+  const belt=carBelt(d),cf=-d.length*(d.body==='van'?.31:d.body==='coupe'||d.body==='roadster'?.10:.18);
+  return {x:-d.width*.25,y:Math.min(belt+.56,d.height-.14),z:Math.max(cf+.85,d.length*.04)};
+}
 export function CarModel({def:d,color,pose}:{def:CarDef;color:string;pose?:OwnedCar}) {
   const front=useRef<THREE.Group[]>([]),rolling=useRef<THREE.Group[]>([]);
   const tail=useRef<THREE.MeshStandardMaterial[]>([]),head=useRef<THREE.MeshStandardMaterial[]>([]);
   const w=d.width,L=d.length,H=d.height,r=d.wheel;
   const truck=d.body==='pickup',van=d.body==='van',suv=d.body==='suv',open=d.body==='roadster',sport=d.body==='coupe'||open;
-  const belt=H*(van ? .55:sport ? .51:.52),frontZ=-L*.5,rearZ=L*.5;
+  const belt=carBelt(d),frontZ=-L*.5,rearZ=L*.5;
   const cf=-L*(van ? .31:sport ? .10:.18),cr=L*(truck ? .04:d.body==='sedan'?.2:.32);
   const topFront=cf+L*.12,topRear=cr-L*(sport ? .10:.06);
   // 後席の背もたれは後ろの窓より前に置く（窓から突き出さないように）
@@ -61,7 +68,7 @@ export function CarModel({def:d,color,pose}:{def:CarDef;color:string;pose?:Owned
       <Box p={[side*w*.48,belt*.65,L*.08]} s={[.012,.015,L*.42]} c="#30383f"/>
       {(suv||truck)&&<Box p={[side*w*.47,.42,0]} s={[.06,.22,L*.84]} c="#222a30"/>}
     </group>)}
-    <Box p={[0,belt+.08,cf+.08]} s={[w*.7,.17,.2]} c="#151b20"/>
+    <Box p={[0,belt+.06,cf+.16]} s={[w*.88,.2,.36]} c="#151b20"/>
     <mesh position={[-w*.25,belt+.25,cf+.27]} rotation-x={Math.PI/2-.4}><torusGeometry args={[.15,.023,8,24]}/><meshStandardMaterial color="#20252a"/></mesh>
     <Box p={[0,belt+.16,.02]} s={[.11,.04,.2]} c="#6a6f73" metal={.7}/>
     {open&&[-1,1].map(side=><group key={side} position={[side*w*.28,belt+.3,L*.15]}><mesh><torusGeometry args={[.2,.035,8,24,Math.PI]}/><meshStandardMaterial color="#a8afb5" metalness={.9} roughness={.2}/></mesh>{[-.2,.2].map(x=><Box key={x} p={[x,-.15,0]} s={[.07,.3,.07]} c="#a8afb5" metal={.9}/>)}</group>)}
