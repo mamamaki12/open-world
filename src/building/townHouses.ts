@@ -122,7 +122,7 @@ function familyHouse(st: FamilyHouseStyle): House {
   k.item(0, 'plant', 13.3, 12.3);
   k.item(0, 'floor-lamp', 4.6, 12.4);
   k.item(0, 'aircon', 4.22, 6.5, 90);
-  for (const x of [6.5, 9, 11.5]) k.item(0, 'curtain', x, 12.86, 180);
+  for (const x of [6.5, 9]) k.item(0, 'curtain', x, 12.86, 180);
   k.item(0, 'shoe-cabinet', 17.7, 11.8, 270);
   k.item(0, 'plant', 14.6, 12.4, 0, '#6c8f4e');
   k.item(0, 'washbasin', 14.38, 7.5, 90);
@@ -205,7 +205,7 @@ function japaneseHouse(): House {
   // 縁側（ウッドデッキ）
   k.floor(0, 4, 14, 11, 15, fin('deck', '#8a6240'), 'terrace');
 
-  // 2階（x4〜13、z5〜11）
+  // 2階：階段室を含む総二階にして、上り切った先にも床と外壁を確保する
   const f2 = k.box(1, 4, 5, 18, 14, upper, inner, floor);
   const room = k.wall(1, 8, 5, 8, 11, inner);
   k.open(room, 'door', 4, { panelColor: WHITE });
@@ -215,7 +215,7 @@ function japaneseHouse(): House {
   k.open(f2.n, 'sliding', 6.5);
   k.open(f2.w, 'sliding-small', 3);
   k.open(f2.e, 'sliding', 3);
-  // 屋根：2階は寄棟、1階の下屋は片流れ（2階の壁に向かって上がる）
+  // 階段室まで一体の寄棟屋根
   k.roof(1, 4, 5, 18, 14, 'hip', kawara, upper, { pitch: 4.5, overhang: 0.75 });
 
   // 家具
@@ -343,7 +343,7 @@ function narrowTownhouse(): House {
   k.wall(0, 13, z1, x1, z1, ext, inner);
   const garage = k.wall(0, x0, 10, x1, 10, inner);
   k.open(garage, 'door', 5.5, door);
-  k.open(garage, 'door', 1.5, door);
+  k.open(garage, 'entrance-wide', 2, door);
   const wet = k.wall(0, x0, 7, x1, 7, inner);
   k.windows(wet, 'door', [1.5, 4, 6], door);
   k.wall(0, 11, z0, 11, 7, inner);
