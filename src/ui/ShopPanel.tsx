@@ -7,7 +7,7 @@ import { useVehicles } from '../state/vehicles';
 import { useSession } from '../session/session';
 import { sessionGate } from '../session/gate';
 import { savedBundle } from '../session/saves';
-import { cleanShop, newShop, passesOf, removeItem, upsertItem, ITEM_KINDS, RESERVE_AHEAD, SHOP_LIMITS } from '../economy/shop';
+import { cleanPromo, cleanShop, newShop, passesOf, removeItem, upsertItem, ITEM_KINDS, RESERVE_AHEAD, SHOP_LIMITS } from '../economy/shop';
 import type { ItemKind, Shop, ShopItem, ShopSale } from '../economy/shop';
 import { yen } from '../economy/money';
 import './shop.css';
@@ -38,7 +38,7 @@ export function ShopPanel() {
   const today = useEconomy((s) => s.day);
   const [reserveDay, setReserveDay] = useState<Record<string, number>>({});
   const role = useSession((s) => s.role);
-  const [tab, setTab] = useState<'items' | 'sales'>('items');
+  const [tab, setTab] = useState<'items' | 'sales' | 'promo'>('items');
   const [draft, setDraft] = useState<ShopItem | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -75,8 +75,9 @@ export function ShopPanel() {
     save(next); setDraft(null); setError('');
   };
 
-  return <Modal className="shop-panel" title={shop.name} onClose={onClose} tabs={[{ id: 'items', label: '商品' }, { id: 'sales', label: '売上' }]} tab={tab} onTab={setTab}>
-    {tab === 'sales' ? <>
+  return <Modal className="shop-panel" title={shop.name} onClose={onClose} tabs={[{ id: 'items', label: '商品' }, { id: 'sales', label: '売上' }, ...(owner ? [{ id: 'promo' as const, label: '宣伝' }] : [])]} tab={tab} onTab={setTab}>
+    {tab === 'promo' && owner ? <Promo shop={shop} today={today} onSave={(next) => { save(next); setError(''); useGame.getState().notify('📣 宣伝を更新しました'); }} />
+    : tab === 'sales' ? <>
       <p>売上合計 <b className="big">{yen(shop.revenue)}</b>（{shop.sales.length}件・誰でも見られます）</p>
       <ul className="shop-sales">{[...shop.sales].reverse().map((s) => <li key={s.id}>{s.day}日目 · {s.buyer}さん · {s.item} · {yen(s.price)}{s.kind ? ` · ${passNote(s)}` : ''}</li>)}</ul>
       {!shop.sales.length && <p>まだ売れていません。</p>}
@@ -121,4 +122,23 @@ export function ShopPanel() {
       </>)}
     </>}
   </Modal>;
+}
+
+/** 持ち主の宣伝：看板の文字・チラシ・地図のピン・イベント告知 */
+function Promo({ shop, today, onSave }: { shop: Shop; today: number; onSave: (s: Shop) => void }) {
+  const [p, setP] = useState(() => ({ sign: shop.sign ?? '', flyer: shop.flyer ?? '', pin: !!shop.pin, title: shop.event?.title ?? '', day: shop.event?.day ?? today, note: shop.event?.note ?? '' }));
+  const promo = cleanPromo({ sign: p.sign, flyer: p.flyer, pin: p.pin, event: { title: p.title, day: p.day, note: p.note } });
+  return <div className="shop-form">
+    <div className="field"><div className="field-label">看板の文字（土地の前の看板）</div><input type="text" maxLength={SHOP_LIMITS.sign} value={p.sign} placeholder={shop.name} onChange={(e) => setP({ ...p, sign: e.target.value })} /></div>
+    <div className="field"><div className="field-label">チラシ（地図の「お店・イベント」に出ます）</div><textarea maxLength={SHOP_LIMITS.flyer} value={p.flyer} placeholder="例：家の設計、1軒30万円から。見学だけでもどうぞ" onChange={(e) => setP({ ...p, flyer: e.target.value })} /></div>
+    <label className="field"><input type="checkbox" checked={p.pin} onChange={(e) => setP({ ...p, pin: e.target.checked })} /> 地図にピンを立てる</label>
+    <div className="field"><div className="field-label">イベント告知（名前を空にすると告知しません）</div>
+      <input type="text" maxLength={SHOP_LIMITS.eventTitle} value={p.title} placeholder="例：オープン記念セール" onChange={(e) => setP({ ...p, title: e.target.value })} />
+      <label className="shop-note">開く日 <select value={p.day} onChange={(e) => setP({ ...p, day: Number(e.target.value) })}>
+        {Array.from({ length: RESERVE_AHEAD + 1 }, (_, d) => today + d).map((d) => <option key={d} value={d}>{d}日目{d === today ? '（今日）' : ''}</option>)}
+      </select></label>
+      <textarea maxLength={SHOP_LIMITS.eventNote} value={p.note} placeholder="内容（例：全品半額、夜8時から）" onChange={(e) => setP({ ...p, note: e.target.value })} />
+    </div>
+    <button className="btn primary" onClick={() => onSave({ ...shop, sign: undefined, flyer: undefined, pin: undefined, event: undefined, ...promo })}>宣伝を保存</button>
+  </div>;
 }

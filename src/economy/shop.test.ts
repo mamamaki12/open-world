@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanShop, newShop, passesOf, recordSale, removeItem, upsertItem } from './shop';
+import { cleanShop, listedShops, newShop, passesOf, recordSale, removeItem, upsertItem } from './shop';
 import type { Shop } from './shop';
 
 const item = { id: 'a', name: '家の設計代行', price: 300_000, description: '2階建てまで' };
@@ -51,5 +51,18 @@ describe('player shops', () => {
     expect(passesOf(s, 'B', 5).map(p => p.item)).toEqual(['月会員', '貸切', '入場券']);
     expect(passesOf(s, 'B', 35).map(p => p.item)).toEqual(['入場券']);
     expect(passesOf(s, 'someone', 5)).toEqual([]);
+  });
+});
+
+describe('shop promotion', () => {
+  it('keeps clean sign, flyer, pin and event, and lists pinned shops and upcoming events', () => {
+    const s = cleanShop({ ...newShop('喫茶'), sign: '  珈琲あります  ', flyer: 'x'.repeat(500), pin: 'yes', event: { title: 'ライブ', day: 5, note: '夜' } })!;
+    expect(s.sign).toBe('珈琲あります');
+    expect(s.flyer).toHaveLength(120);
+    expect(s.pin).toBeUndefined();
+    expect(s.event).toEqual({ title: 'ライブ', day: 5, note: '夜' });
+    expect(cleanShop({ ...newShop('a'), event: { title: '', day: 3 } })!.event).toBeUndefined();
+    const lots = [{ id: 'a', shop: { ...newShop('B'), pin: true } }, { id: 'b', shop: { ...newShop('A'), event: { title: 'e', day: 4, note: '' } } }, { id: 'c', shop: { ...newShop('C'), event: { title: 'old', day: 1, note: '' } } }, { id: 'd' }];
+    expect(listedShops(lots, 2).map((l) => l.id)).toEqual(['b', 'a']);
   });
 });

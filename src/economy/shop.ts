@@ -43,9 +43,19 @@ export interface Shop {
   /** 直近の売上（誰でも見られる） */
   sales: ShopSale[];
   revenue: number;
+  /** 土地の前の看板に出す文字（空なら店の名前） */
+  sign?: string;
+  /** チラシの文。地図の「お店・イベント」に出る */
+  flyer?: string;
+  /** 地図にピンを立てる */
+  pin?: boolean;
+  /** イベント告知（day は何日目か） */
+  event?: ShopEvent;
 }
 
-export const SHOP_LIMITS = { items: 12, name: 24, itemName: 30, description: 200, photo: 60_000, sales: 100, price: 10_000_000_000 };
+export interface ShopEvent { title: string; day: number; note: string }
+
+export const SHOP_LIMITS = { items: 12, name: 24, itemName: 30, description: 200, photo: 60_000, sales: 100, price: 10_000_000_000, sign: 16, flyer: 120, eventTitle: 30, eventNote: 120 };
 
 const kindOf = (v: unknown): ItemKind => (ITEM_KINDS.some(k => k.id === v) ? (v as ItemKind) : 'goods');
 const daysOf = (v: unknown) => (Number.isSafeInteger(v) && (v as number) >= 1 && (v as number) <= 365 ? (v as number) : 30);
@@ -84,7 +94,23 @@ export function cleanShop(v: unknown): Shop | null {
         ...(Number.isSafeInteger(x.until) ? { until: x.until } : {}), ...(Number.isSafeInteger(x.forDay) ? { forDay: x.forDay } : {}) }]
       : [],
   );
-  return { name: str(s.name, SHOP_LIMITS.name) || 'お店', items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue! : 0 };
+  return { name: str(s.name, SHOP_LIMITS.name) || 'お店', items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue! : 0, ...cleanPromo(s) };
+}
+
+/** 看板・チラシ・ピン・イベントを正しい形にそろえる（空のものは付けない） */
+export function cleanPromo(s: { sign?: unknown; flyer?: unknown; pin?: unknown; event?: unknown }): Pick<Shop, 'sign' | 'flyer' | 'pin' | 'event'> {
+  const sign = str(s.sign, SHOP_LIMITS.sign), flyer = str(s.flyer, SHOP_LIMITS.flyer);
+  const e = s.event && typeof s.event === 'object' ? (s.event as Partial<ShopEvent>) : null;
+  const title = e ? str(e.title, SHOP_LIMITS.eventTitle) : '';
+  return { ...(sign ? { sign } : {}), ...(flyer ? { flyer } : {}), ...(s.pin === true ? { pin: true } : {}),
+    ...(e && title && Number.isSafeInteger(e.day) && e.day! >= 0 ? { event: { title, day: e.day!, note: str(e.note, SHOP_LIMITS.eventNote) } } : {}) };
+}
+
+/** 地図に出す店（ピンありか、これからのイベントがある）。イベントの近い順、次に名前順 */
+export function listedShops<T extends { shop?: Shop }>(lots: T[], today: number): (T & { shop: Shop })[] {
+  const soon = (l: { shop: Shop }) => (l.shop.event && l.shop.event.day >= today ? l.shop.event.day : Infinity);
+  return lots.filter((l): l is T & { shop: Shop } => !!l.shop && (!!l.shop.pin || soon(l as T & { shop: Shop }) < Infinity))
+    .sort((a, b) => soon(a) - soon(b) || a.shop.name.localeCompare(b.shop.name));
 }
 
 export function newShop(name: string): Shop {
