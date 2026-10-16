@@ -2,7 +2,7 @@
 
 - ブランチ: `claude/project-thread-aa3hu3`（mamamaki12/open-world）
 - 依頼: しんご「季節と天気が変わる、昼夜も。全部欲しい」
-- PR: （出したら書く）
+- PR: #70
 
 ## 方針
 - 時刻・季節・天気は **実時間（UTC の Date.now()）だけから計算**する純粋関数 `src/world/climate.ts`。保存もサーバーも不要で、共有ワールドの全員が同じ空を見る。
