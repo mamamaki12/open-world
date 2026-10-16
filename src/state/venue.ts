@@ -3,11 +3,11 @@ import { civicOffset } from './economy';
 import { useGame } from './store';
 import { isDoorOpen, useDoors } from './doors';
 import { throughDoorway, venueAt, venueDoorAt, venueDoorId, VENUE_KINDS } from '../building/venues';
-import type { Venue, CasinoGame } from '../building/venues';
+import type { Venue, CasinoGame, TunerTab } from '../building/venues';
 import { playDoorSound } from '../world/sound';
 interface Point {x:number;y:number;z:number}
 /** inside はプレイヤーが壁の内側にいる店。入口の扉を開けて歩いて出入りする（別の空間へは移らない）。 */
-export const useVenue=create<{inside:Venue|null;game:CasinoGame|null;model:string|null;dealerIntent:'buy'|'specs'|'catalog';shopTab:'shop'|'closet'}>(()=>({inside:null,game:null,model:null,dealerIntent:'catalog',shopTab:'shop'}));
+export const useVenue=create<{inside:Venue|null;game:CasinoGame|null;model:string|null;dealerIntent:'buy'|'specs'|'catalog';shopTab:'shop'|'closet';tab:TunerTab|null}>(()=>({inside:null,game:null,model:null,dealerIntent:'catalog',shopTab:'shop',tab:null}));
 /** 立っている場所から、いまどの店の中にいるかを更新する。 */
 export function syncVenue(p:Point){
   const o=civicOffset(),inside=Math.abs(p.y)<1?venueAt(p.x-o.x,p.z-o.z):null;

@@ -56,3 +56,6 @@ it('keeps the player out of the clothes shop walls except through the door',asyn
   const b=VENUES.urban,d=VENUE_DOORS.urban;
   expect(resolveLandmarks({x:d.x+3,z:b.z0+.1}).z).toBeLessThan(b.z0);
 });
+it('opens the custom shop right next to the dealer',()=>{
+  expect(DEALER.x0-VENUES.tuner.x1).toBeGreaterThan(0);expect(DEALER.x0-VENUES.tuner.x1).toBeLessThan(4);
+});

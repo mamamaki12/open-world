@@ -16,7 +16,7 @@ function ParkedCar({car}:{car:OwnedCar}){
     const p=currentPlotOf(useEconomy.getState());
     ref.current.position.set(car.x-plotX(p),0,car.z-plotZ(p));ref.current.rotation.y=car.yaw;
   });
-  return <group ref={ref} name={'vehicle-'+car.id}><CarModel def={getCar(car.model)!} color={car.color} pose={car}/></group>;
+  return <group ref={ref} name={'vehicle-'+car.id}><CarModel def={getCar(car.model)!} color={car.color} pose={car} mods={car.mods}/></group>;
 }
 export function CarFleet(){
   const cars=useVehicles(s=>s.cars);

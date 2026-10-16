@@ -8,7 +8,10 @@ import { useVenue, syncVenue, autoVenueDoors } from '../state/venue';
 import { isBoutique } from '../building/boutiques';
 import { venueAction } from '../building/venues';
 import { atSaleSign } from '../building/landSale';
-import { atDealerDoor, DEALER } from '../building/dealer';
+import { atDealerDoor } from '../building/dealer';
+import { SHOP_BOXES } from '../building/tuner';
+import { STOCK_MODS, tunedCar } from '../catalog/carMods';
+import { engineHum } from './engineSound';
 import { resolveLandmarks } from '../building/landmarks';
 import { ceilingHeight, resolveCollisions, surfaceHeight } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
@@ -22,6 +25,7 @@ export const driveButtons = { left:false, right:false, accelerator:false, brake:
 export function resetDriveButtons() { driveButtons.left=false;driveButtons.right=false;driveButtons.accelerator=false;driveButtons.brake=false; }
 type Memory = {x:number;y:number;z:number;yaw:number;bodyYaw:number;pitch:number};
 function origin() { const p=currentPlotOf(useEconomy.getState());return {x:plotX(p),z:plotZ(p)}; }
+export function atTuner(p:Memory) { syncVenue(p);return useVenue.getState().inside==='tuner'; }
 export function atCarDealer(p:Memory) { const o=civicOffset();return useVenue.getState().inside==='dealer' || atDealerDoor(p.x-o.x,p.z-o.z,p.y); }
 function houses() {
   const s=useEconomy.getState(),current=currentPlotOf(s);
@@ -37,7 +41,7 @@ export function blockedAt(x:number,z:number,radius:number,height:number,skip?:st
   const civic={x:x-site.x,z:z-site.z};
   const c=resolveLandmarks(civic,radius);
   if(Math.hypot(c.x-civic.x,c.z-civic.z)>.001)return true;
-  if(civic.x>DEALER.x0-radius&&civic.x<DEALER.x1+radius&&civic.z>DEALER.z0-radius&&civic.z<DEALER.z1+radius)return true;
+  if(SHOP_BOXES.some(b=>civic.x>b.x0-radius&&civic.x<b.x1+radius&&civic.z>b.z0-radius&&civic.z<b.z1+radius))return true;
   for(const {h,x:ox,z:oz} of houses()){
     const p={x:x-ox,z:z-oz};
     if(surfaceHeight(h,p.x,p.z,0)>.15||ceilingHeight(h,p.x,p.z,0)<height)return true;
@@ -77,11 +81,11 @@ export function refreshVehicleTarget(p:Memory) {
   if (!state.driving && !target) { const o=origin(); const offer=useEconomy.getState().offers.find(offer=>typeof offer.plot==='number'&&atSaleSign(offer.plot,p.x+o.x,p.z+o.z,p.y));if(offer)target='land:'+offer.id; }
   if(state.target!==target)useVehicles.setState({target});
 }
-export function parkVehicle(){const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c)c.speed=0;useVehicles.setState({driving:null,target:null});saveVehicles();}
+export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c)c.speed=0;useVehicles.setState({driving:null,target:null});saveVehicles();}
 export function vehicleInteract(p:Memory) {
   refreshVehicleTarget(p);
   const venue=useVenue.getState().inside;
-  if(venue){ const o=civicOffset(),action=venueAction(venue,p.x-o.x,p.z-o.z);if(!action)return false;useVenue.setState({game:action.game??null,model:action.model??null,dealerIntent:action.model?'buy':'catalog'});if(isBoutique(venue)){useVenue.setState({shopTab:action.id==='fitting'?'closet':'shop'});useGame.getState().setOverlay('boutique');return true;}useGame.getState().setOverlay(venue);return true; }
+  if(venue){ const o=civicOffset(),action=venueAction(venue,p.x-o.x,p.z-o.z);if(!action)return false;useVenue.setState({game:action.game??null,model:action.model??null,dealerIntent:action.model?'buy':'catalog',tab:action.tab??null});if(isBoutique(venue)){useVenue.setState({shopTab:action.id==='fitting'?'closet':'shop'});useGame.getState().setOverlay('boutique');return true;}useGame.getState().setOverlay(venue);return true; }
   const s=useVehicles.getState();
   if(s.driving){
     const car=s.cars.find(c=>c.id===s.driving)!;
@@ -115,8 +119,8 @@ export function driveElevation(pitch:number){return Math.min(1.2,Math.max(.06,.3
 const lookMemory={yaw:0,pitch:0,idle:9};
 export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memory,scene?:THREE.Scene) {
   const state=useVehicles.getState(),car=state.cars.find(c=>c.id===state.driving);
-  if(!car)return false;
-  const d=getCar(car.model)!;
+  if(!car){engineHum(null,0,0);return false;}
+  const mods=car.mods??STOCK_MODS,d=tunedCar(getCar(car.model)!,mods);
   if(useGame.getState().tool!=='select')useGame.getState().setTool('select');
   const key=(...codes:string[])=>codes.some(c=>keys.has(c));
   const paused=!!useGame.getState().overlay;
@@ -126,6 +130,7 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   const previousYaw=car.yaw;
   integrateDrive(car,{throttle,steering,brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
     carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id)));
+  engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
   p.yaw+=car.yaw-previousYaw;
   Object.assign(p,{x:car.x-o.x,y:0,z:car.z-o.z,bodyYaw:car.yaw});
   const first=useGame.getState().view==='first';
