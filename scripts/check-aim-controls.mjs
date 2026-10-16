@@ -94,6 +94,7 @@ try {
     const {currentPlotOf}=await import('/src/state/economy.ts');
     const {plotX,plotZ}=await import('/src/economy/town.ts');
     const plot=currentPlotOf(window.__ow.economy.getState());
+    window.__ow.game.setState({view:'third'});
     useVehicles.setState({cars:[{id:'test-drive',model:CARS[0].id,color:'#334455',x:8+plotX(plot),z:12+plotZ(plot),yaw:0,speed:0,steer:0,wheelSpin:0,braking:false,lights:false}],driving:'test-drive',target:null});
     window.__driveTest={useVehicles,driveButtons};
   });

@@ -370,7 +370,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .drive-steering{left:calc(14px + var(--safe-l));}.drive-pedals{right:calc(14px + var(--safe-r));}
 .drive-steering .touch-btn,.drive-pedals .touch-btn{width:64px;height:74px;border-radius:16px;border:2px solid #fff9;}
 .drive-steering .touch-btn{font-size:34px;background:#20364deb;color:#fff;}
-.drive-pedals .touch-btn{font-size:12px;color:#fff;}
+.drive-pedals .touch-btn{font-size:12px;color:#fff;padding:4px;white-space:nowrap;}
 .drive-pedals .drive-brake{background:#a73535ef;}.drive-pedals .drive-accelerator{background:#126643ef;}
 .drive-steering .touch-btn[aria-pressed=true],.drive-pedals .touch-btn[aria-pressed=true]{background:#ffcf66;color:#17212b;transform:translateY(2px);}
 .touch.driving .touch-actions{bottom:calc(104px + var(--safe-b));display:flex;gap:8px;}

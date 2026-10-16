@@ -104,6 +104,7 @@ export function vehicleInteract(p:Memory) {
   const c=s.cars.find(c=>c.id===s.target);
   if(!c)return false;
   useVehicles.setState({driving:c.id});
+  useGame.setState({view:'third'});
   useGame.getState().setTool('select');
   useDoors.getState().setTarget(null);
   Object.assign(p,{yaw:c.yaw,bodyYaw:c.yaw,pitch:-.2});
