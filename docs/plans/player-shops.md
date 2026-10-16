@@ -26,6 +26,8 @@
 - 済: 最新main確認、計画push。共有ワールドは計画のみで未実装（同ブランチのplans参照）。
 - 済: `src/economy/shop.ts`（+テスト）、レジ家具 `register`、`Lot.shop`、`src/ui/ShopPanel.tsx`、`session.ts` の `buyFromShop`/host側の受領、relay の `purchase` 転送（+テスト）。`scripts/check-player-shop.mjs` でホストが開店・登録・写真、友達が購入し所持金が移動・売上記録されることを2ブラウザーで確認。
 - 済: 購入を共有ワールドのサーバー処理へ移し、旧relayの `purchase` 転送は削除。`sharedWorld.test.ts` に開店・購入・二重払い防止のテスト、`scripts/check-player-shop.mjs` をみんなのワールドで2ブラウザー確認（店主が開店・登録、お客が購入、所持金と売上が移動）。
-- 次: #74 へ取り込み→EC2更新→main マージ後、第2段階（プレハブ店舗・屋台・テント）。
-- メモ: Playwright の `waitForFunction(async () => …)` は Promise が真扱いで待たない。同期の条件で待つこと（world-session の招待コード失敗の原因と思われる）。
+- 済: #72 を #74 のブランチへマージ（EC2更新は #74 と1回）。
+- 第2段階（着手）: `src/building/prefabs.ts` にプレハブ店舗・屋台・テントの部品セット（HouseKit で生成）と空き場所探し、建築メニューに「すぐ建つお店」を追加し、いまの土地へ1回の commit で置く（みんなのワールドでも通常の建築として送られる）。PR は #74 のブランチ向け。
+- 済: `src/building/prefabs.ts`（+テスト）と建築メニューの「すぐ建つお店」。最初の土地でプレハブ店舗・屋台・テントの3つが家と重ならずに置けることを画面で確認。
+- 次: 第2段階のPRをマージ後、第3段階（入場券・予約・会員権など売り物の種類）。
 - 課題: オフラインでは客がいないので売れない（共有ワールド完成で解消）。
