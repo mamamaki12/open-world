@@ -78,3 +78,18 @@
  .boutique-fitting { position:static; }
  .boutique-masthead { padding:16px 0; }
 }
+.modal.boutique-modal { width:min(1280px,100%); background:#fff; border-radius:2px; }
+.boutique-fitting-toggle { display:none; }
+@media(max-width:700px){
+ .boutique-fitting-toggle { display:flex; width:100%; align-items:center; justify-content:space-between; min-height:44px; margin:0 0 16px; padding:8px 0; background:white; border:0; border-top:1px solid #e7e5e1; border-bottom:1px solid #e7e5e1; color:#444; font-size:11px; }
+ .boutique-fitting-toggle span { font-size:11px; color:#777; }
+ .boutique-layout:not(.fitting-open) .boutique-fitting { display:none; }
+}
+@media(max-width:700px){
+ .boutique-listbar select { font-size:16px; max-width:145px; }
+ .garment-meta b,.garment-price { font-size:12px; }
+ .boutique-categories button { font-size:12px; }
+ .boutique-listbar,.garment-meta small,.garment-try { font-size:10px; }
+}
+.shop-daily .modal-title { font-family:Arial,Helvetica,sans-serif; font-weight:700; letter-spacing:-.025em; }
+.shop-urban .modal-title { font-family:Arial,Helvetica,sans-serif; font-weight:600; letter-spacing:.06em; }

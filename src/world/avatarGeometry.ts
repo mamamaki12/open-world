@@ -7,7 +7,8 @@ export function tailoredLimb(leg:boolean,style:string,wide=false):THREE.BufferGe
   const joint=leg?.43:.27,total=leg?.85:.52,radial=24;
   const bare=leg?style==='skirt':false;
   const cut=bare?-1:leg?(style==='shorts'?.29:total+.02):(style==='tee'?.16:total-.025);
-  const samples=new Set<number>();for(let i=0;i<=64;i++)samples.add(-.035+(total+.05)*i/64);
+  const cap=leg?.08:.045;
+  const samples=new Set<number>();for(let i=0;i<=64;i++)samples.add(-cap+(total+cap+.015)*i/64);
   if(cut>0&&cut<total){samples.add(cut-.003);samples.add(cut);samples.add(cut+.003);}
   const rings=[...samples].sort((a,b)=>a-b);
   const positions:number[]=[],normals:number[]=[],uv:number[]=[],indices:number[]=[],weights:number[]=[],bones:number[]=[];
@@ -22,7 +23,7 @@ export function tailoredLimb(leg:boolean,style:string,wide=false):THREE.BufferGe
       radius=leg?THREE.MathUtils.lerp(wide?.108:.092,wide?.094:.068,Math.max(0,d)/total):THREE.MathUtils.lerp(style==='hoodie'||style==='coat'?.083:.072,.049,Math.max(0,d)/total);
       radius+=Math.sin(Math.max(0,d)*42)*.0015;
     }
-    if(d<0)radius*=Math.sqrt(Math.max(.001,1-(d/.043)**2));
+    if(d<0)radius*=Math.sqrt(Math.max(.001,1-(d/cap)**2));
     if(d>total-.01)radius*=Math.sqrt(Math.max(.001,1-((d-total+.01)/.028)**2));
     for(let j=0;j<=radial;j++){
       const a=j/radial*Math.PI*2;

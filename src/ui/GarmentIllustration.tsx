@@ -20,6 +20,5 @@ export function GarmentIllustration({garment:g}:{garment:Garment}) {
       {g.slot==='shoes'&&<g transform="rotate(-18 120 145)">{[0,1].map(i=><g key={i} transform={`translate(${i*69-28} ${i*15})`}><path d={g.style==='boot'?'M69 78H108L110 167Q137 184 134 204Q113 218 65 207L62 168Z':'M74 103Q98 92 107 112L112 168Q139 185 134 204Q103 218 63 205L62 172Z'}/><path d="M64 195Q101 209 134 195V207Q100 224 63 209Z" fill={g.accent??'#d8d6ce'}/>{g.style!=='leather'&&[135,147,159,171].map(y=><path key={y} d={`M77 ${y}L101 ${y+2}`} stroke="#eee" strokeOpacity=".8" strokeWidth="3"/>)}</g>)}</g>}
       {g.slot==='hat'&&(g.style==='beanie'?<><path d="M65 169V136Q67 76 120 75Q173 76 175 136V169Z"/><path d="M63 155H177V186Q120 198 63 186Z"/>{[78,92,106,120,134,148,162].map(x=><path key={x} d={`M${x} 159V187`} strokeOpacity=".15"/>)}</>:<><ellipse cx="120" cy="176" rx={g.style==='cap'?70:89} ry="25"/><path d="M70 166L76 108Q120 81 164 108L170 166Q120 187 70 166Z"/><path d="M72 151Q120 169 168 151L170 165Q120 185 70 165Z" fill={g.accent??g.color}/></>)}
     </g>
-    <rect x="18" y="20" width="204" height="250" fill={`url(#${id})`} style={{mixBlendMode:'soft-light'}} pointerEvents="none"/>
   </svg>;
 }

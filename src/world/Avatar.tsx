@@ -18,7 +18,7 @@ const UPPER_ARM = 0.27;
 const FOREARM = 0.25;
 const HAND = 0.04;
 const HIP_X = 0.095;
-const SHOULDER = { x: 0.185, y: 0.47 };
+const SHOULDER = { x: 0.205, y: 0.405 };
 export const STAND_HIP = 0.88;
 const CROUCH_HIP = 0.5;
 const PERCH_HIP = 0.44;
@@ -297,10 +297,11 @@ export function AvatarModel({rig,children,outfit,mannequin=false}:{rig:MutableRe
   const outer=look.topStyle==='jacket'||look.topStyle==='coat',coat=look.topStyle==='coat',hood=look.topStyle==='hoodie';
   const volume=outer?1.14:hood?1.12:1.04;
   const topProfile:[number,number][]=[
-    [0,coat?-.37:-.12],[.175,coat?-.37:-.12],[coat?.205:.18,coat?-.355:-.105],
-    [.178,-.04],[.177,.1],[.182,.26],[.197,.38],[.19,.425],[.151,.465],[.07,.49],[.051,.495]
+    [coat?.212:.192,coat?-.375:-.125],[coat?.22:.198,coat?-.37:-.12],[coat?.22:.198,coat?-.35:-.10],[coat?.218:.195,coat?-.33:-.08],
+    [.19,-.04],[.184,.1],[.19,.26],[.197,.38],[.19,.425],[.151,.465],[.07,.49],[.051,.495]
   ];
   const body=lathe('tailored-top-'+look.topStyle,topProfile,40);
+  const panel=(key:string,points:[number,number][])=>{const old=geometries.get(key);if(old)return old;const shape=new THREE.Shape(points.map(([x,y])=>new THREE.Vector2(x,y)));const geo=new THREE.ShapeGeometry(shape);geometries.set(key,geo);return geo;};
   const pelvis=lathe('tailored-hip',[[0,-.105],[.09,-.1],[.157,-.055],[.17,.02],[.16,.08],[.135,.12],[0,.12]],32);
   const head=lathe('smooth-head',[[0,.012],[.034,.018],[.061,.042],[.083,.085],[.097,.132],[.093,.176],[.071,.206],[.035,.224],[0,.23]],40);
   const wide=getGarment((outfit??worn).bottom)?.id==='ak-wide';
@@ -318,26 +319,26 @@ export function AvatarModel({rig,children,outfit,mannequin=false}:{rig:MutableRe
       </group>)}
       <group ref={g=>(r.spine=g)} position={[0,.06,0]}>
         {/* A hanging garment shell, with no exposed anatomical chest shapes. */}
-        <mesh geometry={body} scale={[volume,1,volume*.69]} material={shirt} castShadow/>
-        <mesh geometry={lathe('hem-'+look.topStyle,[[.179,coat?-.362:-.112],[coat?.206:.183,coat?-.355:-.105],[coat?.206:.183,coat?-.335:-.084],[.179,coat?-.33:-.08]],40)} scale={[volume,1,volume*.69]} material={shirt}/>
+        <mesh geometry={body} scale={[volume,1,volume*.78]} material={shirt} castShadow/>
         {outer&&<>
-          <mesh position={[0,.35,-.132*volume]} scale={[.7,1,.15]} material={accent}><coneGeometry args={[.1,.24,3]}/></mesh>
+          <mesh geometry={panel('inner-shirt',[[-.052,.465],[.052,.465],[.038,.11],[-.038,.11]])} position={[0,0,-.175*volume]} rotation-y={Math.PI} material={accent}/>
           {[-1,1].map(side=><group key={'lapel'+side}>
-            <mesh position={[side*.069,.36,-.135*volume]} rotation-z={side*-.3} scale={[.48,1,.13]} material={shirt}><coneGeometry args={[.085,.25,3]}/></mesh>
-            <mesh position={[side*.118,.095,-.12*volume]} rotation-z={side*.08} material={accent}><boxGeometry args={[.065,.008,.006]}/></mesh>
+            <mesh geometry={panel('lapel'+side,[[side*.047,.476],[side*.11,.41],[side*.063,.268],[side*.012,.418]])} position={[0,0,-.18*volume]} rotation-y={Math.PI} material={shirt}/>
+            <mesh position={[side*.118,.095,-.146*volume]} rotation-z={side*.08} material={accent}><boxGeometry args={[.065,.008,.006]}/></mesh>
           </group>)}
-          {[.19,.08,-.03].map(y=><mesh key={y} position={[.025,y,-.13*volume]} rotation-x={Math.PI/2} material={sole}><cylinderGeometry args={[.005,.005,.004,12]}/></mesh>)}
+          {[.19,.08,-.03].map(y=><mesh key={y} position={[.025,y,-.15*volume]} rotation-x={Math.PI/2} material={sole}><cylinderGeometry args={[.005,.005,.004,12]}/></mesh>)}
         </>}
         {look.topStyle==='shirt'&&<>
-          <mesh position={[0,.2,-.124]} material={accent}><boxGeometry args={[.009,.43,.004]}/></mesh>
-          {[.09,.17,.25,.33].map(y=><mesh key={y} position={[0,y,-.128]} material={sole}><sphereGeometry args={[.003,8,6]}/></mesh>)}
+          {[-1,1].map(side=><mesh key={'collar'+side} geometry={panel('shirt-collar'+side,[[side*.02,.495],[side*.067,.47],[side*.052,.422],[0,.47]])} rotation-y={Math.PI} position={[0,0,-.13]} material={accent}/>)}
+          <mesh position={[0,.2,-.171]} material={accent}><boxGeometry args={[.009,.43,.004]}/></mesh>
+          {[.09,.17,.25,.33].map(y=><mesh key={y} position={[0,y,-.175]} material={sole}><sphereGeometry args={[.003,8,6]}/></mesh>)}
         </>}
         <mesh geometry={lathe('neck-smooth',[[.049,-.02],[.045,.02],[.041,.065],[.042,.09]],24)} position={[0,.48,0]} material={skin}/>
-        <mesh position={[0,.485,0]} rotation-x={Math.PI/2} scale={[1,.8,1]} material={look.topStyle==='shirt'?accent:shirt}><torusGeometry args={[.056,outer?.014:.009,12,32]}/></mesh>
+        <mesh position={[0,.5,0]} rotation-x={Math.PI/2} scale={[1,.8,1]} material={look.topStyle==='shirt'?accent:shirt}><torusGeometry args={[.056,outer?.014:.009,12,32]}/></mesh>
         {hood&&<>
           <mesh position={[0,.448,.087]} scale={[1.4,.9,.8]} material={shirt} castShadow><sphereGeometry args={[.09,24,16]}/></mesh>
-          {[-1,1].map(side=><mesh key={side} position={[side*.035,.365,-.13]} material={accent}><cylinderGeometry args={[.003,.003,.13,8]}/></mesh>)}
-          <mesh position={[0,.07,-.13]} scale={[1.7,.65,.12]} material={shirt}><sphereGeometry args={[.08,24,12]}/></mesh>
+          {[-1,1].map(side=><mesh key={side} position={[side*.035,.365,-.153]} material={accent}><cylinderGeometry args={[.003,.003,.13,8]}/></mesh>)}
+          <mesh position={[0,.07,-.155]} scale={[1.7,.65,.12]} material={shirt}><sphereGeometry args={[.08,24,12]}/></mesh>
         </>}
         <group ref={g=>(r.head=g)} position={[0,.55,0]}>
           <mesh geometry={head} scale={[.94,1,1]} material={skin} castShadow/>
@@ -353,7 +354,7 @@ export function AvatarModel({rig,children,outfit,mannequin=false}:{rig:MutableRe
           </>}
           {look.hat&&hatMat&&hatBand&&<Hat style={look.hat.style} material={hatMat} band={hatBand}/>}
         </group>
-        {[0,1].map(i=><group key={'arm'+i} ref={g=>(r.shoulder[i]=g)} position={[(i===0?-1:1)*SHOULDER.x,SHOULDER.y,0]}>
+        {[0,1].map(i=><group key={'arm'+i} ref={g=>(r.shoulder[i]=g)} rotation-z={(i===0?-1:1)*.12} position={[(i===0?-1:1)*SHOULDER.x,SHOULDER.y,0]}>
           <TailoredLimb rig={rig} index={i} style={look.topStyle} cloth={shirt} skin={skin}/>
           <group ref={g=>(r.elbow[i]=g)} position={[0,-UPPER_ARM,0]}>
             <group position={[0,-FOREARM-.005,0]}>

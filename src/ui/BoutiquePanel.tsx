@@ -34,17 +34,19 @@ export function BoutiquePanel({closetOnly=false}:{closetOnly?:boolean}) {
   const [tab,setTab]=useState<'shop'|'closet'>(()=>shop?useVenue.getState().shopTab:'closet');
   const owned=useWardrobe(s=>s.owned),outfit=useWardrobe(s=>s.outfit),money=useEconomy(s=>s.money);
   const [pick,setPick]=useState<string|null>(null),[category,setCategory]=useState<Slot|'all'>('all'),[sort,setSort]=useState('featured'),[error,setError]=useState('');
+  const [showFitting,setShowFitting]=useState(false);
   const fitting=useRef<HTMLElement>(null),picked=getGarment(pick);
   const tryOn:Outfit=picked?{...outfit,[picked.slot]:picked.id}:outfit;
   const info=shop?BOUTIQUE_INFO[shop]:null,selling=tab==='shop'&&shop;
   const all=selling?garmentsOf(shop):GARMENTS.filter(g=>owned.includes(g.id));
   const list=all.filter(g=>category==='all'||g.slot===category).sort((a,b)=>sort==='low'?a.price-b.price:sort==='high'?b.price-a.price:0);
   const tabs=shop?[{id:'shop' as const,label:'売り場'},{id:'closet' as const,label:'クローゼット'}]:[];
-  const select=(g:Garment)=>{setPick(g.id);setError('');if(window.matchMedia('(max-width:700px)').matches)fitting.current?.scrollIntoView({behavior:'smooth',block:'start'});};
+  const select=(g:Garment)=>{setPick(g.id);setError('');if(window.matchMedia('(max-width:700px)').matches)requestAnimationFrame(()=>fitting.current?.scrollIntoView({behavior:'smooth',block:'start'}));};
   const confirm=()=>{if(!picked)return;if(owned.includes(picked.id))useWardrobe.getState().wear(picked.slot,picked.id);else{const err=useWardrobe.getState().buy(picked.id);if(err){setError(err);return;}}setPick(null);setError('');};
   return <Modal title={info?.name??'WARDROBE'} onClose={()=>useGame.getState().setOverlay(null)} tabs={tabs} tab={tab} onTab={t=>{setTab(t);setPick(null);setCategory('all');setError('');}} className={`boutique-modal${shop?' shop-'+shop:''}`}>
     <div className="boutique-masthead"><div><span className="store-eyebrow">{selling?'THE EVERYDAY COLLECTION':'YOUR PERSONAL COLLECTION'}</span><h1>{selling?'着ることを、楽しもう。':'今日の自分を、選ぶ。'}</h1><p>{selling?info?.tagline:'お気に入りを組み合わせて、あなただけのスタイルに。'}</p></div><div className="boutique-balance"><small>YOUR BALANCE</small><strong>{yen(money)}</strong></div></div>
-    <div className="boutique-layout">
+    <button className="boutique-fitting-toggle" aria-expanded={!!picked||showFitting} onClick={()=>{setShowFitting(!(picked||showFitting));setPick(null);}}>{picked||showFitting?'試着室を閉じる −':'3D試着室を開く ＋'}<span>{yen(money)}</span></button>
+    <div className={`boutique-layout${picked||showFitting?' fitting-open':''}`}>
       <section className="boutique-fitting" ref={fitting} aria-label="試着と商品詳細"><Preview outfit={tryOn}/>
         <div className="fitting-detail" aria-live="polite">{picked?<><span className="store-eyebrow">{picked.shop?BOUTIQUE_INFO[picked.shop].name:'ESSENTIALS'} / {SLOT_NAMES[picked.slot]}</span><h2>{picked.name}</h2><strong className="detail-price">{yen(picked.price)}</strong><p>{picked.note}</p><div className="detail-color"><span style={{background:picked.color}}/>カラー <code>{picked.color.toUpperCase()}</code></div>
           {error&&<p role="alert" className="warn">{error}</p>}
