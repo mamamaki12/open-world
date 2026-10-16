@@ -1,0 +1,21 @@
+.looks-modal { width:min(920px,96vw); }
+.looks-layout { display:grid; grid-template-columns:minmax(240px,1fr) 1.3fr; gap:18px; }
+.looks-preview { height:440px; background:#eeece7; border-radius:10px; overflow:hidden; touch-action:none; }
+.looks-options { display:flex; flex-direction:column; gap:12px; min-width:0; }
+.looks-row > span { display:block; font-size:12px; color:#777; margin-bottom:6px; }
+.looks-row > div { display:flex; flex-wrap:wrap; gap:6px; }
+.looks-chip { border:1px solid #ccc; background:#fff; color:#222; border-radius:999px; padding:6px 12px; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+.looks-chip[aria-pressed="true"] { border-color:#222; background:#222; color:#fff; }
+.looks-chip small { font-size:10px; opacity:.7; }
+.looks-chip.swatch { padding:4px; }
+.looks-chip.swatch.named { padding:4px 10px 4px 4px; }
+.looks-chip i { width:22px; height:22px; border-radius:50%; display:inline-block; border:1px solid rgba(0,0,0,.15); }
+.looks-note { font-size:12px; color:#777; margin:0; }
+.looks-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-top:auto; padding-top:8px; flex-wrap:wrap; }
+.looks-bill small { color:#888; margin-left:8px; }
+.looks-primary { background:#222; color:#fff; border:0; border-radius:8px; padding:11px 20px; font-size:14px; cursor:pointer; }
+.looks-primary:disabled { opacity:.45; cursor:default; }
+@media (max-width:700px) {
+  .looks-layout { grid-template-columns:1fr; }
+  .looks-preview { height:240px; }
+}
