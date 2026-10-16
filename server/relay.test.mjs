@@ -40,3 +40,22 @@ test('host loss closes a room after grace period', async () => {
     h.socket.close(); await g.next('closed');
   } finally { relay.close(); }
 });
+test('leaving and rejoining is not removed by the previous connection cleanup', async () => {
+  const relay = createRelay({ graceMs: 80 });
+  await new Promise(resolve => relay.http.listen(0, '127.0.0.1', resolve));
+  try {
+    const url = 'ws://127.0.0.1:' + relay.http.address().port;
+    const host = await client(url); host.send({ type: 'create', id: 'host', name: 'host' });
+    const { code } = await host.next('welcome');
+    const first = await client(url); first.send({ type: 'join', id: 'guest', name: 'guest', code }); await first.next('welcome');
+    const closed = new Promise(resolve => first.socket.once('close', resolve)); first.send({ type: 'leave' }); await closed;
+    const second = await client(url); second.send({ type: 'join', id: 'guest', name: 'guest', code }); await second.next('welcome');
+    await new Promise(resolve => setTimeout(resolve, 160));
+    host.send({ type: 'permission', target: 'guest', canBuild: true });
+    while (!(await second.next('members')).members.find(m => m.id === 'guest')?.canBuild) {}
+    second.send({ type: 'command', command: { id: 'after-rejoin' } });
+    assert.equal((await host.next('command')).command.id, 'after-rejoin');
+    const duplicate = await client(url); duplicate.send({ type: 'create', id: 'guest', name: 'guest' });
+    await duplicate.next('error');
+  } finally { relay.close(); }
+});

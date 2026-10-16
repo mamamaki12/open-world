@@ -78,18 +78,18 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
     });
     socket.on('error', () => {});
     socket.on('close', () => {
-      clearTimeout(handshake); if (!member || !room || !rooms.has(code)) return;
+      clearTimeout(handshake); if (!member || !room || rooms.get(code) !== room || room.members.get(member.id) !== member) return;
       member.socket = null;
       if (member.id === room.host) {
         broadcast(room, { type: 'paused', message: 'ホストとの接続が切れました。再接続を待っています' });
         room.timer = setTimeout(() => closeRoom(code, room), graceMs);
       } else {
         const lost = member;
-        setTimeout(() => { if (!lost.socket && rooms.has(code)) { room.members.delete(lost.id); identities.delete(lost.id); roster(room); } }, graceMs).unref();
+        setTimeout(() => { if (!lost.socket && rooms.get(code) === room && room.members.get(lost.id) === lost) { room.members.delete(lost.id); identities.delete(lost.id); roster(room); } }, graceMs).unref();
       }
     });
   });
-  return { http, wss, close: () => { rooms.forEach(r => clearTimeout(r.timer)); wss.clients.forEach(s => s.terminate()); wss.close(); http.close(); } };
+  return { http, wss, close: () => { rooms.forEach(r => clearTimeout(r.timer)); rooms.clear(); identities.clear(); wss.clients.forEach(s => s.terminate()); wss.close(); http.close(); } };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const origins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
