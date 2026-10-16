@@ -8471,6 +8471,7 @@ function applyChanges(house, delta) {
 }
 
 // src/server/sharedWorld.ts
+var SHARED_START_MONEY = 1e6;
 var SHARED_LIMIT = 10;
 function initialSharedWorld(id) {
   const w = {
@@ -8484,12 +8485,21 @@ function initialSharedWorld(id) {
   w.economy.offers = sharedOffers(w, Math.random);
   return w;
 }
+function withAccount(w, id, name) {
+  const a = w.accounts?.[id];
+  if (a && a.name === name) return w;
+  return { ...w, accounts: { ...w.accounts, [id]: a ? { ...a, name } : { name, money: SHARED_START_MONEY, ledger: [{ day: w.economy.day, label: "\u306F\u3058\u3081\u306E\u6240\u6301\u91D1", amount: SHARED_START_MONEY }], cars: [] } } };
+}
 function charge(w, id, amount, label) {
   const a = w.accounts?.[id];
   if (!a) return "\u53E3\u5EA7\u304C\u3042\u308A\u307E\u305B\u3093";
   if (amount > 0 && a.money < amount) return "\u304A\u91D1\u304C\u8DB3\u308A\u307E\u305B\u3093";
   if (!amount) return w;
   return { ...w, accounts: { ...w.accounts, [id]: { ...a, money: a.money - amount, ledger: [{ day: w.economy.day, label, amount: -amount }, ...a.ledger].slice(0, 50) } } };
+}
+function publicWorld(w) {
+  const { accounts: _hidden, ...rest } = w;
+  return rest;
 }
 var plotsOfLots = (lots) => lots.flatMap((l) => [l.plot, l.joined].filter((p) => typeof p === "number"));
 function sharedOffers(w, rng) {
@@ -8548,6 +8558,31 @@ function applyAction(w, sender, name, c, a) {
     if (a.price !== null && !(Number.isSafeInteger(a.price) && a.price > 0 && a.price <= 1e13)) return "\u5024\u6BB5\u304C\u4E0D\u6B63\u3067\u3059";
     const next2 = lots.map((l) => l.id === lot.id ? { ...l, listing: a.price === null ? void 0 : { price: a.price } } : l);
     return { world: withLots(next2), cost: 0, message: a.price === null ? "\u58F2\u308A\u306B\u51FA\u3059\u306E\u3092\u3084\u3081\u307E\u3057\u305F" : "\u58F2\u308A\u306B\u51FA\u3057\u307E\u3057\u305F" };
+  }
+  if (a.type === "offerRent") {
+    if (lot.owner !== sender) return "\u81EA\u5206\u306E\u5BB6\u3060\u3051\u8CB8\u3057\u51FA\u305B\u307E\u3059";
+    if (lot.tenant) return "\u8CB8\u3057\u3066\u3044\u308B\u9593\u306F\u5BB6\u8CC3\u3092\u5909\u3048\u3089\u308C\u307E\u305B\u3093";
+    if (a.rent !== null && !(Number.isSafeInteger(a.rent) && a.rent > 0 && a.rent <= 1e11)) return "\u5BB6\u8CC3\u304C\u4E0D\u6B63\u3067\u3059";
+    const next2 = lots.map((l) => l.id === lot.id ? { ...l, rentOffer: a.rent === null ? void 0 : { rent: a.rent } } : l);
+    return { world: withLots(next2), cost: 0, message: a.rent === null ? "\u8CB8\u3057\u51FA\u3057\u3092\u3084\u3081\u307E\u3057\u305F" : "\u501F\u308A\u308B\u4EBA\u3092\u52DF\u96C6\u3057\u307E\u3057\u305F" };
+  }
+  if (a.type === "rentLot") {
+    if (!lot.rentOffer || !lot.owner) return "\u305D\u306E\u5BB6\u306F\u8CB8\u3057\u51FA\u3055\u308C\u3066\u3044\u307E\u305B\u3093";
+    if (lot.tenant) return "\u305D\u306E\u5BB6\u306F\u3082\u3046\u501F\u308A\u3089\u308C\u3066\u3044\u307E\u3059";
+    if (lot.owner === sender) return "\u81EA\u5206\u306E\u5BB6\u306F\u501F\u308A\u3089\u308C\u307E\u305B\u3093";
+    if (lots.some((l) => l.tenant === sender)) return "\u501F\u308A\u3089\u308C\u308B\u5BB6\u306F1\u8ED2\u307E\u3067\u3067\u3059";
+    const rent = lot.rentOffer.rent;
+    const paid2 = charge(w, sender, rent, `\u5BB6\u8CC3\uFF08${lot.name}\uFF09`);
+    if (typeof paid2 === "string") return paid2;
+    const received2 = paid2.accounts?.[lot.owner] ? charge(paid2, lot.owner, -rent, `\u5BB6\u8CC3\u53CE\u5165\uFF08${lot.name}\u30FB${name}\u3055\u3093\uFF09`) : paid2;
+    if (typeof received2 === "string") return received2;
+    const next2 = lots.map((l) => l.id === lot.id ? { ...l, tenant: sender, tenantName: name } : l);
+    return { world: { ...received2, economy: { ...received2.economy, lots: next2 } }, cost: rent, message: lot.name + "\u3092\u501F\u308A\u307E\u3057\u305F" };
+  }
+  if (a.type === "endLease") {
+    if (!lot.tenant || lot.tenant !== sender && lot.owner !== sender) return "\u501F\u308A\u3066\u3044\u308B\u5BB6\u3067\u306F\u3042\u308A\u307E\u305B\u3093";
+    const next2 = lots.map((l) => l.id === lot.id ? { ...l, tenant: void 0, tenantName: void 0 } : l);
+    return { world: withLots(next2), cost: 0, message: "\u8CC3\u8CB8\u3092\u7D42\u4E86\u3057\u307E\u3057\u305F" };
   }
   if (!lot.listing || !lot.owner) return "\u305D\u306E\u571F\u5730\u306F\u58F2\u308A\u306B\u51FA\u3066\u3044\u307E\u305B\u3093";
   if (lot.owner === sender) return "\u81EA\u5206\u306E\u571F\u5730\u306F\u8CB7\u3048\u307E\u305B\u3093";
@@ -8633,8 +8668,23 @@ function tickWorld(w, dt, rng) {
   day += 1;
   market = stepMarket(market, rng);
   marketHistory = [...marketHistory, market].slice(-60);
-  const next = { ...w, economy: { ...w.economy, clock, day, market, marketHistory } };
+  let next = { ...w, economy: { ...w.economy, clock, day, market, marketHistory } };
+  next = collectRent(next);
   return { world: { ...next, economy: { ...next.economy, offers: sharedOffers(next, rng) } }, newDay: true };
+}
+function collectRent(w) {
+  let out = w;
+  for (const lot of w.economy.lots) {
+    if (!lot.tenant || !lot.rentOffer || !lot.owner) continue;
+    const paid = charge(out, lot.tenant, lot.rentOffer.rent, `\u5BB6\u8CC3\uFF08${lot.name}\uFF09`);
+    if (typeof paid === "string") {
+      out = { ...out, economy: { ...out.economy, lots: out.economy.lots.map((l) => l.id === lot.id ? { ...l, tenant: void 0, tenantName: void 0 } : l) } };
+      continue;
+    }
+    const received = paid.accounts?.[lot.owner] ? charge(paid, lot.owner, -lot.rentOffer.rent, `\u5BB6\u8CC3\u53CE\u5165\uFF08${lot.name}\u30FB${lot.tenantName ?? ""}\u3055\u3093\uFF09`) : paid;
+    out = typeof received === "string" ? paid : received;
+  }
+  return out;
 }
 function validSharedWorld(v) {
   const w = v;
@@ -8677,13 +8727,18 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
   });
   const sharedSend = (data) => shared.members.forEach((m) => send(m.socket, data));
   const sharedRoster = () => sharedSend({ type: "members", members: [...shared.members.values()].filter((m) => m.socket).map((m) => ({ id: m.id, name: m.name, host: false, canBuild: true })) });
+  const accounts = () => shared.members.forEach((m) => send(m.socket, { type: "account", account: shared.world.accounts?.[m.id] ?? null }));
   const clockOf = (w) => ({ day: w.economy.day, clock: w.economy.clock, market: w.economy.market, marketHistory: w.economy.marketHistory });
   const enqueue = (job) => shared.queue = shared.queue.then(job, job);
   const ticker = setInterval(() => {
     if (!shared.world) return;
     const t = tickWorld(shared.world, tickMs / 1e3, Math.random);
     shared.world = t.world;
-    if (t.newDay) enqueue(() => saveWorld(worldFile, shared.world).catch((e) => console.error("save failed", e)));
+    if (t.newDay) {
+      enqueue(() => saveWorld(worldFile, shared.world).catch((e) => console.error("save failed", e)));
+      sharedSend({ type: "world", world: publicWorld(shared.world) });
+      accounts();
+    }
     if (++shared.beat % 2 === 0) sharedSend({ type: "clock", clock: clockOf(shared.world) });
   }, tickMs);
   ticker.unref();
@@ -8737,8 +8792,14 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
             member.socket = socket;
             shared.members.set(id, member);
             clearTimeout(handshake);
+            const joined = withAccount(shared.world, id, name);
+            if (joined !== shared.world) {
+              shared.world = joined;
+              enqueue(() => saveWorld(worldFile, shared.world).catch((e) => console.error("save failed", e)));
+            }
             send(socket, { type: "welcome", code: "SHARED", token: randomUUID(), host: "", canBuild: true, shared: true });
-            send(socket, { type: "world", world: shared.world });
+            send(socket, { type: "world", world: publicWorld(shared.world) });
+            send(socket, { type: "account", account: shared.world.accounts[id] });
             sharedRoster();
             return;
           }
@@ -8789,13 +8850,16 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
           if (data.type === "command" || data.type === "settle" && typeof data.id === "string") {
             const command = data.type === "settle" ? { id: data.id, settle: true } : data.command, who = member;
             enqueue(async () => {
-              const r = applyCommand(shared.world, who.id, command);
+              const r = applyCommand(shared.world, who.id, command, who.name);
               if (r.changed) {
                 await saveWorld(worldFile, r.world);
                 shared.world = { ...r.world, economy: { ...r.world.economy, ...clockOf(shared.world) } };
               }
               send(who.socket, { type: "result", result: r.result });
-              if (r.changed) sharedSend({ type: "world", world: shared.world });
+              if (r.changed) {
+                if (command?.action?.type !== "money" && command?.action?.type !== "cars") sharedSend({ type: "world", world: publicWorld(shared.world) });
+                accounts();
+              }
             }).catch(() => send(who.socket, { type: "result", result: { id: command?.id, ok: false, message: "\u30B5\u30FC\u30D0\u30FC\u306B\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F" } }));
             return;
           }

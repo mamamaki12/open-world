@@ -1,7 +1,7 @@
 // お金と不動産の状態（所持金、日付、相場、持っている土地と家、工事、家計簿）。
 // いま画面に出している土地の設計図は useGame の house。ほかの土地の設計図は lot.design に預けておく。
 import { create } from 'zustand';
-import { visitingWorld, onlineWorld } from '../session/gate';
+import { visitingWorld, onlineWorld, sessionGate } from '../session/gate';
 import { emptyHouse } from '../building/types';
 import type { House } from '../building/types';
 import { autosave, isHouse } from '../save/storage';
@@ -311,19 +311,22 @@ export const useEconomy = create<EconomyState>((set, get) => {
     pay: (amount, label) => {
       if (amount > get().money) return false;
       set({ money: get().money - amount, ledger: addTxn(label, -amount) });
+      sessionGate.money?.(-amount, label);
       return true;
     },
-    receive: (amount, label) => set({ money: get().money + amount, ledger: addTxn(label, amount) }),
+    receive: (amount, label) => { set({ money: get().money + amount, ledger: addTxn(label, amount) }); sessionGate.money?.(amount, label); },
     placeBet: (amount, label) => {
       if (!(amount > 0) || amount > get().money) return false;
       const g = get().gamble;
       set({ money: get().money - amount, ledger: addTxn(label, -amount), gamble: { ...g, bet: g.bet + amount } });
+      sessionGate.money?.(-amount, label);
       return true;
     },
     collect: (amount, label) => {
       if (amount <= 0) return;
       const g = get().gamble;
       set({ money: get().money + amount, ledger: addTxn(label, amount), gamble: { ...g, won: g.won + amount } });
+      sessionGate.money?.(amount, label);
     },
 
     startConstruction: () => {
@@ -381,6 +384,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
     },
 
     buyLand: (offerId) => {
+      if (sessionGate.shared) return sessionGate.act?.('', { type: 'buyLand', offer: offerId }, Number.MAX_SAFE_INTEGER) ?? '接続していません';
       if (onlineWorld()) return '土地の売買はひとりで遊ぶモードで行ってください';
       const s = get();
       const offer = s.offers.find((o) => o.id === offerId);
@@ -533,7 +537,7 @@ export function buyLandAndJoin(offerId: string, join: boolean): string | null {
   const eco = useEconomy.getState();
   const offer = eco.offers.find((o) => o.id === offerId);
   const err = eco.buyLand(offerId);
-  if (err || !join || !offer) return err;
+  if (err || !join || !offer || sessionGate.shared) return err;
   const lot = useEconomy.getState().lots.find((l) => l.plot === offer.plot);
   return lot ? useEconomy.getState().joinLots(lot.id) : null;
 }

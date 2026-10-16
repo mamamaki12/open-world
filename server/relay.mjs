@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { open, readFile, rename } from 'node:fs/promises';
 import { WebSocketServer, WebSocket } from 'ws';
-import { SHARED_LIMIT, applyCommand, initialSharedWorld, tickWorld, validSharedWorld } from '../src/server/sharedWorld.ts';
+import { SHARED_LIMIT, applyCommand, initialSharedWorld, publicWorld, tickWorld, validSharedWorld, withAccount } from '../src/server/sharedWorld.ts';
 
 // みんなのワールドの保存。書き終えてから差し替えるので、途中で落ちても前の保存が残る
 async function saveWorld(file, world) {
@@ -29,12 +29,13 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
   const ready = loadWorld(worldFile).then(w => { shared.world = w; });
   const sharedSend = data => shared.members.forEach(m => send(m.socket, data));
   const sharedRoster = () => sharedSend({ type: 'members', members: [...shared.members.values()].filter(m => m.socket).map(m => ({ id: m.id, name: m.name, host: false, canBuild: true })) });
+  const accounts = () => shared.members.forEach(m => send(m.socket, { type: 'account', account: shared.world.accounts?.[m.id] ?? null }));
   const clockOf = w => ({ day: w.economy.day, clock: w.economy.clock, market: w.economy.market, marketHistory: w.economy.marketHistory });
   const enqueue = job => (shared.queue = shared.queue.then(job, job));
   const ticker = setInterval(() => {
     if (!shared.world) return;
     const t = tickWorld(shared.world, tickMs / 1000, Math.random); shared.world = t.world;
-    if (t.newDay) enqueue(() => saveWorld(worldFile, shared.world).catch(e => console.error('save failed', e)));
+    if (t.newDay) { enqueue(() => saveWorld(worldFile, shared.world).catch(e => console.error('save failed', e))); sharedSend({ type: 'world', world: publicWorld(shared.world) }); accounts(); }
     if (++shared.beat % 2 === 0) sharedSend({ type: 'clock', clock: clockOf(shared.world) });
   }, tickMs); ticker.unref();
   const http = createServer((req, res) => { res.writeHead(req.url === '/health' ? 200 : 404); res.end(req.url === '/health' ? 'ok' : 'not found'); });
@@ -64,8 +65,10 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
             if (!prev && [...shared.members.values()].filter(m => m.socket).length >= SHARED_LIMIT) throw Error(`みんなのワールドは${SHARED_LIMIT}人までです`);
             member = prev ?? { id, shared: true }; member.name = name; member.socket = socket; shared.members.set(id, member);
             clearTimeout(handshake);
+            const joined = withAccount(shared.world, id, name);
+            if (joined !== shared.world) { shared.world = joined; enqueue(() => saveWorld(worldFile, shared.world).catch(e => console.error('save failed', e))); }
             send(socket, { type: 'welcome', code: 'SHARED', token: randomUUID(), host: '', canBuild: true, shared: true });
-            send(socket, { type: 'world', world: shared.world }); sharedRoster();
+            send(socket, { type: 'world', world: publicWorld(shared.world) }); send(socket, { type: 'account', account: shared.world.accounts[id] }); sharedRoster();
             return;
           }
           if (data.type === 'create') {
@@ -101,13 +104,17 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
           if (data.type === 'command' || (data.type === 'settle' && typeof data.id === 'string')) {
             const command = data.type === 'settle' ? { id: data.id, settle: true } : data.command, who = member;
             enqueue(async () => {
-              const r = applyCommand(shared.world, who.id, command);
+              const r = applyCommand(shared.world, who.id, command, who.name);
               if (r.changed) {
                 await saveWorld(worldFile, r.world); // 保存が終わってから確定を知らせる
                 shared.world = { ...r.world, economy: { ...r.world.economy, ...clockOf(shared.world) } };
               }
               send(who.socket, { type: 'result', result: r.result });
-              if (r.changed) sharedSend({ type: 'world', world: shared.world });
+              if (r.changed) {
+                // お金だけの変化は本人の口座だけ送る
+                if (command?.action?.type !== 'money' && command?.action?.type !== 'cars') sharedSend({ type: 'world', world: publicWorld(shared.world) });
+                accounts();
+              }
             }).catch(() => send(who.socket, { type: 'result', result: { id: command?.id, ok: false, message: 'サーバーに保存できませんでした' } }));
             return;
           }

@@ -72,7 +72,15 @@ test('shared world: everyone builds in one town, limit, settle and restart persi
     assert.equal((await a.next('welcome')).canBuild, true); const first = await a.next('world');
     const b = await client(url); b.send({ type: 'shared', id: 'b', name: 'B' }); await b.next('welcome'); await b.next('world');
     const dup = await client(url); dup.send({ type: 'shared', id: 'b', name: 'B' }); assert.match((await dup.next('error')).message, /別のタブ/);
-    a.send({ type: 'command', command: { id: 'c1', lot: first.world.economy.currentLotId, reserved: 1e9, delta: [{ kind: 'floors', id: 'f-test', before: null, after: floor }] } });
+    assert.equal(first.world.economy.lots.length, 0); assert.equal(first.world.accounts, undefined);
+    assert.equal((await a.next('account')).account.money, 1000000);
+    a.send({ type: 'command', command: { id: 'm1', lot: '', delta: [], reserved: 0, action: { type: 'money', delta: 1e8, label: 'test' } } });
+    assert.equal((await a.next('result')).result.ok, true); await a.next('account');
+    a.send({ type: 'command', command: { id: 'l1', lot: '', delta: [], reserved: 1e9, action: { type: 'buyLand', offer: first.world.economy.offers[0].id } } });
+    assert.equal((await a.next('result')).result.ok, true);
+    const lot = (await b.next('world')).world.economy.lots[0];
+    assert.equal(lot.owner, 'a'); assert.ok((await a.next('account')).account.money < 1e8);
+    a.send({ type: 'command', command: { id: 'c1', lot: lot.id, reserved: 1e9, delta: [{ kind: 'floors', id: 'f-test', before: null, after: floor }] } });
     assert.equal((await a.next('result')).result.ok, true);
     assert.ok((await b.next('world')).world.house.floors.some(f => f.id === 'f-test'));
     b.send({ type: 'settle', id: 'never-sent' }); assert.equal((await b.next('result')).result.ok, false);
