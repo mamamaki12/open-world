@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { App } from '../ui/App';
+import { useGame } from '../state/store';
 import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave } from './saves';
 import { allowBuilding, connectWorld, currentEndpoint, enterOffline, leaveWorld, startSessionTimers, useSession } from './session';
 import './session.css';
@@ -43,11 +44,13 @@ function SessionHud() {
   const state = useSession(), [open, setOpen] = useState(false), [notice, setNotice] = useState('');
   const invite = async () => { const url = new URL(location.href); url.search = ''; url.searchParams.set('room', state.code); url.searchParams.set('relay', currentEndpoint());
     try { await navigator.clipboard.writeText(url.href); setNotice('招待リンクをコピーしました'); } catch { setNotice(`招待コード: ${state.code}`); } };
+  // ひとりで遊ぶときは浮いた表示を出さない（開始画面へ・バックアップはセーブメニューの中）。お店などの画面を開いている間も隠す
+  const overlay = useGame(g => g.overlay);
   return <aside className="world-session">
-    <button className="world-session-toggle" onClick={() => setOpen(!open)}>{state.role === 'home' ? 'ひとりでプレイ中' : `${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>
-    {open && <section className="world-session-panel"><h2>{state.role === 'home' ? '自分のワールド' : '一緒に遊んでいる人'}</h2>
+    {state.role !== 'home' && !overlay && <button className="world-session-toggle" onClick={() => setOpen(!open)}>{`${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>}
+    {open && state.role !== 'home' && !overlay && <section className="world-session-panel"><h2>一緒に遊んでいる人</h2>
       {state.members.map(m => <div className="world-member" key={m.id}><span>{m.name}{m.host ? '（ホスト）' : ''}</span>{state.role === 'host' && !m.host && <label><input type="checkbox" checked={m.canBuild} onChange={e => allowBuilding(m.id, e.target.checked)}/>共同建築</label>}</div>)}
-      {state.role !== 'home' && <><p>招待コード: <strong>{state.code}</strong></p><button onClick={() => void invite()}>招待リンクをコピー</button><p className="world-note">建築費は建てた本人が支払います。配置したものはこの町に残ります。元に戻しても支払った建材費は戻りません。</p></>}
+      <><p>招待コード: <strong>{state.code}</strong></p><button onClick={() => void invite()}>招待リンクをコピー</button><p className="world-note">建築費は建てた本人が支払います。配置したものはこの町に残ります。元に戻しても支払った建材費は戻りません。</p></>
       <button onClick={downloadBackup}>自分のデータをバックアップ</button><button disabled={state.busy} onClick={() => void leaveWorld()}>保存して開始画面へ</button>
       {(notice || state.message) && <p role="status">{notice || state.message}</p>}
     </section>}
