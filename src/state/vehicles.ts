@@ -20,7 +20,7 @@ export function validCar(v: unknown): v is OwnedCar {
 function loadCars(): OwnedCar[] {
   try {
     const data: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(data) ? data.filter(validCar).slice(0, 10).map(c => ({...c, speed:0, steer:0, wheelSpin:0, braking:false, lights:!!c.lights, mods:cleanMods(c.mods)})) : [];
+    return Array.isArray(data) ? data.filter(validCar).slice(0, 10).map(c => ({...c, speed:0, steer:0, wheelSpin:0, braking:false, slipAngle:0, drifting:false, handbraking:false, lights:!!c.lights, mods:cleanMods(c.mods)})) : [];
   } catch { return []; }
 }
 export const useVehicles = create<{ cars: OwnedCar[]; driving: string | null; target: string | null }>(() => ({
