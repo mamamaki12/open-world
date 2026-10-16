@@ -389,3 +389,12 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .tool.history-label{width:auto;min-width:76px;padding:0 8px;font-size:12px;}
 @media(max-width:359px){.drive-steering,.drive-pedals{gap:8px;}.drive-steering .touch-btn{width:58px;height:58px;}}
 @media(orientation:landscape) and (max-height:500px){.drive-steering{bottom:calc(64px + var(--safe-b));}.drive-pedals{bottom:calc(8px + var(--safe-b));}.drive-brake.touch-btn{height:66px;}.drive-accelerator.touch-btn{height:92px;}}
+
+/* 左親指で旋回し、右親指でペダルかサイドブレーキを操作できる位置。 */
+.drive-handbrake.touch-btn{position:absolute;left:calc(14px + var(--safe-l));bottom:calc(14px + var(--safe-b));width:138px;height:54px;border:1px solid #f5bf73;border-radius:14px;background:#533a28e8;color:#fff3da;font-size:12px;font-weight:700;pointer-events:auto;}
+.drive-handbrake.touch-btn[aria-pressed=true]{background:#ffcf66;color:#292019;}
+.drive-drift{display:block;color:#ffcf66;font-size:12px;letter-spacing:.08em;}
+@media(max-width:359px){.drive-handbrake.touch-btn{width:124px;}}
+@media(orientation:landscape) and (max-height:500px){.drive-handbrake.touch-btn{bottom:calc(8px + var(--safe-b));height:44px;}}
+.drive-brake .pedal-pad{bottom:28px;}
+.drive-brake .pedal-name small{display:block;font-size:9px;line-height:1.2;}

@@ -146,9 +146,10 @@ export function TouchWalkControls({ build }: { build: ReactNode }) {
           <HoldButton label="右にハンドルを切る" onHold={on=>{driveButtons.right=on;}}>→</HoldButton>
         </div>
         <div className="drive-pedals" role="group" aria-label="ペダル">
-          <HoldButton label="ブレーキ" className="drive-pedal drive-brake" onHold={on=>{driveButtons.brake=on;}}><span className="pedal-pad"/><span className="pedal-name">ブレーキ</span></HoldButton>
+          <HoldButton label="ブレーキ" className="drive-pedal drive-brake" onHold={on=>{driveButtons.brake=on;}}><span className="pedal-pad"/><span className="pedal-name">ブレーキ<small>長押しでバック</small></span></HoldButton>
           <HoldButton label="アクセル" className="drive-pedal drive-accelerator" onHold={on=>{driveButtons.accelerator=on;}}><span className="pedal-pad"/><span className="pedal-name">アクセル</span></HoldButton>
         </div>
+        <HoldButton label="サイドブレーキ" className="drive-handbrake" onHold={on=>{driveButtons.handbrake=on;}}>サイドブレーキ</HoldButton>
       </> : <Joystick driving={false} />}
       <div className="touch-actions">
         {!driving && <>

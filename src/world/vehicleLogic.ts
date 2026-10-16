@@ -21,8 +21,8 @@ import { saveVehicles, useVehicles } from '../state/vehicles';
 import { plotX, plotZ, TOWN_BOUNDS } from '../economy/town';
 import { touchMove } from '../state/touch';
 
-export const driveButtons = { left:false, right:false, accelerator:false, brake:false };
-export function resetDriveButtons() { driveButtons.left=false;driveButtons.right=false;driveButtons.accelerator=false;driveButtons.brake=false; }
+export const driveButtons = { left:false, right:false, accelerator:false, brake:false, handbrake:false };
+export function resetDriveButtons() { driveButtons.left=false;driveButtons.right=false;driveButtons.accelerator=false;driveButtons.brake=false;driveButtons.handbrake=false; }
 type Memory = {x:number;y:number;z:number;yaw:number;bodyYaw:number;pitch:number};
 function origin() { const p=currentPlotOf(useEconomy.getState());return {x:plotX(p),z:plotZ(p)}; }
 export function atTuner(p:Memory) { syncVenue(p);return useVenue.getState().inside==='tuner'; }
@@ -81,7 +81,7 @@ export function refreshVehicleTarget(p:Memory) {
   if (!state.driving && !target) { const o=origin(); const offer=useEconomy.getState().offers.find(offer=>typeof offer.plot==='number'&&atSaleSign(offer.plot,p.x+o.x,p.z+o.z,p.y));if(offer)target='land:'+offer.id; }
   if(state.target!==target)useVehicles.setState({target});
 }
-export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c)c.speed=0;useVehicles.setState({driving:null,target:null});saveVehicles();}
+export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({driving:null,target:null});saveVehicles();}
 export function vehicleInteract(p:Memory) {
   refreshVehicleTarget(p);
   const venue=useVenue.getState().inside;
@@ -124,11 +124,15 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   if(useGame.getState().tool!=='select')useGame.getState().setTool('select');
   const key=(...codes:string[])=>codes.some(c=>keys.has(c));
   const paused=!!useGame.getState().overlay;
+  if(paused){car.speed=0;car.slipAngle=0;car.drifting=false;car.reverseHold=0;}
   const throttle=paused?0:(key('KeyW','ArrowUp')?1:0)-(key('KeyS','ArrowDown')?1:0)||(!paused?(driveButtons.accelerator?1:touchMove.y):0);
-  const steering=paused?0:(key('KeyD','ArrowRight')?1:0)-(key('KeyA','ArrowLeft')?1:0)||(!paused?(Number(driveButtons.right)-Number(driveButtons.left)||touchMove.x):0);
+  const keyboardSteering=(key('KeyD','ArrowRight')?1:0)-(key('KeyA','ArrowLeft')?1:0);
+  const buttonDirection=Number(driveButtons.right)-Number(driveButtons.left);
+  const steering=paused?0:keyboardSteering||buttonDirection||touchMove.x;
+  const buttonSteering=!paused&&!keyboardSteering&&buttonDirection!==0;
   const o=origin();
   const previousYaw=car.yaw;
-  integrateDrive(car,{throttle,steering,brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
+  integrateDrive(car,{throttle,steering,buttonSteering,reverseOnBrake:!paused&&driveButtons.brake,handbrake:!paused&&(driveButtons.handbrake||key('ShiftLeft','ShiftRight')),brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
     carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id)));
   engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
   p.yaw+=car.yaw-previousYaw;

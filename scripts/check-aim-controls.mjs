@@ -137,8 +137,8 @@ try {
   assert.equal(await page.locator('.joystick').count(),0,'no driving joystick');
   for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}]){
     await page.setViewportSize(viewport);await page.waitForTimeout(200);
-    const boxes=await page.locator('.drive-steering button,.drive-pedals button').evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
-    assert.equal(boxes.length,4);
+    const boxes=await page.locator('.drive-steering button,.drive-pedals button,.drive-handbrake').evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
+    assert.equal(boxes.length,5);
     for(const b of boxes)assert.ok(b.x>=0&&b.y>=0&&b.x+b.w<=viewport.width&&b.y+b.h<=viewport.height&&b.w>=44&&b.h>=44,'driving buttons fit and remain tappable');
     for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'driving buttons do not overlap');}
     await page.screenshot({path:`control-checks/driving-${viewport.width}.png`});
@@ -149,10 +149,12 @@ try {
   const accel=await center('アクセル'),left=await center('左にハンドルを切る'),right=await center('右にハンドルを切る'),brake=await center('ブレーキ');
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...accel,id:1},{...left,id:2}]});
   await page.waitForFunction(()=>{const d=window.__driveTest,c=d.useVehicles.getState().cars[0];return d.driveButtons.accelerator&&d.driveButtons.left&&c.speed>.3&&c.steer<-.02;});
+  await page.waitForFunction(async()=>{const {maxSteer}=await import('/src/building/driving.ts');const c=window.__driveTest.useVehicles.getState().cars[0];return c.steer < -maxSteer(c.speed)*1.05;});
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await page.waitForFunction(()=>!window.__driveTest.driveButtons.accelerator&&!window.__driveTest.driveButtons.left);
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...accel,id:1},{...right,id:2}]});
   await page.waitForFunction(()=>{const d=window.__driveTest;return d.driveButtons.right&&d.useVehicles.getState().cars[0].steer>.02;});
+  await page.waitForFunction(async()=>{const {maxSteer}=await import('/src/building/driving.ts');const c=window.__driveTest.useVehicles.getState().cars[0];return c.steer > maxSteer(c.speed)*1.05;});
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
   await page.waitForFunction(()=>!Object.values(window.__driveTest.driveButtons).some(Boolean));
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...brake,id:1}]});
