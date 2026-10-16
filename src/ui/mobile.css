@@ -305,8 +305,11 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   border: 1px solid #d4bd82; box-shadow: 0 2px 8px #0004;
 }
 .touch .drive-actions button[aria-pressed=true] { background: #ffcf66; }
+.touch .drive-actions .drive-touch-only { display: block !important; }
+.touch .drive-hud.first { left: 0; bottom: 0; padding: 0; }
+.touch .drive-hud.first .drive-actions { flex-direction: row; }
 @media (orientation: portrait) {
-  .touch .drive-actions { flex-direction: column; }
+  .touch .drive-actions, .touch .drive-hud.first .drive-actions { display: grid; grid-template-columns: repeat(2, auto); }
 }
 
 /* 歩いているときのメニュー（左上の ☰ から開く） */
@@ -366,14 +369,23 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 }
 
 /* 運転は左右と2つのペダル。両手の同時押しで曲がりながら加速できる。 */
-.drive-steering,.drive-pedals{position:absolute;bottom:calc(18px + var(--safe-b));display:flex;gap:10px;pointer-events:auto;}
-.drive-steering{left:calc(14px + var(--safe-l));}.drive-pedals{right:calc(14px + var(--safe-r));}
-.drive-steering .touch-btn,.drive-pedals .touch-btn{width:64px;height:74px;border-radius:16px;border:2px solid #fff9;}
-.drive-steering .touch-btn{font-size:34px;background:#20364deb;color:#fff;}
-.drive-pedals .touch-btn{font-size:12px;color:#fff;padding:4px;white-space:nowrap;}
-.drive-pedals .drive-brake{background:#a73535ef;}.drive-pedals .drive-accelerator{background:#126643ef;}
-.drive-steering .touch-btn[aria-pressed=true],.drive-pedals .touch-btn[aria-pressed=true]{background:#ffcf66;color:#17212b;transform:translateY(2px);}
+/* ハンドルの矢印は親指が届きやすいよう下端から持ち上げる。ペダルは床に近い下端に置く。 */
+.drive-steering,.drive-pedals{position:absolute;display:flex;pointer-events:auto;}
+.drive-steering{left:calc(14px + var(--safe-l));bottom:calc(92px + var(--safe-b));gap:10px;}
+.drive-pedals{right:calc(14px + var(--safe-r));bottom:calc(14px + var(--safe-b));gap:14px;align-items:flex-end;}
+.drive-steering .touch-btn{width:64px;height:64px;border-radius:50%;border:2px solid #fff9;font-size:30px;background:#20364dcc;color:#fff;}
+.drive-steering .touch-btn[aria-pressed=true]{background:#ffcf66;color:#17212b;transform:translateY(2px);}
+/* 実車のペダル：金属の縁にゴムの溝。アクセルは縦長、ブレーキは幅広。踏むと奥へ傾く。 */
+.drive-pedal.touch-btn{position:relative;padding:0;border:0;background:none;box-shadow:none;transform-origin:50% 100%;transition:transform .06s;}
+.drive-pedal .pedal-pad{position:absolute;inset:0 0 18px;border-radius:12px 12px 16px 16px;
+  background:repeating-linear-gradient(180deg,#2b2f33 0 6px,#16191c 6px 10px);
+  border:3px solid #a9b0b6;box-shadow:inset 0 2px 0 #fff3,0 4px 0 #555c62,0 6px 10px #0007;}
+.drive-pedal .pedal-name{position:absolute;left:0;right:0;bottom:0;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px #000a;}
+.drive-brake.touch-btn{width:84px;height:78px;}
+.drive-accelerator.touch-btn{width:52px;height:112px;}
+.drive-pedal.touch-btn[aria-pressed=true]{transform:perspective(200px) rotateX(24deg);}
+.drive-pedal.touch-btn[aria-pressed=true] .pedal-pad{border-color:#ffcf66;box-shadow:inset 0 2px 0 #fff3,0 1px 0 #555c62,0 2px 4px #0007;}
 .touch.driving .touch-actions{bottom:calc(104px + var(--safe-b));display:flex;gap:8px;}
 .touch .tool.history-label{width:auto;min-width:76px;padding:0 8px;font-size:12px;}
-@media(max-width:359px){.drive-steering,.drive-pedals{gap:6px;}.drive-steering .touch-btn,.drive-pedals .touch-btn{width:60px;height:68px;}}
-@media(orientation:landscape) and (max-height:500px){.drive-steering,.drive-pedals{bottom:calc(10px + var(--safe-b));}.drive-steering .touch-btn,.drive-pedals .touch-btn{height:60px;}.touch.driving .touch-actions{bottom:calc(80px + var(--safe-b));}}
+@media(max-width:359px){.drive-steering,.drive-pedals{gap:8px;}.drive-steering .touch-btn{width:58px;height:58px;}}
+@media(orientation:landscape) and (max-height:500px){.drive-steering{bottom:calc(64px + var(--safe-b));}.drive-pedals{bottom:calc(8px + var(--safe-b));}.drive-brake.touch-btn{height:66px;}.drive-accelerator.touch-btn{height:92px;}}

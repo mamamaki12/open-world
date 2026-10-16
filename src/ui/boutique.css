@@ -1,36 +1,95 @@
-.boutique-modal { width:min(1060px,100%); }
-.boutique-intro { font:600 22px Georgia,'Yu Mincho',serif; margin:4px 0; color:#3a3330; letter-spacing:.04em; }
-.shop-maison .modal-head { background:#1b1a1c; color:#d9bd7a; }
-.shop-atelier .modal-head { background:#efe7da; color:#4a3a2b; }
-.shop-urban .modal-head { background:#2f6d8e; color:#fff; }
-.shop-daily .modal-head { background:#d6332f; color:#fff; }
-.boutique-layout { display:grid; grid-template-columns:300px minmax(0,1fr); gap:20px; min-width:0; }
-.boutique-layout > section { min-width:0; }
-.boutique-preview { height:380px; border-radius:12px; overflow:hidden; }
-.boutique-wearing { display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; margin-top:8px; font-size:12px; }
-.boutique-wearing small { display:block; color:#6b6660; }
-.boutique-items { max-height:560px; overflow:auto; }
-.boutique-items h3 { margin:10px 0 6px; font-size:14px; }
-.garment-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
-.garment { display:flex; flex-direction:column; align-items:flex-start; gap:3px; padding:10px; background:#fff; color:#2b2724; border:1px solid #d3cec4; border-radius:8px; text-align:left; min-width:0; overflow-wrap:anywhere; }
-.garment.on { border-color:#2a6cff; box-shadow:0 0 0 2px #2a6cff55; }
-.garment.worn { background:#f3f7ef; }
-.garment b { font-size:13px; }
-.garment small { color:#7a736a; font-size:11px; }
-.garment em { font-style:normal; font-size:11px; color:#3b7d3a; font-weight:700; }
-.garment-price { color:#6b5020; font-weight:700; }
-.garment-swatch { width:40px; height:40px; border-radius:8px; border:1px solid #0002; }
-.garment-swatch.none { background:repeating-linear-gradient(45deg,#eee,#eee 5px,#fff 5px,#fff 10px); }
-.boutique-buy { position:sticky; bottom:0; background:#fff7e6; border:1px solid #d8bc79; border-radius:10px; padding:12px; margin-top:12px; }
-.boutique-buy p { margin:0 0 8px; }
+.boutique-modal { width:min(1280px,100%); background:#fff; color:#242423; border-radius:2px; }
+.boutique-modal .modal-head { background:#fff; color:#242423; border-bottom:1px solid #e7e5e1; padding:20px 28px; gap:24px; }
+.boutique-modal .modal-title { font-family:Georgia,'Times New Roman',serif; font-size:23px; font-weight:400; letter-spacing:.1em; }
+.boutique-modal .modal-tabs .tool,.boutique-modal .tool.close { background:transparent; border:0; border-radius:0; box-shadow:none; color:#666; font-weight:400; }
+.boutique-modal .modal-tabs .tool.on { color:#222; box-shadow:inset 0 -1px #222; }
+.boutique-modal .tool.close { font-size:12px; }
+.boutique-modal .modal-body { padding:0 28px 28px; }
+.boutique-masthead { display:flex; justify-content:space-between; gap:20px; padding:30px 0 26px; align-items:center; }
+.store-eyebrow { display:block; color:#77736b; font-size:9px; letter-spacing:.16em; line-height:1.7; }
+.boutique-masthead h1 { font-family:Georgia,'Yu Mincho',serif; font-weight:400; font-size:28px; margin:8px 0; letter-spacing:.06em; }
+.boutique-masthead p { color:#777; font-size:11px; margin:0; }
+.boutique-balance { flex:none; text-align:right; }
+.boutique-balance small { display:block; font-size:9px; letter-spacing:.1em; color:#888; }
+.boutique-balance strong { font-weight:400; font-size:17px; }
+.boutique-layout { display:grid; grid-template-columns:minmax(260px,.8fr) minmax(0,1.4fr); gap:32px; align-items:start; }
+.boutique-layout>section { min-width:0; }
+.boutique-fitting { position:sticky; top:0; scroll-margin-top:8px; }
+.boutique-preview { height:370px; background:#eeece7; position:relative; overflow:hidden; touch-action:none; }
+.fitting-caption { position:absolute; bottom:14px; left:16px; right:16px; display:flex; justify-content:space-between; font-size:8px; letter-spacing:.1em; color:#77736b; pointer-events:none; }
+.fitting-caption span { letter-spacing:0; }
+.fitting-detail { padding:18px 0 4px; }
+.fitting-detail h2 { font-size:17px; font-weight:400; margin:6px 0; }
+.fitting-detail p { font-size:11px; color:#777; margin:10px 0 14px; }
+.detail-price { font-size:16px; font-weight:400; }
+.detail-color { display:flex; gap:9px; align-items:center; margin:14px 0; font-size:10px; color:#666; }
+.detail-color>span,.garment-color { width:13px; height:13px; display:inline-block; border-radius:50%; border:1px solid #0002; }
+.detail-color code { color:#888; font-size:9px; }
+.boutique-primary { width:100%; border:1px solid #242423; background:#242423; color:#fff; min-height:46px; font-size:12px; padding:10px; cursor:pointer; }
+.boutique-primary:disabled { background:#ddd; border-color:#ddd; color:#888; cursor:default; }
+.fitting-cancel { display:block; margin:7px auto 0; padding:10px 15px; min-height:40px; background:transparent; border:0; text-decoration:underline; text-underline-offset:4px; font-size:11px; color:#777; cursor:pointer; }
+.boutique-wearing { display:grid; grid-template-columns:1fr 1fr; gap:10px; border-top:1px solid #e7e5e1; padding-top:12px; font-size:10px; }
+.boutique-wearing small { display:block; color:#999; font-size:9px; margin-bottom:2px; }
+.boutique-categories { display:flex; gap:18px; border-bottom:1px solid #e7e5e1; overflow:auto; scrollbar-width:none; }
+.boutique-categories button { min-height:44px; padding:0 0 10px; white-space:nowrap; background:transparent; border:0; border-bottom:1px solid transparent; color:#888; font-size:11px; cursor:pointer; }
+.boutique-categories button[aria-pressed=true] { color:#222; border-bottom-color:#222; }
+.boutique-listbar { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:12px 0; color:#888; font-size:9px; letter-spacing:.08em; }
+.boutique-listbar label { display:flex; gap:6px; align-items:center; letter-spacing:0; }
+.boutique-listbar select { background:white; color:#444; border:0; font-size:11px; min-height:36px; max-width:135px; }
+.garment-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px 12px; }
+.garment { display:block; padding:0; border:0; border-radius:0; background:transparent; color:#242423; text-align:left; min-width:0; cursor:pointer; }
+.garment-image { aspect-ratio:4/5; background:#f2f1ee; position:relative; overflow:hidden; border:1px solid transparent; transition:background .2s; }
+.garment-image svg { width:100%; height:100%; transition:transform .25s; }
+.garment:hover .garment-image svg { transform:scale(1.035); }
+.garment.on .garment-image { border-color:#242423; background:#e9e7e1; }
+.garment:focus-visible,.boutique-modal button:focus-visible { outline:2px solid #796e5a; outline-offset:3px; }
+.garment-tag { position:absolute; left:10px; top:10px; color:#777; font-size:8px; letter-spacing:.1em; }
+.garment-try { position:absolute; right:10px; bottom:10px; font-size:9px; color:#666; }
+.garment-meta { padding:10px 1px 0; position:relative; }
+.garment-meta small { display:block; color:#999; font-size:9px; margin-bottom:3px; }
+.garment-meta b { display:block; font-size:12px; font-weight:400; line-height:1.5; padding-right:2px; overflow-wrap:anywhere; }
+.garment-price { display:block; font-size:11px; margin-top:5px; }
+.garment-color { position:absolute; right:1px; bottom:2px; width:10px; height:10px; }
+.boutique-footnote { margin:25px 0 0; font-size:10px; color:#999; text-align:center; border-top:1px solid #eee; padding-top:18px; }
+.boutique-empty { padding:40px 10px; color:#888; text-align:center; font-size:12px; }
+.boutique-empty button { display:block; margin:10px auto; background:transparent; border:0; text-decoration:underline; min-height:44px; }
 @media(max-width:700px){
-  .boutique-layout { grid-template-columns:minmax(0,1fr); gap:10px; }
-  .boutique-preview { height:220px; }
-  .boutique-items { max-height:none; }
-  .garment-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .boutique-modal .modal-head,.touch .boutique-modal .modal-head { padding:14px 16px 7px; gap:10px; }
+ .boutique-modal .modal-title,.touch .boutique-modal .modal-title { font-size:17px; }
+ .boutique-modal .modal-body,.touch .boutique-modal .modal-body { padding:0 16px 24px; }
+ .boutique-modal .modal-tabs { gap:15px; }
+ .boutique-modal .modal-tabs .tool { padding:6px 0; }
+ .boutique-masthead { padding:22px 0; gap:10px; }
+ .boutique-masthead h1 { font-size:20px; }
+ .boutique-masthead p { font-size:10px; max-width:230px; }
+ .boutique-balance { display:none; }
+ .boutique-layout { grid-template-columns:minmax(0,1fr); gap:24px; }
+ .boutique-fitting { position:static; }
+ .boutique-preview { height:280px; }
+ .fitting-detail { padding:14px 0 0; }
+ .boutique-wearing { gap:8px; }
+ .boutique-categories { gap:17px; }
+ .garment-grid { gap:22px 10px; }
+ .garment-meta b { font-size:11px; }
 }
-@media(max-height:500px) and (orientation:landscape){
-  .boutique-layout { grid-template-columns:200px minmax(0,1fr); }
-  .boutique-preview { height:200px; }
-  .boutique-wearing { display:none; }
+@media(max-height:500px) and (min-width:701px){
+ .boutique-layout { grid-template-columns:250px minmax(0,1fr); gap:24px; }
+ .boutique-preview { height:230px; }
+ .boutique-fitting { position:static; }
+ .boutique-masthead { padding:16px 0; }
 }
+.modal.boutique-modal { width:min(1280px,100%); background:#fff; border-radius:2px; }
+.boutique-fitting-toggle { display:none; }
+@media(max-width:700px){
+ .boutique-fitting-toggle { display:flex; width:100%; align-items:center; justify-content:space-between; min-height:44px; margin:0 0 16px; padding:8px 0; background:white; border:0; border-top:1px solid #e7e5e1; border-bottom:1px solid #e7e5e1; color:#444; font-size:11px; }
+ .boutique-fitting-toggle span { font-size:11px; color:#777; }
+ .boutique-layout:not(.fitting-open) .boutique-fitting { display:none; }
+}
+@media(max-width:700px){
+ .boutique-listbar select { font-size:16px; max-width:145px; }
+ .garment-meta b,.garment-price { font-size:12px; }
+ .boutique-categories button { font-size:12px; }
+ .boutique-listbar,.garment-meta small,.garment-try { font-size:10px; }
+}
+.shop-daily .modal-title { font-family:Arial,Helvetica,sans-serif; font-weight:700; letter-spacing:-.025em; }
+.shop-urban .modal-title { font-family:Arial,Helvetica,sans-serif; font-weight:600; letter-spacing:.06em; }

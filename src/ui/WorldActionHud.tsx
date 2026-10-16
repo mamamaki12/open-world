@@ -12,14 +12,15 @@ import { plotX, plotZ } from '../economy/town';
 import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
 import { Modal } from './Modal';
+import { walkActions } from '../state/touch';
 export function WorldActionHud(){
   const inside=useVenue(s=>s.inside);
-  const driving=useVehicles(s=>s.driving),target=useVehicles(s=>s.target),overlay=useGame(s=>s.overlay);
+  const driving=useVehicles(s=>s.driving),target=useVehicles(s=>s.target),overlay=useGame(s=>s.overlay),view=useGame(s=>s.view);
   const [,tick]=useState(0);
   useEffect(()=>{if(!driving)return;const t=setInterval(()=>tick(v=>v+1),120);return()=>clearInterval(t);},[driving]);
   if(overlay||!target)return null;
   const car=useVehicles.getState().cars.find(c=>c.id===(driving??target));
-  if(driving&&car)return <div className="drive-hud" aria-label="運転情報">
+  if(driving&&car)return <div className={`drive-hud ${view==='first'?'first':''}`} aria-label="運転情報">
     <div className="drive-dashboard">
       <b className="drive-model">{getCar(car.model)!.name}</b>
       <div className="drive-speed">{car.speed<-.1?'R ':''}{Math.round(Math.abs(car.speed)*3.6)}<small>km/h</small></div>
@@ -28,6 +29,8 @@ export function WorldActionHud(){
     <div className="drive-actions">
       <button onClick={()=>interact()}><span className="drive-key">F · </span>停車して降りる</button>
       <button aria-pressed={car.lights} onClick={()=>{car.lights=!car.lights;tick(v=>v+1);}}>ライト {car.lights?'ON':'OFF'}</button>
+      <button onClick={()=>walkActions.toggleView()}><span className="drive-key">Q · </span>{view==='first'?'車の外から見る':'運転席から見る'}</button>
+      <button className="drive-touch-only" onClick={()=>walkActions.resetCamera()}>視点を正面へ</button>
     </div>
   </div>;
   const venueLabel=inside&&target.startsWith('venue:')?VENUE_ACTIONS[inside].find(a=>target==='venue:'+a.id)?.label:undefined;

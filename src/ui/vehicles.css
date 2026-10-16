@@ -31,3 +31,11 @@
 /* 部品を選んでいるあいだも車が見えるように、プレビューを上に止めておく */
 .tuner-modal .dealer-preview {position:sticky;top:0;z-index:1;box-shadow:0 6px 14px #0002;}
 @media(max-height:520px){.tuner-modal .dealer-preview{height:150px;}}
+
+/* 運転席からの視点では、運転パネルを左下の小さなメーターにして前を空ける */
+.drive-touch-only{display:none !important;}
+.drive-hud.first{left:16px;bottom:16px;transform:none;padding:8px 14px;text-align:left;}
+.drive-hud.first .drive-keyboard-help{display:none;}
+.drive-hud.first .drive-speed{font-size:28px;}
+.drive-hud.first .drive-actions{display:flex;flex-direction:column;align-items:stretch;gap:4px;}
+.drive-hud.first .drive-actions button{margin:0;}
