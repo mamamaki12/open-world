@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import { avoidCameraWalls } from './cameraObstruction';
 import { driverEye } from './CarModel';
 import { getCar } from '../catalog/cars';
+import { carHitsWalls } from '../building/vehicleWalls';
+import { GRID, LOT_W, LOT_D } from '../building/dimensions';
+import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
+import { takenPlots } from './visit';
+import type { House } from '../building/types';
 import { carSamples, integrateDrive } from '../building/driving';
 import type { DrivePose } from '../building/driving';
 import { useVenue, syncVenue, autoVenueDoors } from '../state/venue';
@@ -27,14 +32,25 @@ type Memory = {x:number;y:number;z:number;yaw:number;bodyYaw:number;pitch:number
 function origin() { const p=currentPlotOf(useEconomy.getState());return {x:plotX(p),z:plotZ(p)}; }
 export function atTuner(p:Memory) { syncVenue(p);return useVenue.getState().inside==='tuner'; }
 export function atCarDealer(p:Memory) { const o=civicOffset();return useVenue.getState().inside==='dealer' || atDealerDoor(p.x-o.x,p.z-o.z,p.y); }
-function houses() {
+interface VehicleHouse { h: House; x: number; z: number }
+function houses(x: number, z: number, reach: number): VehicleHouse[] {
   const s=useEconomy.getState(),current=currentPlotOf(s);
-  return s.lots.flatMap(l=>{
+  const result = s.lots.flatMap(l=>{
     const h=l.id===s.currentLotId?useGame.getState().house:lotHouse(l);
     return h&&typeof l.plot==='number'?[{h,x:plotX(l.plot)-plotX(current),z:plotZ(l.plot)-plotZ(current)}]:[];
   });
+  const taken = takenPlots(s);
+  for (const key of Object.keys(TOWN_HOUSE_PLOTS)) {
+    const plot = Number(key);
+    if (taken.has(plot)) continue;
+    const ox = plotX(plot) - plotX(current), oz = plotZ(plot) - plotZ(current);
+    if (x < ox - reach || x > ox + LOT_W * GRID + reach || z < oz - reach || z > oz + LOT_D * GRID + reach) continue;
+    const h = townHouseAt(plot);
+    if (h) result.push({ h, x: ox, z: oz });
+  }
+  return result;
 }
-export function blockedAt(x:number,z:number,radius:number,height:number,skip?:string) {
+export function blockedAt(x:number,z:number,radius:number,height:number,skip?:string,obstacles=houses(x,z,radius)) {
   const o=origin(),site=civicOffset();
   const globalX=x+o.x,globalZ=z+o.z;
   if(globalX<TOWN_BOUNDS.x0-20||globalX>TOWN_BOUNDS.x1+35||globalZ<TOWN_BOUNDS.z0-20||globalZ>TOWN_BOUNDS.z1+34)return true;
@@ -42,7 +58,7 @@ export function blockedAt(x:number,z:number,radius:number,height:number,skip?:st
   const c=resolveLandmarks(civic,radius);
   if(Math.hypot(c.x-civic.x,c.z-civic.z)>.001)return true;
   if(SHOP_BOXES.some(b=>civic.x>b.x0-radius&&civic.x<b.x1+radius&&civic.z>b.z0-radius&&civic.z<b.z1+radius))return true;
-  for(const {h,x:ox,z:oz} of houses()){
+  for(const {h,x:ox,z:oz} of obstacles){
     const p={x:x-ox,z:z-oz};
     if(surfaceHeight(h,p.x,p.z,0)>.15||ceilingHeight(h,p.x,p.z,0)<height)return true;
     const q=resolveCollisions(h,p,0,height,isDoorOpen,radius);
@@ -132,8 +148,10 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   const buttonSteering=!paused&&!keyboardSteering&&buttonDirection!==0;
   const o=origin();
   const previousYaw=car.yaw;
+  const obstacles=houses(car.x-o.x,car.z-o.z,Math.hypot(d.length,d.width)/2+d.maxSpeed*Math.min(dt,.25)+.2);
   integrateDrive(car,{throttle,steering,buttonSteering,reverseOnBrake:!paused&&driveButtons.brake,handbrake:!paused&&(driveButtons.handbrake||key('ShiftLeft','ShiftRight')),brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
-    carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id)));
+    obstacles.some(({h,x,z})=>carHitsWalls(pose,d,h,isDoorOpen,{x:o.x+x,z:o.z+z})) ||
+    carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id,obstacles)));
   engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
   p.yaw+=car.yaw-previousYaw;
   Object.assign(p,{x:car.x-o.x,y:0,z:car.z-o.z,bodyYaw:car.yaw});
