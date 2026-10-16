@@ -23,7 +23,7 @@ export function MoneyBar() {
         </span>
       </div>
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">
-        🗺 マップ
+        🗺 地図
       </button>
       <BuildChip />
     </div>
