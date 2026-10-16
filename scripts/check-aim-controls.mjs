@@ -137,8 +137,8 @@ try {
   assert.equal(await page.locator('.joystick').count(),0,'no driving joystick');
   for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}]){
     await page.setViewportSize(viewport);await page.waitForTimeout(200);
-    const boxes=await page.locator('.drive-steering button,.drive-pedals button').evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
-    assert.equal(boxes.length,4);
+    const boxes=await page.locator('.drive-steering button,.drive-pedals button,.drive-handbrake').evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
+    assert.equal(boxes.length,5);
     for(const b of boxes)assert.ok(b.x>=0&&b.y>=0&&b.x+b.w<=viewport.width&&b.y+b.h<=viewport.height&&b.w>=44&&b.h>=44,'driving buttons fit and remain tappable');
     for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'driving buttons do not overlap');}
     await page.screenshot({path:`control-checks/driving-${viewport.width}.png`});
