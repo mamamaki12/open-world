@@ -9,12 +9,18 @@ import { RUN_THRESHOLD, touchCamera, touchMove, walkActions } from '../state/tou
 
 /** スティックを倒せる半径（px） */
 const STICK_RADIUS = 46;
+/** スティックの2回タップでジャンプ：1回目は短く触れて離し、この時間（ms）以内にもう一度触れる */
+const TAP_MS = 250;
+const DOUBLE_TAP_MS = 350;
 
 function Joystick({ driving }: { driving: boolean }) {
   const base = useRef<HTMLDivElement>(null);
   const pointer = useRef<number | null>(null);
   const center = useRef({ x: 0, y: 0 });
+  const downAt = useRef(0);
+  const tapAt = useRef(-Infinity);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
+  const [jumped, setJumped] = useState(false);
   const running = !driving && Math.hypot(knob.x, knob.y) / STICK_RADIUS >= RUN_THRESHOLD;
 
   const release = () => {
@@ -54,15 +60,27 @@ function Joystick({ driving }: { driving: boolean }) {
         e.currentTarget.setPointerCapture(e.pointerId);
         const r = base.current!.getBoundingClientRect();
         center.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        const now = performance.now();
+        if (!driving && now - tapAt.current < DOUBLE_TAP_MS) {
+          tapAt.current = -Infinity;
+          walkActions.jump();
+          setJumped(true);
+        }
+        downAt.current = now;
         move(e);
       }}
       onPointerMove={(e) => e.pointerId === pointer.current && move(e)}
-      onPointerUp={(e) => e.pointerId === pointer.current && release()}
+      onPointerUp={(e) => {
+        if (e.pointerId !== pointer.current) return;
+        const now = performance.now();
+        if (now - downAt.current < TAP_MS) tapAt.current = now;
+        release();
+      }}
       onPointerCancel={(e) => e.pointerId === pointer.current && release()}
       onLostPointerCapture={(e) => e.pointerId === pointer.current && release()}
     >
       <div className="joystick-knob" style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
-      <span className="joystick-hint">{driving ? '前後・ハンドル' : running ? '走る' : ''}</span>
+      <span className="joystick-hint">{driving ? '前後・ハンドル' : running ? '走る' : jumped ? '' : '2回タップでジャンプ'}</span>
     </div>
   );
 }
@@ -105,7 +123,8 @@ function HoldButton({ className, onHold, children, label }: { className?: string
   );
 }
 
-export function TouchWalkControls() {
+/** 歩きモードの操作：左下のスティック（2回タップでジャンプ）と、右下の建てるボタン（運転中はブレーキ） */
+export function TouchWalkControls({ build }: { build: ReactNode }) {
   const driving = useVehicles(s=>s.driving);
   const view = useGame(s=>s.view);
   useEffect(()=>()=>{driveButtons.brake=false;},[]);
@@ -121,9 +140,10 @@ export function TouchWalkControls() {
         </TapButton>
         <TapButton className="small reset" label="視点を正面に戻す" onTap={() => walkActions.resetCamera()}>正面</TapButton>
         </>}
-        {driving ? <HoldButton label="ブレーキ" className="jump" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton> : <TapButton className={`jump${climb === 'ok' && !climbing ? ' climb' : ''}`} onTap={() => walkActions.jump()}>
-          {climb === 'ok' && !climbing ? '窓から出る' : 'ジャンプ'}
-        </TapButton>}
+        {driving ? <HoldButton label="ブレーキ" className="jump" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton> : <>
+          {climb === 'ok' && !climbing && <TapButton className="jump climb" onTap={() => walkActions.jump()}>窓から出る</TapButton>}
+          <div className="touch-build">{build}</div>
+        </>}
       </div>
     </div>
   );

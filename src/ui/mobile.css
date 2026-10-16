@@ -342,3 +342,25 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 .touch .choice-list > button, .touch .seg > button {min-height:44px;}
 .touch input[type=range] {max-width:100%;margin-left:0;margin-right:0;}
+
+/* 歩きモードの右下：建てるボタン（ジャンプはスティックの2回タップ）。窓の前ではその上に「窓から出る」 */
+.touch:not(.driving) .touch-actions { display: flex; flex-direction: column; align-items: center; }
+.touch-build .build-fab { width: 76px; height: 76px; border-radius: 22px; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch-build .build-fab { width: 64px; height: 64px; border-radius: 18px; }
+  .touch-build .build-fab-icon { font-size: 24px; }
+  .touch-build .build-fab-label { font-size: 12px; }
+}
+
+/* 歩いているときの右上：丸い地図ボタン（運転中は前方を空けるため出さない） */
+.touch-map {
+  position: absolute; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + var(--safe-r)); z-index: 3;
+  width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.88); box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  font-size: 26px; line-height: 1; padding: 0; display: grid; place-items: center;
+}
+.touch-map:active { transform: scale(0.94); }
+.touch.driving .touch-map { display: none; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch-map { width: 44px; height: 44px; font-size: 22px; }
+}
