@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useVehicles } from '../state/vehicles';
-import { driveButtons } from '../world/vehicleLogic';
+import { driveButtons, resetDriveButtons } from '../world/vehicleLogic';
 import { useDoors } from '../state/doors';
 import { useGame } from '../state/store';
 import { RUN_THRESHOLD, touchCamera, touchMove, walkActions } from '../state/touch';
@@ -104,18 +104,23 @@ function TapButton({ className, onTap, children, label }: { className?: string; 
 
 /** 押している間だけ効くボタン */
 function HoldButton({ className, onHold, children, label }: { className?: string; onHold: (on: boolean) => void; children: ReactNode; label: string }) {
+  const pointer=useRef<number|null>(null);
+  const [held,setHeld]=useState(false);
+  const release=(e:ReactPointerEvent)=>{if(pointer.current!==e.pointerId)return;pointer.current=null;setHeld(false);onHold(false);};
   return (
     <button
       className={`touch-btn ${className ?? ''}`}
       aria-label={label}
+      aria-pressed={held}
       onPointerDown={(e) => {
         e.preventDefault();
+        if(pointer.current!==null)return;pointer.current=e.pointerId;setHeld(true);
         e.currentTarget.setPointerCapture(e.pointerId);
         onHold(true);
       }}
-      onPointerUp={() => onHold(false)}
-      onPointerCancel={() => onHold(false)}
-      onLostPointerCapture={() => onHold(false)}
+      onPointerUp={release}
+      onPointerCancel={release}
+      onLostPointerCapture={release}
       onContextMenu={(e) => e.preventDefault()}
     >
       {children}
@@ -127,12 +132,26 @@ function HoldButton({ className, onHold, children, label }: { className?: string
 export function TouchWalkControls({ build }: { build: ReactNode }) {
   const driving = useVehicles(s=>s.driving);
   const view = useGame(s=>s.view);
-  useEffect(()=>()=>{driveButtons.brake=false;},[]);
+  useEffect(()=>{
+    resetDriveButtons();
+    const hidden=()=>{if(document.hidden)resetDriveButtons();};
+    window.addEventListener('blur',resetDriveButtons);document.addEventListener('visibilitychange',hidden);
+    return()=>{resetDriveButtons();window.removeEventListener('blur',resetDriveButtons);document.removeEventListener('visibilitychange',hidden);};
+  },[driving]);
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
   return (
     <div className="touch-walk">
-      <Joystick driving={!!driving} />
+      {driving ? <>
+        <div className="drive-steering" role="group" aria-label="ハンドル">
+          <HoldButton label="左にハンドルを切る" onHold={on=>{driveButtons.left=on;}}>←</HoldButton>
+          <HoldButton label="右にハンドルを切る" onHold={on=>{driveButtons.right=on;}}>→</HoldButton>
+        </div>
+        <div className="drive-pedals" role="group" aria-label="ペダル">
+          <HoldButton label="ブレーキ" className="drive-brake" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton>
+          <HoldButton label="アクセル" className="drive-accelerator" onHold={on=>{driveButtons.accelerator=on;}}>アクセル</HoldButton>
+        </div>
+      </> : <Joystick driving={false} />}
       <div className="touch-actions">
         {driving && <>
         <TapButton className="small view" label={view === 'first' ? '三人称に切り替え' : '一人称に切り替え'} onTap={() => walkActions.toggleView()}>
@@ -140,7 +159,7 @@ export function TouchWalkControls({ build }: { build: ReactNode }) {
         </TapButton>
         <TapButton className="small reset" label="視点を正面に戻す" onTap={() => walkActions.resetCamera()}>正面</TapButton>
         </>}
-        {driving ? <HoldButton label="ブレーキ" className="jump" onHold={on=>{driveButtons.brake=on;}}>ブレーキ</HoldButton> : <>
+        {!driving && <>
           {climb === 'ok' && !climbing && <TapButton className="jump climb" onTap={() => walkActions.jump()}>窓から出る</TapButton>}
           <div className="touch-build">{build}</div>
         </>}

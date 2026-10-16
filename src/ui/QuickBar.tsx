@@ -24,6 +24,7 @@ export function QuickBar(){
   return <>
     <div className="quick-tools" aria-label="道具のホットバー">
       <div className="quick-slots" ref={slots}>{QUICK_TOOLS.map((t,i)=><button key={t} aria-label={`${i+1}: ${NAMES[t]}`} aria-pressed={t===tool} onClick={()=>setTool(t)}><kbd>{i+1}</kbd><span>{toolIcon(t)}</span><small>{NAMES[t]}</small></button>)}</div>
+      {tool!=='select'&&<BuildHistory/>}
       <div className="quick-meta"><span>{name}<small className="quick-swipe-hint"> · 左右スワイプで道具</small></span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>⚙</button></div>
     </div>
     {centered&&<>
@@ -65,4 +66,14 @@ export function ControlsPanel(){
     <p>スマホ：左スティックで移動、端まで倒すと走る。スティックを2回タップするとジャンプ。画面を指一本でなぞって見回します。建築モードでは指で直接範囲を描けます。</p>
     <button className="btn" onClick={()=>update({sensitivity:1,invertY:false,aimBuild:true})}>操作設定を初期値に戻す</button>
   </Modal>;
+}
+
+/** 道具を持っている間は履歴操作を常に文字付きで表示する。 */
+function BuildHistory(){
+  const undo=useGame(s=>s.undo),redo=useGame(s=>s.redo);
+  const canUndo=useGame(s=>s.past.length>0),canRedo=useGame(s=>s.future.length>0);
+  return <div className="build-history" role="group" aria-label="建築の取り消し・やり直し">
+    <button disabled={!canUndo} onClick={()=>{aimActions.cancel();undo();}}>↶ 取り消す</button>
+    <button disabled={!canRedo} onClick={()=>{aimActions.cancel();redo();}}>↷ やり直す</button>
+  </div>;
 }

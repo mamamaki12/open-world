@@ -25,3 +25,9 @@
 .touch.walk:has(.aim-reticle) .door-prompts{bottom:calc(190px + var(--safe-b));}
 
 .quick-swipe-hint{display:none;}.touch .quick-swipe-hint{display:inline;font-size:10px;color:#c9d0d8;}
+
+.build-history{display:flex;justify-content:center;gap:6px;padding:4px;background:#17212bef;}
+.build-history button{min-height:36px;min-width:100px;background:#f5e7bd;color:#2f2919;border:1px solid #c9ad6c;border-radius:6px;font-weight:700;font-size:12px;}
+.build-history button:disabled{background:#35404c;color:#c2c9d0;border-color:#727b87;opacity:.65;}
+.touch .build-history{padding:2px 4px;}.touch .build-history button{min-height:36px;}
+@media(orientation:landscape) and (max-height:500px){.touch .quick-slots button{min-height:40px;}.touch .build-history{position:absolute;left:calc(100% + 8px);top:0;flex-direction:column;border-radius:8px;}.touch .build-history button{min-width:82px;}}

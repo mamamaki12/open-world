@@ -178,6 +178,7 @@ function WalkMenu() {
 
 /** スマホの左上：モード切り替え・取り消し・セーブと、所持金・不動産屋・カジノ */
 function TouchHud() {
+  const holding=useGame(s=>s.tool!=='select');
   const undo = useGame((s) => s.undo);
   const redo = useGame((s) => s.redo);
   const canUndo = useGame((s) => s.past.length > 0);
@@ -188,11 +189,11 @@ function TouchHud() {
     <div className="touch-hud">
       <div className="touch-hud-row">
         <ModeButton />
-        <button className="tool icon" disabled={!canUndo} onClick={undo} aria-label="取り消し">
-          ↶
+        <button className={`tool icon${holding?' history-label':''}`} disabled={!canUndo} onClick={undo} aria-label="取り消し">
+          ↶{holding&&' 取り消す'}
         </button>
-        <button className="tool icon" disabled={!canRedo} onClick={redo} aria-label="やり直し">
-          ↷
+        <button className={`tool icon${holding?' history-label':''}`} disabled={!canRedo} onClick={redo} aria-label="やり直し">
+          ↷{holding&&' やり直す'}
         </button>
         <SaveMenu />
       </div>

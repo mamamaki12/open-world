@@ -364,3 +364,16 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (orientation: landscape) and (max-height: 500px) {
   .touch-map { width: 44px; height: 44px; font-size: 22px; }
 }
+
+/* 運転は左右と2つのペダル。両手の同時押しで曲がりながら加速できる。 */
+.drive-steering,.drive-pedals{position:absolute;bottom:calc(18px + var(--safe-b));display:flex;gap:10px;pointer-events:auto;}
+.drive-steering{left:calc(14px + var(--safe-l));}.drive-pedals{right:calc(14px + var(--safe-r));}
+.drive-steering .touch-btn,.drive-pedals .touch-btn{width:64px;height:74px;border-radius:16px;border:2px solid #fff9;}
+.drive-steering .touch-btn{font-size:34px;background:#20364deb;color:#fff;}
+.drive-pedals .touch-btn{font-size:12px;color:#fff;}
+.drive-pedals .drive-brake{background:#a73535ef;}.drive-pedals .drive-accelerator{background:#126643ef;}
+.drive-steering .touch-btn[aria-pressed=true],.drive-pedals .touch-btn[aria-pressed=true]{background:#ffcf66;color:#17212b;transform:translateY(2px);}
+.touch.driving .touch-actions{bottom:calc(104px + var(--safe-b));display:flex;gap:8px;}
+.touch .tool.history-label{width:auto;min-width:76px;padding:0 8px;font-size:12px;}
+@media(max-width:359px){.drive-steering,.drive-pedals{gap:6px;}.drive-steering .touch-btn,.drive-pedals .touch-btn{width:60px;height:68px;}}
+@media(orientation:landscape) and (max-height:500px){.drive-steering,.drive-pedals{bottom:calc(10px + var(--safe-b));}.drive-steering .touch-btn,.drive-pedals .touch-btn{height:60px;}.touch.driving .touch-actions{bottom:calc(80px + var(--safe-b));}}
