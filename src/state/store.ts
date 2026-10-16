@@ -10,7 +10,7 @@ export type Mode = 'build' | 'walk';
 export type View = 'third' | 'first';
 
 /** 画面いっぱいに開くメニュー（開いている間はゲームのキー操作を止める） */
-export type Overlay = 'estate' | 'casino' | 'map' | 'dealer' | 'land' | null;
+export type Overlay = 'estate' | 'casino' | 'map' | 'dealer' | 'land' | 'controls' | 'inventory' | null;
 
 export type Tool = 'select' | 'floor' | 'wall' | 'door' | 'window' | 'stair' | 'roof' | 'furniture' | 'erase';
 
@@ -125,7 +125,7 @@ export const useGame = create<GameState>((set, get) => ({
   dragBase: null,
 
   mode: 'build',
-  view: 'third',
+  view: 'first',
   tool: 'select',
   activeLevel: 0,
   selection: null,

@@ -24,6 +24,8 @@ import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from '.
 import { useGame } from '../state/store';
 import { lotHouse, plotOffset, plotOffsetZ, civicOffset, currentPlotOf, useEconomy } from '../state/economy';
 import { TOWN_BOUNDS, plotX, plotZ } from '../economy/town';
+import { buildMenuOpen, useControls, cycleTool } from '../state/controls';
+import { aimBuilding } from './aimMode';
 import { RUN_THRESHOLD, touchMove, walkActions } from '../state/touch';
 import { AvatarModel, poseRig, useRig, useSmooth } from './Avatar';
 
@@ -49,13 +51,16 @@ export const playerMemory = {
   distance: 4.2,
 };
 
+/** 開発用の操作確認にも使う、実際のフレームの移動状態。 */
+export const playerMotion = { running:false, jumps:0 };
+
 /** プレイヤーが入力として使うキー（e.code）。HUD の説明と合わせる */
 export const WALK_KEYS = {
   forward: ['KeyW', 'ArrowUp'],
   back: ['KeyS', 'ArrowDown'],
   left: ['KeyA', 'ArrowLeft'],
   right: ['KeyD', 'ArrowRight'],
-  run: ['ShiftLeft', 'ShiftRight'],
+  run: ['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight'],
   jump: ['Space'],
   view: ['KeyQ'],
   resetCamera: ['KeyR'],
@@ -233,7 +238,7 @@ export function Player() {
     const el = gl.domElement;
     const isTyping = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      return t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || useGame.getState().overlay !== null;
+      return t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || useGame.getState().overlay !== null || buildMenuOpen.current;
     };
     // 動作はキーと画面のボタン（スマホ）の両方から呼ぶ
     const jump = () => {
@@ -249,6 +254,7 @@ export function Player() {
         st.vz = 0;
         playClimbSound();
       } else {
+        playerMotion.jumps++;
         st.velY = JUMP_SPEED;
         st.grounded = false;
       }
@@ -263,11 +269,13 @@ export function Player() {
     };
     Object.assign(walkActions, { jump, toggleView, resetCamera });
 
+    let lastForward = -Infinity;
     const onDown = (e: KeyboardEvent) => {
-      if (isTyping(e) || e.ctrlKey || e.metaKey) return;
+      if (isTyping(e) || e.metaKey || e.altKey || (e.ctrlKey && !Object.values(WALK_KEYS).some(codes=>codes.includes(e.code)))) return;
       if (Object.values(WALK_KEYS).some((codes) => codes.includes(e.code))) e.preventDefault();
       if (e.repeat) return;
       keys.current.add(e.code);
+      if (WALK_KEYS.forward.includes(e.code)) { const now=e.timeStamp; if(now-lastForward<350)keys.current.add('DoubleSprint');lastForward=now; }
       if (e.code === 'KeyL') { const s=useVehicles.getState(); const car=s.cars.find(c=>c.id===s.driving); if(car)car.lights=!car.lights; }
       if (WALK_KEYS.jump.includes(e.code)) jump();
       if (WALK_KEYS.view.includes(e.code)) toggleView();
@@ -276,39 +284,49 @@ export function Player() {
       const tool = useGame.getState().tool;
       if (WALK_KEYS.resetCamera.includes(e.code) && tool !== 'stair' && tool !== 'furniture') resetCamera();
     };
-    const onUp = (e: KeyboardEvent) => keys.current.delete(e.code);
+    const onUp = (e: KeyboardEvent) => {keys.current.delete(e.code);if(WALK_KEYS.forward.includes(e.code))keys.current.delete('DoubleSprint');};
     const onBlur = () => keys.current.clear();
 
     let dragging = false;
+    let locking = false, skipLockedMove = false;
+    const lockChanged = () => { locking=false;dragging=false;skipLockedMove=document.pointerLockElement===el; };
+    const lockFailed = () => { locking=false; };
     const look = (dx: number, dy: number) => {
+      const {sensitivity,invertY}=useControls.getState();
+      dx*=sensitivity;dy*=sensitivity*(invertY?-1:1);
       playerMemory.yaw -= dx * 0.0028;
       playerMemory.pitch = Math.min(Math.max(playerMemory.pitch - dy * 0.0028, -1.25), 1.25);
     };
     const onMouseDown = (e: MouseEvent) => {
       if (touchActive) return; // 指で触ったときに後から来るマウスの真似のイベントは無視する
       // 建てるツールを持っているときは、左クリックで置き、右ドラッグで見回す
-      if (isBuilding()) {
+      if (isBuilding() && !aimBuilding()) {
         if (e.button === 2) dragging = true;
         return;
       }
-      if (e.button !== 0) return;
+      if (e.button !== 0 && !(aimBuilding() && e.button === 2)) return;
       dragging = true;
+      if(document.pointerLockElement===el)return;
+      locking=true;
       // クリックでマウスを固定して視点操作（使えない環境ではドラッグで視点を回す）
       try {
         const r = el.requestPointerLock() as unknown as Promise<void> | undefined;
-        r?.catch?.(() => undefined);
+        r?.catch?.(() => {locking=false;});
       } catch {
-        /* ドラッグで代用 */
+        locking=false; /* ドラッグで代用 */
       }
     };
     const onMouseUp = () => (dragging = false);
     const onMouseMove = (e: MouseEvent) => {
+      if(locking)return;
+      if(skipLockedMove){skipLockedMove=false;return;}
       if (document.pointerLockElement === el || dragging) look(e.movementX, e.movementY);
     };
     const onContextMenu = (e: MouseEvent) => e.preventDefault();
     // ツールを持ったらマウスの固定を外す（カーソルで置く場所を指すため）
     const unsubTool = useGame.subscribe((s, prev) => {
-      if (s.tool !== prev.tool && s.tool !== 'select' && document.pointerLockElement === el) document.exitPointerLock();
+      if (((s.tool !== prev.tool && s.tool !== 'select' && !aimBuilding()) || s.overlay) && document.pointerLockElement === el) document.exitPointerLock();
+      if(s.overlay)keys.current.clear();
     });
     // 指：画面をなぞって見回す。2本指でつまむとカメラの距離。
     // 建てるツールを持っているときは1本指が「置く」になるので、見回すのは2本指で
@@ -349,23 +367,28 @@ export function Player() {
       pinch = spread();
       if (fingers.size === 0) touchTimer = setTimeout(() => (touchActive = false), 600);
     };
+    let wheelAt = 0;
     const onWheel = (e: WheelEvent) => {
+      if(!useVehicles.getState().driving && !useGame.getState().overlay && !e.shiftKey && !e.ctrlKey){e.preventDefault();if(performance.now()-wheelAt>120&&e.deltaY!==0){useGame.getState().setTool(cycleTool(useGame.getState().tool,e.deltaY));wheelAt=performance.now();}return;}
       playerMemory.distance = Math.min(Math.max(playerMemory.distance + e.deltaY * 0.004, 1.6), 9);
     };
 
+    document.addEventListener('pointerlockchange',lockChanged);
+    document.addEventListener('pointerlockerror',lockFailed);
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
     window.addEventListener('blur', onBlur);
     el.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
     window.addEventListener('mousemove', onMouseMove);
-    el.addEventListener('wheel', onWheel, { passive: true });
+    el.addEventListener('wheel', onWheel, { passive: false });
     el.addEventListener('contextmenu', onContextMenu);
     el.addEventListener('pointerdown', onTouchDown);
     window.addEventListener('pointermove', onTouchMove);
     window.addEventListener('pointerup', onTouchUp);
     window.addEventListener('pointercancel', onTouchUp);
     return () => {
+      playerMotion.running = false;
       clearTimeout(touchTimer);
       Object.assign(walkActions, { jump: () => undefined, toggleView: () => undefined, resetCamera: () => undefined });
       touchMove.x = 0;
@@ -376,6 +399,8 @@ export function Player() {
       window.removeEventListener('pointercancel', onTouchUp);
       unsubTool();
       el.removeEventListener('contextmenu', onContextMenu);
+      document.removeEventListener('pointerlockchange',lockChanged);
+      document.removeEventListener('pointerlockerror',lockFailed);
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('blur', onBlur);
@@ -387,6 +412,7 @@ export function Player() {
   }, [gl]);
 
   useFrame(({ clock }, rawDt) => {
+    if(buildMenuOpen.current){keys.current.clear();return;}
     refreshVehicleTarget(playerMemory);
     if(useVenue.getState().inside && useGame.getState().tool!=='select')useGame.getState().setTool('select');
     if (driveFrame(camera, keys.current, rawDt, playerMemory, scene)) {
@@ -424,7 +450,9 @@ export function Player() {
       mx /= mlen;
       mz /= mlen;
     }
-    const running = (pressed(WALK_KEYS.run) || stick >= RUN_THRESHOLD);
+    const running = (pressed(WALK_KEYS.run) || k.has('DoubleSprint') || stick >= RUN_THRESHOLD);
+    if(pressed(WALK_KEYS.jump)&&st.grounded&&!seated&&!action.current)walkActions.jump();
+    playerMotion.running = running && mlen > 0 && !seated;
     const analog = stick > 0 ? Math.min(1, stick / 0.7) : 1;
     const speedGoal = mlen === 0 ? 0 : (running ? RUN_SPEED : WALK_SPEED) * (running ? 1 : analog);
 

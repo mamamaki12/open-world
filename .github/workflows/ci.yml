@@ -18,3 +18,21 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Install browser for interaction checks
+        run: npx playwright install --with-deps chromium
+      - name: Check mobile and desktop controls
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/open-world-vite.log 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-aim-controls.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: control-checks
+          path: control-checks/
+          if-no-files-found: ignore

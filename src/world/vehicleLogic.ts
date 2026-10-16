@@ -17,7 +17,8 @@ import { saveVehicles, useVehicles } from '../state/vehicles';
 import { plotX, plotZ, TOWN_BOUNDS } from '../economy/town';
 import { touchMove } from '../state/touch';
 
-export const driveButtons = { brake:false };
+export const driveButtons = { left:false, right:false, accelerator:false, brake:false };
+export function resetDriveButtons() { driveButtons.left=false;driveButtons.right=false;driveButtons.accelerator=false;driveButtons.brake=false; }
 type Memory = {x:number;y:number;z:number;yaw:number;bodyYaw:number;pitch:number};
 function origin() { const p=currentPlotOf(useEconomy.getState());return {x:plotX(p),z:plotZ(p)}; }
 export function atCarDealer(p:Memory) { const o=civicOffset();return useVenue.getState().inside==='dealer' || atDealerDoor(p.x-o.x,p.z-o.z,p.y); }
@@ -103,6 +104,7 @@ export function vehicleInteract(p:Memory) {
   const c=s.cars.find(c=>c.id===s.target);
   if(!c)return false;
   useVehicles.setState({driving:c.id});
+  useGame.setState({view:'third'});
   useGame.getState().setTool('select');
   useDoors.getState().setTarget(null);
   Object.assign(p,{yaw:c.yaw,bodyYaw:c.yaw,pitch:-.2});
@@ -116,8 +118,8 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   if(useGame.getState().tool!=='select')useGame.getState().setTool('select');
   const key=(...codes:string[])=>codes.some(c=>keys.has(c));
   const paused=!!useGame.getState().overlay;
-  const throttle=paused?0:(key('KeyW','ArrowUp')?1:0)-(key('KeyS','ArrowDown')?1:0)||(!paused?touchMove.y:0);
-  const steering=paused?0:(key('KeyD','ArrowRight')?1:0)-(key('KeyA','ArrowLeft')?1:0)||(!paused?touchMove.x:0);
+  const throttle=paused?0:(key('KeyW','ArrowUp')?1:0)-(key('KeyS','ArrowDown')?1:0)||(!paused?(driveButtons.accelerator?1:touchMove.y):0);
+  const steering=paused?0:(key('KeyD','ArrowRight')?1:0)-(key('KeyA','ArrowLeft')?1:0)||(!paused?(Number(driveButtons.right)-Number(driveButtons.left)||touchMove.x):0);
   const o=origin();
   const previousYaw=car.yaw;
   integrateDrive(car,{throttle,steering,brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
