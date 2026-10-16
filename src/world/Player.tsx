@@ -674,7 +674,7 @@ export function Player() {
       const focus = new THREE.Vector3(playerMemory.x, eye - 0.1, playerMemory.z);
       let dist = playerMemory.distance;
       // 壁や屋根でカメラが埋もれないよう、手前に寄せる
-      const blockers = ['house', 'casino', 'estate', 'dealer', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
+      const blockers = ['house', 'casino', 'estate', 'dealer', 'boutiques', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
       if (blockers.length) {
         raycaster.current.set(focus, dir.clone().negate());
         raycaster.current.far = dist;
