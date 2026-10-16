@@ -389,7 +389,7 @@ export function Player() {
   useFrame(({ clock }, rawDt) => {
     refreshVehicleTarget(playerMemory);
     if(useVenue.getState().inside && useGame.getState().tool!=='select')useGame.getState().setTool('select');
-    if (driveFrame(camera, keys.current, rawDt, playerMemory)) {
+    if (driveFrame(camera, keys.current, rawDt, playerMemory, scene)) {
       if (rig.current.root) rig.current.root.visible=false;
       state.current.vx=0; state.current.vz=0; state.current.velY=0;
       return;
