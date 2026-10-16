@@ -690,3 +690,9 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
 .race-ticket-drawer .muted {color:#5c6269;}.race-ticket-drawer .printed-list {gap:8px;}.race-ticket-drawer .ticket {animation:none;}
 .race-all-tickets summary {cursor:pointer;font-weight:700;padding:8px;background:#eee6d3;}.race-all-tickets ul {padding:0;list-style:none;max-height:240px;overflow:auto;}.race-all-tickets li {padding:6px;border-bottom:1px solid #d8d2c4;}.race-all-tickets li span {display:block;color:#53616c;}
 @media(max-width:640px){.race-money{padding:12px;}.race-tickets-toggle{font-size:12px;padding:4px 7px;}.race-ticket-drawer{top:52px;max-height:70%;}.race-money-values strong{font-size:22px;}}
+
+.roulette-touch-tools {display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.roulette-touch-tools .scroll-hint {margin:0;font-size:12px;}
+.roulette-touch-tools button[aria-pressed=true] {background:#ffe08a;color:#30230f;outline:2px solid #b99440;}
+.touch .felt-scroll {scrollbar-width:thin;scrollbar-color:#d4b85e #12452e;}
+.touch .spot {min-height:44px;}
