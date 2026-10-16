@@ -152,6 +152,7 @@ try {
   await mobile.close();
   const desktop = await open(false, { width: 1280, height: 720 });
   await page.mouse.click(640, 360); await page.waitForFunction(() => document.pointerLockElement !== null);
+  await page.evaluate(()=>Object.assign(window.__ow.player,{yaw:0,pitch:-.7}));await page.waitForTimeout(300);
   await page.keyboard.press('Digit2'); await page.keyboard.press('Digit2'); await page.mouse.click(640, 360, { button: 'right' });
   await page.mouse.click(640, 360, { button: 'right' });
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.floors.length), 1, 'mouse places at central aim');

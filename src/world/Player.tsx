@@ -288,6 +288,9 @@ export function Player() {
     const onBlur = () => keys.current.clear();
 
     let dragging = false;
+    let locking = false, skipLockedMove = false;
+    const lockChanged = () => { locking=false;dragging=false;skipLockedMove=document.pointerLockElement===el; };
+    const lockFailed = () => { locking=false; };
     const look = (dx: number, dy: number) => {
       const {sensitivity,invertY}=useControls.getState();
       dx*=sensitivity;dy*=sensitivity*(invertY?-1:1);
@@ -303,16 +306,20 @@ export function Player() {
       }
       if (e.button !== 0 && !(aimBuilding() && e.button === 2)) return;
       dragging = true;
+      if(document.pointerLockElement===el)return;
+      locking=true;
       // クリックでマウスを固定して視点操作（使えない環境ではドラッグで視点を回す）
       try {
         const r = el.requestPointerLock() as unknown as Promise<void> | undefined;
-        r?.catch?.(() => undefined);
+        r?.catch?.(() => {locking=false;});
       } catch {
-        /* ドラッグで代用 */
+        locking=false; /* ドラッグで代用 */
       }
     };
     const onMouseUp = () => (dragging = false);
     const onMouseMove = (e: MouseEvent) => {
+      if(locking)return;
+      if(skipLockedMove){skipLockedMove=false;return;}
       if (document.pointerLockElement === el || dragging) look(e.movementX, e.movementY);
     };
     const onContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -366,6 +373,8 @@ export function Player() {
       playerMemory.distance = Math.min(Math.max(playerMemory.distance + e.deltaY * 0.004, 1.6), 9);
     };
 
+    document.addEventListener('pointerlockchange',lockChanged);
+    document.addEventListener('pointerlockerror',lockFailed);
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
     window.addEventListener('blur', onBlur);
@@ -390,6 +399,8 @@ export function Player() {
       window.removeEventListener('pointercancel', onTouchUp);
       unsubTool();
       el.removeEventListener('contextmenu', onContextMenu);
+      document.removeEventListener('pointerlockchange',lockChanged);
+      document.removeEventListener('pointerlockerror',lockFailed);
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('blur', onBlur);
