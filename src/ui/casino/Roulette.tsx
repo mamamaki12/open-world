@@ -53,6 +53,7 @@ interface Placement {
 }
 
 export function Roulette() {
+  const [removing, setRemoving] = useState(false);
   const [chip, setChip] = useState<number>(10_000);
   const [placed, setPlaced] = useState<Placement[]>([]);
   const [lastPlaced, setLastPlaced] = useState<Placement[]>([]);
@@ -211,7 +212,11 @@ export function Roulette() {
         {level > 0 && result && <WinBurst key={result.id} level={level} amount={result.win} text={level === 2 ? 'BIG WIN!!' : 'WIN!'} />}
       </div>
 
-      <div className="felt-scroll">
+      <div className="roulette-touch-tools">
+        <p className="scroll-hint">← 台を左右になぞると、残りの数字・賭け方を表示できます →</p>
+        <button className="btn small" aria-pressed={removing} disabled={spinning} onClick={() => setRemoving(v => !v)}>{removing ? 'チップを外す：ON（マスをタップ）' : 'チップを外すモード'}</button>
+      </div>
+      <div className="felt-scroll" tabIndex={0} aria-label="ルーレットの賭け台。左右にスクロールできます">
         <div className="roulette-table">
           {SPOTS.map((s) => {
             const k = keyOf(s.bet);
@@ -221,7 +226,8 @@ export function Roulette() {
                 key={k}
                 className={`spot ${s.cls}${hit(s.bet) ? ' hit' : ''}${result && amt > 0 && !hit(s.bet) ? ' lost' : ''}`}
                 style={{ gridColumn: s.col, gridRow: s.row }}
-                onClick={() => place(s.bet)}
+                onClick={() => removing ? removeSpot(s.bet) : place(s.bet)}
+                aria-label={`${rouletteBetName(s.bet)}（×${payoutOf(s.bet)}）${amt ? ` ${yen(amt)}` : ''}`}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   removeSpot(s.bet);
@@ -253,7 +259,7 @@ export function Roulette() {
         {spinning ? '回転中…' : `スピン（${yen(total)}）`}
       </button>
       <p className="muted">
-        マスを押すと、持っているチップを置きます（右クリックでそのマスのチップを外す）。数字 ×36、列・ダース ×3、赤黒・奇数偶数・前半後半 ×2。0 が出ると 0 以外は負け。還元率 97.3%
+        マスを押すと、持っているチップを置きます。「チップを外すモード」で外したいマスを押すと取り消せます。数字 ×36、列・ダース ×3、赤黒・奇数偶数・前半後半 ×2。0 が出ると 0 以外は負け。還元率 97.3%
       </p>
     </div>
   );
