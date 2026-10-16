@@ -64,7 +64,7 @@ function familyHouse(st: FamilyHouseStyle): House {
   k.open(bath, 'door', 1, door);
   k.wall(0, 16, 6, 18, 6, inner);
   k.wall(0, 16, 6, 16, 9, inner);
-  k.stair(0, 17, 9, 3, wood);
+  k.stair(0, 12, 11, 2, wood);
   // 窓
   st.living.forEach((t, i) => k.open(f1.s, t, [2.5, 5, 7.5][i]));
   k.open(f1.s, 'entrance', 12, { panelColor: st.sash.panelColor });
@@ -81,7 +81,7 @@ function familyHouse(st: FamilyHouseStyle): House {
   // ---- 2階 ----
   const f2 = k.box(1, 4, 4, 18, 13, up, inner, st.floor);
   const rooms = k.wall(1, 4, 8, 18, 8, inner);
-  k.windows(rooms, 'door', [3, 8, 11, 13], door);
+  k.windows(rooms, 'door', [3, 8.5, 11, 13], door);
   k.wall(1, 10, 4, 10, 8, inner);
   k.wall(1, 14, 4, 14, 8, inner);
   k.wall(1, 16, 4, 16, 8, inner);
@@ -122,7 +122,7 @@ function familyHouse(st: FamilyHouseStyle): House {
   k.item(0, 'plant', 13.3, 12.3);
   k.item(0, 'floor-lamp', 4.6, 12.4);
   k.item(0, 'aircon', 4.22, 6.5, 90);
-  for (const x of [6.5, 9, 11.5]) k.item(0, 'curtain', x, 12.86, 180);
+  for (const x of [6.5, 9]) k.item(0, 'curtain', x, 12.86, 180);
   k.item(0, 'shoe-cabinet', 17.7, 11.8, 270);
   k.item(0, 'plant', 14.6, 12.4, 0, '#6c8f4e');
   k.item(0, 'washbasin', 14.38, 7.5, 90);
@@ -137,7 +137,6 @@ function familyHouse(st: FamilyHouseStyle): House {
   k.item(1, 'bed-single', 11, 5.21, 0, '#9aa7b3');
   k.item(1, 'desk', 13, 4.42, 0);
   k.item(1, 'chair', 13, 5.0, 180);
-  k.item(1, 'shelf', 13.3, 7.75, 180);
   k.item(1, 'wardrobe', 15, 4.41, 0);
   k.item(1, 'toilet', 17, 4.45, 0);
   k.item(1, 'sofa', 4.58, 10.5, 90, '#7d8a96');
@@ -155,7 +154,7 @@ function familyHouse(st: FamilyHouseStyle): House {
   for (const x of [1, 3, 5, 7, 11, 13]) k.item(0, 'hedge', x, 19.45);
   k.item(0, 'flowerbed', 12.5, 14.4);
   k.item(0, 'nameplate-post', 15, 19.3, 0, '#f2efe8', st.family);
-  return k.house;
+  return k.finish();
 }
 
 // ---------------------------------------------------------------------------
@@ -206,8 +205,8 @@ function japaneseHouse(): House {
   // 縁側（ウッドデッキ）
   k.floor(0, 4, 14, 11, 15, fin('deck', '#8a6240'), 'terrace');
 
-  // 2階（x4〜13、z5〜11）
-  const f2 = k.box(1, 4, 5, 13, 11, upper, inner, floor);
+  // 2階：階段室を含む総二階にして、上り切った先にも床と外壁を確保する
+  const f2 = k.box(1, 4, 5, 18, 14, upper, inner, floor);
   const room = k.wall(1, 8, 5, 8, 11, inner);
   k.open(room, 'door', 4, { panelColor: WHITE });
   k.open(f2.s, 'sliding', 2);
@@ -216,10 +215,8 @@ function japaneseHouse(): House {
   k.open(f2.n, 'sliding', 6.5);
   k.open(f2.w, 'sliding-small', 3);
   k.open(f2.e, 'sliding', 3);
-  // 屋根：2階は寄棟、1階の下屋は片流れ（2階の壁に向かって上がる）
-  k.roof(1, 4, 5, 13, 11, 'hip', kawara, upper, { pitch: 4.5, overhang: 0.75 });
-  k.roof(0, 13, 5, 18, 14, 'shed', kawara, lower, { axis: 'z', flip: true, pitch: 3, overhang: 0.6 });
-  k.roof(0, 4, 11, 13, 14, 'shed', kawara, lower, { axis: 'x', flip: true, pitch: 3, overhang: 0.6 });
+  // 階段室まで一体の寄棟屋根
+  k.roof(1, 4, 5, 18, 14, 'hip', kawara, upper, { pitch: 4.5, overhang: 0.75 });
 
   // 家具
   k.item(0, 'zataku', 6.5, 8, 0);
@@ -249,7 +246,7 @@ function japaneseHouse(): House {
   k.wall(0, 0, 0, 0, 14, fin('cedar', '#8a6240'), fin('cedar', '#8a6240'), 'privacyFence');
   k.wall(0, 24, 0, 24, 14, fin('cedar', '#8a6240'), fin('cedar', '#8a6240'), 'privacyFence');
   k.item(0, 'nameplate-post', 16, 19.3, 0, '#2f2a26', '山本');
-  return k.house;
+  return k.finish();
 }
 
 // ---------------------------------------------------------------------------
@@ -323,7 +320,7 @@ function singleStoryHouse(): House {
   k.item(0, 'tree', 22.6, 18.5, 0, '#4f7a45');
   k.item(0, 'flowerbed', 10, 14, 0, '#f2c230');
   k.item(0, 'nameplate-post', 15, 19.2, 0, '#f2efe8', '高橋');
-  return k.house;
+  return k.finish();
 }
 
 // ---------------------------------------------------------------------------
@@ -346,6 +343,7 @@ function narrowTownhouse(): House {
   k.wall(0, 13, z1, x1, z1, ext, inner);
   const garage = k.wall(0, x0, 10, x1, 10, inner);
   k.open(garage, 'door', 5.5, door);
+  k.open(garage, 'slide-door', 2, door);
   const wet = k.wall(0, x0, 7, x1, 7, inner);
   k.windows(wet, 'door', [1.5, 4, 6], door);
   k.wall(0, 11, z0, 11, 7, inner);
@@ -359,7 +357,7 @@ function narrowTownhouse(): House {
   k.item(0, 'washer', 12, 4.42, 0);
   k.item(0, 'toilet', 14, 4.45, 0);
   k.item(0, 'shoe-cabinet', 14.7, 9.3, 270);
-  k.stair(0, 9, 8, 1, wood);
+  k.stair(0, 9, 10, 0, wood, 'u');
   // 2階：LDK（外壁は木の羽目板）
   const f2 = k.box(1, x0, z0, x1, z1, accent, inner, floor);
   k.windows(f2.s, 'big-fix', [1.5, 5.5]);
@@ -372,10 +370,10 @@ function narrowTownhouse(): House {
   for (const [x, z, r] of [[11, 5.8, 0], [12, 5.8, 0], [11, 7.0, 180], [12, 7.0, 180]]) k.item(1, 'chair', x, z, r);
   k.item(1, 'sofa', 11.5, 15.4, 180, '#4f5b52');
   k.item(1, 'low-table', 11.5, 14, 0);
-  k.item(1, 'tv', 11.5, 11.6, 0, '#2f3133');
+  k.item(1, 'tv', 14.65, 13, 270, '#2f3133');
   k.item(1, 'plant', 8.6, 15.4);
   for (const x of [9.5, 13.5]) k.item(1, 'curtain', x, z1 - 0.13, 180, '#9aa7b3');
-  k.stair(1, 13, 9, 3, wood);
+  k.stair(1, 9, 10, 0, wood, 'u');
   // 3階：寝室が3つ
   const f3 = k.box(2, x0, z0, x1, z1, ext, inner, floor);
   const rooms = k.wall(2, x0, 9, x1, 9, inner);
@@ -393,7 +391,7 @@ function narrowTownhouse(): House {
   k.roof(2, x0, z0, x1, z1, 'shed', fin('standing', '#5d6166'), ext, { axis: 'x', pitch: 2, overhang: 0.4 });
   k.item(0, 'flowerpot', 7.4, 17);
   k.item(0, 'nameplate-post', 16, 17.5, 0, '#2f2a26', '中村');
-  return k.house;
+  return k.finish();
 }
 
 // ---------------------------------------------------------------------------
@@ -448,7 +446,7 @@ function apartment(st: ApartmentStyle): House {
     if (level > 0) {
       // 共用廊下とバルコニー（どちらも手すり壁で囲む）
       k.floor(level, x0, c - 2, x1, c, corridor, 'terrace');
-      k.floor(level, x1, c - 2, x1 + 2, c - 1, corridor, 'terrace');
+      k.floor(level, x1, c - 2, x1 + 2, c, corridor, 'terrace');
       k.wall(level, x0, c - 2, x1 + 2, c - 2, st.railing, st.railing, 'half');
       k.wall(level, x0, c - 2, x0, c, st.railing, st.railing, 'half');
       k.floor(level, x0, zf, x1, zf + 2, fin('terrace-tile', '#c9c5bb'), 'terrace');
@@ -456,11 +454,9 @@ function apartment(st: ApartmentStyle): House {
       for (let u = 0; u <= st.units; u++) k.wall(level, x0 + u * W, zf, x0 + u * W, zf + 2, st.railing, st.railing, 'half');
     }
     if (level < st.floors - 1) {
-      // 共用廊下に沿った直階段。上下の階で重ならないよう、偶数階は外側の列を東へ、奇数階は内側の列を西へ上る
-      if (level % 2 === 0) k.stair(level, x1 - 4, c - 2, 1, stairFinish);
-      else k.stair(level, x1 - 1, c - 1, 3, stairFinish);
-      // 階段室の外壁（上の階の踊り場の床を支える）
-      k.wall(level, x1 + 2, c - 2, x1 + 2, c + 2, st.railing, st.railing);
+      // 各階で同じ階段室を使い、2マス幅の踊り場から折り返す。
+      k.stair(level, x1, c, 0, stairFinish, 'u');
+      k.wall(level, x1 + 2, c - 2, x1 + 2, c + 3, st.railing, st.railing);
     }
   }
   // 1階：共用廊下と、専用庭の柵
@@ -480,7 +476,7 @@ function apartment(st: ApartmentStyle): House {
   k.item(0, 'tree', 1.2, Math.min(18.8, zf + 3.5));
   k.item(0, 'tree', 22.8, Math.min(18.8, zf + 3.5), 0, '#6c8f4e');
   k.item(0, 'nameplate-post', (x0 + x1) / 2 + 3, 19.3, 0, '#2f2a26', st.name);
-  return k.house;
+  return k.finish();
 }
 
 /** 1部屋ぶん（1LDK、幅が8マス以上なら寝室つきの2LDK） */
