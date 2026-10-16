@@ -12,6 +12,7 @@ import type { WorldSave } from '../session/saves';
 
 /** 建築以外の操作。家・土地の代金は買った人の口座から売り手の口座へ直接移る（新しい土地だけは不動産屋へ払う） */
 export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; price: number | null } | { type: 'buyLot' }
+  | { type: 'offerRent'; rent: number | null } | { type: 'rentLot' } | { type: 'endLease' }
   | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] };
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
 /** みんなのワールドでの所持金と車。自分のワールドとは完全に別（引き継ぐのは見た目と服だけ） */
@@ -95,6 +96,32 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     const next = lots.map(l => l.id === lot.id ? { ...l, listing: a.price === null ? undefined : { price: a.price } } : l);
     return { world: withLots(next), cost: 0, message: a.price === null ? '売りに出すのをやめました' : '売りに出しました' };
   }
+  if (a.type === 'offerRent') {
+    if (lot.owner !== sender) return '自分の家だけ貸し出せます';
+    if (lot.tenant) return '貸している間は家賃を変えられません';
+    if (a.rent !== null && !(Number.isSafeInteger(a.rent) && a.rent > 0 && a.rent <= 1e11)) return '家賃が不正です';
+    const next = lots.map(l => l.id === lot.id ? { ...l, rentOffer: a.rent === null ? undefined : { rent: a.rent } } : l);
+    return { world: withLots(next), cost: 0, message: a.rent === null ? '貸し出しをやめました' : '借りる人を募集しました' };
+  }
+  if (a.type === 'rentLot') {
+    // 借りた日のぶんの家賃を先に払う。以後は毎日、借りた人から持ち主へ払う
+    if (!lot.rentOffer || !lot.owner) return 'その家は貸し出されていません';
+    if (lot.tenant) return 'その家はもう借りられています';
+    if (lot.owner === sender) return '自分の家は借りられません';
+    if (lots.some(l => l.tenant === sender)) return '借りられる家は1軒までです';
+    const rent = lot.rentOffer.rent;
+    const paid = charge(w, sender, rent, `家賃（${lot.name}）`);
+    if (typeof paid === 'string') return paid;
+    const received = paid.accounts?.[lot.owner] ? charge(paid, lot.owner, -rent, `家賃収入（${lot.name}・${name}さん）`) : paid;
+    if (typeof received === 'string') return received;
+    const next = lots.map(l => l.id === lot.id ? { ...l, tenant: sender, tenantName: name } : l);
+    return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: rent, message: lot.name + 'を借りました' };
+  }
+  if (a.type === 'endLease') {
+    if (!lot.tenant || (lot.tenant !== sender && lot.owner !== sender)) return '借りている家ではありません';
+    const next = lots.map(l => l.id === lot.id ? { ...l, tenant: undefined, tenantName: undefined } : l);
+    return { world: withLots(next), cost: 0, message: '賃貸を終了しました' };
+  }
   // buyLot: 売りに出ている土地を買う。代金は買った人から売り手へ直接移る
   if (!lot.listing || !lot.owner) return 'その土地は売りに出ていません';
   if (lot.owner === sender) return '自分の土地は買えません';
@@ -175,8 +202,25 @@ export function tickWorld(w: SharedWorld, dt: number, rng: () => number): { worl
   if (clock < DAY_SECONDS) return { world: { ...w, economy: { ...w.economy, clock } }, newDay: false };
   clock -= DAY_SECONDS; day += 1; market = stepMarket(market, rng);
   marketHistory = [...marketHistory, market].slice(-60);
-  const next = { ...w, economy: { ...w.economy, clock, day, market, marketHistory } };
+  let next: SharedWorld = { ...w, economy: { ...w.economy, clock, day, market, marketHistory } };
+  next = collectRent(next);
   return { world: { ...next, economy: { ...next.economy, offers: sharedOffers(next, rng) } }, newDay: true };
+}
+
+/** 毎日の家賃。借りた人から持ち主へ。払えなければ退去になる */
+export function collectRent(w: SharedWorld): SharedWorld {
+  let out = w;
+  for (const lot of w.economy.lots) {
+    if (!lot.tenant || !lot.rentOffer || !lot.owner) continue;
+    const paid = charge(out, lot.tenant, lot.rentOffer.rent, `家賃（${lot.name}）`);
+    if (typeof paid === 'string') {
+      out = { ...out, economy: { ...out.economy, lots: out.economy.lots.map(l => l.id === lot.id ? { ...l, tenant: undefined, tenantName: undefined } : l) } };
+      continue;
+    }
+    const received = paid.accounts?.[lot.owner] ? charge(paid, lot.owner, -lot.rentOffer.rent, `家賃収入（${lot.name}・${lot.tenantName ?? ''}さん）`) : paid;
+    out = typeof received === 'string' ? paid : received;
+  }
+  return out;
 }
 
 export function validSharedWorld(v: unknown): v is WorldSave {

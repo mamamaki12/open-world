@@ -59,3 +59,24 @@ describe('shared world', () => {
     expect(t.world.economy.offers.length).toBeGreaterThan(0);
   });
 });
+describe('shared world rentals', () => {
+  it('tenant pays the owner when renting and every day, and is evicted when broke', () => {
+    let w = withAccount(withAccount(initialSharedWorld('w'), 'a', 'A'), 'b', 'B');
+    w.accounts!.a.money = 1e8;
+    const offer = w.economy.offers[0].id;
+    w = applyCommand(w, 'a', { id: 'buy', lot: '', delta: [], reserved: 1e9, action: { type: 'buyLand', offer } }, 'A').world;
+    const lot = w.economy.lots[0].id;
+    w = applyCommand(w, 'a', { id: 'r1', lot, delta: [], reserved: 0, action: { type: 'offerRent', rent: 400000 } }, 'A').world;
+    const owner = w.accounts!.a.money;
+    const rented = applyCommand(w, 'b', { id: 'r2', lot, delta: [], reserved: 0, action: { type: 'rentLot' } }, 'B');
+    expect(rented.result.ok).toBe(true);
+    w = rented.world;
+    expect(w.economy.lots[0].tenant).toBe('b');
+    expect(w.accounts!.b.money).toBe(SHARED_START_MONEY - 400000);
+    w = tickWorld(w, 61, Math.random).world;
+    expect(w.accounts!.a.money).toBe(owner + 800000);
+    w = tickWorld(w, 61, Math.random).world; // 残り20万円では払えない
+    expect(w.economy.lots[0].tenant).toBeUndefined();
+    expect(w.accounts!.b.money).toBe(200000);
+  });
+});

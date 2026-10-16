@@ -54,6 +54,10 @@ export interface Lot {
   ownerName?: string;
   /** みんなのワールドで売りに出している値段 */
   listing?: { price: number };
+  /** みんなのワールドで借りる人を募集している1日の家賃と、借りている人 */
+  rentOffer?: { rent: number };
+  tenant?: string;
+  tenantName?: string;
 }
 
 /** その土地が使っている区画（つなげていれば2つ） */
