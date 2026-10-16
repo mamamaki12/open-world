@@ -1,0 +1,31 @@
+# 全員で一つの共有ワールド（方針・引き継ぎ）
+
+- ブランチ: `feat/shared-public-world`
+- ベース: main `aa5521aa67602cd0f11cb18f5fd98b74c1d3386e`（#65のスマホUI改善を保持）
+- 依頼: 招待・個別ワールドを廃止し、全ユーザー（10人未満）が一つの町で同時に遊ぶ。
+
+## 方針
+- 開始画面は「みんなのワールドで遊ぶ」とオフライン。招待コード、ホストの建築許可を不要にする。共有は最大10接続。
+- 共有ワールドの正本と建築の競合検査・精算記録をEC2に移す。特定プレイヤーの退出で終了せず、全員退出やサーバー再起動でも建築が残る。
+- `server/world.ts`で既存の純粋な配置/料金ロジックを再利用し、実行用MJSへビルド。原子的なファイル保存が完了してから建築を確定通知。初期町はサーバー管理の新しい町とし、個人のオフラインセーブを自動アップロードしない。
+- ゲストID・服・所持金・所有車、オフラインの自宅保存・バックアップは保持。共有町への訪問で個人の自宅を上書きしない。共同建築費は本人負担、競合付きundoと二重課金防止を継続。
+- 既存EC2の更新が必要。更新用ファイル・保存パス・systemd再起動手順を具体化し、サーバー更新完了前に新Webを公開しない。旧クライアント用の個別ルームは移行中の互換性のためサーバー側だけ保持する。
+- 検証: 10人同一町、11人目制限、誰か/全員退出、サーバー再起動後の保存、共同建築競合と精算、オフライン保護、複数ブラウザー、型/単体/本番ビルド。
+
+## 進捗
+- 済: 最新mainをclone、#65と既存plansを確認。未マージPRなし。実装前に計画をcommit/push。
+- 停止地点: ユーザーのクレジット都合で、実装着手前の計画保存を区切りとして停止。新方式のコード変更はまだない。公開版・EC2は旧招待方式を維持。
+- 次: サーバーが管理する共有町・保存/再起動復元・建築処理を実装し、共有参加UIへ接続する。
+- 未完: 新サーバーのEC2配置と公開確認。現在の公開サーバーは旧招待方式のまま。
+
+## 次のエージェントへ
+- 作業場所: `/workspace/scratch/7ff6f18821c9/open-world`、ブランチ`feat/shared-public-world`。`npm ci`済み。AGENTS.mdは見つからなかった。元のWindows環境は利用不可なので、新しいLinux環境で作業している。
+- 最初にこのブランチを取得し、最新mainとの差分と新しいPRを確認する。現時点のmainは`aa5521a`、#65のスマホHUD整理を取り込んでいる。ここまでの変更は本ファイルだけ。
+- `src/session/session.ts`の`accept`が現在ブラウザーのホスト権限で建築を確定している。`src/session/edits.ts`、`src/economy/pricing.ts`、`src/building/rules.ts`は描画に依存しないのでサーバーで再利用できる。`WorldSave`は`saves.ts`のtype importのみで参照し、ブラウザーstoreをサーバーに実行時importしない。
+- サーバーの初期町は`src/building/sample.ts`の`sampleHouse()`等から生成する案。`src/state/economy.ts`の`initialData()`と`lotCells()`を参照するが、そのファイル自体はブラウザー依存のためサーバーで直接importしない。TypeScriptの純粋ロジックをesbuildでMJSにまとめる案（esbuildは現行Viteの依存として導入済み。直接依存化・再現性と生成物の検査を検討）。実装方式はまだ未着手なので必要に応じて調整する。
+- 個人データの保護: 共有参加者は全員`guest`相当として`visitingWorld()`を真にできる。全員退出してもserverが正本を保持する。料金/競合/undo/操作IDの重複防止をクライアントから正本へ移し、保存前の成功通知を避ける。時計・工事もサーバー主導。服/車/所持金は引き続き個人プロフィール。
+- UIの対象は`src/session/SessionRoot.tsx`。`src/session/RemotePlayers.tsx`の10Hz送信は小人数向けに継続可能。旧4人制限は`server/relay.mjs`とHUDにある。招待UIを廃止しても、移行中の旧Web向けcreate/joinプロトコルの互換性を考える。
+- EC2: Amazon Linux 2023、t3.micro、シドニー。Node22、ws8.22.0。systemd `open-world-relay`は`/home/ec2-user/open-world-relay/relay.mjs`を`/usr/bin/node-22`で実行。Caddyが`wss://shingo-open-world.duckdns.org`を`127.0.0.1:8787`へ転送。認証情報やSSH鍵は受け取っていない。ユーザーがEC2 Instance Connectからコマンドを実行できる。
+- 新しい実行ファイル/保存ディレクトリ/環境変数の配置をユーザーに案内する必要がある。永続保存は上書き途中の破損・ディスク書き込み失敗を扱い、既存セーブを勝手に初期化しない。サーバー更新前に新Webをmainへマージしない（非draft PRはCI成功で自動マージされる）。
+- 検証入口: `npm test`、`npm run build`、`node --test server/relay.test.mjs`、`scripts/check-world-session.mjs`、`scripts/check-world-offline.mjs`。現行のセッション検証は招待方式なので共有町用へ更新。`scripts/check-public-relay.mjs`も旧方式の実公開検査。新共有町の実サーバーへの書き込みテストは保存データを汚さないよう別保存パス等で検証する。
+- Gitのread cloneは成功したがpushは`could not read Username`で不可。GitHubコネクターのcreate_tree/create_commit/create_branch/update_refを使用して保存する。ローカルの計画commitとGitHub APIのcommitはSHAが異なる可能性があるため内容を照合して同期する。
