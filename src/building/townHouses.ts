@@ -398,7 +398,7 @@ function narrowTownhouse(): House {
 
 // ---------------------------------------------------------------------------
 // 集合住宅（アパート・マンション）。どの階も同じ間取りの部屋を横に並べる。
-// 道路側（+Z）にバルコニー、奥に共用廊下、東の端に外階段（折り返し階段）。
+// 道路側（+Z）にバルコニー、奥に共用廊下、東の端に外階段（廊下に沿った直階段を上下の階で交互に）。
 // 1階の真ん中をエントランスホールにすることもできる
 // ---------------------------------------------------------------------------
 interface ApartmentStyle {
@@ -456,7 +456,9 @@ function apartment(st: ApartmentStyle): House {
       for (let u = 0; u <= st.units; u++) k.wall(level, x0 + u * W, zf, x0 + u * W, zf + 2, st.railing, st.railing, 'half');
     }
     if (level < st.floors - 1) {
-      k.stair(level, x1, c - 1, 0, stairFinish, 'u');
+      // 共用廊下に沿った直階段。上下の階で重ならないよう、偶数階は外側の列を東へ、奇数階は内側の列を西へ上る
+      if (level % 2 === 0) k.stair(level, x1 - 4, c - 2, 1, stairFinish);
+      else k.stair(level, x1 - 1, c - 1, 3, stairFinish);
       // 階段室の外壁（上の階の踊り場の床を支える）
       k.wall(level, x1 + 2, c - 2, x1 + 2, c + 2, st.railing, st.railing);
     }
@@ -659,19 +661,29 @@ export const TOWN_HOUSE_DESIGNS: TownHouseDesign[] = [
   },
 ];
 
-const cache = new Map<string, House>();
+const cache = new Map<number, House>();
 export function townHouseDesign(id: string): TownHouseDesign | undefined {
   return TOWN_HOUSE_DESIGNS.find((d) => d.id === id);
 }
-/** その区画に建っている家（なければ null）。作った家は使い回す */
+/** その区画に建っている家（なければ null）。同じデザインでも区画ごとに部品の ID を分ける（ドアの開け閉めが別々になるように） */
 export function townHouseAt(plot: number): House | null {
   const id = TOWN_HOUSE_PLOTS[plot];
   const design = id ? townHouseDesign(id) : undefined;
   if (!design) return null;
-  let house = cache.get(id);
+  let house = cache.get(plot);
   if (!house) {
-    house = design.build();
-    cache.set(id, house);
+    const h = design.build();
+    const tag = (pid: string) => `${pid}@${plot}`;
+    house = {
+      ...h,
+      floors: h.floors.map((f) => ({ ...f, id: tag(f.id) })),
+      walls: h.walls.map((w) => ({ ...w, id: tag(w.id) })),
+      openings: h.openings.map((o) => ({ ...o, id: tag(o.id), wallId: tag(o.wallId) })),
+      stairs: h.stairs.map((st) => ({ ...st, id: tag(st.id) })),
+      roofs: h.roofs.map((r) => ({ ...r, id: tag(r.id) })),
+      furniture: h.furniture.map((f) => ({ ...f, id: tag(f.id), ...(f.wallMount ? { wallMount: { ...f.wallMount, wallId: tag(f.wallMount.wallId) } } : {}) })),
+    };
+    cache.set(plot, house);
   }
   return house;
 }

@@ -19,7 +19,7 @@ export const WALL_HEIGHT = STORY_HEIGHT;
 export const WALL_THICKNESS = 0.15;
 /** 2階の床スラブの厚み */
 export const SLAB_THICKNESS = 0.25;
-export const MAX_LEVEL = 1; // 2階建てまで（0 = 1階, 1 = 2階）
+export const MAX_LEVEL = 9; // 10階建てまで（0 = 1階, 9 = 10階）
 
 /** 階段：幅1マス × 長さ4マス、14段 */
 export const STAIR_LENGTH = 4;

@@ -94,7 +94,7 @@ function PreviewView() {
       const w = (rect.x1 - rect.x0) * GRID;
       const d = (rect.z1 - rect.z0) * GRID;
       if (preview.tool === 'erase') {
-        // まとめて消す範囲：地面から2階の上までの赤い箱
+        // まとめて消す範囲：地面から最上階の上までの赤い箱
         const top = floorY(MAX_LEVEL + 1) + 0.5;
         return (
           <mesh position={[rect.x0 * GRID + w / 2, top / 2, rect.z0 * GRID + d / 2]} material={eraseMat}>
