@@ -10,7 +10,7 @@ for(const [tag,vp,q] of [['pc',{width:1280,height:800},'?play=1'],['phone',{widt
   await page.evaluate(()=>{window.__ow.economy.setState({money:30000000});window.__ow.game.getState().setOverlay('dealer');});
   await page.waitForTimeout(2500);await page.screenshot({path:`${out}/catalog-${tag}.png`});
   if(tag==='pc'){
-    for(const id of ['raven','lounge','ridge']){await page.locator('.dealer-model',{hasText:id.toUpperCase()}).first().click().catch(()=>{});await page.waitForTimeout(1500);await page.locator('.dealer-preview').screenshot({path:`${out}/car-${id}.png`});}
+    for(const id of ['raven','lounge','ridge']){await page.locator('.cat-card',{hasText:id.toUpperCase()}).first().click().catch(()=>{});await page.waitForTimeout(1500);await page.locator('.cat-stage').screenshot({path:`${out}/car-${id}.png`});}
   }
   await page.close();
 }

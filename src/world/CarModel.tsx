@@ -87,7 +87,7 @@ function Beam({a,b,size,color,metal=0,rough=.4}:{a:V3;b:V3;size:[number,number];
   return <mesh position={pos} quaternion={quat} castShadow><boxGeometry args={[size[0],len,size[1]]}/><meshStandardMaterial color={color} metalness={metal} roughness={rough}/></mesh>;
 }
 function RBox({p,s,c,r=.03,rot,rough=.6,metal=0}:{p:V3;s:V3;c:string;r?:number;rot?:V3;rough?:number;metal?:number}){
-  return <RoundedBox args={s} radius={Math.min(r,...s.map(v=>v/2.05))} smoothness={3} position={p} rotation={rot} castShadow><meshStandardMaterial color={c} roughness={rough} metalness={metal}/></RoundedBox>;
+  return <RoundedBox args={s} radius={Math.min(r,...s.map(v=>v/2.05))} smoothness={2} position={p} rotation={rot} castShadow><meshStandardMaterial color={c} roughness={rough} metalness={metal}/></RoundedBox>;
 }
 /** 車内の色：[シート, シートの中央, ダッシュボード, 差し色] */
 const TRIM:Record<string,[string,string,string,string]>={

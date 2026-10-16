@@ -10,7 +10,7 @@ await page.evaluate(async(model)=>{const {buyCar,useVehicles}=await import('/src
   const c=useVehicles.getState().cars[0];Object.assign(window.__ow.player,{x:c.x+3.2,z:c.z+2.2,y:0,yaw:Math.atan2(3.2,2.2),bodyYaw:Math.atan2(3.2,2.2),pitch:-.2});},model);
 await page.waitForTimeout(2500);await page.screenshot({path:`${out}/town-${model}.png`});
 await page.evaluate(async()=>{const {useVehicles}=await import('/src/state/vehicles.ts');const s=useVehicles.getState();useVehicles.setState({driving:s.cars[0].id});});
-await page.mouse.click(640,360);await page.waitForTimeout(800);await page.evaluate(()=>window.__ow.game.setState({view:'first'}));await page.waitForTimeout(500);
-await page.keyboard.down('KeyW');await page.keyboard.down('KeyD');await page.waitForTimeout(900);await page.keyboard.up('KeyW');
-await page.waitForTimeout(300);await page.screenshot({path:`${out}/cockpit-${model}.png`});await page.keyboard.up('KeyD');
+await page.waitForTimeout(800);await page.evaluate(async()=>{const {useVehicles}=await import('/src/state/vehicles.ts');window.__ow.game.setState({view:'first'});Object.assign(window.__ow.player,{yaw:useVehicles.getState().cars[0].yaw,pitch:-.5});});await page.waitForTimeout(500);
+await page.keyboard.down('KeyW');await page.waitForTimeout(900);await page.keyboard.up('KeyW');
+await page.waitForTimeout(300);await page.screenshot({path:`${out}/cockpit-${model}.png`});
 console.log('errors',errors.slice(0,3));await browser.close();

@@ -152,9 +152,9 @@ export function carGeoms(d: CarDef): CarGeoms {
       const pts: [number, number][] = [[hb * .985 + o, s.belt - .02], [hb + o, s.belt + .03], [ht + o, y - .04], [ht * .93 + o * .7, y - .002]];
       return pts.slice(from, to + 1).map(([x, yy]) => [k * x, yy, z] as [number, number, number]);
     }));
-    const sailFrom = Math.max(s.topFront + .1, s.topRear - (d.body === 'sedan' || d.body === 'coupe' ? .3 : .16));
+    const sailFrom = Math.max(s.topFront + .1, s.topRear - (d.body === 'coupe' ? .3 : .16));
     for (const k of [-1, 1]) {
-      pillars.push(band(samples(s.cf + .01, s.topFront + .03, .03), 1, 3, k));
+      pillars.push(band(samples(s.cf + .01, s.topFront + .03, .03), 2, 3, k));
       pillars.push(band(samples(sailFrom, s.cr - .005, .03), 0, 3, k));
     }
   }

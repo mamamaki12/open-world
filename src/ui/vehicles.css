@@ -1,4 +1,56 @@
 .dealer-modal { width:min(1100px,100%); }
+/* 車のカタログ（AVENUE MOTORS） */
+.modal.dealer-modal .modal-body {display:flex;flex-direction:column;gap:12px;padding-bottom:0;}
+.cat-top {display:flex;gap:18px;flex-wrap:wrap;font-size:14px;color:#3d4c56;}
+.cat-layout {display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;min-width:0;}
+.cat-list {display:flex;flex-direction:column;gap:6px;max-height:min(62vh,640px);overflow:auto;padding:2px;}
+.cat-card {display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;padding:10px 12px;background:#fff;color:#20313d;border:1px solid #d3d9dc;border-radius:10px;cursor:pointer;min-width:0;}
+.cat-card small {grid-column:1/3;color:#62727d;font-size:11px;}
+.cat-card b {font-size:15px;overflow-wrap:anywhere;}
+.cat-price {color:#7a5418;font-weight:700;font-size:13px;align-self:center;}
+.cat-mini {grid-column:1/3;color:#6b7a84;font-size:12px;}
+.cat-card:hover {border-color:#8aa1af;}
+.cat-card.on {background:#173445;color:#fff;border-color:#173445;}
+.cat-card.on small,.cat-card.on .cat-mini {color:#b9cbd6;}.cat-card.on .cat-price {color:#f1d48c;}
+.cat-detail {min-width:0;display:flex;flex-direction:column;gap:10px;}
+.cat-stage {position:relative;height:clamp(220px,42vh,400px);border-radius:14px;overflow:hidden;background:#dfe5e8;}
+.cat-name {position:absolute;left:16px;top:12px;pointer-events:none;color:#14232d;}
+.cat-name small {font-size:12px;color:#4f616c;}.cat-name h2 {margin:0;font-size:26px;letter-spacing:.02em;}
+.cat-hint {position:absolute;right:12px;bottom:8px;margin:0;font-size:11px;color:#55666f;pointer-events:none;}
+.cat-colors {display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:#3d4c56;}
+.cat-swatches {display:flex;gap:8px;flex-wrap:wrap;}
+.cat-swatches button {width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #9aa6ad;cursor:pointer;padding:0;}
+.cat-swatches button[aria-pressed=true] {box-shadow:0 0 0 2px #fff,0 0 0 4px #173445;}
+.cat-note {margin:0;color:#2b3a44;}
+.cat-specs {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0;}
+.cat-specs div {background:#fff;border:1px solid #dfe4e7;border-radius:10px;padding:8px 10px;min-width:0;}
+.cat-specs dt {font-size:11px;color:#62727d;}.cat-specs dd {margin:2px 0 0;font-weight:700;font-size:14px;overflow-wrap:anywhere;}
+.cat-info {margin:0;font-size:12px;color:#62727d;}
+.cat-buy {position:sticky;bottom:0;z-index:2;background:#fbfaf6;border-top:1px solid #dfe2e3;padding:10px 0 12px;margin-top:auto;}
+.cat-buy p {margin:0 0 8px;font-size:14px;}
+.cat-buy-row {display:flex;align-items:center;justify-content:flex-end;gap:12px;}
+.cat-buy-price {margin-right:auto;display:flex;flex-direction:column;}.cat-buy-price small {font-size:11px;color:#62727d;}.cat-buy-price b {font-size:22px;color:#173445;}
+.cat-buy .btn {min-height:44px;padding:0 20px;font-size:15px;}
+@media(max-width:760px){
+  .cat-layout {grid-template-columns:minmax(0,1fr);gap:10px;}
+  .cat-list {order:2;flex-direction:row;overflow-x:auto;overflow-y:hidden;max-height:none;scroll-snap-type:x proximity;padding-bottom:6px;}
+  .cat-card {flex:0 0 140px;scroll-snap-align:start;grid-template-columns:1fr;}
+  .cat-card small,.cat-card .cat-mini {grid-column:1;}
+  .cat-price {align-self:start;}
+  .cat-detail {display:contents;}
+  .cat-stage {order:1;height:clamp(200px,34vh,300px);}
+  .cat-colors {order:3;}.cat-note {order:4;}.cat-specs {order:5;grid-template-columns:repeat(2,minmax(0,1fr));}.cat-info {order:6;}
+  .cat-name h2 {font-size:21px;}
+}
+@media(max-height:500px) and (min-width:600px){
+  .cat-layout {grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+  .cat-list {order:0;grid-column:2;grid-row:1/span 2;flex-direction:column;max-height:none;}
+  .cat-detail {display:flex;}
+  .cat-stage {height:calc(100dvh - 190px);min-height:150px;}
+  .cat-specs {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .cat-name h2 {font-size:18px;}
+  .cat-buy {padding:6px 0 8px;}.cat-buy-price b {font-size:18px;}
+}
 .dealer-intro {font:700 28px Georgia,'Yu Mincho',serif;margin:6px 0;color:#173445;}
 .dealer-layout {display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;min-width:0;}
 .dealer-detail,.dealer-models,.dealer-preview {min-width:0;max-width:100%;}

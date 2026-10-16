@@ -13,5 +13,8 @@
 ## 進捗
 - 済: 計画。車体を断面ロフト（`src/world/carShape.ts`）に作り直し（丸い前後・フェンダー・ホイールアーチ・タンブルホーム・窓に沿った柱・ドアの合わせ目・ミラー・ドアノブ・形のあるライト/グリル・丸いタイヤ）。内装（ダッシュ・メーター針・ナビ画面・回るハンドル・シート・コンソール・内張り・天井・ルームミラー）を `CarModel.tsx` の `Interior` に。`driverEye` は運転席を少し後ろ（フロントガラスの付け根+1m）へ。
 - 確認用: `scripts/check-car-views.mjs`（ディーラーのプレビューで各車を撮影）、`scripts/check-car-cockpit.mjs`、`scripts/check-car-catalog.mjs`。出力は browser-checks/（git管理外）。
-- 次: 運転席視点の確認、カタログUI（DealerPanel / vehicles.css）
+- 済: 運転席視点の確認。カタログUIを作り直し（左に車種カード、右に大きい3Dプレビュー＋色名、スペックをタイル表示、価格と購入ボタンを下に固定。スマホ縦は車種を横スクロール、横向きは2列）。
+- 確認: typecheck・vitest 577件、check-vehicle-walls / driving-assists / aim-controls（運転部分まで）をローカルで通過。
+- 注意: dev サーバー起動後にファイルを編集すると、テストの dynamic import が別のモジュールになり driveButtons が効かず check-aim-controls が落ちる。サーバーを再起動して確認すること。
+- 次: PR → CI → マージ
 - 課題: なし

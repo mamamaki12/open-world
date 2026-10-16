@@ -6,11 +6,11 @@ const page=await browser.newPage({viewport:{width:1280,height:800},deviceScaleFa
 await page.goto('http://127.0.0.1:5173/?play=1');await page.waitForFunction(()=>window.__ow);
 await page.evaluate(()=>window.__ow.game.getState().setOverlay('dealer'));await page.waitForTimeout(1500);
 for(const id of ids){
-  await page.locator('.dealer-model',{hasText:id.toUpperCase()}).first().click();await page.waitForTimeout(1200);
-  const box=await page.locator('.dealer-preview canvas').boundingBox();const cx=box.x+box.width/2,cy=box.y+box.height/2;
+  await page.locator('.cat-card',{hasText:id.toUpperCase()}).first().click();await page.waitForTimeout(1200);
+  const box=await page.locator('.cat-stage canvas').boundingBox();const cx=box.x+box.width/2,cy=box.y+box.height/2;
   for(const [i,dx] of [[0,0],[1,-260],[2,-200]].entries?[[0,0],[1,-260],[2,-200]]:[]){
     if(dx){await page.mouse.move(cx,cy);await page.mouse.down();await page.mouse.move(cx+dx,cy,{steps:8});await page.mouse.up();await page.waitForTimeout(600);}
-    await page.locator('.dealer-preview').screenshot({path:`${out}/view-${id}-${i}.png`});
+    await page.locator('.cat-stage').screenshot({path:`${out}/view-${id}-${i}.png`});
   }
 }
 await browser.close();
