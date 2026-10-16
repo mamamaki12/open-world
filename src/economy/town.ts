@@ -128,3 +128,27 @@ export function assignPlots<T extends { location: string; plot?: number | null }
   });
 }
 
+
+/** つなげた土地で、東側の区画の家をずらすマス数（区画の間の通路ぶんも土地になる） */
+export const JOIN_SHIFT = Math.round((LOT_WIDTH + 4) / GRID);
+/** つなげた土地の幅（マス） */
+export const JOINED_W = JOIN_SHIFT + LOT_W;
+
+/**
+ * 道路をはさまずに横に並んでいる隣の区画（同じブロックの同じ列の、もう1つの区画）。
+ * 区画は2つずつ組になっていて、組は地区をまたがない。west が西側の区画
+ */
+export function joinPair(plot: number): { west: number; east: number } | null {
+  if (plot < FIRST_PLOT || plot > LAST_PLOT) return null;
+  const local = (plot - FIRST_PLOT) % LOTS_PER_BLOCK;
+  const west = local % 2 === 0 ? plot : plot - 1;
+  const east = west + 1;
+  if (east > LAST_PLOT || districtOf(west)?.location !== districtOf(east)?.location) return null;
+  return { west, east };
+}
+
+/** 隣の区画（つなげられる相手） */
+export function joinNeighbor(plot: number): number | null {
+  const p = joinPair(plot);
+  return p ? (p.west === plot ? p.east : p.west) : null;
+}

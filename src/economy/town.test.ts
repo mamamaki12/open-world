@@ -41,3 +41,24 @@ describe('町の区画', () => {
     expect(lots[3].plot).toBe(-5);
   });
 });
+
+import { JOINED_W, JOIN_SHIFT, joinNeighbor, joinPair, plotX as px, plotZ as pz, FIRST_PLOT as F, LAST_PLOT as L } from './town';
+import { GRID, LOT_W } from '../building/dimensions';
+
+describe('土地をつなげる', () => {
+  it('隣の区画は同じ列で道路をはさまずに並び、地区も同じ', () => {
+    for (let p = F; p <= L; p++) {
+      const pair = joinPair(p);
+      expect(pair).not.toBeNull();
+      const { west, east } = pair!;
+      expect(pz(west)).toBe(pz(east));
+      expect(px(east) - px(west)).toBeCloseTo(LOT_W * GRID + 4, 5);
+      expect(districtOf(west)?.location).toBe(districtOf(east)?.location);
+      expect(joinNeighbor(joinNeighbor(p)!)).toBe(p);
+    }
+  });
+  it('東の家は区画の間の通路を含めてずらす', () => {
+    expect(JOIN_SHIFT).toBe(28);
+    expect(JOINED_W).toBe(52);
+  });
+});

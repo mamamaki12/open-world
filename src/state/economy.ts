@@ -8,11 +8,16 @@ import { DAY_SECONDS, dailyBill, getLocation, landOffers, landPrice, salePrice, 
 import type { LandOffer } from '../economy/market';
 import { appraiseBuilding, buildSeconds, estimateCost, renovationCost } from '../economy/pricing';
 import { yen } from '../economy/money';
-import { START_PLOT, TOWN_HOUSE_PLOTS, assignPlots, freePlot, plotX, plotZ, CIVIC_SITE } from '../economy/town';
+import { START_PLOT, TOWN_HOUSE_PLOTS, assignPlots, freePlot, plotX, plotZ, CIVIC_SITE, JOINED_W, JOIN_SHIFT, joinNeighbor, joinPair } from '../economy/town';
+import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
+import { mergeHouses } from '../building/join';
 import { useGame } from './store';
 import { useInteraction } from './interaction';
 
 export const START_MONEY = 20_000_000;
+
+/** いま開いている土地の原点が動いたとき（土地をつなげたとき）に、カメラ側で受け取る。dx, dz は新しい原点から見た古い原点の位置 */
+export const originShift: { listener: ((dx: number, dz: number) => void) | null } = { listener: null };
 const SAVE_KEY = 'open-world:economy:v1';
 const LEDGER_LIMIT = 120;
 const HISTORY_LIMIT = 60;
@@ -40,6 +45,31 @@ export interface Lot {
   invested: number;
   /** 町のどの区画にあるか（マップとワープに使う。src/economy/town.ts） */
   plot?: number;
+  /** 隣の区画とつなげて1つの土地にしているとき、その東側の区画（plot は西側） */
+  joined?: number;
+}
+
+/** その土地が使っている区画（つなげていれば2つ） */
+export function lotPlots(l: Pick<Lot, 'plot' | 'joined'>): number[] {
+  return [l.plot, l.joined].filter((p): p is number => typeof p === 'number');
+}
+
+/** 持っている土地で使っている区画すべて */
+export function ownedPlots(lots: Pick<Lot, 'plot' | 'joined'>[]): number[] {
+  return lots.flatMap(lotPlots);
+}
+
+/** 土地の広さ（マス） */
+export function lotCells(l: Pick<Lot, 'joined'> | null | undefined): { w: number; d: number } {
+  return { w: typeof l?.joined === 'number' ? JOINED_W : LOT_W, d: LOT_D };
+}
+
+/** 隣の区画にある自分の土地のうち、つなげられるもの（まだつなげていない2つの土地） */
+export function joinCandidate(lots: Lot[], id: string): Lot | null {
+  const lot = lots.find((l) => l.id === id);
+  if (!lot || typeof lot.plot !== 'number' || typeof lot.joined === 'number') return null;
+  const other = joinNeighbor(lot.plot);
+  return lots.find((l) => l.id !== id && l.plot === other && typeof l.joined !== 'number') ?? null;
 }
 
 export interface Txn {
@@ -84,6 +114,8 @@ interface EconomyState extends EconomyData {
   setRented: (lotId: string, rented: boolean) => string | null;
   buyLand: (offerId: string) => string | null;
   switchLot: (lotId: string) => void;
+  /** 隣り合う2つの自分の土地をつなげて1つにする。できなければ理由を返す */
+  joinLots: (lotId: string) => string | null;
   startJob: () => void;
   reset: () => void;
 }
@@ -93,7 +125,7 @@ const lotId = () => `lot-${Date.now().toString(36)}-${(++lotCounter).toString(36
 
 /** 売り土地に、持っている土地と重ならない区画を割り当てる（空きがない立地の売り土地は出さない） */
 export function placeOffers(offers: LandOffer[], lots: Lot[]): LandOffer[] {
-  const taken = new Set(lots.map((l) => l.plot).filter((p): p is number => typeof p === 'number'));
+  const taken = new Set(ownedPlots(lots));
   const out: LandOffer[] = [];
   for (const o of offers) {
     const plot = typeof o.plot === 'number' && !taken.has(o.plot) && !TOWN_HOUSE_PLOTS[o.plot] ? o.plot : freePlot(o.location, taken, Math.random);
@@ -140,7 +172,7 @@ function load(): EconomyData {
       const d = JSON.parse(raw) as EconomyData;
       if (typeof d.money === 'number' && Array.isArray(d.lots) && d.lots.every((l) => l.built === null || isHouse(l.built))) {
         // 区画のない古いセーブの土地・売り土地には、ここで区画を決める
-        const lots = assignPlots(d.lots);
+        const lots = assignPlots(d.lots, d.lots.flatMap((l) => (typeof l.joined === 'number' ? [l.joined] : [])));
         const offers = placeOffers(Array.isArray(d.offers) ? d.offers : [], lots);
         return { ...initialData(), ...d, lots, offers, job: null };
       }
@@ -347,7 +379,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
       if (!offer) return 'その土地はもう売れてしまいました';
       const price = landPrice(offer.location, offer.variance, s.market);
       if (price > s.money) return `お金が足りません（${yen(price)}）`;
-      const taken = s.lots.map((l) => l.plot).filter((p): p is number => typeof p === 'number');
+      const taken = ownedPlots(s.lots);
       const plot = typeof offer.plot === 'number' && !taken.includes(offer.plot) ? offer.plot : freePlot(offer.location, taken);
       if (plot === null) return 'この立地にはもう空いている区画がありません';
       const lot: Lot = {
@@ -387,6 +419,44 @@ export const useEconomy = create<EconomyState>((set, get) => {
       set({ lots, currentLotId: id });
       showHouse(lotHouse(target) ?? emptyHouse());
       saveEconomy();
+    },
+
+    joinLots: (id) => {
+      const s = get();
+      const lot = s.lots.find((l) => l.id === id);
+      if (!lot || typeof lot.plot !== 'number') return 'その土地は持っていません';
+      if (typeof lot.joined === 'number') return 'この土地はもうつなげてあります';
+      const other = joinCandidate(s.lots, id);
+      if (!other) return '道路をはさまない隣の区画に、自分の土地がありません';
+      const pair = joinPair(lot.plot)!;
+      const [west, east] = lot.plot === pair.west ? [lot, other] : [other, lot];
+      if (west.construction || east.construction) return '工事中はつなげられません';
+      if (west.rented || east.rented) return '貸している間はつなげられません';
+      // 画面に出している土地の設計図は useGame の方にある
+      const houseOf = (l: Lot) => (l.id === s.currentLotId ? currentDesign() : lotHouse(l));
+      const merged: Lot = {
+        ...west,
+        joined: east.plot,
+        // 土地2つぶんの値段になるよう、値段のぶれを足し合わせておく（土地代・税・売値の計算がそのまま使える）
+        variance: Math.round((west.variance + east.variance) * 100) / 100,
+        built: mergeHouses(west.built, east.built, JOIN_SHIFT),
+        design: mergeHouses(houseOf(west), houseOf(east), JOIN_SHIFT),
+        invested: west.invested + east.invested,
+      };
+      const wasCurrent = s.currentLotId === west.id || s.currentLotId === east.id;
+      // 名前は家のある方（なければいま開いている方）を残す
+      const keep = [east, west].find((l) => lotHouse(l) || l.id === s.currentLotId) ?? west;
+      merged.name = keep.name;
+      const lots = s.lots
+        .filter((l) => l.id !== east.id)
+        .map((l) => (l.id !== west.id ? l : wasCurrent ? { ...merged, design: null } : merged));
+      set({ lots, currentLotId: wasCurrent ? west.id : s.currentLotId });
+      if (wasCurrent) showHouse(merged.design ?? emptyHouse());
+      // 東の土地を開いていたら、原点が西の区画に移るので、カメラと人を同じ場所に見えるようずらす
+      if (s.currentLotId === east.id) originShift.listener?.(plotX(east.plot!) - plotX(west.plot!), plotZ(east.plot!) - plotZ(west.plot!));
+      notify(`🔗 ${west.name.replace(/（.*）$/, '')} と ${east.name.replace(/（.*）$/, '')} をつなげて、1つの広い土地にしました`);
+      saveEconomy();
+      return null;
     },
 
     startJob: () => {
@@ -432,3 +502,34 @@ export function lotHouse(l: Lot): House | null {
   return l.design ?? l.construction?.target ?? l.built;
 }
 
+
+/** 建てられる範囲（lotSize）を、いま開いている土地の広さに合わせる */
+function syncLotSize(s: Pick<EconomyData, 'lots' | 'currentLotId'>) {
+  const c = lotCells(s.lots.find((l) => l.id === s.currentLotId));
+  lotSize.w = c.w;
+  lotSize.d = c.d;
+}
+syncLotSize(useEconomy.getState());
+useEconomy.subscribe(syncLotSize);
+
+/** いまの土地の広さ（マス）。変わったら描き直す */
+export function useLotCells(): { w: number; d: number } {
+  const w = useEconomy((s) => lotCells(s.lots.find((l) => l.id === s.currentLotId)).w);
+  return { w, d: LOT_D };
+}
+
+/** その区画の、道路をはさまない隣にある自分の土地（まだつなげていないもの） */
+export function ownedNeighbor(lots: Lot[], plot: number | undefined): Lot | null {
+  const n = typeof plot === 'number' ? joinNeighbor(plot) : null;
+  return n === null ? null : lots.find((l) => l.plot === n && typeof l.joined !== 'number') ?? null;
+}
+
+/** 土地を買い、join なら隣の自分の土地とつなげる */
+export function buyLandAndJoin(offerId: string, join: boolean): string | null {
+  const eco = useEconomy.getState();
+  const offer = eco.offers.find((o) => o.id === offerId);
+  const err = eco.buyLand(offerId);
+  if (err || !join || !offer) return err;
+  const lot = useEconomy.getState().lots.find((l) => l.plot === offer.plot);
+  return lot ? useEconomy.getState().joinLots(lot.id) : null;
+}
