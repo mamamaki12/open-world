@@ -396,3 +396,5 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .drive-drift{display:block;color:#ffcf66;font-size:12px;letter-spacing:.08em;}
 @media(max-width:359px){.drive-handbrake.touch-btn{width:124px;}}
 @media(orientation:landscape) and (max-height:500px){.drive-handbrake.touch-btn{bottom:calc(8px + var(--safe-b));height:44px;}}
+.drive-brake .pedal-pad{bottom:28px;}
+.drive-brake .pedal-name small{display:block;font-size:9px;line-height:1.2;}
