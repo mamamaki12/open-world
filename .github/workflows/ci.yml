@@ -70,3 +70,40 @@ jobs:
           name: building-detail-checks
           path: building-detail-checks/
           if-no-files-found: ignore
+
+  world-session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: node --test server/relay.test.mjs
+      - name: Check deployed relay over HTTPS and WSS
+        run: node scripts/check-public-relay.mjs
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Check two-player sessions and production offline launch
+        run: |
+          node server/relay.mjs > /tmp/world-relay.log 2>&1 &
+          relay=$!
+          npm run dev -- --host 127.0.0.1 > /tmp/world-vite.log 2>&1 &
+          web=$!
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/world-preview.log 2>&1 &
+          preview=$!
+          trap 'kill "$relay" "$web" "$preview"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null && curl -fsS http://127.0.0.1:8787/health > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-world-session.mjs
+          node scripts/check-world-offline.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: world-session-checks
+          path: world-session-checks/
+          if-no-files-found: ignore

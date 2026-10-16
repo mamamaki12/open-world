@@ -1,4 +1,5 @@
 import { BuildingDetailProvider } from './BuildingDetail';
+import { RemotePlayers } from '../session/RemotePlayers';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Grid, Lightformer, OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
@@ -81,6 +82,7 @@ export function Scene() {
       <Ground />
       <Town />
       <CarFleet />
+      <RemotePlayers />
       <VenueInteriors />
       {placing && <LevelGrid />}
       <HouseView />

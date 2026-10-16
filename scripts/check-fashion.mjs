@@ -6,7 +6,7 @@ const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROM
 const errors=[];
 async function open(width,height,shop='daily'){
  const page=await browser.newPage({viewport:{width,height},deviceScaleFactor:1,hasTouch:width<900});page.setDefaultTimeout(90000);page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`http://127.0.0.1:5173/?touch=${width<900?1:0}`);await page.waitForFunction(()=>window.__ow);
+ await page.goto(`http://127.0.0.1:5173/?play=1&touch=${width<900?1:0}`);await page.waitForFunction(()=>window.__ow);
  await page.evaluate(async shop=>{const {useVenue}=await import('/src/state/venue.ts');useVenue.setState({inside:shop,shopTab:'shop'});window.__ow.game.getState().setOverlay('boutique');},shop);
  await page.locator('.garment').first().waitFor();return page;
 }

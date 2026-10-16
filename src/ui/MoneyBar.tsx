@@ -4,6 +4,7 @@ import { yen } from '../economy/money';
 import { renovationCost } from '../economy/pricing';
 import { saveEconomy, useCurrentLot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
+import { onlineWorld } from '../session/gate';
 
 export function MoneyBar() {
   const money = useEconomy((s) => s.money);
@@ -34,6 +35,7 @@ export function BuildChip() {
   const lot = useCurrentLot();
   const house = useGame((s) => s.house);
   const est = useMemo(() => (lot ? renovationCost(lot.built, house) : null), [lot?.built, house]);
+  if (onlineWorld()) return <span className="chip">共同建築 · 配置時に本人が精算</span>;
   if (!lot) {
     return (
       <span className="chip warn">土地は不動産屋で購入できます</span>

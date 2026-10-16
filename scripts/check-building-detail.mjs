@@ -7,7 +7,7 @@ const errors=[];
 async function open(touch=false,full=false){
  const page=await browser.newPage({viewport:{width:1280,height:720},deviceScaleFactor:1,hasTouch:touch});page.setDefaultTimeout(120000);page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{let seed=12345;Math.random=()=>((seed=(1664525*seed+1013904223)>>>0)/4294967296);});
- await page.goto(`http://127.0.0.1:5173/?touch=${touch?1:0}${full?'&buildingDetail=full':''}`);await page.waitForFunction(()=>window.__ow?.scene?.getObjectByName('town-houses')?.userData.baking===false);return page;
+ await page.goto(`http://127.0.0.1:5173/?play=1&touch=${touch?1:0}${full?'&buildingDetail=full':''}`);await page.waitForFunction(()=>window.__ow?.scene?.getObjectByName('town-houses')?.userData.baking===false);return page;
 }
 async function view(page,position=[80,75,140],target=[-30,5,12]){
  const frame=await page.evaluate(async({position,target})=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState();s.camera.position.set(...position);s.controls.target.set(...target);s.controls.update();window.__buildingTestState=s;return s.gl.info.render.frame;},{position,target});await page.waitForTimeout(1500);

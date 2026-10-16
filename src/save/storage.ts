@@ -1,5 +1,6 @@
 // ブラウザ内へのセーブとロード（localStorage）
 import type { House } from '../building/types';
+import { visitingWorld } from '../session/gate';
 
 const AUTOSAVE_KEY = 'open-world:autosave:v1';
 const SLOT_KEY = (slot: number) => `open-world:slot${slot}:v1`;
@@ -27,6 +28,7 @@ function read(key: string): SaveFile | null {
 }
 
 function write(key: string, house: House): boolean {
+  if (visitingWorld()) return false;
   try {
     const data: SaveFile = { savedAt: Date.now(), house };
     localStorage.setItem(key, JSON.stringify(data));

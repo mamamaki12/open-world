@@ -2,21 +2,30 @@
 import { autosave } from '../save/storage';
 import { saveEconomy } from '../state/economy';
 import { useGame } from '../state/store';
+import { persist } from '../session/saves';
 
 const PARAM = 'v';
 
 export async function reloadLatest(): Promise<void> {
+  await persist();
   // 自動セーブは少し遅れて書くので、読み込み直す前に今の状態を保存しておく
   autosave(useGame.getState().house);
   saveEconomy();
   try {
     if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.update().catch(() => undefined)));
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
+      const r = await navigator.serviceWorker.getRegistration(new URL('./', document.baseURI));
+      if (r) {
+        await r.update();
+        if (r.installing) await new Promise<void>(resolve => {
+          const worker = r.installing!, timeout = setTimeout(resolve, 10000);
+          worker.addEventListener('statechange', () => { if (['installed', 'redundant'].includes(worker.state)) { clearTimeout(timeout); resolve(); } });
+        });
+        if (r.waiting) await new Promise<void>(resolve => {
+          const timeout = setTimeout(resolve, 5000);
+          navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(timeout); resolve(); }, { once: true });
+          r.waiting!.postMessage('ACTIVATE_UPDATE');
+        });
+      }
     }
   } catch {
     // キャッシュを消せなくても読み込み直しは続ける
