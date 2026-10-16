@@ -35,6 +35,7 @@ function Launcher() {
     <details><summary>接続・バックアップ</summary><label className="world-field">オンライン接続先<input value={relay} onChange={e => setRelay(e.target.value)} placeholder="wss://…" type="url"/></label>
       <div className="world-actions"><button onClick={downloadBackup}>バックアップを書き出す</button><label className="world-import">バックアップを読み込む<input type="file" accept="application/json,.json" onChange={e => { const f = e.target.files?.[0]; if (!f) return; if (f.size > 10e6) return setError('バックアップは10MBまでです'); void run(async () => { await importSave(await f.text()); setName(savedBundle().profile.name); }); }}/></label></div>
     </details><p className="world-note">ログイン不要。データはこのブラウザに保存されます。</p>
+    {!!savedBundle().pending?.length && <p className="world-note">精算待ちの建築が{savedBundle().pending!.length}件あります。同じ町へ再参加するとホストの記録と照合して精算します。</p>}
     {(error || state.message || state.status === 'connecting') && <p className="world-error" role="status">{error || state.message || 'ワールドに接続しています…'}</p>}
   </section></main>;
 }

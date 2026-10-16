@@ -160,7 +160,7 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
   undo: () => {
-    if (sessionGate.edit) return get().notify('共同建築中は確定済みの変更を編集して直してください');
+    if (sessionGate.edit) return sessionGate.undo?.();
     const { past, house, future } = get();
     if (!past.length) return;
     set({ house: past[past.length - 1], past: past.slice(0, -1), future: [house, ...future], selection: null, marked: [], lastCommit: null });

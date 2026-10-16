@@ -10,7 +10,7 @@ import { readSave, writeSave } from './database';
 const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 export function captureWorld() {
   const e = useEconomy.getState();
-  return copy({ house: useGame.getState().house, receipts: sessionGate.receipts, economy: {
+  return copy({ worldId: sessionGate.worldId, house: useGame.getState().house, receipts: sessionGate.receipts, economy: {
     day: e.day, clock: e.clock, market: e.market, marketHistory: e.marketHistory,
     lots: e.lots, currentLotId: e.currentLotId, offers: e.offers,
   }});
@@ -22,7 +22,7 @@ export function captureProfile(id: string, name: string) {
     wardrobe: { owned: w.owned, outfit: w.outfit }, cars: useVehicles.getState().cars });
 }
 export type GuestProfile = ReturnType<typeof captureProfile>;
-export interface Escrow { id: string; room: string; amount: number }
+export interface Escrow { id: string; room: string; worldId: string; amount: number }
 export interface SaveBundle { version: 1; savedAt: number; profile: GuestProfile; home: WorldSave; pending?: Escrow[] }
 export function validWorld(v: unknown): v is WorldSave {
   if (!v || typeof v !== 'object') return false;
@@ -44,6 +44,7 @@ export function applyWorld(w: WorldSave, preserveSelection = false) {
   const previous = sessionGate.applying; sessionGate.applying = true;
   try {
     sessionGate.receipts = copy(w.receipts ?? {});
+    sessionGate.worldId = w.worldId || crypto.randomUUID();
     const local = useEconomy.getState().currentLotId;
     const selected = preserveSelection && w.economy.lots.some(l => l.id === local) ? local : w.economy.currentLotId;
     const lots = w.economy.lots.map(l => l.id === w.economy.currentLotId ? { ...l, design: w.house } : l);
@@ -73,10 +74,19 @@ export function persist(): Promise<void> {
   return saving;
 }
 export async function initializeSave() {
+  sessionGate.worldId = crypto.randomUUID();
   const existing = await readSave<unknown>();
   if (existing !== undefined && !validBundle(existing)) throw new Error('保存データを読み込めません。元のデータは保持されています。');
   if (validBundle(existing)) { bundle = existing; applyWorld(bundle.home); applyProfile(bundle.profile); }
   else { bundle = { version: 1, savedAt: Date.now(), profile: captureProfile(crypto.randomUUID(), 'ゲスト'), home: captureWorld() }; }
+  // A host's own escrow and authoritative world are saved atomically in the same record.
+  bundle.pending = bundle.pending?.filter(p => {
+    if (p.worldId !== bundle.home.worldId) return true;
+    const receipt = bundle.home.receipts?.[p.id];
+    const refund = receipt?.sender === bundle.profile.id ? p.amount - receipt.cost : p.amount;
+    if (refund > 0) useEconomy.getState().receive(refund, '建築費の復旧精算');
+    return false;
+  });
   await persist();
 }
 export function renameGuest(name: string) { bundle.profile.name = name.trim().slice(0, 24) || 'ゲスト'; return persist(); }

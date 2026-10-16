@@ -5,7 +5,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const page = await context.newPage(), errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  await page.goto('http://127.0.0.1:5173/?touch=1');
+  await page.goto('http://127.0.0.1:5173/?play=1&touch=1');
   await page.waitForFunction(() => window.__ow);
   await page.locator('.tool.mode').click();
   await page.evaluate(async () => {

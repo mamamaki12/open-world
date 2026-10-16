@@ -63,6 +63,9 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
           if (!member.canBuild || !room.members.get(room.host)?.socket) { send(socket, { type: 'denied', id: data.command?.id, message: '共同建築が許可されていません' }); return; }
           send(room.members.get(room.host).socket, { type: 'command', sender: member.id, command: data.command }); return;
         }
+        if (data.type === 'settle' && typeof data.id === 'string') {
+          send(room.members.get(room.host)?.socket, { type: 'command', sender: member.id, command: { id: data.id, settle: true } }); return;
+        }
         if (data.type === 'result' && member.id === room.host) { send(room.members.get(data.target)?.socket, { type: 'result', result: data.result }); return; }
         if (data.type === 'pose') { room.members.forEach(m => { if (m !== member) send(m.socket, { type: 'pose', sender: member.id, pose: data.pose }); }); return; }
         if (data.type === 'door') broadcast(room, { type: 'door', sender: member.id, id: data.id, dir: data.dir });

@@ -2,10 +2,12 @@
 import { autosave } from '../save/storage';
 import { saveEconomy } from '../state/economy';
 import { useGame } from '../state/store';
+import { persist } from '../session/saves';
 
 const PARAM = 'v';
 
 export async function reloadLatest(): Promise<void> {
+  await persist();
   // 自動セーブは少し遅れて書くので、読み込み直す前に今の状態を保存しておく
   autosave(useGame.getState().house);
   saveEconomy();
