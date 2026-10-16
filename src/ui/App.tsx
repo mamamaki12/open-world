@@ -61,8 +61,8 @@ export function App() {
   const app = useRef<HTMLDivElement>(null);
   useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
-  // 見た目をまだ作っていなければ、最初に作成画面を出す（前からのセーブも一度だけ）
-  useEffect(() => { if (!useLooks.getState().created) useGame.getState().setOverlay('looks'); }, []);
+  // 見た目をまだ作っていなければ、最初に作成画面を出す（前からのセーブも一度だけ）。自動テストのブラウザでは出さない
+  useEffect(() => { if (!useLooks.getState().created && !navigator.webdriver) useGame.getState().setOverlay('looks'); }, []);
   return (
     <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}`}>
       <Scene />

@@ -289,8 +289,8 @@ export function outfitLook(outfit: Outfit) {
 export function AvatarModel({rig,children,outfit,looks,mannequin=false}:{rig:MutableRefObject<Rig>;children?:ReactNode;outfit?:Outfit;looks?:Looks;mannequin?:boolean}) {
   const worn=useWardrobe(s=>s.outfit),mine=useLooks(s=>s.looks),look=outfitLook(outfit??worn),r=rig.current;
   const me=mannequin?DEFAULT_LOOKS:looks??mine,female=me.sex==='f',bw=buildWidth(me.build),face=FACES[me.face]??FACES[0];
-  /** 肩幅・腰幅：女性は肩が狭く腰が少し広い。体型で全体の幅を変える */
-  const sw=bw*(female?.92:1),hw=bw*(female?1.07:1);
+  /** 肩幅：女性は肩を少し狭く。体型で全体の幅を変える */
+  const sw=bw*(female?.92:1),hw=bw;
   const skin=plainMaterial(mannequin?'#ece8e0':SKIN_TONES[me.skin]??SKIN_TONES[1],'none',{roughness:.65});
   const shirt=plainMaterial(look.top,'none',{roughness:look.topStyle==='knit'||look.topStyle==='hoodie'?1:.85});
   const accent=plainMaterial(look.topAccent,'none',{roughness:.85});
@@ -325,7 +325,7 @@ export function AvatarModel({rig,children,outfit,looks,mannequin=false}:{rig:Mut
       </group>)}
       <group ref={g=>(r.spine=g)} position={[0,.06,0]}>
         {/* A hanging garment shell, with no exposed anatomical chest shapes. */}
-        <mesh geometry={body} scale={[volume*sw,1,volume*.78*Math.sqrt(bw)]} material={shirt} castShadow/>
+        <mesh geometry={body} scale={[volume*bw*(female?.96:1),1,volume*.78*Math.sqrt(bw)]} material={shirt} castShadow/>
         {outer&&<>
           <mesh geometry={panel('inner-shirt',[[-.052,.465],[.052,.465],[.038,.11],[-.038,.11]])} position={[0,0,-.175*volume]} rotation-y={Math.PI} material={accent}/>
           {[-1,1].map(side=><group key={'lapel'+side}>
@@ -407,7 +407,7 @@ export function Hair({shape,material:m}:{shape:HairShape;material:THREE.Material
   switch(shape){
     case 'buzz':return <Shell r={.1} theta={PI*.56} sy={.98} material={m}/>;
     case 'short':return <><Shell r={.107} y={.135} theta={PI*.42} material={m}/><Shell r={.105} phi={back(.1)} theta={PI*.62} material={m}/></>;
-    case 'twoblock':return <><Shell r={.099} phi={back(.15)} theta={PI*.62} material={m}/><Shell r={.114} y={.142} theta={PI*.36} sy={.95} material={m}/></>;
+    case 'twoblock':return <><Shell r={.104} phi={back(.15)} theta={PI*.62} material={m}/><Shell r={.114} y={.142} theta={PI*.36} sy={.95} material={m}/></>;
     case 'mash':return <><Shell r={.116} y={.13} theta={PI*.47} sy={.98} material={m}/><Shell r={.11} phi={back(.25)} theta={PI*.64} material={m}/></>;
     case 'bob':return <><Shell r={.114} y={.135} theta={PI*.44} material={m}/><Shell r={.116} y={.125} phi={back(.65)} theta={PI*.8} sx={.98} material={m}/></>;
     case 'wavy':return <><Shell r={.116} y={.135} theta={PI*.44} material={m}/><Shell r={.118} y={.125} phi={back(.6)} theta={PI*.78} sx={1} material={m}/>
@@ -417,7 +417,7 @@ export function Hair({shape,material:m}:{shape:HairShape;material:THREE.Material
       <mesh position={[0,-.18,.07]} scale={[1,.35,.42]} material={m}><sphereGeometry args={[.085,20,12]}/></mesh></>;
     case 'pony':return <><Shell r={.108} y={.134} theta={PI*.44} material={m}/><Shell r={.106} phi={back(.1)} theta={PI*.66} material={m}/>
       <mesh position={[0,.15,.115]} material={m}><sphereGeometry args={[.03,14,10]}/></mesh>
-      <mesh position={[0,.04,.15]} rotation-x={PI-.25} material={m} castShadow><coneGeometry args={[.045,.24,16]}/></mesh></>;
+      <mesh position={[0,.05,.135]} rotation-x={PI+.2} material={m} castShadow><coneGeometry args={[.045,.24,16]}/></mesh></>;
     case 'bun':return <><Shell r={.107} y={.134} theta={PI*.44} material={m}/><Shell r={.105} phi={back(.1)} theta={PI*.64} material={m}/>
       <mesh position={[0,.235,.06]} material={m} castShadow><sphereGeometry args={[.052,20,14]}/></mesh></>;
   }

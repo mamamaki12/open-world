@@ -15,11 +15,11 @@ import './looks.css';
 function Preview({ looks, close }: { looks: Looks; close: boolean }) {
   const rig = useRig();
   return <div className="looks-preview" role="img" aria-label="3Dプレビュー。ドラッグで回転">
-    <Canvas camera={{ position: close ? [0.35, 1.5, -1.5] : [0.55, 1.2, -3], fov: 34 }} dpr={[1, 1.5]}>
+    <Canvas camera={{ position: close ? [0.3, 1.68, -1.25] : [0.55, 1.2, -3], fov: 34 }} dpr={[1, 1.5]}>
       <color attach="background" args={['#eeece7']} />
       <ambientLight intensity={1.6} /><directionalLight position={[-2, 4, -3]} intensity={3} /><directionalLight position={[2, 2, 1]} intensity={1.2} />
       <AvatarModel rig={rig} looks={looks} />
-      <OrbitControls target={[0, close ? 1.38 : 0.9, 0]} enablePan={false} minDistance={1} maxDistance={4} />
+      <OrbitControls target={[0, close ? 1.6 : 0.9, 0]} enablePan={false} minDistance={1} maxDistance={4} />
     </Canvas>
   </div>;
 }
@@ -47,12 +47,12 @@ export function LooksPanel({ mode }: { mode: Mode }) {
         {!salon && <>
           <Row label="性別">{(['m', 'f'] as Sex[]).map(s => <span key={s}>{pick(s, draft.sex, () => put({ sex: s, ...(mode === 'create' ? { hair: s === 'f' ? 'bob' : 'short' } : {}) }), SEX_NAMES[s])}</span>)}</Row>
           <Row label="体型">{BUILDS.map(b => <span key={b.id}>{pick(b.id, draft.build, () => put({ build: b.id }), b.name)}</span>)}</Row>
-          <Row label="肌の色">{SKIN_TONES.map((c, i) => <span key={c}>{pick(i, draft.skin, () => put({ skin: i }), <i style={{ background: c }} />, ' swatch')}</span>)}</Row>
+          <Row label="肌の色">{SKIN_TONES.map((c, i) => <span key={c}>{pick(i, draft.skin, () => put({ skin: i }), <i style={{ background: c }} />, ' looks-swatch')}</span>)}</Row>
           <Row label="顔">{FACES.map((f, i) => <span key={f.name}>{pick(i, draft.face, () => put({ face: i }), f.name)}</span>)}</Row>
         </>}
         {(hairFree || salon) ? <>
           <Row label="髪型">{HAIR_STYLES.map(h => <span key={h.id}>{pick(h.id, draft.hair, () => put({ hair: h.id }), <>{h.name}{salon && h.id !== now.hair && <small>{yen(h.price)}</small>}</>)}</span>)}</Row>
-          <Row label="髪の色">{HAIR_COLORS.map((c, i) => <span key={c.name}>{pick(i, draft.hairColor, () => put({ hairColor: i }), <><i style={{ background: c.color }} />{c.name}{salon && i !== now.hairColor && <small>{yen(colorPrice(i))}</small>}</>, ' swatch named')}</span>)}</Row>
+          <Row label="髪の色">{HAIR_COLORS.map((c, i) => <span key={c.name}>{pick(i, draft.hairColor, () => put({ hairColor: i }), <><i style={{ background: c.color }} />{c.name}{salon && i !== now.hairColor && <small>{yen(colorPrice(i))}</small>}</>, ' looks-swatch named')}</span>)}</Row>
         </> : <p className="looks-note">髪型と髪の色は、町の美容室（服屋通りの東）で変えられます。</p>}
         {error && <p role="alert" className="warn">{error}</p>}
         <div className="looks-actions">
