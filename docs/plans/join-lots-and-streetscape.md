@@ -15,5 +15,6 @@
 - 済：UI（購入時チェック `src/ui/JoinOption.tsx` を LandPurchasePanel・LandShop に、地図の「つなげる」ボタン・つなげた土地を1つの四角に）、join.test.ts
 - 済：つなげたとき名前は家のある方を残し、原点移動でカメラと人をずらす（originShift）。画面で確認済み
 - 済：町並み `src/world/Streetscape.tsx`（歩道・縁石・横断歩道・街灯・信号、インスタンス描画）＋テスト。Town の道路の薄い縁取りは歩道に置き換え
-- 次：画面で見た目確認（歩道の高さ・街灯の向き）
+- 済：画面で確認（screenshots/map/streetscape.png）
+- 次：PR → CI 緑でマージ
 - 最後：Playwright で PC/スマホ確認 → PR → CI 緑でマージ
