@@ -157,7 +157,7 @@ function Register({ add, timeUp }: GameProps) {
         {allScanned && (
           <>
             <div className="receipt-row total"><span>合計（税込）</span><span>{yen(c.total)}</span></div>
-            <div className="receipt-row"><span>お預かり</span><span>{yen(c.paid)}</span></div>
+            <div className="receipt-row done"><span>お預かり</span><span>{yen(c.paid)}</span></div>
           </>
         )}
       </div>
@@ -237,7 +237,7 @@ function Burger({ add, timeUp }: GameProps) {
         <b>{order.name}</b>
         {order.note && <span className="note">※{order.note}</span>}
         <ol>{order.layers.map((l, i) => <li key={i}>{l}</li>)}</ol>
-        <small>下のバンズの上に、上から順に積む</small>
+        <small>1番から順に、下のバンズの上へ積む</small>
       </div>
       <div className="burger-stack" aria-label="作っているバーガー">
         <div className="layer bun top">バンズ（上）</div>

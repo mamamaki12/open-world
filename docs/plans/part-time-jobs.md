@@ -16,6 +16,7 @@
 - 他スレッド担当の 初期資金・着工無料・土地代・証券 には触らない。
 
 ## 進捗
-- 済: 方針を書いた
-- 次: `src/economy/jobs.ts` とテスト、UI
-- 課題: なし
+- 済: `src/economy/jobs.ts`（+テスト）、`src/ui/jobs/JobsPanel.tsx`・`jobs.css`、overlay `'jobs'`。入口は上のバー・歩き用ツールバー・スマホ建築HUD・地図・不動産屋の家計簿。旧チラシ配り（`startJob`/`job`）は削除。
+- 済: `scripts/check-jobs.mjs`（4種を遊んで給料が入るか）を CI に追加。
+- 次: PR・マージ
+- 課題: 給料額は仮（遊んでからバランス調整）。初期資金を変える別スレッドと合わせて見直す。
