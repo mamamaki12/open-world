@@ -304,8 +304,11 @@ export function canPlaceStair(house: House, s: Omit<StairPart, 'id' | 'finish'>,
   if (s.level >= MAX_LEVEL) return 'この階より上には階段を架けられません';
   const fp = stairFootprint(s);
   if (!rectInsideLot(fp)) return '土地の外には置けません';
+  // 折り返し（U字）階段は上り口と上がった先が同じ側にあるので、階段室として各階の同じ位置に積み重ねられる
+  const stacked = (o: Omit<StairPart, 'id' | 'finish'>) =>
+    Math.abs(o.level - s.level) === 1 && o.shape === 'u' && s.shape === 'u' && o.x === s.x && o.z === s.z && o.rot === s.rot;
   const clash = house.stairs.some(
-    (o) => o.id !== ignoreId && (o.level === s.level || Math.abs(o.level - s.level) === 1) && stairRects(o).some(a => stairRects(s).some(b => rectsOverlap(a, b))),
+    (o) => o.id !== ignoreId && (o.level === s.level || Math.abs(o.level - s.level) === 1) && !stacked(o) && stairRects(o).some(a => stairRects(s).some(b => rectsOverlap(a, b))),
   );
   if (clash) return '他の階段と重なります';
   return null;

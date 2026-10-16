@@ -119,6 +119,15 @@ describe('床・階段', () => {
     expect(canPlaceStair(emptyHouse(), { level: 1, x: 5, z: 5, rot: 0 })).toBeNull();
   });
 
+  it('U字階段は上下の階の同じ位置に積み重ねられるが、まっすぐの階段は重ねられない', () => {
+    const u = { id: 'u0', level: 0, x: 5, z: 5, rot: 0 as const, shape: 'u' as const, finish };
+    const h: House = { ...emptyHouse(), stairs: [u] };
+    expect(canPlaceStair(h, { level: 1, x: 5, z: 5, rot: 0, shape: 'u' })).toBeNull();
+    expect(canPlaceStair(h, { level: 1, x: 5, z: 6, rot: 0, shape: 'u' })).not.toBeNull();
+    const straight: House = { ...emptyHouse(), stairs: [{ ...u, shape: undefined }] };
+    expect(canPlaceStair(straight, { level: 1, x: 5, z: 5, rot: 0 })).not.toBeNull();
+  });
+
   it('3階以上も、下の階の壁の上なら床を張れる', () => {
     expect(MAX_LEVEL).toBeGreaterThanOrEqual(2);
     const ring = (l: number) => [wall(`n${l}`, 0, 0, 4, 0, l), wall(`e${l}`, 4, 0, 4, 4, l), wall(`s${l}`, 4, 4, 0, 4, l), wall(`w${l}`, 0, 4, 0, 0, l)];
