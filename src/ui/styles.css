@@ -368,7 +368,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .map-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
 .map-legend .sw.owned { background: #2b6fd6; }
 .map-legend .sw.sale { background: #fff; border: 2px solid #c8372d; }
-.map-legend .sw.me { background: #ff8a00; border-radius: 50%; }
+.map-legend .sw.me { background: #2470dd; border-radius: 50%; }
 .map-scroll { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--line); border-radius: 10px; background: #e9eadf; -webkit-overflow-scrolling: touch; }
 .town-map { display: block; font-family: inherit; }
 .map-district { font-size: 12px; font-weight: 700; fill: #4d5446; }
