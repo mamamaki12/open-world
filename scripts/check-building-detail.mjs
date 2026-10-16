@@ -14,6 +14,7 @@ async function view(page,position=[80,75,140],target=[-30,5,12]){
 }
 const baseline=await open(false,true),before=await view(baseline);await baseline.screenshot({path:out+'/pc-before.png'});await baseline.close();
 const pc=await open(),after=await view(pc);await pc.screenshot({path:out+'/pc-after.png'});
+console.log('overview',JSON.stringify({before,after}));
 assert.ok(after.triangles<before.triangles*.7,'overview meaningfully reduces triangles');assert.ok(after.calls<before.calls,'overview reduces draw calls');assert.equal(after.dpr,before.dpr);assert.equal(after.shadow,before.shadow);assert.ok(after.tiers.distant>0);
 // Approaching restores room details; visiting forces full detail even from a distant camera.
 const plot=await pc.evaluate(async()=>Number(Object.keys((await import('/src/building/townHouses.ts')).TOWN_HOUSE_PLOTS)[0]));
@@ -27,7 +28,8 @@ await pc.evaluate(async()=>(await import('/src/world/visit.ts')).useVisit.setSta
 // Store interiors are absent at distance and present before entering their doorway.
 const shop=await pc.evaluate(async()=>{const {VENUES}=await import('/src/building/venues.ts'),{civicOffset}=await import('/src/state/economy.ts');return {bounds:VENUES.maison,offset:civicOffset()};});
 await view(pc,[shop.offset.x+shop.bounds.x0+5,2,shop.offset.z+shop.bounds.z0-8],[shop.offset.x+shop.bounds.x0+5,2,shop.offset.z+shop.bounds.z0+3]);
-assert.ok(await pc.evaluate(()=>window.__ow.scene.getObjectByName('interior-maison').children.length>0));await pc.screenshot({path:out+'/pc-store-near.png'});
+console.log('store approach',await pc.evaluate(async()=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState(),g=s.scene.getObjectByName('interior-maison');return {camera:s.camera.position.toArray(),target:s.controls.target.toArray(),store:g.userData,matrix:g.matrixWorld.elements,parent:g.parent.position.toArray(),children:g.children.length};}));
+await pc.waitForFunction(()=>window.__ow.scene.getObjectByName('interior-maison').children.length>0,{},{timeout:60000});await pc.screenshot({path:out+'/pc-store-near.png'});
 await view(pc,[400,75,400],[0,0,0]);assert.equal(await pc.evaluate(()=>window.__ow.scene.getObjectByName('interior-maison').children.length),0);
 await pc.evaluate(async()=>(await import('/src/state/venue.ts')).useVenue.setState({inside:'maison'}));await pc.waitForTimeout(1000);assert.ok(await pc.evaluate(()=>window.__ow.scene.getObjectByName('interior-maison').children.length>0));
 await pc.close();
