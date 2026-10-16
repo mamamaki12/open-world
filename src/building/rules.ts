@@ -2,7 +2,7 @@
 // 将来サーバー側でも同じ判定を使えるようにする。
 import { stairRects } from './stairs';
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
-import { GRID, LOT_D, LOT_W, MAX_LEVEL, STAIR_WIDTH, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
+import { GRID, lotSize, MAX_LEVEL, STAIR_WIDTH, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import type { FurniturePart, House, OpeningPart, PartRef, StairPart, StairRail, WallHeight, WallPart } from './types';
 
 export interface Rect {
@@ -28,7 +28,7 @@ export function normalizeRect(r: Rect): Rect {
 }
 
 export function rectInsideLot(r: Rect): boolean {
-  return r.x0 >= 0 && r.z0 >= 0 && r.x1 <= LOT_W && r.z1 <= LOT_D && r.x1 > r.x0 && r.z1 > r.z0;
+  return r.x0 >= 0 && r.z0 >= 0 && r.x1 <= lotSize.w && r.z1 <= lotSize.d && r.x1 > r.x0 && r.z1 > r.z0;
 }
 
 function rectsOverlap(a: Rect, b: Rect): boolean {
@@ -132,7 +132,7 @@ export function canPlaceWall(
 ): string | null {
   if (w.x0 !== w.x1 && w.z0 !== w.z1) return '壁は縦か横にまっすぐ引いてください';
   if (w.x0 === w.x1 && w.z0 === w.z1) return '壁の長さが0です';
-  const pts = [w.x0, w.x1].every((x) => x >= 0 && x <= LOT_W) && [w.z0, w.z1].every((z) => z >= 0 && z <= LOT_D);
+  const pts = [w.x0, w.x1].every((x) => x >= 0 && x <= lotSize.w) && [w.z0, w.z1].every((z) => z >= 0 && z <= lotSize.d);
   if (!pts) return '土地の外には建てられません';
   if (house.walls.some((o) => o.level === w.level && wallsOverlap(o, w))) return 'すでに壁があります';
   return null;
@@ -158,11 +158,14 @@ export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x
  * その階で壁に囲まれたマス（家の中）。土地の外から壁（高さのあるもの）を越えずにたどり着けないマスを 1 にする。
  * 家は作り直すたびに新しいオブジェクトになるので、家ごとに覚えておく
  */
-const enclosedCache = new WeakMap<House, Map<number, Uint8Array>>();
+const enclosedCache = new WeakMap<House, Map<string, Uint8Array>>();
 function enclosedCells(house: House, level: number): Uint8Array {
   let byLevel = enclosedCache.get(house);
   if (!byLevel) enclosedCache.set(house, (byLevel = new Map()));
-  const hit = byLevel.get(level);
+  const LOT_W = lotSize.w;
+  const LOT_D = lotSize.d;
+  const key = `${level}:${LOT_W}x${LOT_D}`;
+  const hit = byLevel.get(key);
   if (hit) return hit;
   // 土地の周りに1マスの余白を付けた格子で、外側から塗りつぶす
   const W = LOT_W + 2;
@@ -198,7 +201,7 @@ function enclosedCells(house: House, level: number): Uint8Array {
   }
   const out = new Uint8Array(LOT_W * LOT_D);
   for (let z = 0; z < LOT_D; z++) for (let x = 0; x < LOT_W; x++) if (!seen[idx(x, z)]) out[z * LOT_W + x] = 1;
-  byLevel.set(level, out);
+  byLevel.set(key, out);
   return out;
 }
 
@@ -218,7 +221,7 @@ export function wallOutsideSide(house: House, w: WallPart): 1 | -1 | 0 | 2 {
   const inside = (x: number, z: number) => {
     const cx = Math.floor(x / GRID);
     const cz = Math.floor(z / GRID);
-    if (cx < 0 || cz < 0 || cx >= LOT_W || cz >= LOT_D || !enclosed[cz * LOT_W + cx]) return false;
+    if (cx < 0 || cz < 0 || cx >= lotSize.w || cz >= lotSize.d || !enclosed[cz * lotSize.w + cx]) return false;
     return !house.floors.some((f) => f.level === w.level && f.kind === 'terrace' && cx >= f.x0 && cx < f.x1 && cz >= f.z0 && cz < f.z1);
   };
   let leftIn = false;
@@ -318,8 +321,8 @@ export function stairHoles(house: House, level: number): Rect[] {
 /** 家具の位置を5cm単位に吸着し、土地の中に収める */
 export function snapFurniture(x: number, z: number): { x: number; z: number } {
   const s = 0.05;
-  const cx = Math.min(Math.max(Math.round(x / s) * s, 0), LOT_W * GRID);
-  const cz = Math.min(Math.max(Math.round(z / s) * s, 0), LOT_D * GRID);
+  const cx = Math.min(Math.max(Math.round(x / s) * s, 0), lotSize.w * GRID);
+  const cz = Math.min(Math.max(Math.round(z / s) * s, 0), lotSize.d * GRID);
   return { x: +cx.toFixed(3), z: +cz.toFixed(3) };
 }
 

@@ -4,10 +4,11 @@ import { DAILY, DAY_SECONDS, getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
 import { COST_CATEGORY_NAMES, buildSeconds, quality, renovationCost } from '../economy/pricing';
 import type { CostCategory } from '../economy/pricing';
-import { lotNumbers, useCurrentLot, useEconomy } from '../state/economy';
+import { buyLandAndJoin, lotNumbers, useCurrentLot, useEconomy } from '../state/economy';
 import type { Lot } from '../state/economy';
 import { useGame } from '../state/store';
 import { Modal } from './Modal';
+import { JoinOption } from './JoinOption';
 import { warpToLot } from '../world/Player';
 
 type Tab = 'lot' | 'lots' | 'land' | 'market' | 'ledger';
@@ -222,6 +223,7 @@ function LotList() {
 
 function LandShop() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [join, setJoin] = useState(true);
   const offers = useEconomy((s) => s.offers);
   const market = useEconomy((s) => s.market);
   const money = useEconomy((s) => s.money);
@@ -234,8 +236,9 @@ function LandShop() {
         <h3>{selected.name}を購入しますか？</h3>
         <p>購入価格 <b>{yen(landPrice(selected.location, selected.variance, market))}</b></p>
         <p>購入後の残高 {yen(money - landPrice(selected.location, selected.variance, market))}</p>
+        <JoinOption plot={selected.plot} checked={join} onChange={setJoin} />
         <button className="btn primary" disabled={landPrice(selected.location, selected.variance, market) > money} onClick={() => {
-          const err = useEconomy.getState().buyLand(selected.id);
+          const err = buyLandAndJoin(selected.id, join);
           notify(err ?? selected.name + 'を購入しました');
           if (!err) setConfirmId(null);
         }}>土地の購入を確定する</button>
