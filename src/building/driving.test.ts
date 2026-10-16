@@ -3,6 +3,37 @@ import { CARS } from '../catalog/cars';
 import { integrateDrive } from './driving';
 const pose=()=>({x:0,z:0,yaw:0,speed:0,steer:0,wheelSpin:0,braking:false});
 describe('vehicle motion',()=>{
+  it('brakes to a full stop before a held pedal starts reversing',()=>{
+    const p={...pose(),speed:10,reverseHold:0},d=CARS[0];
+    const pedal={throttle:0,steering:0,brake:true,reverseOnBrake:true};
+    while(p.speed>0) {
+      integrateDrive(p,pedal,.025,d,()=>false);
+      expect(p.speed).toBeGreaterThanOrEqual(0);
+    }
+    for(let i=0;i<3;i++)integrateDrive(p,pedal,.1,d,()=>false);
+    expect(p.speed).toBe(0);
+    integrateDrive(p,pedal,.1,d,()=>false);
+    expect(p.speed).toBeLessThan(0);
+    integrateDrive(p,{throttle:0,steering:0,brake:false},.025,d,()=>false);
+    expect(p.reverseHold).toBe(0);
+  });
+  it('limits pedal reverse speed and lets the accelerator drive forward again',()=>{
+    for(const d of CARS) {
+      const p={...pose(),reverseHold:0};
+      for(let i=0;i<100;i++)integrateDrive(p,{throttle:0,steering:0,brake:true,reverseOnBrake:true},.05,d,()=>false);
+      expect(p.speed).toBeCloseTo(-d.reverseSpeed);
+      for(let i=0;i<60;i++)integrateDrive(p,{throttle:1,steering:0,brake:false},.05,d,()=>false);
+      expect(p.speed).toBeGreaterThan(0);
+      expect(p.reverseHold).toBe(0);
+    }
+  });
+  it('does not auto-reverse with both pedals, the handbrake or keyboard braking',()=>{
+    for(const extra of [{throttle:1,reverseOnBrake:true},{throttle:0,reverseOnBrake:true,handbrake:true},{throttle:0}]) {
+      const p={...pose(),reverseHold:0};
+      for(let i=0;i<100;i++)integrateDrive(p,{steering:0,brake:true,...extra},.05,CARS[0],()=>false);
+      expect(p.speed).toBe(0);expect(p.reverseHold).toBe(0);
+    }
+  });
   it('uses a gentler service brake while still stopping fully',()=>{
     const p={...pose(),speed:10};
     integrateDrive(p,{throttle:1,steering:0,brake:true},.25,CARS[0],()=>false);
