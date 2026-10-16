@@ -59,13 +59,13 @@ export function landOffers(day: number, rng: Rng): LandOffer[] {
 }
 
 /** 土地の今の値段 */
-export function landPrice(location: string, variance: number, market: number): number {
-  return Math.round((getLocation(location).land * variance * market) / 10000) * 10000;
+export function landPrice(location: string, variance: number, market: number, density = 1): number {
+  return Math.round((getLocation(location).land * variance * density * market) / 10000) * 10000;
 }
 
-/** 家と土地をまとめて売るときの値段 = (建物の査定 + 土地) × 相場 */
-export function salePrice(buildingAppraisal: number, location: string, variance: number, market: number): number {
-  return Math.round(((buildingAppraisal + getLocation(location).land * variance) * market) / 10000) * 10000;
+/** 家と土地をまとめて売るときの値段 = (建物の査定 + 土地 × にぎわい) × 相場 */
+export function salePrice(buildingAppraisal: number, location: string, variance: number, market: number, density = 1): number {
+  return Math.round(((buildingAppraisal + getLocation(location).land * variance * density) * market) / 10000) * 10000;
 }
 
 /** 毎日の出入り */

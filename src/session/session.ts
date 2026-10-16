@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import type { House } from '../building/types';
-import { renovationCost } from '../economy/pricing';
 import { useGame } from '../state/store';
 import { useEconomy, currentPlotOf, lotCells } from '../state/economy';
 import { lotSize } from '../building/dimensions';
@@ -78,7 +77,7 @@ async function accept(sender: string, command: Command) {
       JSON.stringify(undo.delta?.map(c => ({ ...c, before: c.after, after: c.before }))) !== JSON.stringify(command.delta))) throw Error('自分の操作だけを一度ずつ戻せます');
     let next: House, cost: number;
     const previousSize = { ...lotSize }, target = w.economy.lots.find(l => l.id === command.lot)!;
-    try { Object.assign(lotSize, lotCells(target)); next = applyChanges(before, command.delta); cost = command.undoOf ? 0 : renovationCost(before, next).total; }
+    try { Object.assign(lotSize, lotCells(target)); next = applyChanges(before, command.delta); cost = 0; }
     finally { Object.assign(lotSize, previousSize); }
     if (!Number.isSafeInteger(command.reserved) || command.reserved < cost) throw Error('費用が変わりました。最新の状態でやり直してください');
     rollback = captureWorld(); approving = true;
@@ -115,7 +114,8 @@ async function submit(before: House, after: House) {
   if (s.status !== 'connected' || !s.members.some(m => m.id === me && m.canBuild)) return useGame.getState().notify('ホストに共同建築の許可をもらってください');
   if (pending || s.busy) return useGame.getState().notify('前の変更を確定しています');
   const delta = changes(before, after); if (!delta.length) return;
-  const cost = renovationCost(before, after).total;
+  // 着工は無料（ひとりモードと同じ）
+  const cost = 0;
   if (!Number.isSafeInteger(cost) || cost < 0 || (cost > 0 && !useEconomy.getState().pay(cost, '共同建築（確定待ち）'))) return useGame.getState().notify('所持金が足りません');
   const id = crypto.randomUUID(), lot = useEconomy.getState().currentLotId;
   if (!lot) { useEconomy.getState().receive(cost, '共同建築の取消'); return; }

@@ -34,6 +34,7 @@ jobs:
           node scripts/check-driving-assists.mjs
           node scripts/check-aim-controls.mjs
           node scripts/check-fashion.mjs
+          node scripts/check-jobs.mjs pc
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -41,6 +42,7 @@ jobs:
           path: |
             control-checks/
             fashion-checks/
+            job-checks/
           if-no-files-found: ignore
 
   building-detail:
