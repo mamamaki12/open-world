@@ -398,7 +398,7 @@ function SaveMenu() {
           </div>
           <div className="row">
             <button className="btn" onClick={downloadBackup}>バックアップ</button>
-            {solo && <button className="btn" onClick={() => void leaveWorld()}>開始画面へ</button>}
+            {solo && <button className="btn" onClick={() => void leaveWorld()}>保存して開始画面へ</button>}
           </div>
           <div className="row update">
             <button className="btn" onClick={() => void reloadLatest()} title="セーブしてからページを読み込み直します">
