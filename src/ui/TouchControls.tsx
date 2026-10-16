@@ -20,6 +20,8 @@ function Joystick({ driving }: { driving: boolean }) {
   const tapAt = useRef(-Infinity);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const [jumped, setJumped] = useState(false);
+  // ジャンプの案内は最初の6秒だけ（ずっと文字が浮いていると邪魔なので）
+  useEffect(() => { const t = setTimeout(() => setJumped(true), 6000); return () => clearTimeout(t); }, []);
   const running = !driving && Math.hypot(knob.x, knob.y) / STICK_RADIUS >= RUN_THRESHOLD;
 
   const release = () => {

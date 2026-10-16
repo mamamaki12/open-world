@@ -28,6 +28,8 @@ import { useTouchDevice } from './useTouchDevice';
 import { walkActions } from '../state/touch';
 import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
 import { reloadLatest } from './reload';
+import { leaveWorld, useSession } from '../session/session';
+import { downloadBackup } from '../session/saves';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
@@ -323,6 +325,8 @@ function SaveMenu() {
   const house = useGame((s) => s.house);
   const replaceHouse = useGame((s) => s.replaceHouse);
   const notify = useGame((s) => s.notify);
+  // ひとりで遊ぶときは右下のワールド表示を出さないので、開始画面へ戻る操作はここに置く
+  const solo = useSession((s) => s.role === 'home');
   return (
     <div className="save">
       <button
@@ -391,6 +395,10 @@ function SaveMenu() {
             >
               {confirmClear ? 'もう一度押すと全部消します' : '更地にする'}
             </button>
+          </div>
+          <div className="row">
+            <button className="btn" onClick={downloadBackup}>バックアップ</button>
+            {solo && <button className="btn" onClick={() => void leaveWorld()}>保存して開始画面へ</button>}
           </div>
           <div className="row update">
             <button className="btn" onClick={() => void reloadLatest()} title="セーブしてからページを読み込み直します">
