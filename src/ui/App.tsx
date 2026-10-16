@@ -15,6 +15,7 @@ import { WalkHud } from './WalkHud';
 import { DealerPanel } from './DealerPanel';
 import { BoutiquePanel } from './BoutiquePanel';
 import { TunerPanel } from './TunerPanel';
+import { ExchangePanel } from './ExchangePanel';
 import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
 import { ShopPanel } from './ShopPanel';
 import { CasinoPanel } from './CasinoPanel';
@@ -91,6 +92,7 @@ export function App() {
       {overlay === 'inventory' && <InventoryPanel />}
       {overlay === 'dealer' && <DealerPanel />}
       {overlay === 'tuner' && <TunerPanel />}
+      {overlay === 'exchange' && <ExchangePanel />}
       {overlay === 'boutique' && <BoutiquePanel />}
       {overlay === 'closet' && <BoutiquePanel closetOnly />}
       {overlay === 'land' && <LandPurchasePanel />}

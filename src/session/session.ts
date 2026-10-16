@@ -13,31 +13,29 @@ import { plotX, plotZ } from '../economy/town';
 import { applyChanges, changes } from './edits';
 import type { Change } from './edits';
 import { sessionGate } from './gate';
-import { cleanShop, recordSale } from '../economy/shop';
-import type { ShopItem } from '../economy/shop';
 import { applyWorld, captureWorld, persist, restoreHome, savedBundle, validWorld } from './saves';
 import type { WorldSave } from './saves';
 import type { Outfit } from '../catalog/clothes';
 import type { OwnedCar } from '../state/vehicles';
+import { useStocks, homeHoldings } from '../state/stocks';
+import type { Holding } from '../economy/stocks';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
 export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; cars: OwnedCar[]; driving?: string | null }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
-  role: 'home' | 'host' | 'guest'; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
+  role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
 }
-export const useSession = create<SessionState>(() => ({ screen: 'menu', status: 'offline', role: 'home', code: '', message: '', members: [], poses: {}, busy: false }));
+export const useSession = create<SessionState>(() => ({ screen: 'menu', status: 'offline', role: 'home', shared: false, code: '', message: '', members: [], poses: {}, busy: false }));
 let socket: WebSocket | null = null, token = '', endpoint = '', reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 let approvalQueue = Promise.resolve();
 let approving = false;
 let intendedLeave = false, epoch = 0, remoteWorld: WorldSave | null = null;
 const send = (data: unknown) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); };
 export const currentEndpoint = () => endpoint;
-interface Command { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; purchase?: { lot: string; item: string; price: number } }
+interface Command { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string }
 interface Result { id: string; ok: boolean; cost?: number; message?: string }
 let pending: Command | null = null;
-let purchasing: string | null = null;
-const SETTLED = '未確定だった建築費を返しました';
 const ownHistory: Command[] = [];
 const syncHistory = () => { if (sessionGate.edit) useGame.setState({ past: ownHistory.map(() => useGame.getState().house), future: [] }); };
 function currentWorldHouse(w: WorldSave, id: string): House | null {
@@ -52,15 +50,6 @@ function publishWorld() { if (!approving) send({ type: 'world', world: captureWo
 async function finish(result: Result) {
   const b = savedBundle(), escrow = b.pending?.find(p => p.id === result.id);
   if (!escrow) return;
-  if (escrow.kind === 'purchase') {
-    // 買い物：確定なら預けたお金はそのまま店の持ち主へ。届かなかった・断られたら全額戻す
-    b.pending = b.pending?.filter(p => p.id !== result.id);
-    if (!result.ok) useEconomy.getState().receive(escrow.amount, `買い物の取消：${escrow.label ?? ''}`);
-    if (purchasing === result.id) purchasing = null;
-    useSession.setState({ message: result.ok ? `「${escrow.label}」を買いました` : result.message === SETTLED ? 'お店に届かなかったので返金しました' : result.message ?? '買えませんでした' });
-    await persist();
-    return;
-  }
   const refund = result.ok ? escrow.amount - (result.cost ?? escrow.amount) : escrow.amount;
   if (refund > 0) useEconomy.getState().receive(refund, result.ok ? '共同建築の精算' : '共同建築の取消');
   b.pending = b.pending?.filter(p => p.id !== result.id);
@@ -75,30 +64,12 @@ async function finish(result: Result) {
 }
 async function accept(sender: string, command: Command) {
   const answer = (r: Result) => sender === savedBundle().profile.id ? void finish(r) : send({ type: 'result', target: sender, result: r });
-  let rollback: WorldSave | null = null, credited = 0;
+  let rollback: WorldSave | null = null;
   try {
     if (!command || typeof command.id !== 'string' || command.id.length > 120) throw Error('操作IDが不正です');
     const prior = sessionGate.receipts[command.id];
     if (prior) { if (prior.sender !== sender) throw Error('操作IDが重複しました'); answer({ id: command.id, ok: true, cost: prior.cost }); return; }
-    if (command.settle) { answer({ id: command.id, ok: false, message: SETTLED }); return; }
-    if (command.purchase) {
-      const { lot, item, price } = command.purchase;
-      if (sender === savedBundle().profile.id) throw Error('自分のお店では買えません');
-      const w = captureWorld(), shop = cleanShop(w.economy.lots.find(l => l.id === lot)?.shop);
-      if (!shop) throw Error('このお店は閉まっています');
-      const buyer = useSession.getState().members.find(m => m.id === sender)?.name ?? 'お客さん';
-      const sale = recordSale(shop, { id: command.id, day: w.economy.day, buyer, itemId: item, price });
-      if (typeof sale === 'string') throw Error(sale);
-      rollback = w; approving = true;
-      sessionGate.receipts[command.id] = { sender, cost: price };
-      useEconomy.getState().setShop(lot, sale.shop);
-      useEconomy.getState().receive(price, `お店の売上：${sale.item.name}（${buyer}さん）`);
-      credited = price;
-      await persist(); // 売上と受領記録を保存してから買い手へ確定を返す
-      approving = false;
-      publishWorld(); answer({ id: command.id, ok: true, cost: price });
-      return;
-    }
+    if (command.settle) { answer({ id: command.id, ok: false, message: '未確定だった建築費を返しました' }); return; }
     if (!useSession.getState().members.some(m => m.id === sender && m.canBuild)) throw Error('共同建築の許可が必要です');
     const w = captureWorld(), before = currentWorldHouse(w, command.lot);
     if (!before) throw Error('編集する土地がありません');
@@ -125,7 +96,6 @@ async function accept(sender: string, command: Command) {
     approving = false;
     publishWorld(); answer({ id: command.id, ok: true, cost });
   } catch (e) {
-    if (credited) useEconomy.setState(s => ({ money: s.money - credited }));
     if (rollback) { applyWorld(rollback, true); syncHistory(); void persist().catch(() => undefined); }
     answer({ id: command?.id, ok: false, message: e instanceof Error ? e.message : '変更できませんでした' });
   } finally { approving = false; }
@@ -156,20 +126,6 @@ async function submit(before: House, after: House) {
   try { await persist(); if (s.role === 'host') { const command = pending; approvalQueue = approvalQueue.then(() => accept(me, command)); } else send({ type: 'command', command: pending }); }
   catch { await finish({ id, ok: false, message: '保存できないため操作を取り消しました' }).catch(() => undefined); }
 }
-/** 同じワールドのお店で一回払いの買い物をする。客はお金を預け、持ち主（ホスト）が記録・保存してから確定する */
-export async function buyFromShop(lot: string, item: ShopItem): Promise<string | null> {
-  const s = useSession.getState();
-  if (s.role !== 'guest' || s.status !== 'connected') return 'ほかのプレイヤーのワールドに参加しているときに買えます';
-  if (purchasing) return '前の買い物を確定しています';
-  if (!useEconomy.getState().pay(item.price, `買い物（確定待ち）：${item.name}`)) return '所持金が足りません';
-  const id = crypto.randomUUID();
-  purchasing = id;
-  savedBundle().pending = [...(savedBundle().pending ?? []), { id, room: s.code, worldId: sessionGate.worldId, amount: item.price, kind: 'purchase', label: item.name }];
-  try { await persist(); }
-  catch { await finish({ id, ok: false, message: '保存できないため買い物を取り消しました' }).catch(() => undefined); return '保存できないため買い物を取り消しました'; }
-  send({ type: 'purchase', command: { id, purchase: { lot, item: item.id, price: item.price } } });
-  return null;
-}
 function endpointURL(value: string) {
   const u = new URL(value);
   if (!['ws:', 'wss:'].includes(u.protocol) || (location.protocol === 'https:' && u.protocol !== 'wss:')) throw Error('HTTPSの画面ではwss://の接続先を指定してください');
@@ -177,22 +133,56 @@ function endpointURL(value: string) {
 }
 export async function enterOffline() {
   intendedLeave = true; ++epoch; clearTimeout(reconnectTimer); socket?.close(); socket = null;
-  if (sessionGate.role === 'guest' && remoteWorld) restoreHome();
-  sessionGate.role = 'home'; sessionGate.edit = null; sessionGate.undo = null;
-  await persist(); useSession.setState({ screen: 'game', role: 'home', status: 'offline', message: '', members: [], poses: {}, code: '' });
+  if ((sessionGate.role === 'guest' && remoteWorld) || sessionGate.shared) restoreHome();
+  leaveShared(); sessionGate.role = 'home'; sessionGate.edit = null; sessionGate.undo = null;
+  await persist(); useSession.setState({ screen: 'game', role: 'home', shared: false, status: 'offline', message: '', members: [], poses: {}, code: '' });
 }
-export async function connectWorld(url: string, code = '') {
-  if (!navigator.onLine) throw Error('友達と遊ぶには通信が必要です');
+/** みんなのワールド（サーバーが正本を持つ1つの町）に入る。自宅は訪問中と同じく上書きしない */
+export async function joinShared(url: string) {
+  await persist(); // 自分のワールドの所持金・車を保存してから切り替える
+  sessionGate.shared = true; inflight.clear(); account = null;
+  sessionGate.money = (delta, label) => {
+    if (accountApplying || !delta || useSession.getState().status !== 'connected') return;
+    const id = crypto.randomUUID(); inflight.set(id, delta);
+    send({ type: 'command', command: { id, lot: '', delta: [], reserved: 0, action: { type: 'money', delta, label } } });
+  };
+  sessionGate.act = (lot, action, reserved) => {
+    if (useSession.getState().status !== 'connected') return '接続を待っています';
+    const id = crypto.randomUUID(); actions.add(id);
+    send({ type: 'command', command: { id, lot, delta: [], reserved, action } });
+    return null;
+  };
+  useEconomy.setState({ money: 0, ledger: [] }); useVehicles.setState({ cars: [], driving: null, target: null }); useStocks.setState({ holdings: {} });
+  try { await connectWorld(url, '', true); } catch (e) { restoreHome(); leaveShared(); throw e; }
+}
+/** みんなのワールドの口座（サーバーの正本）に、まだ返事のない自分の出入りを足して表示する */
+const inflight = new Map<string, number>(), actions = new Set<string>();
+let account: { money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, Holding> } | null = null, accountApplying = false;
+function showAccount() {
+  if (!account) return;
+  accountApplying = true;
+  try {
+    const money = account.money + [...inflight.values()].reduce((a, b) => a + b, 0);
+    useEconomy.setState({ money, ledger: account.ledger });
+    const cars = account.cars.filter(validCar);
+    if (JSON.stringify(cars) !== JSON.stringify(useVehicles.getState().cars)) useVehicles.setState({ cars });
+    const stocks = account.stocks ?? {};
+    if (JSON.stringify(stocks) !== JSON.stringify(useStocks.getState().holdings)) useStocks.setState({ holdings: stocks });
+  } finally { accountApplying = false; }
+}
+function leaveShared() { if (sessionGate.shared) useStocks.setState({ holdings: homeHoldings() }); sessionGate.shared = false; sessionGate.money = null; sessionGate.act = null; inflight.clear(); actions.clear(); account = null; }
+export async function connectWorld(url: string, code = '', shared = false) {
+  if (!navigator.onLine) throw Error('みんなと遊ぶには通信が必要です');
   endpoint = endpointURL(url); await persist();
   intendedLeave = false; token = ''; remoteWorld = null;
-  sessionGate.role = code ? 'guest' : 'host';
-  useSession.setState({ role: sessionGate.role, status: 'connecting', code: code.toUpperCase(), message: '', members: [], poses: {} });
+  sessionGate.role = code || shared ? 'guest' : 'host';
+  useSession.setState({ role: sessionGate.role, shared, status: 'connecting', code: code.toUpperCase(), message: '', members: [], poses: {} });
   openConnection(++epoch, false);
 }
 function openConnection(generation: number, resume: boolean) {
   const p = savedBundle().profile, state = useSession.getState();
   socket = new WebSocket(endpoint);
-  socket.onopen = () => send({ type: resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token });
+  socket.onopen = () => send({ type: state.shared ? 'shared' : resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token });
   socket.onmessage = async event => {
     if (generation !== epoch) return;
     try {
@@ -211,13 +201,19 @@ function openConnection(generation: number, resume: boolean) {
         syncHistory();
         for (const escrow of savedBundle().pending ?? []) {
           const receipt = m.world.receipts?.[escrow.id];
-          if (receipt?.sender === p.id) await finish({ id: escrow.id, ok: true, cost: receipt.cost });
+          if (receipt?.sender === p.id) await finish(receipt.cancelled ? { id: escrow.id, ok: false, message: '未確定だった建築費を返しました' } : { id: escrow.id, ok: true, cost: receipt.cost });
           else if (escrow.worldId === m.world.worldId && escrow.id !== pending?.id) send({ type: 'settle', id: escrow.id });
         }
       } else if (m.type === 'members') {
         useSession.setState({ members: m.members, poses: Object.fromEntries(Object.entries(useSession.getState().poses).filter(([id]) => m.members.some((x: Member) => x.id === id))) });
         if (state.role === 'host') publishWorld();
       } else if (m.type === 'command' && state.role === 'host') approvalQueue = approvalQueue.then(() => accept(m.sender, m.command));
+      else if (m.type === 'result' && (inflight.has(m.result?.id) || actions.has(m.result?.id))) {
+        const id = m.result.id; inflight.delete(id);
+        if (actions.delete(id)) useGame.getState().notify(m.result.ok ? m.result.message || '完了しました' : m.result.message || 'できませんでした');
+        showAccount();
+      }
+      else if (m.type === 'account' && m.account && Number.isFinite(m.account.money)) { account = m.account; showAccount(); }
       else if (m.type === 'result') await finish(m.result);
       else if (m.type === 'denied') await finish({ id: m.id, ok: false, message: m.message });
       else if (m.type === 'pose' && validPose(m.pose)) useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } }));
@@ -245,10 +241,10 @@ export function allowBuilding(id: string, canBuild: boolean) { send({ type: 'per
 export async function leaveWorld() {
   if (useSession.getState().busy && useSession.getState().status !== 'closed') { useSession.setState({ message: '建築費の精算待ちです。接続の復帰後に退出してください' }); return; }
   await persist(); intendedLeave = true; ++epoch; clearTimeout(reconnectTimer); send({ type: 'leave' }); socket?.close(); socket = null;
-  sessionGate.edit = null; sessionGate.undo = null; ownHistory.length = 0; restoreHome();
+  sessionGate.edit = null; sessionGate.undo = null; ownHistory.length = 0; restoreHome(); leaveShared();
   useDoors.setState({ target: null, climb: null, climbing: false }); useVisit.setState({ plot: null }); useVenue.setState({ inside: null });
   pending = null;
-  useSession.setState({ screen: 'menu', role: 'home', status: 'offline', code: '', members: [], poses: {}, message: '', busy: false }); await persist();
+  useSession.setState({ screen: 'menu', role: 'home', shared: false, status: 'offline', code: '', members: [], poses: {}, message: '', busy: false }); await persist();
 }
 /** Install once outside React effects; subscriptions never outlive the page. */
 export function startSessionTimers() {
@@ -272,6 +268,14 @@ export function startSessionTimers() {
     }
     void persist().catch(() => useSession.setState({ message: '端末への保存に失敗しました。バックアップを保存してください' }));
   }, 2000);
+  const cars = useVehicles.subscribe((s, prev) => {
+    if (!sessionGate.shared || accountApplying || s.cars === prev.cars || useSession.getState().status !== 'connected') return;
+    send({ type: 'command', command: { id: crypto.randomUUID(), lot: '', delta: [], reserved: 0, action: { type: 'cars', cars: s.cars } } });
+  });
+  const stocks = useStocks.subscribe((s, prev) => {
+    if (!sessionGate.shared || accountApplying || s.holdings === prev.holdings || useSession.getState().status !== 'connected') return;
+    send({ type: 'command', command: { id: crypto.randomUUID(), lot: '', delta: [], reserved: 0, action: { type: 'stocks', holdings: s.holdings } } });
+  });
   const doors = useDoors.subscribe((s, prev) => {
     if (sessionGate.applying || useSession.getState().status !== 'connected' || s.open === prev.open) return;
     for (const id of new Set([...Object.keys(prev.open), ...Object.keys(s.open)])) if (s.open[id] !== prev.open[id]) send({ type: 'door', id, dir: s.open[id] ?? 0 });
@@ -280,5 +284,5 @@ export function startSessionTimers() {
     if (!sessionGate.applying && s.house !== prev.house && !s.dragBase) void persist().catch(() => undefined);
   });
   const hide = () => { if (document.hidden) void persist(); }; document.addEventListener('visibilitychange', hide);
-  return () => { clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
+  return () => { cars(); stocks(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
 }

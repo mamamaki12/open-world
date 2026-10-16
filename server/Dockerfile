@@ -6,4 +6,6 @@ COPY server ./server
 ENV NODE_ENV=production
 ENV PORT=8787
 EXPOSE 8787
-CMD ["node", "server/relay.mjs"]
+ENV WORLD_FILE=/data/shared-world.json
+VOLUME /data
+CMD ["node", "server/dist/relay.mjs"]

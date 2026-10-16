@@ -11,7 +11,7 @@ export type Mode = 'build' | 'walk';
 export type View = 'third' | 'first';
 
 /** 画面いっぱいに開くメニュー（開いている間はゲームのキー操作を止める） */
-export type Overlay = 'estate' | 'casino' | 'map' | 'dealer' | 'tuner' | 'land' | 'controls' | 'inventory' | 'boutique' | 'closet' | 'shop' | 'jobs' | null;
+export type Overlay = 'estate' | 'casino' | 'map' | 'dealer' | 'tuner' | 'exchange' | 'land' | 'controls' | 'inventory' | 'boutique' | 'closet' | 'jobs' | 'shop' | null;
 
 export type Tool = 'select' | 'floor' | 'wall' | 'door' | 'window' | 'stair' | 'roof' | 'furniture' | 'erase';
 

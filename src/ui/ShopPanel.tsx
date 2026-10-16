@@ -4,9 +4,11 @@ import { Modal } from './Modal';
 import { useGame } from '../state/store';
 import { useEconomy } from '../state/economy';
 import { useVehicles } from '../state/vehicles';
-import { useSession, buyFromShop } from '../session/session';
+import { useSession } from '../session/session';
+import { sessionGate } from '../session/gate';
+import { savedBundle } from '../session/saves';
 import { cleanShop, newShop, removeItem, upsertItem, SHOP_LIMITS } from '../economy/shop';
-import type { ShopItem } from '../economy/shop';
+import type { Shop, ShopItem } from '../economy/shop';
 import { yen } from '../economy/money';
 import './shop.css';
 
@@ -35,9 +37,21 @@ export function ShopPanel() {
   const [draft, setDraft] = useState<ShopItem | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const owner = role !== 'guest';
+  // みんなのワールドでは持ち主だけが店を開き、ほかの人が買う（お金はサーバーが持ち主へ直接移す）
+  const shared = useSession((s) => s.shared) && sessionGate.shared;
+  const owner = shared ? lot?.owner === savedBundle().profile.id : role !== 'guest';
   const shop = cleanShop(lot?.shop);
-  const save = (next: ReturnType<typeof newShop> | null) => lot && useEconomy.getState().setShop(lot.id, next);
+  const save = (next: Shop | null) => {
+    if (!lot) return;
+    if (!shared) { useEconomy.getState().setShop(lot.id, next); return; }
+    const err = sessionGate.act ? sessionGate.act(lot.id, { type: 'shop', shop: next }, 0) : '接続していません';
+    if (err) setError(err);
+  };
+  const buy = (i: ShopItem) => {
+    if (!lot) return;
+    if (!shared) { setError('みんなのワールドで、ほかのプレイヤーのお店から買えます'); return; }
+    setError((sessionGate.act ? sessionGate.act(lot.id, { type: 'purchase', item: i.id, price: i.price }, i.price) : '接続していません') ?? '');
+  };
   const onClose = () => close(null);
 
   if (!lot) return <Modal title="お店" onClose={onClose} tabs={[]} tab="" onTab={() => undefined}><p>レジの前で開いてください。</p></Modal>;
@@ -62,7 +76,7 @@ export function ShopPanel() {
       <ul className="shop-sales">{[...shop.sales].reverse().map((s) => <li key={s.id}>{s.day}日目 · {s.buyer}さん · {s.item} · {yen(s.price)}</li>)}</ul>
       {!shop.sales.length && <p>まだ売れていません。</p>}
     </> : <>
-      {owner && <p className="shop-note">買えるのは、あなたのワールドに参加したほかのプレイヤーです。売上はそのままあなたの所持金に入ります。</p>}
+      {owner && <p className="shop-note">みんなのワールドで、ほかのプレイヤーが一回払いで買えます。代金はそのままあなたの所持金に入ります。</p>}
       {!owner && <p>所持金 {yen(money)}</p>}
       <div className="shop-items">
         {shop.items.map((i) => <div key={i.id} className="shop-item card">
@@ -70,7 +84,7 @@ export function ShopPanel() {
           <b>{i.name}</b><span className="big">{yen(i.price)}</span>
           {i.description && <p>{i.description}</p>}
           {owner ? <div><button className="btn small" onClick={() => { setDraft(i); setError(''); }}>編集</button><button className="btn small danger" onClick={() => save(removeItem(shop, i.id))}>取り下げ</button></div>
-            : <button className="btn primary" disabled={money < i.price} onClick={async () => { setError((await buyFromShop(lot.id, i)) ?? ''); }}>買う</button>}
+            : <button className="btn primary" disabled={money < i.price} onClick={() => buy(i)}>買う</button>}
         </div>)}
       </div>
       {!shop.items.length && <p>{owner ? 'まだ商品がありません。' : '準備中です。'}</p>}

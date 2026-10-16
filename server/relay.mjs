@@ -1,11 +1,43 @@
 import { createServer } from 'node:http';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { open, readFile, rename } from 'node:fs/promises';
 import { WebSocketServer, WebSocket } from 'ws';
+import { SHARED_LIMIT, applyCommand, initialSharedWorld, publicWorld, tickWorld, validSharedWorld, withAccount } from '../src/server/sharedWorld.ts';
 
-export function createRelay({ origins = [], graceMs = 30000 } = {}) {
+// みんなのワールドの保存。書き終えてから差し替えるので、途中で落ちても前の保存が残る
+async function saveWorld(file, world) {
+  if (!file) return;
+  const tmp = file + '.tmp', handle = await open(tmp, 'w');
+  try { await handle.writeFile(JSON.stringify(world)); await handle.sync(); } finally { await handle.close(); }
+  await rename(tmp, file);
+}
+async function loadWorld(file) {
+  if (!file) return initialSharedWorld(randomUUID());
+  let text;
+  try { text = await readFile(file, 'utf8'); }
+  catch (e) { if (e.code !== 'ENOENT') throw e; const world = initialSharedWorld(randomUUID()); await saveWorld(file, world); return world; }
+  const world = JSON.parse(text);
+  if (!validSharedWorld(world)) throw Error('共有ワールドの保存データを読めません（上書きせず停止します）: ' + file);
+  return world;
+}
+
+export function createRelay({ origins = [], graceMs = 30000, worldFile = null, tickMs = 1000 } = {}) {
   const rooms = new Map();
   const identities = new Map();
+  const shared = { members: new Map(), world: null, queue: Promise.resolve(), beat: 0 };
+  const ready = loadWorld(worldFile).then(w => { shared.world = w; });
+  const sharedSend = data => shared.members.forEach(m => send(m.socket, data));
+  const sharedRoster = () => sharedSend({ type: 'members', members: [...shared.members.values()].filter(m => m.socket).map(m => ({ id: m.id, name: m.name, host: false, canBuild: true })) });
+  const accounts = () => shared.members.forEach(m => send(m.socket, { type: 'account', account: shared.world.accounts?.[m.id] ?? null }));
+  const clockOf = w => ({ day: w.economy.day, clock: w.economy.clock, market: w.economy.market, marketHistory: w.economy.marketHistory });
+  const enqueue = job => (shared.queue = shared.queue.then(job, job));
+  const ticker = setInterval(() => {
+    if (!shared.world) return;
+    const t = tickWorld(shared.world, tickMs / 1000, Math.random); shared.world = t.world;
+    if (t.newDay) { enqueue(() => saveWorld(worldFile, shared.world).catch(e => console.error('save failed', e))); sharedSend({ type: 'world', world: publicWorld(shared.world) }); accounts(); }
+    if (++shared.beat % 2 === 0) sharedSend({ type: 'clock', clock: clockOf(shared.world) });
+  }, tickMs); ticker.unref();
   const http = createServer((req, res) => { res.writeHead(req.url === '/health' ? 200 : 404); res.end(req.url === '/health' ? 'ok' : 'not found'); });
   const wss = new WebSocketServer({ server: http, maxPayload: 2 * 1024 * 1024,
     verifyClient: ({ origin }) => !origins.length || origins.includes(origin) });
@@ -26,6 +58,19 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
           const id = data.id, name = data.name;
           if (typeof id !== 'string' || id.length > 100 || typeof name !== 'string' || !name.length || name.length > 24) throw Error('参加者情報が不正です');
           if (data.type !== 'resume' && identities.has(id)) throw Error('このゲストはすでに別のタブで参加しています');
+          if (data.type === 'shared') {
+            if (!shared.world) throw Error('ワールドを準備しています。少し待ってからやり直してください');
+            const prev = shared.members.get(id);
+            if (prev?.socket) throw Error('このゲストはすでに別のタブで参加しています');
+            if (!prev && [...shared.members.values()].filter(m => m.socket).length >= SHARED_LIMIT) throw Error(`みんなのワールドは${SHARED_LIMIT}人までです`);
+            member = prev ?? { id, shared: true }; member.name = name; member.socket = socket; shared.members.set(id, member);
+            clearTimeout(handshake);
+            const joined = withAccount(shared.world, id, name);
+            if (joined !== shared.world) { shared.world = joined; enqueue(() => saveWorld(worldFile, shared.world).catch(e => console.error('save failed', e))); }
+            send(socket, { type: 'welcome', code: 'SHARED', token: randomUUID(), host: '', canBuild: true, shared: true });
+            send(socket, { type: 'world', world: publicWorld(shared.world) }); send(socket, { type: 'account', account: shared.world.accounts[id] }); sharedRoster();
+            return;
+          }
           if (data.type === 'create') {
             if (rooms.size >= 100) throw Error('部屋が満員です');
             do { code = randomBytes(4).toString('hex').toUpperCase(); } while (rooms.has(code));
@@ -54,6 +99,29 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
           roster(room); if (id === room.host) broadcast(room, { type: 'resumed' });
           return;
         }
+        if (member.shared) {
+          if (data.type === 'leave') { shared.members.delete(member.id); socket.close(); sharedRoster(); return; }
+          if (data.type === 'command' || (data.type === 'settle' && typeof data.id === 'string')) {
+            const command = data.type === 'settle' ? { id: data.id, settle: true } : data.command, who = member;
+            enqueue(async () => {
+              const r = applyCommand(shared.world, who.id, command, who.name);
+              if (r.changed) {
+                await saveWorld(worldFile, r.world); // 保存が終わってから確定を知らせる
+                shared.world = { ...r.world, economy: { ...r.world.economy, ...clockOf(shared.world) } };
+              }
+              send(who.socket, { type: 'result', result: r.result });
+              if (r.changed) {
+                // お金だけの変化は本人の口座だけ送る
+                if (!['money', 'cars', 'stocks'].includes(command?.action?.type)) sharedSend({ type: 'world', world: publicWorld(shared.world) });
+                accounts();
+              }
+            }).catch(() => send(who.socket, { type: 'result', result: { id: command?.id, ok: false, message: 'サーバーに保存できませんでした' } }));
+            return;
+          }
+          if (data.type === 'pose') { shared.members.forEach(m => { if (m !== member) send(m.socket, { type: 'pose', sender: member.id, pose: data.pose }); }); return; }
+          if (data.type === 'door') sharedSend({ type: 'door', sender: member.id, id: data.id, dir: data.dir });
+          return;
+        }
         if (data.type === 'leave') { if (member.id === room.host) closeRoom(code, room); else { room.members.delete(member.id); identities.delete(member.id); socket.close(); roster(room); } return; }
         if (data.type === 'world' && member.id === room.host) {
           room.world = data.world;
@@ -67,22 +135,26 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
           if (!member.canBuild || !room.members.get(room.host)?.socket) { send(socket, { type: 'denied', id: data.command?.id, message: '共同建築が許可されていません' }); return; }
           send(room.members.get(room.host).socket, { type: 'command', sender: member.id, command: data.command }); return;
         }
-        if (data.type === 'purchase' && typeof data.command?.id === 'string' && data.command.purchase && typeof data.command.purchase === 'object') {
-          // お店での買い物は建築の許可がなくてもホストへ届ける（記録と確定はホストが行う）
-          send(room.members.get(room.host)?.socket, { type: 'command', sender: member.id, command: { id: data.command.id, purchase: data.command.purchase } }); return;
-        }
         if (data.type === 'settle' && typeof data.id === 'string') {
           send(room.members.get(room.host)?.socket, { type: 'command', sender: member.id, command: { id: data.id, settle: true } }); return;
         }
         if (data.type === 'result' && member.id === room.host) { send(room.members.get(data.target)?.socket, { type: 'result', result: data.result }); return; }
         if (data.type === 'clock' && member.id === room.host) { room.members.forEach(m => { if (m !== member) send(m.socket, { type: 'clock', clock: data.clock }); }); return; }
         if (data.type === 'pose') { room.members.forEach(m => { if (m !== member) send(m.socket, { type: 'pose', sender: member.id, pose: data.pose }); }); return; }
+        if (data.type === 'trade') { const to = room.members.get(data.target); if (to && to !== member) send(to.socket, { type: 'trade', sender: member.id, trade: data.trade }); return; }
         if (data.type === 'door') broadcast(room, { type: 'door', sender: member.id, id: data.id, dir: data.dir });
       } catch (e) { send(socket, { type: 'error', message: e.message }); if (!member) socket.close(1008); }
     });
     socket.on('error', () => {});
     socket.on('close', () => {
-      clearTimeout(handshake); if (!member || !room || rooms.get(code) !== room || room.members.get(member.id) !== member) return;
+      clearTimeout(handshake);
+      if (member?.shared) {
+        if (member.socket !== socket) return;
+        member.socket = null; sharedRoster(); const lost = member;
+        setTimeout(() => { if (!lost.socket && shared.members.get(lost.id) === lost) shared.members.delete(lost.id); }, graceMs).unref();
+        return;
+      }
+      if (!member || !room || rooms.get(code) !== room || room.members.get(member.id) !== member) return;
       member.socket = null;
       if (member.id === room.host) {
         broadcast(room, { type: 'paused', message: 'ホストとの接続が切れました。再接続を待っています' });
@@ -93,11 +165,12 @@ export function createRelay({ origins = [], graceMs = 30000 } = {}) {
       }
     });
   });
-  return { http, wss, close: () => { rooms.forEach(r => clearTimeout(r.timer)); rooms.clear(); identities.clear(); wss.clients.forEach(s => s.terminate()); wss.close(); http.close(); } };
+  return { http, wss, ready, flush: () => shared.queue, world: () => shared.world, close: () => { clearInterval(ticker); rooms.forEach(r => clearTimeout(r.timer)); rooms.clear(); identities.clear(); wss.clients.forEach(s => s.terminate()); wss.close(); http.close(); } };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const origins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
   if (process.env.NODE_ENV === 'production' && !origins.length) throw Error('ALLOWED_ORIGINS is required in production');
-  const relay = createRelay({ origins });
+  const relay = createRelay({ origins, worldFile: process.env.WORLD_FILE || new URL('./shared-world.json', import.meta.url).pathname });
+  await relay.ready;
   relay.http.listen(Number(process.env.PORT || 8787), '0.0.0.0', () => console.log('World relay listening on', relay.http.address().port));
 }
