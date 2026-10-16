@@ -310,24 +310,16 @@ function MarketView() {
 
 function Ledger() {
   const ledger = useEconomy((s) => s.ledger);
-  const job = useEconomy((s) => s.job);
   const gamble = useEconomy((s) => s.gamble);
-  const startJob = useEconomy((s) => s.startJob);
+  const setOverlay = useGame((s) => s.setOverlay);
   const [confirmReset, setConfirmReset] = useState(false);
   const net = gamble.won - gamble.bet;
   return (
     <div>
       <section className="card">
-        <div className="card-title">バイト（仮）</div>
-        <p className="muted">ミニゲームのバイトは次の段階で作ります。それまでの、お金が尽きたときの立て直し用です。</p>
-        {job ? (
-          <>
-            <p>{job.label}：あと {Math.ceil(job.remaining)} 秒</p>
-            <div className="bar"><i style={{ width: `${(1 - job.remaining / job.total) * 100}%` }} /></div>
-          </>
-        ) : (
-          <button className="btn primary" onClick={startJob}>チラシ配りをする（10秒で ¥12,000）</button>
-        )}
+        <div className="card-title">バイト</div>
+        <p className="muted">コンビニのレジ・倉庫の仕分けなど、作業をして給料をもらえます。</p>
+        <button className="btn primary" onClick={() => setOverlay('jobs')}>💼 バイトを探す</button>
       </section>
       <p>
         ギャンブル通算：賭けた {yen(gamble.bet)}・払戻 {yen(gamble.won)}・収支{' '}

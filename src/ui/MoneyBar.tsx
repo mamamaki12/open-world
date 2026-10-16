@@ -25,6 +25,9 @@ export function MoneyBar() {
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">
         🗺 マップ
       </button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('jobs'); }} title="バイトで働いてお金をかせぐ">
+        💼 バイト
+      </button>
       <BuildChip />
     </div>
   );
