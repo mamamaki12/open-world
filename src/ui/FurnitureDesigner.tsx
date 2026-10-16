@@ -128,7 +128,7 @@ export function FurnitureDesigner() {
               <div className="field-label">ひな形から始める</div>
               <div className="row wrap">
                 {TEMPLATES.map((t) => (
-                  <button key={t.name} className="btn small" onClick={() => { update({ ...JSON.parse(JSON.stringify(t.def)), id: draft.id }); setSelected(null); }}>{t.name}</button>
+                  <button key={t.name} className="btn small" onClick={() => { update({ seat: undefined, ...JSON.parse(JSON.stringify(t.def)), id: draft.id }); setSelected(null); }}>{t.name}</button>
                 ))}
               </div>
             </div>

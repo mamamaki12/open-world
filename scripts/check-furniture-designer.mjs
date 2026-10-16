@@ -1,0 +1,38 @@
+// 家具のデザイン画面：ひな形から作り、保存して家に置き、歩きモードで引き出しを開ける
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+const tag = process.argv[2] ?? 'pc';
+const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const page = await browser.newPage({ viewport: tag === 'phone' ? { width: 844, height: 390 } : { width: 1280, height: 800 }, deviceScaleFactor: 1 });
+const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+page.setDefaultTimeout(90000);
+await page.goto('http://127.0.0.1:5173/' + (tag === 'phone' ? '?touch=1' : ''));
+await page.getByLabel('あなたの名前').fill('家具職人');
+await page.getByRole('button', { name: 'ひとりで遊ぶ', exact: false }).click();
+await page.waitForFunction(() => window.__ow);
+await page.evaluate(async () => { const { openDesigner, TEMPLATES } = await import('/src/catalog/designs.ts'); openDesigner(); });
+await page.getByRole('button', { name: 'チェスト', exact: true }).click();
+await page.getByRole('button', { name: '1. 箱' }).click().catch(() => {});
+await page.getByRole('button', { name: '＋ 脚（丸）' }).click();
+await page.getByRole('button', { name: '引き出し・扉を開けてみる' }).click();
+await page.waitForTimeout(1200);
+await page.screenshot({ path: `browser-checks/designer-${tag}.png` });
+await page.getByRole('button', { name: '保存', exact: true }).click();
+const placed = await page.evaluate(async () => {
+  const { useDesigns, designOf } = await import('/src/catalog/designs.ts');
+  const def = useDesigns.getState().designs.at(-1);
+  const g = window.__ow.game.getState();
+  const item = { id: 'f-test', level: 0, type: def.id, x: 3, z: 3, rotation: 0, color: def.colors[0], ...designOf(def.id) };
+  g.replaceHouse({ ...g.house, furniture: [...g.house.furniture.filter((f) => Math.hypot(f.x - 3, f.z - 3) > 2), item] });
+  g.setMode('walk');
+  Object.assign(window.__ow.player, { x: 3, z: 4.1, y: 0, yaw: 0, bodyYaw: 0, pitch: -0.3 });
+  return def.name;
+});
+await page.waitForTimeout(1500);
+await page.keyboard.press('KeyF');
+await page.waitForTimeout(800);
+const open = await page.evaluate(async () => { const { useDoors } = await import('/src/state/doors.ts'); return 'f-test' in useDoors.getState().open; });
+await page.screenshot({ path: `browser-checks/designer-${tag}-placed-open.png` });
+assert.ok(open, '引き出しが開かない');
+console.log(tag, placed, 'open', open, errors);
+await browser.close();
