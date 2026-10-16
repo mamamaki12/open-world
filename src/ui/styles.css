@@ -399,3 +399,6 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .map-mylots li > .link-btn { flex: 1; text-align: left; font-size: 14px; }
 .map-mylots li.on { background: #eef4ff; }
 .map-mylots .here { font-size: 12px; }
+.join-option { display: block; margin: 8px 0; padding: 8px 10px; background: #eef4ff; border: 1px solid #c9d8f3; border-radius: 8px; font-size: 14px; }
+.join-option input { margin-right: 6px; }
+.join-option small { display: block; margin-left: 22px; }

@@ -15,6 +15,7 @@ import { Player } from './Player';
 import { VenueInteriors } from './VenueInteriors';
 import { CarFleet } from './CarFleet';
 import { Town } from './Town';
+import { useLotCells } from '../state/economy';
 
 const CENTER: [number, number, number] = [(LOT_W * GRID) / 2, 0, (LOT_D * GRID) / 2];
 const SUN: [number, number, number] = [CENTER[0] + 14, 26, CENTER[2] + 12];
@@ -119,8 +120,9 @@ export function Scene() {
 
 /** いま建てている土地（砂利敷き）。草地・道路・ほかの区画は Town が描く */
 function Ground() {
-  const lotW = LOT_W * GRID;
-  const lotD = LOT_D * GRID;
+  const cells = useLotCells();
+  const lotW = cells.w * GRID;
+  const lotD = cells.d * GRID;
   return (
     <mesh name="ground" rotation-x={-Math.PI / 2} position={[lotW / 2, 0, lotD / 2]} receiveShadow>
       <planeGeometry args={[lotW, lotD]} />
@@ -131,8 +133,9 @@ function Ground() {
 
 function LevelGrid() {
   const level = useGame((s) => s.activeLevel);
-  const lotW = LOT_W * GRID;
-  const lotD = LOT_D * GRID;
+  const cells = useLotCells();
+  const lotW = cells.w * GRID;
+  const lotD = cells.d * GRID;
   return (
     <Grid
       position={[lotW / 2, floorY(level) + 0.012, lotD / 2]}

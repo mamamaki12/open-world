@@ -1,5 +1,5 @@
 import { getFurniture, getOpening } from '../catalog';
-import { BASE_HEIGHT, GRID, LOT_D, LOT_W, MAX_LEVEL, STORY_HEIGHT } from './dimensions';
+import { BASE_HEIGHT, GRID, lotSize, MAX_LEVEL, STORY_HEIGHT } from './dimensions';
 import { axisAlignedSegment, canPlaceFloor, canPlaceOpening, canPlaceRoof, canPlaceStair, canPlaceWall, newId, normalizeRect, removePart, snapOpeningOffset, wallDir, wallLength } from './rules';
 import { mountedTransform, nameplateMount } from './mounts';
 import { snapFurniturePlacement } from './furnitureSnap';
@@ -14,7 +14,7 @@ export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number
   const range=tool==='floor'||tool==='wall'||tool==='roof';
   const point={x:Math.floor(p.x/GRID),z:Math.floor(p.z/GRID),level};
   if(tool==='wall'){point.x=Math.round(p.x/GRID);point.z=Math.round(p.z/GRID);}
-  if(p.x<0||p.z<0||p.x>LOT_W*GRID||p.z>LOT_D*GRID)return {error:'自分の土地の中を狙ってください'};
+  if(p.x<0||p.z<0||p.x>lotSize.w*GRID||p.z>lotSize.d*GRID)return {error:'自分の土地の中を狙ってください'};
   const a=anchor??point,l=anchor?.level??level;
   let next=h,error:string|null=null,preview:Preview|null=null;
   if(tool==='floor'||tool==='roof'){

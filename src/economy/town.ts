@@ -30,6 +30,21 @@ export const CASINO_PLOT = 0;
 /** 不動産屋はカジノの東隣 */
 export const ESTATE_PLOT = 1;
 
+/**
+ * ほかの住人の家が最初から建っている区画（区画の番号 → 家のデザイン。src/building/townHouses.ts）。
+ * 売り土地には出ない。空いている区画だけが売り土地になる
+ */
+export const TOWN_HOUSE_PLOTS: Record<number, string> = {
+  // 静かな住宅街
+  [-9]: 'japanese', [-8]: 'wood-ceramic', [-6]: 'hiraya', [-5]: 'provence',
+  // 郊外の住宅地
+  [-3]: 'steel-family', [-1]: 'cube', [2]: 'nordic',
+  // 駅近
+  [3]: 'wood-apartment', [5]: 'steel-apartment', [6]: 'narrow', [8]: 'wood-apartment',
+  // 都心
+  [9]: 'mansion', [10]: 'residence', [11]: 'designers', [12]: 'tower', [14]: 'mansion', [15]: 'tower', [16]: 'designers', [18]: 'residence',
+};
+
 export const FIRST_PLOT = Math.min(...DISTRICTS.map((d) => d.from));
 export const LAST_PLOT = Math.max(...DISTRICTS.map((d) => d.to));
 
@@ -90,7 +105,7 @@ export function plotsOf(location: string): number[] {
 /** その立地で空いている区画。rng があればランダムに、なければカジノに近い順でいちばん近いもの */
 export function freePlot(location: string, taken: Iterable<number>, rng?: Rng): number | null {
   const used = new Set(taken);
-  const free = plotsOf(location).filter((p) => !used.has(p));
+  const free = plotsOf(location).filter((p) => !TOWN_HOUSE_PLOTS[p]).filter((p) => !used.has(p));
   if (free.length === 0) return null;
   if (rng) return free[randInt(rng, free.length)];
   return free.reduce((a, b) => (Math.abs(b - CASINO_PLOT) < Math.abs(a - CASINO_PLOT) ? b : a));
@@ -113,3 +128,27 @@ export function assignPlots<T extends { location: string; plot?: number | null }
   });
 }
 
+
+/** つなげた土地で、東側の区画の家をずらすマス数（区画の間の通路ぶんも土地になる） */
+export const JOIN_SHIFT = Math.round((LOT_WIDTH + 4) / GRID);
+/** つなげた土地の幅（マス） */
+export const JOINED_W = JOIN_SHIFT + LOT_W;
+
+/**
+ * 道路をはさまずに横に並んでいる隣の区画（同じブロックの同じ列の、もう1つの区画）。
+ * 区画は2つずつ組になっていて、組は地区をまたがない。west が西側の区画
+ */
+export function joinPair(plot: number): { west: number; east: number } | null {
+  if (plot < FIRST_PLOT || plot > LAST_PLOT) return null;
+  const local = (plot - FIRST_PLOT) % LOTS_PER_BLOCK;
+  const west = local % 2 === 0 ? plot : plot - 1;
+  const east = west + 1;
+  if (east > LAST_PLOT || districtOf(west)?.location !== districtOf(east)?.location) return null;
+  return { west, east };
+}
+
+/** 隣の区画（つなげられる相手） */
+export function joinNeighbor(plot: number): number | null {
+  const p = joinPair(plot);
+  return p ? (p.west === plot ? p.east : p.west) : null;
+}

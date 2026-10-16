@@ -5,6 +5,11 @@ export const GRID = 0.91;
 /** 土地の広さ（マス） */
 export const LOT_W = 24;
 export const LOT_D = 20;
+/**
+ * いま建てている土地の広さ（マス）。ふつうは LOT_W × LOT_D だが、隣の土地とつなげると横に広がる。
+ * 置ける範囲の判定はこちらを見る（土地を切り替えると src/state/economy.ts が書き換える）
+ */
+export const lotSize = { w: LOT_W, d: LOT_D };
 /** 1階の床の高さ（基礎の高さ） */
 export const BASE_HEIGHT = 0.5;
 /** 階高（床から上の階の床まで） */
@@ -14,7 +19,7 @@ export const WALL_HEIGHT = STORY_HEIGHT;
 export const WALL_THICKNESS = 0.15;
 /** 2階の床スラブの厚み */
 export const SLAB_THICKNESS = 0.25;
-export const MAX_LEVEL = 1; // 2階建てまで（0 = 1階, 1 = 2階）
+export const MAX_LEVEL = 9; // 10階建てまで（0 = 1階, 9 = 10階）
 
 /** 階段：幅1マス × 長さ4マス、14段 */
 export const STAIR_LENGTH = 4;

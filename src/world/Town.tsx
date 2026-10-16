@@ -15,12 +15,15 @@ import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
 import { FIRST_PLOT, LAST_PLOT, PLOT_PITCH, TOWN_BOUNDS, TOWN_ROADS, CIVIC_SITE, districtOf, plotX, plotZ } from '../economy/town';
-import { lotHouse, useCurrentPlot, useEconomy } from '../state/economy';
+import { lotCells, lotHouse, originShift, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
+import { Streetscape } from './Streetscape';
 import { DealerBuilding } from './DealerBuilding';
+import { BoutiqueBuildings } from './BoutiqueBuildings';
 import { EstateBuilding } from './EstateBuilding';
 import { TunerBuilding } from './TunerBuilding';
 import { HouseParts } from './HouseView';
+import { TownHouses } from './TownHouses';
 import { grassTexture } from './textures';
 
 const lotW = LOT_W * GRID;
@@ -40,11 +43,24 @@ export function Town() {
   const offers = useEconomy((s) => s.offers);
   const market = useEconomy((s) => s.market);
   const shift = -plotX(here), shiftZ = -plotZ(here);
+  const taken = useMemo(() => new Set([...lots.flatMap((l) => [l.plot, l.joined]), ...offers.map((o) => o.plot)].filter((p): p is number => typeof p === 'number')), [lots, offers]);
   const tiles = useMemo(() => {
     const out: { x: number; z: number }[] = [];
     for (let x = WEST; x < EAST; x += TILE) for (let z = TOWN_BOUNDS.z0 - 80; z < TOWN_BOUNDS.z1 + 80; z += TILE) out.push({ x: x + TILE / 2, z: z + TILE / 2 });
     return out;
   }, []);
+
+  // 土地をつなげて原点が西の区画に移ったら、見えている場所が変わらないようカメラと人をずらす
+  useLayoutEffect(() => {
+    originShift.listener = (dx, dz) => {
+      camera.position.x += dx; camera.position.z += dz;
+      const orbit = controls as unknown as OrbitControlsImpl | undefined;
+      if (orbit) { orbit.target.x += dx; orbit.target.z += dz; orbit.update(); }
+      camera.updateMatrixWorld();
+      playerMemory.x += dx; playerMemory.z += dz;
+    };
+    return () => { originShift.listener = null; };
+  }, [camera, controls]);
 
   const activate = (id: string, e: ThreeEvent<PointerEvent>, ref?: PartRef) => {
     if (useGame.getState().mode !== 'build' || e.button !== 0) return;
@@ -81,9 +97,6 @@ export function Town() {
           const width = road.x1 - road.x0, depth = road.z1 - road.z0;
           const horizontal = width > depth;
           return <group key={i}>
-            <mesh rotation-x={-Math.PI / 2} position={[(road.x0 + road.x1) / 2, -0.012, (road.z0 + road.z1) / 2]} receiveShadow>
-              <planeGeometry args={[width + 1.8, depth + 1.8]} /><meshStandardMaterial color="#c8c7bf" roughness={0.9} />
-            </mesh>
             <mesh rotation-x={-Math.PI / 2} position={[(road.x0 + road.x1) / 2, -0.008, (road.z0 + road.z1) / 2]} receiveShadow>
               <planeGeometry args={[width, depth]} /><meshStandardMaterial color="#555b60" roughness={0.95} />
             </mesh>
@@ -92,7 +105,8 @@ export function Town() {
             </mesh>
           </group>;
         })}
-        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><CasinoBuilding /><EstateBuilding /><DealerBuilding /><TunerBuilding /></group>
+        <Streetscape />
+        <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><CasinoBuilding /><EstateBuilding /><DealerBuilding /><TunerBuilding /><BoutiqueBuildings /></group>
         {/* 地区の境目の看板 */}
         {[FIRST_PLOT, ...[3, 9].filter((p) => p <= LAST_PLOT)].map((p) => (
           <DistrictSign key={p} plot={p} />
@@ -100,22 +114,24 @@ export function Town() {
       </group>
 
       <group name="neighbors">
+        <TownHouses shiftX={shift} shiftZ={shiftZ} skip={taken} />
         {lots.map((l) => {
           if (typeof l.plot !== 'number') return null;
           const house = lotHouse(l);
+          const padW = lotCells(l).w * GRID;
           const x = plotX(l.plot) + shift;
           const current = l.id === currentLotId;
           return (
             <group key={l.id} position={[x, 0, plotZ(l.plot) + shiftZ]}>
               {!current && (
-                <mesh rotation-x={-Math.PI / 2} position={[lotW / 2, 0.002, lotD / 2]} receiveShadow onPointerDown={(e) => activate(l.id, e)}>
-                  <planeGeometry args={[lotW, lotD]} />
+                <mesh rotation-x={-Math.PI / 2} position={[padW / 2, 0.002, lotD / 2]} receiveShadow onPointerDown={(e) => activate(l.id, e)}>
+                  <planeGeometry args={[padW, lotD]} />
                   <meshStandardMaterial color="#b9b2a3" roughness={1} />
                 </mesh>
               )}
               {!current && house && <HouseParts house={house} showRoofs={showRoofs} activate={(e, ref) => activate(l.id, e, ref)} />}
               <Signboard
-                lines={['あなたの土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : '']}
+                lines={['あなたの土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
                 tone="owned"
               />
             </group>

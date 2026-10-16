@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getFurniture } from '../catalog';
-import { BASE_HEIGHT, GRID, LOT_D, LOT_W, MAX_LEVEL, STORY_HEIGHT } from '../building/dimensions';
+import { BASE_HEIGHT, GRID, lotSize, MAX_LEVEL, STORY_HEIGHT } from '../building/dimensions';
 import {
   axisAlignedSegment,
   canPlaceFloor,
@@ -110,12 +110,12 @@ export function PlacementController() {
       return clamp(Math.floor((hit.point.y - BASE_HEIGHT + 0.15) / STORY_HEIGHT), 0, MAX_LEVEL);
     };
     const cellAt = (p: THREE.Vector3) => ({
-      x: clamp(Math.floor(p.x / GRID), 0, LOT_W - 1),
-      z: clamp(Math.floor(p.z / GRID), 0, LOT_D - 1),
+      x: clamp(Math.floor(p.x / GRID), 0, lotSize.w - 1),
+      z: clamp(Math.floor(p.z / GRID), 0, lotSize.d - 1),
     });
     const pointAt = (p: THREE.Vector3) => ({
-      x: clamp(Math.round(p.x / GRID), 0, LOT_W),
-      z: clamp(Math.round(p.z / GRID), 0, LOT_D),
+      x: clamp(Math.round(p.x / GRID), 0, lotSize.w),
+      z: clamp(Math.round(p.z / GRID), 0, lotSize.d),
     });
     const cellRect = (a: { x: number; z: number }, b: { x: number; z: number }): Rect => {
       const r = normalizeRect({ x0: a.x, z0: a.z, x1: b.x, z1: b.z });

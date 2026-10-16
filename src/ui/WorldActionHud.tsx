@@ -3,7 +3,8 @@ import { useVenue } from '../state/venue';
 import { VENUE_ACTIONS, venueAction } from '../building/venues';
 import { getCar } from '../catalog/cars';
 import { useVehicles } from '../state/vehicles';
-import { civicOffset, currentPlotOf, saveEconomy, useEconomy } from '../state/economy';
+import { buyLandAndJoin, civicOffset, currentPlotOf, saveEconomy, useEconomy } from '../state/economy';
+import { JoinOption } from './JoinOption';
 import { useGame } from '../state/store';
 import { interact, playerMemory } from '../world/Player';
 import { atSaleSign } from '../building/landSale';
@@ -36,15 +37,15 @@ export function WorldActionHud(){
 }
 export function LandPurchasePanel(){
   const target=useVehicles(s=>s.target),offers=useEconomy(s=>s.offers),market=useEconomy(s=>s.market),money=useEconomy(s=>s.money);
-  const [error,setError]=useState(''),close=useGame(s=>s.setOverlay);
+  const [error,setError]=useState(''),[join,setJoin]=useState(true),close=useGame(s=>s.setOverlay);
   const offer=offers.find(o=>target==='land:'+o.id);
   const price=offer?landPrice(offer.location,offer.variance,market):0;
   return <Modal title="この土地を買う" onClose={()=>close(null)} tabs={[]} tab="" onTab={()=>undefined}>
-    {offer?<><h2>{offer.name}</h2><p>{getLocation(offer.location).name} · 区画面積 約397㎡</p><div className="card"><p>土地価格 <b className="big">{yen(price)}</b></p><p>所持金 {yen(money)}</p><p>購入後の残高 {yen(money-price)}</p></div><p>この区画を購入します。家の建築費は別途必要です。</p>
+    {offer?<><h2>{offer.name}</h2><p>{getLocation(offer.location).name} · 区画面積 約397㎡</p><div className="card"><p>土地価格 <b className="big">{yen(price)}</b></p><p>所持金 {yen(money)}</p><p>購入後の残高 {yen(money-price)}</p></div><p>この区画を購入します。家の建築費は別途必要です。</p><JoinOption plot={offer.plot} checked={join} onChange={setJoin} />
       {error&&<p className="warn" role="alert">{error}</p>}<button className="btn primary big-btn" disabled={money<price} onClick={()=>{
         const origin=currentPlotOf(useEconomy.getState());
         if(typeof offer.plot!=='number'||!atSaleSign(offer.plot,playerMemory.x+plotX(origin),playerMemory.z+plotZ(origin),playerMemory.y)){setError('売地の看板前から購入してください');return;}
-        const err=useEconomy.getState().buyLand(offer.id);if(err)setError(err);else{saveEconomy();close(null);}
+        const err=buyLandAndJoin(offer.id,join);if(err)setError(err);else{saveEconomy();close(null);}
       }}>購入を確定する</button><button className="btn" onClick={()=>close(null)}>やめる</button></>:<p>この土地は現在販売されていません。</p>}
   </Modal>;
 }

@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { getLocation, landPrice } from '../economy/market';
 import { yen } from '../economy/money';
+import { TOWN_HOUSE_PLOTS, townHouseDesign } from '../building/townHouses';
 import { BLOCK_COLUMNS, BLOCK_ROWS, CIVIC_SITE, FIRST_PLOT, LAST_PLOT, TOWN_BOUNDS, TOWN_ROADS, blockOf, districtOf, plotX, plotZ } from '../economy/town';
-import { useCurrentPlot, useEconomy } from '../state/economy';
+import { joinCandidate, lotCells, lotPlots, useCurrentPlot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { playerMemory, warpToLot } from '../world/Player';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { DEALER } from '../building/dealer';
 import { TUNER } from '../building/tuner';
 import { CASINO, ESTATE } from '../building/landmarks';
+import { BOUTIQUES, BOUTIQUE_IDS, BOUTIQUE_INFO } from '../building/boutiques';
+import type { BoutiqueId } from '../building/boutiques';
 import { Modal } from './Modal';
 
 const SCALE = 3.2, PAD = 28;
 const sx = (x: number) => PAD + (x - TOWN_BOUNDS.x0 + 12) * SCALE;
 const sy = (z: number) => PAD + (z - TOWN_BOUNDS.z0 + 12) * SCALE;
 const WIDTH = sx(TOWN_BOUNDS.x1 + 35) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 35) + PAD;
-type Pick = { kind: 'plot'; plot: number } | { kind: 'casino' | 'estate' | 'dealer' | 'tuner' } | null;
+type Pick = { kind: 'plot'; plot: number } | { kind: 'casino' | 'estate' | 'dealer' | 'tuner' } | { kind: 'boutique'; id: BoutiqueId } | null;
 
 export function MapPanel() {
   const close = useGame(s => s.setOverlay), walking = useGame(s => s.mode === 'walk');
@@ -29,7 +32,8 @@ export function MapPanel() {
     window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
   }, [close]);
   const plots = Array.from({ length: LAST_PLOT - FIRST_PLOT + 1 }, (_, i) => FIRST_PLOT + i);
-  const selectedLot = pick?.kind === 'plot' ? lots.find(l => l.plot === pick.plot) : undefined;
+  const selectedLot = pick?.kind === 'plot' ? lots.find(l => lotPlots(l).includes(pick.plot)) : undefined;
+  const joinWith = selectedLot ? joinCandidate(lots, selectedLot.id) : null;
   const selectedOffer = pick?.kind === 'plot' ? offers.find(o => o.plot === pick.plot) : undefined;
   const mx = plotX(here) + (walking ? playerMemory.x : LOT_W * GRID / 2);
   const mz = plotZ(here) + (walking ? playerMemory.z : LOT_D * GRID / 2);
@@ -59,30 +63,42 @@ export function MapPanel() {
           <rect x={sx(road.x0)} y={sy(road.z0)} width={(road.x1 - road.x0) * SCALE} height={(road.z1 - road.z0) * SCALE} fill="#657075" />
         </g>)}
         {plots.map(plot => {
+          // つなげた土地は西の区画で2区画ぶんの幅に描き、東の区画は描かない
+          if (lots.some(l => l.joined === plot)) return null;
           const lot = lots.find(l => l.plot === plot), offer = offers.find(o => o.plot === plot);
+          const w = lotCells(lot).w * GRID;
           const picked = pick?.kind === 'plot' && pick.plot === plot;
-          const name = lot ? lot.name.replace(/（.*）$/, '') : offer ? '売地' : '区画';
+          const resident = !lot && !offer ? townHouseDesign(TOWN_HOUSE_PLOTS[plot] ?? '') : undefined;
+          const name = lot ? lot.name.replace(/（.*）$/, '') : offer ? '売地' : resident ? resident.name : '区画';
           const district = districtOf(plot);
           return <g key={plot} role="button" aria-label={name} tabIndex={0} onClick={() => setPick({ kind: 'plot', plot })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind: 'plot', plot }); }} style={{ cursor: 'pointer' }}>
-            <rect x={sx(plotX(plot))} y={sy(plotZ(plot))} width={LOT_W * GRID * SCALE} height={LOT_D * GRID * SCALE} rx={3}
-              fill={lot ? '#e0e9f2' : offer ? '#fff4d8' : district?.color ?? '#dce2d5'} stroke={picked ? '#255db1' : lot ? '#7897ae' : '#bdc6b6'} strokeWidth={picked ? 3 : 1} />
-            {lot && <path d="M-9 0 L0 -8 L9 0 L7 0 L7 10 L-7 10 L-7 0 Z" transform={`translate(${sx(plotX(plot) + LOT_W * GRID / 2)},${sy(plotZ(plot) + 5)})`} fill="#457591" />}
-            <text x={sx(plotX(plot) + LOT_W * GRID / 2)} y={sy(plotZ(plot) + (lot ? 12 : 9))} textAnchor="middle" fontSize={lot ? 7 : 9} fill={offer ? '#ac4c30' : '#3a5553'}>{name.slice(0, 10)}</text>
-            <text x={sx(plotX(plot) + LOT_W * GRID / 2)} y={sy(plotZ(plot) + 16)} textAnchor="middle" fontSize={6} fill="#78877c">BLOCK {String(blockOf(plot) + 1).padStart(2, '0')} · {plot - FIRST_PLOT + 1}</text>
+            <rect x={sx(plotX(plot))} y={sy(plotZ(plot))} width={w * SCALE} height={LOT_D * GRID * SCALE} rx={3}
+              fill={lot ? '#e0e9f2' : offer ? '#fff4d8' : resident ? '#d9d6cf' : district?.color ?? '#dce2d5'} stroke={picked ? '#255db1' : lot ? '#7897ae' : '#bdc6b6'} strokeWidth={picked ? 3 : 1} />
+            {lot && <path d="M-9 0 L0 -8 L9 0 L7 0 L7 10 L-7 10 L-7 0 Z" transform={`translate(${sx(plotX(plot) + w / 2)},${sy(plotZ(plot) + 5)})`} fill="#457591" />}
+            <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + (lot ? 12 : 9))} textAnchor="middle" fontSize={lot ? 7 : 9} fill={offer ? '#ac4c30' : '#3a5553'}>{name.slice(0, 10)}</text>
+            <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + 16)} textAnchor="middle" fontSize={6} fill="#78877c">BLOCK {String(blockOf(plot) + 1).padStart(2, '0')} · {plot - FIRST_PLOT + 1}</text>
           </g>;
         })}
         {[{ kind: 'casino' as const, box: CASINO, label: 'GRAND STRIP' }, { kind: 'estate' as const, box: ESTATE, label: '不動産屋' }, { kind: 'dealer' as const, box: DEALER, label: '車販売' }, { kind: 'tuner' as const, box: TUNER, label: 'カスタム' }].map(({ kind, box, label }) => <g key={kind} role="button" tabIndex={0} aria-label={label} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind }); }}>
           <rect x={sx(CIVIC_SITE.x + box.x0)} y={sy(CIVIC_SITE.z + box.z0)} width={(box.x1 - box.x0) * SCALE} height={(box.z1 - box.z0) * SCALE} rx={3} fill={kind === 'casino' ? '#755743' : '#34777a'} stroke={pick?.kind === kind ? '#f6bf4d' : '#fff9'} strokeWidth={2} />
           <text x={sx(CIVIC_SITE.x + (box.x0 + box.x1) / 2)} y={sy(CIVIC_SITE.z + (box.z0 + box.z1) / 2)} textAnchor="middle" fontSize={kind === 'casino' ? 8 : 7} fill="#fff">{label}</text>
         </g>)}
+        {BOUTIQUE_IDS.map(id => { const box = BOUTIQUES[id]; const on = pick?.kind === 'boutique' && pick.id === id; return <g key={id} role="button" tabIndex={0} aria-label={BOUTIQUE_INFO[id].name} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind: 'boutique', id })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind: 'boutique', id }); }}>
+          <rect x={sx(CIVIC_SITE.x + box.x0)} y={sy(CIVIC_SITE.z + box.z0)} width={(box.x1 - box.x0) * SCALE} height={(box.z1 - box.z0) * SCALE} rx={3} fill="#a0567a" stroke={on ? '#f6bf4d' : '#fff9'} strokeWidth={2} />
+          <text x={sx(CIVIC_SITE.x + (box.x0 + box.x1) / 2)} y={sy(CIVIC_SITE.z + (box.z0 + box.z1) / 2)} textAnchor="middle" fontSize={6} fill="#fff">服</text>
+        </g>; })}
         <g transform={`translate(${sx(mx)},${sy(mz)})`}><circle r={6} fill="#2470dd" stroke="#fff" strokeWidth={2} /><circle r={11} fill="#2470dd22" /></g>
         <text x={WIDTH - 30} y={28} textAnchor="end" fontSize={12} fill="#526456">N ↑</text>
       </svg>
     </div>
     <div className="map-detail card">
-      {selectedLot ? <><h3>{selectedLot.name}</h3><p className="muted">{getLocation(selectedLot.location).name}・{selectedLot.construction ? '工事中' : selectedLot.built ? '家あり' : '土地'}</p><button className="btn primary" onClick={() => warpToLot(selectedLot.id)}>{selectedLot.id === currentId ? 'この家の前に戻る' : 'この家へワープ'}</button></>
+      {selectedLot ? <><h3>{selectedLot.name}</h3><p className="muted">{getLocation(selectedLot.location).name}・{selectedLot.construction ? '工事中' : selectedLot.built ? '家あり' : '土地'}</p><button className="btn primary" onClick={() => warpToLot(selectedLot.id)}>{selectedLot.id === currentId ? 'この家の前に戻る' : 'この家へワープ'}</button>
+        {typeof selectedLot.joined === 'number' && <p className="info">隣の区画とつなげた広い土地です。</p>}
+        {joinWith && <button className="btn" onClick={() => { const err = useEconomy.getState().joinLots(selectedLot.id); if (err) useGame.getState().notify(err); }}>🔗 隣の「{joinWith.name.replace(/（.*）$/, '')}」とつなげる</button>}</>
       : selectedOffer ? <><h3>売り土地：{selectedOffer.name}</h3><p>価格 {yen(landPrice(selectedOffer.location, selectedOffer.variance, market))}</p><p className="info">看板の前でFを押すと、この土地を購入できます。不動産屋でも購入できます。</p></>
       : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' || pick?.kind === 'tuner' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : pick.kind === 'tuner' ? 'STANCE GARAGE（車のカスタム）' : 'まちの不動産'}</h3><p>住宅街の南側にあります。店舗の入口でFキー（スマホは入場ボタン）を押してください。</p></>
+      : pick?.kind === 'boutique' ? <><h3>{BOUTIQUE_INFO[pick.id].name}</h3><p className="muted">服屋さん・{BOUTIQUE_INFO[pick.id].tier}</p><p>住宅街の南側、車屋より西のファッション通りにあります。中で服を選んで試着・購入できます。</p></>
+      : pick?.kind === 'plot' && townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot] ?? '') ? <><h3>{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.name}</h3><p className="muted">ほかの住人の家・{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.model}</p></>
       : <p className="muted">地図の家・土地・店舗を選んでください。</p>}
     </div>
     <section className="map-mylots"><div className="card-title">あなたの家・土地（{lots.length}）</div><ul>

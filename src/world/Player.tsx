@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { GRID, LOT_D, LOT_W } from '../building/dimensions';
+import { GRID, LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { nearestSeat } from '../building/seating';
 import { touchGesture } from '../state/gestures';
 import { useInteraction } from '../state/interaction';
@@ -22,7 +22,8 @@ import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
 import { useGame } from '../state/store';
-import { lotHouse, plotOffset, plotOffsetZ, civicOffset, currentPlotOf, useEconomy } from '../state/economy';
+import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
+import { lotCells, lotHouse, plotOffset, plotOffsetZ, civicOffset, currentPlotOf, useEconomy } from '../state/economy';
 import { TOWN_BOUNDS, plotX, plotZ } from '../economy/town';
 import { buildMenuOpen, useControls, cycleTool } from '../state/controls';
 import { aimBuilding } from './aimMode';
@@ -116,7 +117,7 @@ export function warpToLot(id: string) {
   useSeating.setState({ seated: null, target: null, returnTo: null });
   game.setOverlay(null);
   eco.switchLot(id);
-  playerMemory.x = (LOT_W * GRID) / 2;
+  playerMemory.x = (lotSize.w * GRID) / 2;
   playerMemory.y = 0;
   playerMemory.z = LOT_D * GRID + 0.9;
   playerMemory.yaw = 0;
@@ -148,8 +149,21 @@ function resolveTown(p: { x: number; z: number }, feetY: number, height: number)
     const other = lotHouse(l);
     if (l.id === s.currentLotId || !other || typeof l.plot !== 'number') continue;
     const ox = plotOffset(l.plot, s), oz = plotOffsetZ(l.plot, s);
-    if (Math.abs(q.x - ox - (LOT_W * GRID) / 2) > LOT_W * GRID) continue;
+    const half = (lotCells(l).w * GRID) / 2;
+    if (Math.abs(q.x - ox - half) > half + LOT_W * GRID / 2) continue;
     const r = resolveCollisions(other, { x: q.x - ox, z: q.z - oz }, feetY, height, () => false);
+    q = { x: r.x + ox, z: r.z + oz };
+  }
+  // 町に最初から建っている家（中には入れない）
+  const taken = new Set([...s.lots.flatMap((l) => [l.plot, l.joined]), ...s.offers.map((o) => o.plot)]);
+  for (const key of Object.keys(TOWN_HOUSE_PLOTS)) {
+    const plot = Number(key);
+    if (taken.has(plot)) continue;
+    const ox = plotOffset(plot, s), oz = plotOffsetZ(plot, s);
+    if (Math.abs(q.x - ox - (LOT_W * GRID) / 2) > LOT_W * GRID || Math.abs(q.z - oz - (LOT_D * GRID) / 2) > LOT_D * GRID) continue;
+    const house = townHouseAt(plot);
+    if (!house) continue;
+    const r = resolveCollisions(house, { x: q.x - ox, z: q.z - oz }, feetY, height, () => false);
     q = { x: r.x + ox, z: r.z + oz };
   }
   return resolveParkedCars(q,feetY);
@@ -661,7 +675,7 @@ export function Player() {
       const focus = new THREE.Vector3(playerMemory.x, eye - 0.1, playerMemory.z);
       let dist = playerMemory.distance;
       // 壁や屋根でカメラが埋もれないよう、手前に寄せる
-      const blockers = ['house', 'casino', 'estate', 'dealer', 'tuner', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
+      const blockers = ['house', 'casino', 'estate', 'dealer', 'tuner', 'boutiques', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
       if (blockers.length) {
         raycaster.current.set(focus, dir.clone().negate());
         raycaster.current.far = dist;
