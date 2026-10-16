@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
-import { createRelay } from '../server/relay.mjs';
+import { createRelay } from '../server/dist/relay.mjs';
 const relay = createRelay(); await new Promise(resolve => relay.http.listen(0, '127.0.0.1', resolve));
 const relayURL = 'ws://127.0.0.1:' + relay.http.address().port;
 let interruptNextEdit = false;

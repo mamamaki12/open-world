@@ -81,6 +81,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Check the bundled relay is up to date
+        run: npm run build:server && git diff --exit-code server/dist
       - run: node --test server/relay.test.mjs
       - name: Check deployed relay over HTTPS and WSS
         run: node scripts/check-public-relay.mjs
@@ -88,7 +90,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Check two-player sessions and production offline launch
         run: |
-          node server/relay.mjs > /tmp/world-relay.log 2>&1 &
+          node server/dist/relay.mjs > /tmp/world-relay.log 2>&1 &
           relay=$!
           npm run dev -- --host 127.0.0.1 > /tmp/world-vite.log 2>&1 &
           web=$!
