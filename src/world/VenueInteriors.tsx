@@ -9,6 +9,7 @@ import { civicOffset, useCurrentPlot } from '../state/economy';
 import { playerMemory } from './Player';
 import { CIVIC_SITE, plotX, plotZ } from '../economy/town';
 import { isBoutique } from '../building/boutiques';
+import { SALON_CHAIRS } from '../building/salon';
 import { BoutiqueInterior } from './BoutiqueBuildings';
 import { CasinoDecor, EstateDecor } from './CasinoDecor';
 import { CarModel, Wheel } from './CarModel';
@@ -118,6 +119,23 @@ function TunerInterior(){
     {[-1,1].map(s=><Box key={s} p={[-4.5+s*1.75,.02,.5]} s={[.08,.01,5.8]} c="#e0b400"/>)}
   </>;
 }
+/** 美容室：左の壁ぎわに鏡とカット台3つ、奥にシャンプー台、右に受付と待合のソファ */
+function SalonInterior(){
+  return <>
+    {SALON_CHAIRS.map(z=><group key={z} position={[-3.75,0,z]}>
+      <Box p={[-.62,1.55,0]} s={[.04,1.3,.9]} c="#dfe8ec" metal={.9}/><Box p={[-.6,1.55,0]} s={[.06,1.42,1.02]} c="#a07850"/>
+      <Box p={[-.45,.85,0]} s={[.3,.06,.9]} c="#f2efe8"/>
+      <group position={[.25,0,0]} rotation-y={-Math.PI/2}><Round p={[0,.06,0]} r={.28} h={.08} c="#2c2c2e"/><Round p={[0,.3,0]} r={.05} h={.42} c="#b8bcc0"/>
+        <Box p={[0,.52,0]} s={[.55,.14,.52]} c="#1e1e20"/><Box p={[0,.88,.24]} s={[.55,.65,.1]} c="#1e1e20"/>{[-1,1].map(s=><Box key={s} p={[s*.3,.68,0]} s={[.08,.06,.45]} c="#1e1e20"/>)}</group>
+    </group>)}
+    <Box p={[-1.2,.45,3.85]} s={[3,.9,1]} c="#efe9df"/>{[-1.95,-.45].map(x=><group key={x}><Round p={[x,.95,3.95]} r={.25} h={.12} c="#f8f8f6"/><Box p={[x,.55,3.25]} s={[.6,.12,.9]} c="#1e1e20"/></group>)}
+    <Box p={[3.1,.55,2.4]} s={[2.4,1.1,.8]} c="#a07850"/><Box p={[3.1,1.13,2.4]} s={[2.5,.06,.9]} c="#f6f3ee"/>
+    <Box p={[3.5,.25,-2.4]} s={[1.2,.5,2.2]} c="#8c8f88"/><Box p={[4,.65,-2.4]} s={[.3,.6,2.2]} c="#8c8f88"/>
+    {[-1,0,1].map(i=><mesh key={i} position={[4.4,1.9,i*.9-1]}><boxGeometry args={[.04,.5,.4]}/><meshStandardMaterial color={['#c46f6a','#6b4528','#d8b36a'][i+1]}/></mesh>)}
+    <Label text="HAIR SALON LUCE" p={[1.5,2.6,4.35]} w={4} color="#5a4130" fixed/>
+    <Label text="F · 髪を切る・染める" p={[-2.6,2.3,0]} w={2.6} h={.4} color="#5a4130"/>
+  </>;
+}
 /** 店の中の壁・床・天井。正面の壁は入口の分だけあける（車屋は正面がガラスなので壁なし）。 */
 function Shell({kind}:{kind:Venue}){
   const b=VENUES[kind],w=b.x1-b.x0,d=b.z1-b.z0,h=HEIGHT[kind],door=VENUE_DOORS[kind],dx=door.x-(b.x0+b.x1)/2;
@@ -136,10 +154,11 @@ function Shell({kind}:{kind:Venue}){
     {[-1,1].map(side=><Box key={side} p={[side*(w/2-.2),.15,0]} s={[.07,.13,d]} c={b.trim} metal={.5}/>)}
   </>;
 }
-const HEIGHT:Record<Venue,number>={casino:6.4,estate:3.2,dealer:4.5,tuner:4.8,exchange:5,maison:4.2,atelier:3.6,urban:3.6,daily:3.6};
+const HEIGHT:Record<Venue,number>={casino:6.4,estate:3.2,dealer:4.5,tuner:4.8,exchange:5,salon:3.4,maison:4.2,atelier:3.6,urban:3.6,daily:3.6};
 const LIGHT:Record<Venue,{y:number;intensity:number;color:string;distance:number}>={
   casino:{y:4,intensity:20,color:'#ffd9a0',distance:20},estate:{y:2.5,intensity:12,color:'#fff0db',distance:12},dealer:{y:4.2,intensity:25,color:'#e2f2ff',distance:20},
   tuner:{y:4.3,intensity:24,color:'#f4f6ff',distance:18},
+  salon:{y:3,intensity:13,color:'#fff1dc',distance:12},
   exchange:{y:4.2,intensity:16,color:'#f4f6ff',distance:14},
   maison:{y:3.6,intensity:14,color:'#ffe6bf',distance:12},atelier:{y:3.1,intensity:12,color:'#fff0db',distance:12},urban:{y:3.1,intensity:12,color:'#f4f8ff',distance:12},daily:{y:3.1,intensity:13,color:'#ffffff',distance:12},
 };
@@ -167,7 +186,7 @@ export function VenueInteriors(){
         <VenueInteriorDetail kind={kind} centred>
         <Shell kind={kind}/>
         {(kind==='casino'||kind==='estate'||kind==='exchange')&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':kind==='exchange'?'#1e4d8c':'#ffe5a6'}/>)}
-        {kind==='casino'?<><CasinoInterior/><CasinoDecor/></>:kind==='estate'?<><EstateInterior/><EstateDecor/></>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:kind==='exchange'?<ExchangeInterior/>:<DealerInterior/>}</VenueInteriorDetail>
+        {kind==='casino'?<><CasinoInterior/><CasinoDecor/></>:kind==='estate'?<><EstateInterior/><EstateDecor/></>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:kind==='exchange'?<ExchangeInterior/>:kind==='salon'?<SalonInterior/>:<DealerInterior/>}</VenueInteriorDetail>
       </group>;
     })}
   </group>;

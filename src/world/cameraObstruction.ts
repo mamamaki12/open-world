@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const BLOCKERS = ['house', 'casino', 'estate', 'dealer', 'tuner', 'exchange', 'boutiques', 'venue-interior', 'neighbors'];
+const BLOCKERS = ['house', 'casino', 'estate', 'dealer', 'tuner', 'exchange', 'salon', 'boutiques', 'venue-interior', 'neighbors'];
 const ray = new THREE.Raycaster();
 
 /** カメラまでの線上に不透明な建物があれば、その手前に寄せる。 */

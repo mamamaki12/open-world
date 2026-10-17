@@ -17,7 +17,7 @@ export function AimBuilder() {
   const ray=useRef(new THREE.Raycaster());
   const pick=()=>{
     ray.current.setFromCamera(new THREE.Vector2(0,0),camera);ray.current.far=AIM_REACH;
-    const objects=['house','ground','casino','estate','dealer','tuner','exchange','boutiques','venue-interior','neighbors','vehicles'].map(n=>scene.getObjectByName(n)).filter((o):o is THREE.Object3D=>!!o);
+    const objects=['house','ground','casino','estate','dealer','tuner','exchange','salon','boutiques','venue-interior','neighbors','vehicles'].map(n=>scene.getObjectByName(n)).filter((o):o is THREE.Object3D=>!!o);
     let hit:THREE.Intersection|undefined=ray.current.intersectObjects(objects,true).find(h=>{
       const mat=(h.object as THREE.Mesh).material,m=Array.isArray(mat)?mat[h.face?.materialIndex??0]:mat;
       let o:THREE.Object3D|null=h.object;while(o){if(!o.visible)return false;o=o.parent;}

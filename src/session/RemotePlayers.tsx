@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useSession } from './session';
 import type { RemotePose } from './session';
 import { AvatarModel, poseRig, useRig, useSmooth } from '../world/Avatar';
+import { sanitizeLooks } from '../catalog/looks';
 import { CarModel } from '../world/CarModel';
 import { getCar } from '../catalog/cars';
 import { useEconomy, currentPlotOf } from '../state/economy';
@@ -25,7 +26,7 @@ function RemotePlayer({ id, pose }: { id: string; pose: RemotePose }) {
     old.current.x = p.x; old.current.z = p.z;
   });
   const plot = currentPlotOf(useEconomy.getState());
-  return <group name={'remote-player-' + id} ref={root} position={[pose.x - plotX(plot), pose.y, pose.z - plotZ(plot)]}><AvatarModel rig={rig} outfit={pose.outfit}/></group>;
+  return <group name={'remote-player-' + id} ref={root} position={[pose.x - plotX(plot), pose.y, pose.z - plotZ(plot)]}><AvatarModel rig={rig} outfit={pose.outfit} looks={sanitizeLooks(pose.looks)}/></group>;
 }
 function RemoteCars({ pose }: { pose: RemotePose }) {
   const root = useRef<THREE.Group>(null);

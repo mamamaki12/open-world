@@ -5,6 +5,7 @@ import { PLAYER } from './walk';
 import type { Vec2 } from './walk';
 import { PLOT_PITCH } from '../economy/town';
 import { BOUTIQUES, BOUTIQUE_IDS } from './boutiques';
+import { SALON } from './salon';
 
 export interface Box {
   x0: number;
@@ -60,6 +61,7 @@ export const LANDMARK_COLLIDERS: Box[] = [
   { x0: ESTATE.x0, x1: ESTATE.x1, z0: ESTATE.z0, z1: ESTATE.z1 },
   { x0: CASINO.x0, x1: CASINO.x1, z0: CASINO.z0, z1: CASINO.z1 },
   ...BOUTIQUE_IDS.map((id) => ({ ...BOUTIQUES[id] })),
+  { x0: SALON.x0, x1: SALON.x1, z0: SALON.z0, z1: SALON.z1 },
   ...CASINO_PLANTERS,
   ...CASINO_PILLARS.map((p) => ({ x0: p.x - PILLAR, x1: p.x + PILLAR, z0: p.z - PILLAR, z1: p.z + PILLAR })),
 ];
