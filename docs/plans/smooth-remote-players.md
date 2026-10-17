@@ -11,4 +11,6 @@
 
 ## 進捗
 - 済: `src/session/poseBuffer.ts`（recordPose / samplePose / sampleCar）、session.ts の受信で記録・退出で破棄、RemotePlayers と ridingCar が補間値を使う。単体テスト poseBuffer.test.ts。
-- 次: ブラウザで確認 → PR
+- 済: 送信側の時刻 `pose.ts`（performance.now）を pose に追加。受信側はこれを自分の時計に直して並べるので、届く間隔の揺れで速さが変わらない（中継はそのまま転送するので EC2 更新不要。ts の無い古いクライアントは受信時刻で補間）。遅延量は少しずつ変える（急変すると速さが揺れる）。
+- 確認: 単体テスト（揺れる到着でも60fpsの速さ 3.5〜4.5m/s、補正前は1.5〜8）、scripts/check-drive-ride.mjs 合格。
+- 次: PR → CI → マージ

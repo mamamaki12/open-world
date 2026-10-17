@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { recordPose, samplePose, sampleCar, renderDelay } from './poseBuffer';
 import type { RemotePose } from './session';
 
-const pose = (x: number, carX = 0): RemotePose => ({ x, y: 0, z: 0, yaw: 0, outfit: {} as RemotePose['outfit'], cars: [{ id: 'c', x: carX, z: 0, yaw: 0 } as RemotePose['cars'][number]] });
+const pose = (x: number, carX = 0, ts?: number): RemotePose => ({ x, ts, y: 0, z: 0, yaw: 0, outfit: {} as RemotePose['outfit'], cars: [{ id: 'c', x: carX, z: 0, yaw: 0 } as RemotePose['cars'][number]] });
 
 describe('poseBuffer', () => {
   it('受信した座標の間をなめらかに補間する', () => {
@@ -21,5 +21,21 @@ describe('poseBuffer', () => {
   it('ワープは補間せず飛ぶ', () => {
     recordPose('w', pose(0), 0); recordPose('w', pose(500), 100);
     expect(samplePose('w', 100)!.x).toBe(500);
+  });
+  it('届く間隔が揺れても、60fpsで見た速さがほぼ一定（止まったり跳んだりしない）', () => {
+    // 送信は100msごと、届くのは0〜80ms遅れてばらばら。歩く速さは4m/s。
+    let seed = 1;
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const arrivals = Array.from({ length: 60 }, (_, i) => ({ t: 5000 + i * 100 + rand() * 80, ts: i * 100, x: i * .4 })).sort((a, b) => a.t - b.t);
+    const v: number[] = [];
+    let prev = NaN;
+    for (let now = 5000; now < 10900; now += 1000 / 60) {
+      while (arrivals.length && arrivals[0].t <= now) { const a = arrivals.shift()!; recordPose('j', pose(a.x, 0, a.ts), now); }
+      const x = samplePose('j', now)?.x ?? NaN;
+      if (now > 8000) v.push((x - prev) * 60);
+      prev = x;
+    }
+    expect(Math.min(...v)).toBeGreaterThan(3.5);
+    expect(Math.max(...v)).toBeLessThan(4.5);
   });
 });
