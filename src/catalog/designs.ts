@@ -1,6 +1,7 @@
 // プレイヤーが部品を組み合わせてデザインする家具。形は既存の家具と同じ FurnitureDef。
 // ライブラリは家とは別に保存するので、将来お店の商品としてそのまま渡せる。
 import { create } from 'zustand';
+import { useGame } from '../state/store';
 import { registerDesign } from './index';
 import type { FurnitureDef, FurniturePiece, Paint } from './index';
 
@@ -205,6 +206,11 @@ export const useDesigns = create<DesignLibrary>((set, get) => {
 });
 
 /** デザイン画面で編集中の家具（null なら閉じている） */
+export function restoreDesigns(raw: FurnitureDef[]) {
+  const designs = raw.map(sanitizeDesign).filter((d): d is FurnitureDef => !!d);
+  designs.forEach(registerDesign); persist(designs); useDesigns.setState({ designs });
+}
+
 export const useDesigner = create<{ draft: FurnitureDef | null }>(() => ({ draft: null }));
 
 /** デザイン画面を開く。ほかの人のデザインを開いたときは自分のコピーとして編集する */
@@ -212,4 +218,5 @@ export function openDesigner(from?: FurnitureDef) {
   const mine = from && useDesigns.getState().designs.some((d) => d.id === from.id);
   const base = from ?? { ...TEMPLATES[1].def, id: '' };
   useDesigner.setState({ draft: JSON.parse(JSON.stringify({ ...base, id: mine ? from!.id : newDesignId() })) });
+  useGame.getState().setOverlay('designer');
 }
