@@ -12116,7 +12116,7 @@ async function loadWorld(file) {
   if (!validSharedWorld(world)) throw Error("\u5171\u6709\u30EF\u30FC\u30EB\u30C9\u306E\u4FDD\u5B58\u30C7\u30FC\u30BF\u3092\u8AAD\u3081\u307E\u305B\u3093\uFF08\u4E0A\u66F8\u304D\u305B\u305A\u505C\u6B62\u3057\u307E\u3059\uFF09: " + file);
   return world;
 }
-function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1e3 } = {}) {
+function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1e3, persistWorld = saveWorld } = {}) {
   const rooms = /* @__PURE__ */ new Map();
   const identities = /* @__PURE__ */ new Map();
   const shared = { members: /* @__PURE__ */ new Map(), world: null, queue: Promise.resolve(), beat: 0 };
@@ -12130,14 +12130,16 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
   const enqueue = (job) => shared.queue = shared.queue.then(job, job);
   const ticker = setInterval(() => {
     if (!shared.world) return;
-    const t = tickWorld(shared.world, tickMs / 1e3, Math.random);
-    shared.world = t.world;
-    if (t.newDay) {
-      enqueue(() => saveWorld(worldFile, shared.world).catch((e) => console.error("save failed", e)));
-      sharedSend({ type: "world", world: publicWorld(shared.world) });
-      accounts();
-    }
-    if (++shared.beat % 2 === 0) sharedSend({ type: "clock", clock: clockOf(shared.world) });
+    enqueue(async () => {
+      const t = tickWorld(shared.world, tickMs / 1e3, Math.random);
+      if (t.newDay) await persistWorld(worldFile, t.world);
+      shared.world = t.world;
+      if (t.newDay) {
+        sharedSend({ type: "world", world: publicWorld(shared.world) });
+        accounts();
+      }
+      if (++shared.beat % 2 === 0) sharedSend({ type: "clock", clock: clockOf(shared.world) });
+    }).catch((e) => console.error("save failed", e));
   }, tickMs);
   ticker.unref();
   const http = createServer((req, res) => {
@@ -12190,15 +12192,20 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
             member.socket = socket;
             shared.members.set(id2, member);
             clearTimeout(handshake);
-            const joined = withAccount(shared.world, id2, name);
-            if (joined !== shared.world) {
-              shared.world = joined;
-              enqueue(() => saveWorld(worldFile, shared.world).catch((e) => console.error("save failed", e)));
-            }
-            send(socket, { type: "welcome", code: "SHARED", token: randomUUID(), host: "", canBuild: true, shared: true });
-            send(socket, { type: "world", world: publicWorld(shared.world) });
-            send(socket, { type: "account", account: shared.world.accounts[id2] });
-            sharedRoster();
+            enqueue(async () => {
+              const joined = withAccount(shared.world, id2, name);
+              if (joined !== shared.world) {
+                await persistWorld(worldFile, joined);
+                shared.world = joined;
+              }
+              send(socket, { type: "welcome", code: "SHARED", token: randomUUID(), host: "", canBuild: true, shared: true });
+              send(socket, { type: "world", world: publicWorld(shared.world) });
+              send(socket, { type: "account", account: shared.world.accounts[id2] });
+              sharedRoster();
+            }).catch(() => {
+              send(socket, { type: "error", message: "\u30B5\u30FC\u30D0\u30FC\u306B\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F" });
+              socket.close(1011);
+            });
             return;
           }
           if (data.type === "create") {
@@ -12250,8 +12257,8 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
             enqueue(async () => {
               const r = applyCommand(shared.world, who.id, command, who.name);
               if (r.changed) {
-                await saveWorld(worldFile, r.world);
-                shared.world = { ...r.world, economy: { ...r.world.economy, ...clockOf(shared.world) } };
+                await persistWorld(worldFile, r.world);
+                shared.world = r.world;
               }
               send(who.socket, { type: "result", result: r.result });
               if (r.changed) {
