@@ -16,6 +16,12 @@ function load(): { looks: Looks; created: boolean } {
 function save(l: Looks) {
   try { localStorage.setItem(KEY, JSON.stringify(l)); } catch { /* 保存できなくても遊べる */ }
 }
+export function restoreLooks(looks: unknown, created: boolean) {
+  const v = sanitizeLooks(looks);
+  useLooks.setState({ looks: v, created });
+  if (created) save(v);
+  else { try { localStorage.removeItem(KEY); } catch { /* 本体の保存を保持 */ } }
+}
 
 interface LooksState {
   looks: Looks;

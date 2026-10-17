@@ -11,6 +11,13 @@ import { cleanMods } from '../catalog/carMods';
 import { readSave, writeSave } from './database';
 import { validWallet } from './wallet';
 import type { WalletSync } from './wallet';
+import { restoreLooks, useLooks } from '../state/looks';
+import type { Looks } from '../catalog/looks';
+import { homeHoldings, restoreHomeHoldings, useStocks } from '../state/stocks';
+import { validHoldings } from '../economy/stocks';
+import type { Holding } from '../economy/stocks';
+import { restoreDesigns, sanitizeDesign, useDesigns } from '../catalog/designs';
+import type { FurnitureDef } from '../catalog';
 
 const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 export function captureWorld() {
@@ -28,7 +35,11 @@ export function captureProfile(id: string, name: string) {
 }
 export type GuestProfile = ReturnType<typeof captureProfile>;
 export interface Escrow { id: string; room: string; worldId: string; amount: number }
-export interface SaveBundle { version: 1; savedAt: number; profile: GuestProfile; home: WorldSave; pending?: Escrow[]; wallet?: WalletSync }
+export interface SaveBundle {
+  version: 1; savedAt: number; profile: GuestProfile; home: WorldSave; pending?: Escrow[]; wallet?: WalletSync;
+  /** 個人共通のデータ。旧version1バックアップでは省略される。 */
+  appearance?: { looks: Looks; created: boolean }; holdings?: Record<string, Holding>; designs?: FurnitureDef[];
+}
 export function validWorld(v: unknown): v is WorldSave {
   if (!v || typeof v !== 'object') return false;
   const w = v as WorldSave, e = w.economy;
@@ -42,6 +53,9 @@ export function validBundle(v: unknown): v is SaveBundle {
   if (!v || typeof v !== 'object') return false;
   const b = v as SaveBundle, p = b.profile;
   return b.version === 1 && (b.wallet === undefined || validWallet(b.wallet)) && validWorld(b.home) && !!p && typeof p.id === 'string' && p.id.length < 100 &&
+    (b.holdings === undefined || validHoldings(b.holdings)) &&
+    (b.appearance === undefined || !!b.appearance && typeof b.appearance.created === 'boolean' && !!b.appearance.looks && typeof b.appearance.looks === 'object') &&
+    (b.designs === undefined || Array.isArray(b.designs) && b.designs.every(d => !!sanitizeDesign(d))) &&
     typeof p.name === 'string' && p.name.length <= 24 && Number.isFinite(p.money) && Array.isArray(p.ledger) &&
     Array.isArray(p.cars) && p.cars.length <= 10 && p.cars.every(validCar) && !!p.wardrobe && Array.isArray(p.wardrobe.owned);
 }
@@ -71,13 +85,19 @@ export function applyProfile(p: GuestProfile) {
 }
 let bundle: SaveBundle;
 let saving = Promise.resolve();
+let importing = false;
 export const savedBundle = () => bundle;
 export function snapshot(): SaveBundle {
   bundle = { ...bundle, version: 1, savedAt: Date.now(), profile: personalProfile(),
-    home: visitingWorld() ? bundle.home : captureWorld() };
+    home: visitingWorld() ? bundle.home : captureWorld(),
+    appearance: { looks: useLooks.getState().looks, created: useLooks.getState().created },
+    holdings: sessionGate.shared ? homeHoldings() : useStocks.getState().holdings,
+    designs: useDesigns.getState().designs };
   return copy(bundle);
 }
 export function persist(): Promise<void> {
+  // 復元前の状態を予約して、復元後に上書きすることを防ぐ。
+  if (importing) return saving.catch(() => undefined).then(() => persist());
   const data = snapshot();
   saving = saving.catch(() => undefined).then(() => writeSave(data));
   return saving;
@@ -86,7 +106,7 @@ export async function initializeSave() {
   sessionGate.worldId = crypto.randomUUID();
   const existing = await readSave<unknown>();
   if (existing !== undefined && !validBundle(existing)) throw new Error('保存データを読み込めません。元のデータは保持されています。');
-  if (validBundle(existing)) { bundle = existing; applyWorld(bundle.home); applyProfile(bundle.profile); }
+  if (validBundle(existing)) { bundle = existing; applyWorld(bundle.home); applyProfile(bundle.profile); applyPersonalData(bundle); }
   else { bundle = { version: 1, savedAt: Date.now(), profile: captureProfile(crypto.randomUUID(), 'ゲスト'), home: captureWorld() }; }
   // A host's own escrow and authoritative world are saved atomically in the same record.
   bundle.pending = bundle.pending?.filter(p => {
@@ -100,9 +120,21 @@ export async function initializeSave() {
 }
 export function renameGuest(name: string) { bundle.profile.name = name.trim().slice(0, 24) || 'ゲスト'; return persist(); }
 export async function importSave(text: string) {
+  if (importing) throw new Error('バックアップを復元中です。少し待ってください。');
   const next: unknown = JSON.parse(text);
   if (!validBundle(next)) throw new Error('対応するバックアップではありません。');
-  await writeSave(next); bundle = copy(next); applyWorld(bundle.home); applyProfile(bundle.profile);
+  importing = true;
+  const operation = saving.catch(() => undefined).then(async () => {
+    await writeSave(next);
+    bundle = copy(next); applyWorld(bundle.home); applyProfile(bundle.profile); applyPersonalData(bundle);
+  });
+  saving = operation;
+  try { await operation; } finally { importing = false; }
+}
+function applyPersonalData(b: SaveBundle) {
+  if (b.appearance) restoreLooks(b.appearance.looks, b.appearance.created);
+  if (b.holdings) restoreHomeHoldings(b.holdings);
+  if (b.designs) restoreDesigns(b.designs);
 }
 export function downloadBackup() {
   const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot())], { type: 'application/json' }));
