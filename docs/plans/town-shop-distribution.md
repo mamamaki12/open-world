@@ -20,3 +20,9 @@
 
 - Final Chrome traversal passed all 10 venues (including salon and both north stores): automatic doors opened and W-key walking entered each interior. Map selection and new location descriptions passed; screenshot: world-session-checks/distributed-shop-map.png (ignored test output).
 - Browser traversal holds W until entry rather than assuming 1.3 seconds, because software-rendered CI can advance fewer physics frames.
+
+## Release checkpoint (2026-10-17 JST)
+- Done: PR #85 merged as a71e38d270cd36e366e96da2d22201ef4cb5cd90 after CI run 39005423585 succeeded in all three jobs.
+- User confirmed the EC2 update completed. Independent Chrome verification returned health=ok and a successful WSS connection.
+- The EC2 executable was pinned to a17fbd935fc59fb7571adfdcaec1681c2508a81c (same runtime code as the merged release). Earlier draft/deployment hold notes above are resolved.
+- GitHub Pages publication is being verified; no additional server changes are required for this release.

@@ -25,3 +25,9 @@
 - Final Chrome common-wallet test passed including negative offline balance (-100), recovery by earning income, interrupted acknowledgement, saved offline journal/reload and no duplicate migration.
 - Updated two-player end-to-end regression passed: land purchase, owner-only free building, reconnect/undo, player-to-player sale, common money, persistence and backup.
 - EC2 executable revision prepared and locally tested: a17fbd935fc59fb7571adfdcaec1681c2508a81c. Run the pinned update script on EC2; after health returns ok, verify CI, mark/merge PR #85 and verify Pages. Do not drop or reinitialize /var/lib/open-world/shared-world.json.
+
+## Release checkpoint (2026-10-17 JST)
+- Done: PR #85 merged as a71e38d270cd36e366e96da2d22201ef4cb5cd90 after CI run 39005423585 succeeded in all three jobs.
+- User confirmed the EC2 update completed. Independent Chrome verification returned health=ok and a successful WSS connection.
+- The EC2 executable was pinned to a17fbd935fc59fb7571adfdcaec1681c2508a81c (same runtime code as the merged release). Earlier draft/deployment hold notes above are resolved.
+- GitHub Pages publication is being verified; no additional server changes are required for this release.
