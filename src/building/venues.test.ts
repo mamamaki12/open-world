@@ -33,23 +33,47 @@ it('lets the player walk through an open shop door without changing space',()=>{
     expect(throughDoorway(kind,{x:d.x,z:b.z0+3})).toBeNull();
   }
 });
-it('keeps every shop and the dealer parking lot off the roads and facing the front road',async()=>{
-  const { TOWN_ROADS, CIVIC_SITE } = await import('../economy/town');
+it('keeps every shop and dealer parking off roads and residential plots',async()=>{
+  const { TOWN_ROADS, CIVIC_SITE, FIRST_PLOT, LAST_PLOT } = await import('../economy/town');
+  const { LOT_W } = await import('./dimensions');
   const { DEALER_LOT } = await import('./dealer');
-  const front = TOWN_ROADS.filter(r => r.x1 - r.x0 > 100).sort((a, b) => b.z1 - a.z1)[0];
   for (const b of [...VENUE_KINDS.map(k => VENUES[k]), DEALER_LOT]) {
     const g = { x0: b.x0 + CIVIC_SITE.x, x1: b.x1 + CIVIC_SITE.x, z0: b.z0 + CIVIC_SITE.z, z1: b.z1 + CIVIC_SITE.z };
     for (const r of TOWN_ROADS) expect(g.x0 < r.x1 && g.x1 > r.x0 && g.z0 < r.z1 && g.z1 > r.z0).toBe(false);
-    expect(g.x0).toBeGreaterThanOrEqual(front.x0);expect(g.x1).toBeLessThanOrEqual(front.x1);expect(g.z0 - front.z1).toBeLessThan(4);
+    for(let plot=FIRST_PLOT;plot<=LAST_PLOT;plot++)expect(g.x0<plotX(plot)+LOT_W*GRID&&g.x1>plotX(plot)&&g.z0<plotZ(plot)+LOT_D*GRID&&g.z1>plotZ(plot)).toBe(false);
   }
 });
-it('keeps every shop apart from the others and the clothes shops west of the dealer, leaving room beside it',()=>{
+it('keeps every shop apart from other buildings and parking',()=>{
   const boxes=[...VENUE_KINDS.map(k=>({k,...VENUES[k]})),{k:'lot',...DEALER_LOT}];
   for(const a of boxes)for(const b of boxes){
     if(a===b)continue;
     expect(a.x0<b.x1&&a.x1>b.x0&&a.z0<b.z1&&a.z1>b.z0).toBe(false);
   }
-  for(const k of ['maison','atelier','urban','daily'] as const)expect(VENUES[k].x1).toBeLessThan(DEALER.x0-20);
+});
+it('distributes boutiques across north and south and mixes services between southern clothing stores',async()=>{
+  const { CIVIC_SITE,TOWN_BOUNDS }=await import('../economy/town');
+  for(const k of ['maison','urban'] as const)expect(VENUES[k].z1+CIVIC_SITE.z).toBeLessThan(TOWN_BOUNDS.z0);
+  for(const k of ['daily','atelier'] as const)expect(VENUES[k].z0+CIVIC_SITE.z).toBeGreaterThan(TOWN_BOUNDS.z1);
+  expect(VENUES.daily.x1).toBeLessThan(VENUES.estate.x0);
+  expect(VENUES.estate.x1).toBeLessThan(VENUES.atelier.x0);
+  expect(VENUES.atelier.x1).toBeLessThan(VENUES.exchange.x0);
+  expect(VENUES.urban.x0-VENUES.maison.x1).toBeGreaterThan(80);
+});
+it('provides walkable approaches linked to a town road for the north stores',async()=>{
+  const { SHOP_PATHS }=await import('./shopPaths');
+  const { CIVIC_SITE,TOWN_ROADS,TOWN_BOUNDS }=await import('../economy/town');
+  const overlaps=(a:{x0:number;x1:number;z0:number;z1:number},b:typeof a)=>a.x0<b.x1&&a.x1>b.x0&&a.z0<b.z1&&a.z1>b.z0;
+  for(const k of ['maison','urban'] as const){
+    const b=VENUES[k],x=VENUE_DOORS[k].x+CIVIC_SITE.x,z=b.z0+CIVIC_SITE.z-1;
+    const front=SHOP_PATHS.find(p=>x>p.x0&&x<p.x1&&z>p.z0&&z<p.z1)!;
+    expect(front).toBeDefined();expect(front.z0).toBeGreaterThan(TOWN_BOUNDS.z0-25);
+    const connector=SHOP_PATHS.find(p=>overlaps(front,p)&&TOWN_ROADS.some(r=>overlaps(p,r)));
+    expect(connector).toBeDefined();
+    for(const path of SHOP_PATHS)for(const kind of VENUE_KINDS){
+      const v=VENUES[kind],g={x0:v.x0+CIVIC_SITE.x,x1:v.x1+CIVIC_SITE.x,z0:v.z0+CIVIC_SITE.z,z1:v.z1+CIVIC_SITE.z};
+      expect(overlaps(path,g)).toBe(false);
+    }
+  }
 });
 it('keeps the player out of the clothes shop walls except through the door',async()=>{
   const { resolveLandmarks } = await import('./landmarks');

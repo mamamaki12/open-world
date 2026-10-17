@@ -109,7 +109,7 @@ export function downloadBackup() {
   const a = document.createElement('a'); a.href = url; a.download = 'open-world-backup.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-/** みんなのワールドの所持金・車は自分のワールドへ持ち込まない（引き継ぐのは見た目と服だけ） */
+/** 所持金と服は共通。共有ワールドの車は個別ワールドへ持ち込まない。 */
 function personalProfile(): GuestProfile {
   const now = captureProfile(bundle.profile.id, bundle.profile.name);
   return sessionGate.shared ? { ...copy(bundle.profile), money: now.money, ledger: now.ledger, wardrobe: now.wardrobe } : now;

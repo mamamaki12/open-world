@@ -1,7 +1,7 @@
-// 服屋さん4店舗。町の南の道路沿い、車屋よりさらに西に「ファッション通り」として並ぶ。
+// 服屋さん4店舗。南西の商店街2軒と北側2軒に分散する。
 // 座標はほかの店と同じく civic site 基準。正面（入口）は道路側（-Z）。
-import { GRID, LOT_D } from './dimensions';
-import { CIVIC_SITE } from '../economy/town';
+import { TOWN_BOUNDS } from '../economy/town';
+import { shopSite, SHOPPING_SOUTH, SHOPPING_NORTH, SHOPPING_WEST } from './shopSites';
 
 export type BoutiqueId = 'maison' | 'atelier' | 'urban' | 'daily';
 export const BOUTIQUE_IDS: BoutiqueId[] = ['maison', 'atelier', 'urban', 'daily'];
@@ -30,19 +30,15 @@ export const BOUTIQUE_INFO: Record<BoutiqueId, BoutiqueInfo> = {
   daily: { name: 'DAILY WEAR', tagline: '毎日の服を、毎日の値段で', tier: 'ファストファッション', floor: '#e4e1d8', wall: '#ffffff', trim: '#d6332f', facade: '#f4f1ea', sign: '#d6332f', signText: '#ffffff', frame: '#8c8c8c', height: 4.6 },
 };
 
-const lotD = LOT_D * GRID;
-/** 店の幅・奥行き・店と店のすき間（m） */
-export const BOUTIQUE_W = 9.5, BOUTIQUE_D = 9, BOUTIQUE_GAP = 2;
-/** 通りの西端（町の座標）。北の道路の突き当たり（x -93.5〜-83.5）の前から東へ並べる。
- *  車屋の西隣は車のカスタムショップ用に空けておく。 */
-const ROW_WEST = -90 - CIVIC_SITE.x;
+/** 店の幅・奥行き（m） */
+export const BOUTIQUE_W = 9.5, BOUTIQUE_D = 9;
 
-export const BOUTIQUES: Record<BoutiqueId, { x0: number; x1: number; z0: number; z1: number }> = Object.fromEntries(
-  BOUTIQUE_IDS.map((id, i) => {
-    const x0 = ROW_WEST + i * (BOUTIQUE_W + BOUTIQUE_GAP);
-    return [id, { x0, x1: x0 + BOUTIQUE_W, z0: lotD + 9, z1: lotD + 9 + BOUTIQUE_D }];
-  }),
-) as Record<BoutiqueId, { x0: number; x1: number; z0: number; z1: number }>;
+export const BOUTIQUES: Record<BoutiqueId, { x0: number; x1: number; z0: number; z1: number }> = {
+  daily: shopSite(SHOPPING_WEST, SHOPPING_SOUTH, BOUTIQUE_W, BOUTIQUE_D),
+  atelier: shopSite(SHOPPING_WEST + 25, SHOPPING_SOUTH, BOUTIQUE_W, BOUTIQUE_D),
+  maison: shopSite(TOWN_BOUNDS.x0 + 40, SHOPPING_NORTH, BOUTIQUE_W, BOUTIQUE_D),
+  urban: shopSite(TOWN_BOUNDS.x1 - 40, SHOPPING_NORTH, BOUTIQUE_W, BOUTIQUE_D),
+};
 
 export const BOUTIQUE_DOOR = { width: 2.2, height: 2.6 };
 

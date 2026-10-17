@@ -14,7 +14,11 @@ const base = process.env.WORLD_TEST_URL || 'http://127.0.0.1:5173/';
 const url = base + '?touch=0&relay=' + encodeURIComponent('ws://127.0.0.1:' + relay.http.address().port);
 const errors = [];
 const ctx = await browser.newContext({ viewport: { width: 680, height: 520 } }), page = await ctx.newPage();
-page.on('pageerror', e => errors.push(e.message)); page.setDefaultTimeout(120000);
+page.on('pageerror', e => { errors.push(e.message); console.log('pageerror', e.message); }); page.setDefaultTimeout(120000);
+page.on('websocket', ws => {
+  ws.on('framereceived', ({ payload }) => { const m = JSON.parse(String(payload)); if (['error','account','result','welcome'].includes(m.type)) console.log('relay', m.type, m.account?.money, m.result, m.message); });
+  ws.on('framesent', ({ payload }) => { const m = JSON.parse(String(payload)); if (m.type === 'command') console.log('command', m.command.id, m.command.action); });
+});
 async function until(fn) {
   for (const end = Date.now() + 120000; Date.now() < end; await page.waitForTimeout(100)) if (await page.evaluate(fn)) return;
   throw Error('Wallet condition timed out: ' + fn);
@@ -41,7 +45,7 @@ try {
     (await import('/src/state/economy.ts')).useEconomy.setState({ money: 2345678, tick: () => {} });
     Object.assign((await import('/src/world/Player.tsx')).playerMemory, { x: 7, z: 9 });
   });
-  await join();
+  console.log('joining first'); await join(); console.log('joined first');
   assert.equal(await money(), 2345678, 'personal money replaces old shared money exactly once');
   assert.equal(await page.evaluate(() => window.__ow.game.getState().mode), 'walk');
   assert.ok(await page.evaluate(async () => {
@@ -70,6 +74,6 @@ try {
   console.log('Common wallet / casino spawn / home restoration / offline journal / interrupted acknowledgement / reload / no double credit passed');
 } catch (e) {
   console.error(e);
-  try { console.log(await page.evaluate(async () => ({ save: (await import('/src/session/saves.ts')).snapshot(), session: (await import('/src/session/session.ts')).useSession.getState() }))); } catch {}
+  try { console.log('body', await page.locator('body').innerText()); console.log(await page.evaluate(async () => ({ save: (await import('/src/session/saves.ts')).savedBundle(), session: (await import('/src/session/session.ts')).useSession.getState() }))); } catch (d) {console.log('diagnostic error',String(d));}
   throw e;
 } finally { await browser.close(); relay.close(); }

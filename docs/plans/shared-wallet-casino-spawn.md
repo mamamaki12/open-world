@@ -14,3 +14,6 @@
 - Planned; automatic-door fix is implemented separately and undergoing browser verification.
 
 - Implemented durable wallet deltas, receipt reconciliation, local money subscriptions, pending-payment exit guard and first-snapshot casino spawn/home-position restoration. Five pure wallet tests pass; browser reconnect/reload verification is running.
+
+- Browser passed against a fresh Vite process: exact initial migration, shared spending carried home, offline income/spending synced, interrupted acknowledgement reconciled once, persisted pending payment survived reload, repeated entry did not duplicate money; casino spawn and no respawn on reconnect verified.
+- Test note: restart Vite after source edits before using dynamic-import diagnostics; HMR URLs otherwise create separate store instances in probes.

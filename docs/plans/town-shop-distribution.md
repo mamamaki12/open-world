@@ -10,3 +10,7 @@
 
 ## Progress
 - Planned; inspect all civic drawing and collision consumers before moving coordinates.
+
+- Implemented south-west mixed shopping district (daily clothes, estate, atelier, exchange), north and north-east boutiques, pedestrian approach paths and map labels. Existing residential plots and venue IDs are unchanged.
+- Road/residential/building overlap and pedestrian connectivity checks pass. Relocation exposed a fixture collision escape at a room corner; resolveVenue now chooses only displacement candidates inside room bounds.
+- Next: integrate latest main (including newly merged salon), place salon in the mixed district, run full build/unit/browser checks.

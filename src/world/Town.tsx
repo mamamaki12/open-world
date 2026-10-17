@@ -1,4 +1,5 @@
 import { TunerBuilding } from './TunerBuilding';
+import { SHOP_PATHS } from '../building/shopPaths';
 import { ExchangeBuilding } from './ExchangeBuilding';
 import { BuildingDetail } from './BuildingDetail';
 import { houseEnvelope } from './buildingLod';
@@ -119,6 +120,9 @@ export function Town() {
           </group>;
         })}
         <Streetscape />
+        {SHOP_PATHS.map((p, i) => <mesh key={'shop-path-' + i} rotation-x={-Math.PI / 2} position={[(p.x0+p.x1)/2, .002, (p.z0+p.z1)/2]} receiveShadow>
+          <planeGeometry args={[p.x1-p.x0, p.z1-p.z0]}/><meshStandardMaterial color="#c9c3b7" roughness={.95}/>
+        </mesh>)}
         <group position={[CIVIC_SITE.x, 0, CIVIC_SITE.z]}><VenueExteriorDetail kind="casino"><CasinoBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="estate"><EstateBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="dealer"><DealerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="tuner"><TunerBuilding /></VenueExteriorDetail><VenueExteriorDetail kind="exchange"><ExchangeBuilding /></VenueExteriorDetail><BoutiqueBuildings /></group>
         {/* 地区の境目の看板 */}
         {[FIRST_PLOT, ...[3, 9].filter((p) => p <= LAST_PLOT)].map((p) => (

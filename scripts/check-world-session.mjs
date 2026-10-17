@@ -74,9 +74,9 @@ try {
   await host.waitForFunction(() => window.__ow?.economy.getState().lots[0].listing?.price === 3000000);
   await host.evaluate(() => window.__ow?.economy.getState().receive(5000000, 'テスト'));
   await until(host, async () => !(await import('/src/session/saves.ts')).savedBundle().wallet?.pending.length);
-  assert.equal(await money(host), 25000000);
+  assert.equal(await money(host), homeMoney + 5000000);
   await host.evaluate(lot => import('/src/session/gate.ts').then(g => g.sessionGate.act(lot, { type: 'buyLot' }, 3000000)), ids.lot);
-  await host.waitForFunction(() => window.__ow?.economy.getState().money === 22000000);
+  await host.waitForFunction(m => window.__ow?.economy.getState().money === m, homeMoney + 2000000);
   await guest.waitForFunction(b => window.__ow?.economy.getState().money === b + 3000000, budget);
   await guest.waitForFunction(() => window.__ow?.economy.getState().lots[0].ownerName === 'ホスト');
   const clock = await guest.evaluate(() => window.__ow?.economy.getState().clock);
@@ -90,7 +90,7 @@ try {
   await host.evaluate(async S => (await import(S)).leaveWorld(), S);
   await host.getByRole('button', { name: 'みんなのワールドで遊ぶ', exact: false }).click();
   await host.waitForFunction(() => window.__ow?.game.getState().house.furniture.some(f => f.id === 'guest-built'));
-  assert.equal(await money(host), 22000000, 'common balance kept on the server');
+  assert.equal(await money(host), homeMoney + 2000000, 'common balance kept on the server');
   await host.evaluate(async S => (await import(S)).leaveWorld(), S);
   const backup = await host.evaluate(async () => { const m = await import('/src/session/saves.ts'); await m.persist(); return JSON.stringify(m.snapshot()); });
   await host.evaluate(async backup => (await import('/src/session/saves.ts')).importSave(backup), backup);

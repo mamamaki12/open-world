@@ -11,7 +11,7 @@ export const sessionGate: {
   receipts: Record<string, { sender: string; cost: number; delta?: Change[]; undone?: boolean; cancelled?: boolean }>;
   worldId: string;
   visitors: () => { x: number; y: number; z: number; walking?: boolean; driving?: string | null }[];
-  /** みんなのワールドに入っている間だけ。所持金・車は自分のワールドと別の口座 */
+  /** みんなのワールドに入っている間だけ。所持金は共通、車や土地はワールドごと。 */
   shared: boolean;
   money: null | ((delta: number, label: string) => void);
   act: null | ((lot: string, action: SharedAction, reserved: number) => string | null);

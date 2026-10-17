@@ -217,6 +217,7 @@ export async function connectWorld(url: string, code = '', shared = false) {
 }
 function openConnection(generation: number, resume: boolean) {
   firstAccount = true; walletSending = null; walletAck = null; account = null;
+  actions.clear(); actionAcks.clear(); // Account/world snapshots resolve actions whose replies were interrupted.
   const p = savedBundle().profile, state = useSession.getState();
   socket = new WebSocket(endpoint);
   socket.onopen = () => send({ type: state.shared ? 'shared' : resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token });

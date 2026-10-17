@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { EXCHANGE } from '../building/exchange';
+import { SHOP_PATHS } from '../building/shopPaths';
+import { SHOPPING_AREAS } from '../building/shopSites';
 import { getLocation } from '../economy/market';
 import { offerPrice } from '../state/economy';
 import { yen } from '../economy/money';
@@ -23,7 +25,7 @@ const eventLine = (shop: Shop, today: number) => shop.event && shop.event.day >=
 
 const SCALE = 3.2, PAD = 28;
 const sx = (x: number) => PAD + (x - TOWN_BOUNDS.x0 + 12) * SCALE;
-const sy = (z: number) => PAD + (z - TOWN_BOUNDS.z0 + 12) * SCALE;
+const sy = (z: number) => PAD + (z - TOWN_BOUNDS.z0 + 28) * SCALE;
 const WIDTH = sx(TOWN_BOUNDS.x1 + 35) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 35) + PAD;
 type Pick = { kind: 'plot'; plot: number } | { kind: 'casino' | 'estate' | 'dealer' | 'tuner' | 'exchange' } | { kind: 'boutique'; id: BoutiqueId } | null;
 
@@ -56,7 +58,7 @@ export function MapPanel() {
   };
   return <Modal title="🗺 町の地図" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="map-modal">
     <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span><span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span><span>📍お店・イベント</span><button className="btn small" onClick={() => close('jobs')}>💼 バイトをする</button><button className="btn small" onClick={() => close('requests')}>🤝 依頼</button></div>
-    <p className="info">{BLOCK_COLUMNS * BLOCK_ROWS}ブロック・各4区画の住宅街です。南側にカジノ・不動産屋・カーディーラーがあります。</p>
+    <p className="info">西の商店街には服屋・不動産屋・証券取引所、北側には2つの服屋があります。南側はカジノと車のお店が並びます。</p>
     <div className="map-controls" aria-label="地図の表示">
       <button className="btn" onClick={() => { setZoom(1); map.current?.scrollTo(0, 0); }}>全体</button>
       <button className="btn" aria-label="地図を拡大" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, z + .5))}>＋ 拡大</button>
@@ -70,6 +72,8 @@ export function MapPanel() {
           <rect x={sx(road.x0 - 0.8)} y={sy(road.z0 - 0.8)} width={(road.x1 - road.x0 + 1.6) * SCALE} height={(road.z1 - road.z0 + 1.6) * SCALE} fill="#c1c6bd" />
           <rect x={sx(road.x0)} y={sy(road.z0)} width={(road.x1 - road.x0) * SCALE} height={(road.z1 - road.z0) * SCALE} fill="#657075" />
         </g>)}
+        {SHOP_PATHS.map((p, i) => <rect key={'walk-'+i} x={sx(p.x0)} y={sy(p.z0)} width={(p.x1-p.x0)*SCALE} height={(p.z1-p.z0)*SCALE} fill="#c9c3b7"/>)}
+        {SHOPPING_AREAS.map(a => <text key={a.name} x={sx(a.x)} y={sy(a.z)} textAnchor="middle" fontSize={8} fill="#526456">{a.name}</text>)}
         {plots.map(plot => {
           // つなげた土地は西の区画で2区画ぶんの幅に描き、東の区画は描かない
           if (lots.some(l => l.joined === plot)) return null;
