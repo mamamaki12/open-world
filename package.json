@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:server": "esbuild server/relay.mjs --bundle --platform=node --format=esm --target=node20 --outfile=server/dist/relay.mjs --external:bufferutil --external:utf-8-validate --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --log-level=warning"
   },
   "dependencies": {
     "@react-three/drei": "9.122.0",
@@ -25,6 +26,7 @@
     "@types/react-dom": "18.3.1",
     "@types/three": "0.169.0",
     "@vitejs/plugin-react": "4.3.4",
+    "esbuild": "0.21.5",
     "playwright": "1.56.1",
     "typescript": "5.6.3",
     "vite": "5.4.11",

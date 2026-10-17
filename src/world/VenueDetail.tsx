@@ -8,7 +8,7 @@ import { CASINO } from '../building/landmarks';
 import { useVenue } from '../state/venue';
 export function venueBounds(kind:Venue,centred=false):BuildingBounds {
   const b=VENUES[kind],cx=centred?(b.x0+b.x1)/2:0,cz=centred?(b.z0+b.z1)/2:0;
-  return {x0:b.x0-cx,x1:b.x1-cx,y0:0,y1:isBoutique(kind)?BOUTIQUE_INFO[kind].height:kind==='casino'?CASINO.height+2:kind==='dealer'||kind==='tuner'?5.4:4.5,z0:b.z0-cz,z1:b.z1-cz};
+  return {x0:b.x0-cx,x1:b.x1-cx,y0:0,y1:isBoutique(kind)?BOUTIQUE_INFO[kind].height:kind==='casino'?CASINO.height+2:kind==='dealer'||kind==='tuner'?5.4:kind==='exchange'?7:4.5,z0:b.z0-cz,z1:b.z1-cz};
 }
 function DistantVenue({kind}:{kind:Venue}){
   const b=VENUES[kind],w=b.x1-b.x0,d=b.z1-b.z0,h=venueBounds(kind).y1,x=(b.x0+b.x1)/2,z=(b.z0+b.z1)/2;

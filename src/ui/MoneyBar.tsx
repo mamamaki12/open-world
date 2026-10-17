@@ -5,6 +5,8 @@ import { renovationCost } from '../economy/pricing';
 import { saveEconomy, useCurrentLot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { onlineWorld } from '../session/gate';
+import { clockLabel } from '../world/climate';
+import { useClimate } from '../world/Climate';
 
 export function MoneyBar() {
   const money = useEconomy((s) => s.money);
@@ -12,6 +14,7 @@ export function MoneyBar() {
   const market = useEconomy((s) => s.market);
   const history = useEconomy((s) => s.marketHistory);
   const setOverlay = useGame((s) => s.setOverlay);
+  const climate = useClimate();
   const prev = history.length > 1 ? history[history.length - 2] : market;
   const trend = market > prev ? 'up' : market < prev ? 'down' : '';
   return (
@@ -19,11 +22,14 @@ export function MoneyBar() {
       <div className="money" title="所持金">
         <span className={`cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
         <span className="sub">
-          {day}日目 ・ 相場 <b className={trend}>{market.toFixed(2)}{trend === 'up' ? '▲' : trend === 'down' ? '▼' : ''}</b>
+          {day}日目 ・ 相場 <b className={trend}>{market.toFixed(2)}{trend === 'up' ? '▲' : trend === 'down' ? '▼' : ''}</b> ・ {clockLabel(climate)}
         </span>
       </div>
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">
         🗺 地図
+      </button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('jobs'); }} title="バイトで働いてお金をかせぐ">
+        💼 バイト
       </button>
       <BuildChip />
     </div>
@@ -35,7 +41,7 @@ export function BuildChip() {
   const lot = useCurrentLot();
   const house = useGame((s) => s.house);
   const est = useMemo(() => (lot ? renovationCost(lot.built, house) : null), [lot?.built, house]);
-  if (onlineWorld()) return <span className="chip">共同建築 · 配置時に本人が精算</span>;
+  if (onlineWorld()) return <span className="chip">共同建築 · 着工無料</span>;
   if (!lot) {
     return (
       <span className="chip warn">土地は不動産屋で購入できます</span>
@@ -52,7 +58,7 @@ export function BuildChip() {
   }
   if (!est || est.parts === 0) return null;
   return (
-    <span className="chip go" title="不動産屋の店舗で着工できます">🔨 工事見積 {yen(est.total)}（不動産屋で着工）</span>
+    <span className="chip go" title="不動産屋の店舗で着工できます">🔨 設計変更あり（不動産屋で無料着工）</span>
   );
 }
 

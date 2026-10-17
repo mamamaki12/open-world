@@ -1,5 +1,6 @@
 // 左のパネル：いま持っているツールで置くパーツの種類・素材・色を選ぶ
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, openingsOf } from '../catalog';
+import { openDesigner, useDesigns } from '../catalog/designs';
 import { ROOF_TYPE_NAMES } from '../building/roof';
 import type { FloorKind, RoofType, StairRail, WallHeight } from '../building/types';
 import { useGame } from '../state/store';
@@ -39,6 +40,7 @@ export function ToolOptions() {
   const d = useGame((s) => s.defaults);
   const set = useGame((s) => s.setDefaults);
   const eraseMulti = useGame(s => s.eraseMulti);
+  const designs = useDesigns((s) => s.designs);
   const stairRot = useInteraction((s) => s.stairRot);
 
   let body = null;
@@ -131,6 +133,18 @@ export function ToolOptions() {
           {getFurniture(d.furnitureType).label && (
             <NameplateInput value={d.nameplateText} onChange={(nameplateText) => set({ nameplateText })} />
           )}
+          <div>
+            <div className="field-label">自分でデザインした家具</div>
+            <div className="choice-list">
+              {designs.map((f) => (
+                <button key={f.id} className={`choice${f.id === d.furnitureType ? ' on' : ''}`} onClick={() => set({ furnitureType: f.id })}>
+                  <span>{f.name}</span>
+                  <small onClick={(e) => { e.stopPropagation(); openDesigner(f); }}>編集</small>
+                </button>
+              ))}
+              <button className="choice" onClick={() => openDesigner()}><span>＋ 家具をデザインする</span></button>
+            </div>
+          </div>
           {(
             [
               ['外構・ガレージ・庭', FURNITURE.filter((f) => f.category === 'outdoor')],
