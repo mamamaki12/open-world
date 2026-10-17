@@ -10639,6 +10639,63 @@ var furniture_default = {
   ]
 };
 
+// src/catalog/lighting.ts
+var colors = ["#2c3035", "#f0ece4", "#b18b54"];
+var LIGHTING = [
+  {
+    id: "wall-sconce",
+    name: "\u58C1\u4ED8\u3051\u30D6\u30E9\u30B1\u30C3\u30C8\u30E9\u30A4\u30C8",
+    category: "lighting",
+    colors,
+    mount: { width: 0.28, height: 0.54, back: 0.025 },
+    light: { position: [0, 1.6, 0.23], color: "#ffd6a0", intensity: 2.8, distance: 4.5 },
+    parts: [
+      { shape: "box", size: [0.16, 0.4, 0.05], pos: [0, 1.6, 0], paint: "main" },
+      { shape: "box", size: [0.2, 0.08, 0.2], pos: [0, 1.81, 0.09], paint: "main" },
+      { shape: "box", size: [0.2, 0.08, 0.2], pos: [0, 1.39, 0.09], paint: "main" },
+      { shape: "box", size: [0.16, 0.34, 0.15], pos: [0, 1.6, 0.1], paint: "white", glow: true }
+    ]
+  },
+  {
+    id: "wall-light-bar",
+    name: "\u58C1\u4ED8\u3051\u9593\u63A5\u30D0\u30FC\u30E9\u30A4\u30C8",
+    category: "lighting",
+    colors,
+    mount: { width: 0.9, height: 0.2, back: 0.025 },
+    light: { position: [0, 1.65, 0.16], color: "#ffe2b9", intensity: 2.5, distance: 4 },
+    parts: [
+      { shape: "box", size: [0.84, 0.12, 0.05], pos: [0, 1.6, 0], paint: "main" },
+      { shape: "box", size: [0.84, 0.04, 0.15], pos: [0, 1.62, 0.05], paint: "main" },
+      { shape: "box", size: [0.76, 0.02, 0.08], pos: [0, 1.65, 0.07], paint: "white", glow: true }
+    ]
+  },
+  {
+    id: "indirect-floor-light",
+    name: "\u7F6E\u304D\u578B\u9593\u63A5\u7167\u660E",
+    category: "lighting",
+    colors,
+    light: { position: [0, 0.24, 0], color: "#ffd6a0", intensity: 2.6, distance: 4.2 },
+    parts: [
+      { shape: "cylinder", size: [0.32, 0.035, 0.32], pos: [0, 0.0175, 0], paint: "main" },
+      { shape: "cylinder", size: [0.24, 0.26, 0.24], pos: [0, 0.165, 0], paint: "white", glow: true },
+      { shape: "cylinder", size: [0.28, 0.035, 0.28], pos: [0, 0.315, 0], paint: "main" }
+    ]
+  },
+  {
+    id: "garden-bollard-light",
+    name: "\u5EAD\u306E\u9593\u63A5\u30DD\u30FC\u30EB\u30E9\u30A4\u30C8",
+    category: "lighting",
+    colors,
+    light: { position: [0, 0.58, 0], color: "#ffe0ab", intensity: 2.7, distance: 4.5 },
+    parts: [
+      { shape: "cylinder", size: [0.24, 0.05, 0.24], pos: [0, 0.025, 0], paint: "main" },
+      { shape: "box", size: [0.12, 0.45, 0.12], pos: [0, 0.265, 0], paint: "main" },
+      { shape: "box", size: [0.16, 0.16, 0.16], pos: [0, 0.57, 0], paint: "white", glow: true },
+      { shape: "box", size: [0.22, 0.04, 0.22], pos: [0, 0.67, 0], paint: "main" }
+    ]
+  }
+];
+
 // src/catalog/index.ts
 var MATERIAL_CATEGORY_NAMES = materials_default.categories;
 var MATERIALS = materials_default.materials;
@@ -10646,7 +10703,15 @@ var OPENINGS = openings_default.types;
 var SASH_COLORS = openings_default.sashColors;
 var PANEL_COLORS = openings_default.panelColors;
 var SASH_TYPES = openings_default.sashTypes;
-var FURNITURE = furniture_default.types;
+var FURNITURE = [
+  ...furniture_default.types.map((f) => f.id === "nameplate" ? { ...f, mount: { width: 0.34, height: 0.13, back: 0.0125 } } : f.id === "floor-lamp" ? {
+    ...f,
+    category: "lighting",
+    light: { position: [0, 1.55, 0], color: "#ffd6a0", intensity: 3, distance: 5 },
+    parts: f.parts.map((p, i) => i === 2 ? { ...p, glow: true } : p)
+  } : f),
+  ...LIGHTING
+];
 var materialById = new Map(MATERIALS.map((m) => [m.id, m]));
 var openingById = new Map(OPENINGS.map((o) => [o.id, o]));
 var furnitureById = new Map(FURNITURE.map((f) => [f.id, f]));
@@ -11224,7 +11289,11 @@ var prices_default = {
     tree: 5e4,
     hedge: 15e3,
     register: 15e4,
-    arcade: 3e5
+    arcade: 3e5,
+    "wall-sconce": 5e4,
+    "wall-light-bar": 5e4,
+    "indirect-floor-light": 5e4,
+    "garden-bollard-light": 5e4
   }
 };
 
@@ -11407,11 +11476,11 @@ function sanitizeDesign(raw) {
     if (p.move === "drawer" || p.move === "door-l" || p.move === "door-r") piece.move = p.move;
     return [piece];
   });
-  const colors = (Array.isArray(r.colors) ? r.colors : []).filter((c) => typeof c === "string" && HEX.test(c)).slice(0, 8);
+  const colors2 = (Array.isArray(r.colors) ? r.colors : []).filter((c) => typeof c === "string" && HEX.test(c)).slice(0, 8);
   const def = {
     id: r.id,
     name: (typeof r.name === "string" ? r.name : "").trim().slice(0, 30) || "\u30C7\u30B6\u30A4\u30F3\u5BB6\u5177",
-    colors: colors.length ? colors : ["#c9b8a4"],
+    colors: colors2.length ? colors2 : ["#c9b8a4"],
     parts
   };
   if (r.seat && typeof r.seat === "object") def.seat = { height: +clamp(r.seat.height, 0.2, 1.2, 0.45).toFixed(3), z: +clamp(r.seat.z, -1, 1, 0).toFixed(3) };

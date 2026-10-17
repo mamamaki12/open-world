@@ -86,10 +86,10 @@ function PreviewView() {
 
   switch (preview.kind) {
     case 'nameplate': {
-      const transform = mountedTransform(house, preview.mount);
+      const def = getFurniture(preview.type ?? 'nameplate'), transform = mountedTransform(house, preview.mount, def.id);
       if (!transform) return null;
       return <group position={[transform.x, transform.y, transform.z]} rotation={[0, transform.rotation * Math.PI / 180, 0]}>
-        <FurnitureModel def={getFurniture('nameplate')} color="#f2efe8" label={defaults.nameplateText} highlight="hover" />
+        <FurnitureModel def={def} color={def.id === 'nameplate' ? '#f2efe8' : def.colors[0]} label={defaults.nameplateText} highlight="hover" />
       </group>;
     }
     case 'rect': {

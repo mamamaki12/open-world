@@ -148,7 +148,8 @@ export function ToolOptions() {
           {(
             [
               ['外構・ガレージ・庭', FURNITURE.filter((f) => f.category === 'outdoor')],
-              ['家の中', FURNITURE.filter((f) => f.category !== 'outdoor')],
+               ['照明', FURNITURE.filter((f) => f.category === 'lighting')],
+               ['家の中', FURNITURE.filter((f) => !f.category)],
             ] as const
           ).map(([label, items]) => (
             <div key={label}>
@@ -176,6 +177,7 @@ export function ToolOptions() {
       {touch && (tool === 'wall' || tool === 'floor') && <p className="info">真上から指の位置に合わせて配置します。2本指で移動・ズームできます。</p>}
       {tool === 'select' && <p className="info">{touch ? 'タップ' : 'クリック'}で1ブロックだけ選び、長押しでその1ブロックを削除します。同じ素材・色でまとめて動かすときは、選択後にチェックを入れてください。</p>}
       {tool === 'furniture' && d.furnitureType === 'nameplate' && <p className="info">表示する文字を入力し、取り付けたい壁面をタップしてください。壁の手前側に固定します。</p>}
+      {tool === 'furniture' && getFurniture(d.furnitureType).light && <p className="info">{getFurniture(d.furnitureType).mount ? '取り付けたい壁面をタップしてください。窓・ドアを避けて壁に固定し、配置後に高さを調整できます。' : '地面や床をタップして置けます。夜や室内を暖かい光で照らします。'}</p>}
       {tool === 'furniture' && getFurniture(d.furnitureType).grounded && <p className="info">地面基準のガレージ建材です。Rまたは向き変更で回転。車庫の入口は+Z側です。柱・壁・屋根・舗装を組み合わせて広げられます。</p>}
       {body}
     </div>

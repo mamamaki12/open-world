@@ -221,6 +221,9 @@ export function resolveCollisions(
       }
     }
     for (const f of house.furniture) {
+      // Wall fixtures fit inside the wall's pedestrian clearance; their raised mesh must not
+      // become a solid column from the floor up to the lamp/nameplate.
+      if (f.wallMount) continue;
       const y0 = furnitureBaseY(house, f);
       const def = furnitureDef(f);
       const bounds = def.collisionParts ? def.parts.filter((p,i) => !(f.type === 'garage-shutter' && isOpen(f.id) && i >= 3) && y0 + p.pos[1] - p.size[1] / 2 < headY && y0 + p.pos[1] + p.size[1] / 2 > feetY).map(p => ({

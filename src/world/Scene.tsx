@@ -10,6 +10,7 @@ import { useInteraction } from '../state/interaction';
 import { BuildCamera } from './BuildCamera';
 import { DebugBridge } from './DebugBridge';
 import { HouseView } from './HouseView';
+import { FurnitureLighting } from './FurnitureLighting';
 import { PlacementController } from './PlacementController';
 import { AimBuilder } from './AimBuilder';
 import { TouchFurnitureEdit } from './TouchFurnitureEdit';
@@ -59,6 +60,7 @@ export function Scene() {
         <Lightformer intensity={0.5} position={[0, -2, 0]} rotation-x={-Math.PI / 2} scale={[40, 40, 1]} color="#c9c3b4" />
       </Environment>
       <ClimateLights center={CENTER} shadowSize={shadowSize} />
+      <FurnitureLighting mobile={touch} />
 
       <BuildingDetailProvider>
       <Ground />

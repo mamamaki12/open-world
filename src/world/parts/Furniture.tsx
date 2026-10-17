@@ -1,4 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import type { Ref } from 'react';
+import { furnitureLightSources } from '../furnitureLights';
 import * as THREE from 'three';
 import { furnitureDef, hasMovingParts } from '../../catalog';
 import type { FurnitureDef, FurniturePiece, Paint } from '../../catalog';
@@ -77,9 +79,9 @@ function Handle({ p, mat }: { p: FurniturePiece; mat: THREE.Material }) {
   );
 }
 
-function Piece({ p, color, highlight, open }: { p: FurniturePiece; color: string; highlight: Highlight; open: boolean }) {
+function Piece({ p, color, highlight, open, glow }: { p: FurniturePiece; color: string; highlight: Highlight; open: boolean; glow?: string }) {
   const paint = p.paint === 'main' ? { color, roughness: 0.7 } : PAINT[p.paint];
-  const mat = plainMaterial(paint.color, highlight, { roughness: paint.roughness, metalness: paint.metalness });
+  const mat = plainMaterial(paint.color, highlight, { roughness: paint.roughness, metalness: paint.metalness, emissive: p.glow ? glow : undefined });
   const mesh = (pos: [number, number, number]) => (
     <mesh position={pos} scale={p.shape === 'sphere' ? p.size : [1, 1, 1]} material={mat} castShadow receiveShadow>
       {p.shape === 'box' && <boxGeometry args={p.size} />}
@@ -104,12 +106,13 @@ function Piece({ p, color, highlight, open }: { p: FurniturePiece; color: string
   );
 }
 
-export function FurnitureModel({ def, color, label, highlight = 'none', open = false }: { def: FurnitureDef; color: string; label?: string; highlight?: Highlight; open?: boolean }) {
+export function FurnitureModel({ def, color, label, highlight = 'none', open = false, lightRef }: { def: FurnitureDef; color: string; label?: string; highlight?: Highlight; open?: boolean; lightRef?: Ref<THREE.Group> }) {
   return (
     <>
+      {def.light && <group ref={lightRef} position={def.light.position} />}
       {def.label && label && <LabelPlane text={label} plate={color} size={def.label.size} pos={def.label.pos} />}
       {def.parts.map((p, i) => (
-        <Piece key={i} p={open && def.id === 'garage-shutter' && i >= 3 ? { ...p, pos: [p.pos[0], p.pos[1] + 2.55, p.pos[2]] } : p} color={color} highlight={highlight} open={open} />
+        <Piece key={i} p={open && def.id === 'garage-shutter' && i >= 3 ? { ...p, pos: [p.pos[0], p.pos[1] + 2.55, p.pos[2]] } : p} color={color} highlight={highlight} open={open} glow={def.light?.color} />
       ))}
     </>
   );
@@ -118,11 +121,18 @@ export function FurnitureModel({ def, color, label, highlight = 'none', open = f
 export function Furniture({ item }: { item: FurniturePart }) {
   const { highlight, handlers } = usePart({ kind: 'furniture', id: item.id });
   const def = furnitureDef(item);
+  const lightRef = useRef<THREE.Group>(null);
+  useEffect(() => {
+    const source = lightRef.current;
+    if (!source || !def.light) return;
+    furnitureLightSources.set(source, def.light);
+    return () => { furnitureLightSources.delete(source); };
+  }, [def, !!item.wallMount]);
   const tool = useGame((s) => s.tool);
   const house = useHouseData();
   const shutterOpen = useDoors(s => (item.type === 'garage-shutter' || hasMovingParts(def)) && item.id in s.open);
   const baseY = furnitureBaseY(house, item);
-  const mounted = item.wallMount ? mountedTransform(house, item.wallMount) : null;
+  const mounted = item.wallMount ? mountedTransform(house, item.wallMount, item.type) : null;
 
   return (
     <group
@@ -130,7 +140,7 @@ export function Furniture({ item }: { item: FurniturePart }) {
       rotation={[0, ((mounted?.rotation ?? item.rotation) * Math.PI) / 180, 0]}
       {...handlers}
     >
-      {mounted ? <group position={[0,1.6,0]} rotation={[0,0,(item.rotation-mounted.rotation)*Math.PI/180]}><group position={[0,-1.6,0]}><FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} open={shutterOpen}/></group></group> : <FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} open={shutterOpen}/> }
+      {mounted ? <group position={[0,1.6,0]} rotation={[0,0,(item.rotation-mounted.rotation)*Math.PI/180]}><group position={[0,-1.6,0]}><FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} open={shutterOpen} lightRef={lightRef}/></group></group> : <FurnitureModel def={def} color={item.color} label={item.label} highlight={highlight} open={shutterOpen} lightRef={lightRef}/> }
       {item.type === 'nameplate' && (tool === 'select' || tool === 'erase') && (
         <mesh position={[0, 1.6, 0.025]}>
           <boxGeometry args={[0.46, 0.28, 0.055]} />

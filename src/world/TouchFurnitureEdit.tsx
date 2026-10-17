@@ -48,7 +48,7 @@ export function TouchFurnitureEdit(){
       if(target?.object.userData.partRef?.id!==item.id)return;
       e.preventDefault();e.stopImmediatePropagation();
       el.setPointerCapture(e.pointerId);g.beginDrag();
-      const mounted=item.wallMount?mountedTransform(g.house,item.wallMount):null;
+      const mounted=item.wallMount?mountedTransform(g.house,item.wallMount,item.type):null;
       const normal=mounted?new THREE.Vector3(Math.sin(mounted.rotation*Math.PI/180),0,Math.cos(mounted.rotation*Math.PI/180)):new THREE.Vector3(0,1,0);
       drag={pointer:e.pointerId,id:item.id,x:e.clientX,y:e.clientY,dx:target.point.x-item.x,dz:target.point.z-item.z,plane:new THREE.Plane().setFromNormalAndCoplanarPoint(normal,target.point),moved:false,hit:target.point.clone(),mountCenter:mounted?new THREE.Vector3(mounted.x,mounted.y+1.6,mounted.z):undefined};
       useInteraction.getState().setFurnitureDrag({id:item.id,dx:drag.dx,dz:drag.dz,startX:e.clientX,startY:e.clientY});
@@ -63,9 +63,9 @@ export function TouchFurnitureEdit(){
       if(item.wallMount&&drag.mountCenter){
         const wall=g.house.walls.find(w=>w.id===item.wallMount!.wallId);if(!wall)return;
         const center=drag.mountCenter.clone().add(p).sub(drag.hit);
-        const mount=nameplateMount(g.house,wall,center,camera.position);if(!mount)return;
+        const mount=nameplateMount(g.house,wall,center,camera.position,item.type);if(!mount)return;
         mount.side=item.wallMount.side;
-        const transform=mountedTransform(g.house,mount)!;
+        const transform=mountedTransform(g.house,mount,item.type)!;
         g.dragTo({...g.house,furniture:g.house.furniture.map(f=>f.id===item.id?{...f,x:transform.x,z:transform.z,wallMount:mount}:f)});return;
       }
       const pos=snapFurniturePlacement(g.house,item,p.x-drag.dx,p.z-drag.dz);

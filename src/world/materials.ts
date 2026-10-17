@@ -44,9 +44,9 @@ export function finishMaterial(finish: Finish, highlight: Highlight = 'none'): T
 export function plainMaterial(
   color: string,
   highlight: Highlight = 'none',
-  opts: { roughness?: number; metalness?: number } = {},
+  opts: { roughness?: number; metalness?: number; emissive?: string } = {},
 ): THREE.MeshStandardMaterial {
-  const key = `plain|${color}|${highlight}|${opts.roughness ?? 0.6}|${opts.metalness ?? 0}`;
+  const key = `plain|${color}|${highlight}|${opts.roughness ?? 0.6}|${opts.metalness ?? 0}|${opts.emissive ?? ''}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const m = new THREE.MeshStandardMaterial({
@@ -55,6 +55,7 @@ export function plainMaterial(
     metalness: opts.metalness ?? 0,
   });
   applyHighlight(m, highlight);
+  if (opts.emissive && highlight === 'none') { m.emissive.set(opts.emissive); m.emissiveIntensity = 1.4; }
   cache.set(key, m);
   return m;
 }

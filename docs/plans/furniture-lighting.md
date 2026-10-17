@@ -11,3 +11,7 @@
 
 ## Progress
 - Reviewed latest main 5739d9f, no open PRs. Existing floor-lamp is decorative only; wall mounting is currently hard-coded to nameplates. Planning complete, implementation next.
+
+- Implemented five lighting entries, generic wall mount placement/preview/aim/touch controls, type-compatible inspector replacement, emissive diffuser materials and global 6/3 light pool. Existing nameplate transform remains backward compatible; raised wall fixtures no longer create phantom floor collision columns.
+- Build and existing 633 tests passed; 12 targeted mounting/light-budget/material tests passed. Browser placement and night rendering next.
+- Compatibility: new fixture appraisal prices are explicitly 50000 yen, equal to the already deployed relay fallback. Existing money/build protocols and saved fields are unchanged; verify new placements against the captured deployed relay before requiring any EC2 update.

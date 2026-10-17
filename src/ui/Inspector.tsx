@@ -270,6 +270,18 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
   const set = (patch: Partial<FurniturePart>) => patchPart('furniture', f.id, patch);
   const rotate = (deg: number) => set({ rotation: (((f.rotation + deg) % 360) + 360) % 360 });
   const move = (dx: number, dz: number) => set(snapFurniture(f.x + dx, f.z + dz));
+  const changeType = (type: string) => {
+    const next = getFurniture(type), house = useGame.getState().house;
+    if (f.wallMount) {
+      const wall = house.walls.find(w => w.id === f.wallMount!.wallId), p = mountedTransform(house, f.wallMount, f.type);
+      if (!wall || !p) return;
+      const mount = nameplateMount(house, wall, { ...p, y: p.y + 1.6 }, p, type);
+      if (!mount) return useGame.getState().notify('この照明は窓・ドアに重なるため取り付けられません');
+      mount.side = f.wallMount.side;
+      const pos = mountedTransform(house, mount, type)!;
+      set({ type, color: next.colors[0], design: undefined, wallMount: mount, x: pos.x, z: pos.z, rotation: pos.rotation });
+    } else set({ type, color: next.colors[0], design: undefined, ...designOf(type) });
+  };
   return (
     <>
       {f.wallMount && <NameplateMountControls item={f} />}
@@ -289,14 +301,14 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
       <div className="field">
         <div className="field-label">種類</div>
         {f.design && <button className="btn" onClick={() => openDesigner(f.design!)}>このデザインを編集</button>}
-        <select value={f.type} onChange={(e) => set({ type: e.target.value, color: getFurniture(e.target.value).colors[0], design: undefined, ...designOf(e.target.value) })}>
+        <select value={f.type} onChange={(e) => changeType(e.target.value)}>
           {f.design && <option value={f.type}>{f.design.name}（デザイン）</option>}
-          {useDesigns.getState().designs.filter((t) => t.id !== f.type).map((t) => (
+          {useDesigns.getState().designs.filter((t) => !f.wallMount && t.id !== f.type).map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}（デザイン）
             </option>
           ))}
-          {FURNITURE.map((t) => (
+          {FURNITURE.filter(t => !!t.mount === !!f.wallMount).map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>
@@ -330,10 +342,10 @@ function NameplateMountControls({ item }: { item: FurniturePart }) {
   const change = (offset: number, height: number) => {
     if (!wall) return;
     const candidate = { ...mount, offset: mount.offset + offset, height: mount.height + height };
-    const point = mountedTransform(house, candidate)!;
-    const next = nameplateMount(house, wall, { ...point, y: floorY(wall.level) + candidate.height }, point);
-    if (!next) return useGame.getState().notify('窓やドアには表札を取り付けられません');
-    const pos = mountedTransform(house, next)!;
+    const point = mountedTransform(house, candidate, item.type)!;
+    const next = nameplateMount(house, wall, { ...point, y: floorY(wall.level) + candidate.height }, point, item.type);
+    if (!next) return useGame.getState().notify('窓やドアには取り付けられません');
+    const pos = mountedTransform(house, next, item.type)!;
     patchPart('furniture', item.id, { wallMount: next, x: pos.x, z: pos.z, rotation: pos.rotation });
   };
   return <div className="field">
@@ -344,7 +356,7 @@ function NameplateMountControls({ item }: { item: FurniturePart }) {
       <button className="btn" onClick={() => change(0, 0.05)}>↑ 5cm</button>
       <button className="btn" onClick={() => change(0, -0.05)}>↓ 5cm</button>
     </div>
-    <p className="info">壁の手前側に固定しています。文字や高さはここで変更できます。</p>
+    <p className="info">壁の手前側に固定しています。取り付ける位置や高さを調整できます。</p>
   </div>;
 }
 
