@@ -57,6 +57,14 @@ describe('vehicle motion',()=>{
       expect(p.drifting).toBe(false);
     }
   });
+  it('keeps drifting on throttle and steering after the handbrake is released',()=>{
+    for(const d of CARS) {
+      const p={...pose(),speed:14,steer:0,slipAngle:0,drifting:false};
+      for(let i=0;i<16;i++)integrateDrive(p,{throttle:1,steering:1,brake:false,handbrake:true,buttonSteering:true},.025,d,()=>false);
+      for(let i=0;i<8;i++)integrateDrive(p,{throttle:1,steering:1,brake:false,buttonSteering:true},.025,d,()=>false);
+      expect(p.drifting,d.id).toBe(true);
+    }
+  });
   it('does not spin at rest or through a collision with the handbrake',()=>{
     const p={...pose(),slipAngle:0,drifting:false};
     integrateDrive(p,{throttle:1,steering:1,brake:false,handbrake:true},.25,CARS[0],()=>false);
