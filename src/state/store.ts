@@ -130,7 +130,7 @@ export const useGame = create<GameState>((set, get) => ({
   tool: 'select',
   activeLevel: 0,
   selection: null,
-  groupSelection: true,
+  groupSelection: false,
   setGroupSelection: (groupSelection) => set({ groupSelection }),
   moveSelection: (dx, dz) => {
     const s = get();
