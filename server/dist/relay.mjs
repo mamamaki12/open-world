@@ -8061,6 +8061,144 @@ var furniture_default = {
           paint: "steel"
         }
       ]
+    },
+    {
+      id: "arcade",
+      name: "\u30B2\u30FC\u30E0\u6A5F\uFF08\u30A2\u30FC\u30B1\u30FC\u30C9\uFF09",
+      colors: [
+        "#2b2f6b",
+        "#14161c",
+        "#e8463a",
+        "#f2c84b"
+      ],
+      parts: [
+        {
+          shape: "box",
+          size: [
+            0.72,
+            1.05,
+            0.7
+          ],
+          pos: [
+            0,
+            0.525,
+            0
+          ],
+          paint: "main"
+        },
+        {
+          shape: "box",
+          size: [
+            0.72,
+            0.55,
+            0.42
+          ],
+          pos: [
+            0,
+            1.3,
+            -0.14
+          ],
+          paint: "main"
+        },
+        {
+          shape: "box",
+          size: [
+            0.6,
+            0.42,
+            0.03
+          ],
+          pos: [
+            0,
+            1.32,
+            0.075
+          ],
+          paint: "black"
+        },
+        {
+          shape: "box",
+          size: [
+            0.72,
+            0.08,
+            0.34
+          ],
+          pos: [
+            0,
+            1.07,
+            0.18
+          ],
+          paint: "dark"
+        },
+        {
+          shape: "box",
+          size: [
+            0.06,
+            0.08,
+            0.06
+          ],
+          pos: [
+            -0.15,
+            1.14,
+            0.2
+          ],
+          paint: "black"
+        },
+        {
+          shape: "box",
+          size: [
+            0.05,
+            0.03,
+            0.05
+          ],
+          pos: [
+            0.08,
+            1.125,
+            0.2
+          ],
+          paint: "white"
+        },
+        {
+          shape: "box",
+          size: [
+            0.05,
+            0.03,
+            0.05
+          ],
+          pos: [
+            0.18,
+            1.125,
+            0.2
+          ],
+          paint: "white"
+        },
+        {
+          shape: "box",
+          size: [
+            0.72,
+            0.18,
+            0.5
+          ],
+          pos: [
+            0,
+            1.67,
+            -0.06
+          ],
+          paint: "white"
+        },
+        {
+          shape: "box",
+          size: [
+            0.2,
+            0.05,
+            0.02
+          ],
+          pos: [
+            0,
+            0.55,
+            0.355
+          ],
+          paint: "black"
+        }
+      ]
     }
   ]
 };
@@ -8610,7 +8748,8 @@ var prices_default = {
     mailbox: 8e4,
     tree: 5e4,
     hedge: 15e3,
-    register: 15e4
+    register: 15e4,
+    arcade: 3e5
   }
 };
 
@@ -8787,7 +8926,14 @@ function cleanShop(v) {
       ...Number.isSafeInteger(x.forDay) ? { forDay: x.forDay } : {}
     }] : []
   );
-  return { name: str(s.name, SHOP_LIMITS.name) || "\u304A\u5E97", items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue : 0, ...cleanPromo(s) };
+  return {
+    name: str(s.name, SHOP_LIMITS.name) || "\u304A\u5E97",
+    items,
+    sales,
+    revenue: Number.isSafeInteger(s.revenue) ? s.revenue : 0,
+    ...cleanPromo(s),
+    ...!priceError(s.arcadeFee) ? { arcadeFee: s.arcadeFee } : {}
+  };
 }
 function cleanPromo(s) {
   const sign = str(s.sign, SHOP_LIMITS.sign), flyer = str(s.flyer, SHOP_LIMITS.flyer);
@@ -8818,6 +8964,13 @@ function recordSale(shop, sale) {
     ...kind === "reservation" ? { forDay: sale.forDay } : {}
   };
   return { item, shop: { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + item.price } };
+}
+var ARCADE_PLAY = "\u30B2\u30FC\u30E0\u6A5F\u30671\u56DE\u904A\u3076";
+function recordPlay(shop, play) {
+  if (!shop.arcadeFee) return "\u3053\u306E\u304A\u5E97\u306E\u30B2\u30FC\u30E0\u6A5F\u306F\u7121\u6599\u3067\u3059";
+  if (shop.arcadeFee !== play.fee) return "\u6599\u91D1\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044";
+  const entry = { id: play.id, day: play.day, buyer: str(play.buyer, 24) || "\u304A\u5BA2\u3055\u3093", item: ARCADE_PLAY, price: play.fee, ...play.buyerId ? { buyerId: play.buyerId } : {} };
+  return { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + play.fee };
 }
 
 // src/economy/requests.ts
@@ -9033,6 +9186,20 @@ function applyAction(w, sender, name, c, a) {
     if (typeof paid2 === "string") return paid2;
     const next2 = paid2.economy.lots.map((l) => l.id === lot.id ? { ...l, requests: step.list.length ? step.list : void 0 } : l);
     return { world: { ...paid2, economy: { ...paid2.economy, lots: next2 } }, cost: 0, message: step.message };
+  }
+  if (a.type === "play") {
+    const shop = cleanShop(lot.shop);
+    if (!shop || !lot.owner) return "\u3053\u306E\u304A\u5E97\u306F\u9589\u307E\u3063\u3066\u3044\u307E\u3059";
+    if (lot.owner === sender) return "\u81EA\u5206\u306E\u304A\u5E97\u306E\u30B2\u30FC\u30E0\u6A5F\u306F\u7121\u6599\u3067\u904A\u3079\u307E\u3059";
+    if (!Number.isSafeInteger(c.reserved) || c.reserved < a.fee) return "\u6599\u91D1\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044";
+    const played = recordPlay(shop, { id: c.id, day: w.economy.day, buyer: name, buyerId: sender, fee: a.fee });
+    if (typeof played === "string") return played;
+    const paid2 = charge(w, sender, a.fee, `\u30B2\u30FC\u30E0\u6A5F\uFF08${shop.name}\uFF09`);
+    if (typeof paid2 === "string") return paid2;
+    const received2 = paid2.accounts?.[lot.owner] ? charge(paid2, lot.owner, -a.fee, `\u30B2\u30FC\u30E0\u6A5F\u306E\u58F2\u4E0A\uFF08${name}\u3055\u3093\uFF09`) : paid2;
+    if (typeof received2 === "string") return received2;
+    const next2 = received2.economy.lots.map((l) => l.id === lot.id ? { ...l, shop: played } : l);
+    return { world: { ...received2, economy: { ...received2.economy, lots: next2 } }, cost: a.fee, message: "" };
   }
   if (a.type === "endLease") {
     if (!lot.tenant || lot.tenant !== sender && lot.owner !== sender) return "\u501F\u308A\u3066\u3044\u308B\u5BB6\u3067\u306F\u3042\u308A\u307E\u305B\u3093";

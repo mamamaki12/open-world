@@ -10,7 +10,7 @@ import { applyChanges } from '../session/edits';
 import type { Change } from '../session/edits';
 import type { Lot } from '../state/economy';
 import type { WorldSave } from '../session/saves';
-import { cleanShop, recordSale } from '../economy/shop';
+import { cleanShop, recordPlay, recordSale } from '../economy/shop';
 import { REQUEST_LIMITS, cleanRequests, requestError, stepRequest } from '../economy/requests';
 import type { RequestOp } from '../economy/requests';
 
@@ -18,7 +18,7 @@ import type { RequestOp } from '../economy/requests';
 export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; price: number | null } | { type: 'buyLot' }
   | { type: 'offerRent'; rent: number | null } | { type: 'rentLot' } | { type: 'endLease' }
   | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] } | { type: 'stocks'; holdings: Record<string, unknown> }
-  | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number }
+  | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number } | { type: 'play'; fee: number }
   | { type: 'request'; title: string; description: string; reward: number } | { type: 'requestStep'; request: string; op: RequestOp };
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
 /** みんなのワールドでの所持金と車。自分のワールドとは完全に別（引き継ぐのは見た目と服だけ） */
@@ -178,6 +178,21 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     if (typeof paid === 'string') return paid;
     const next = paid.economy.lots.map(l => l.id === lot.id ? { ...l, requests: step.list.length ? step.list : undefined } : l);
     return { world: { ...paid, economy: { ...paid.economy, lots: next } }, cost: 0, message: step.message };
+  }
+  if (a.type === 'play') {
+    // お店のゲーム機で1回遊ぶ。料金は遊んだ人から店の持ち主へ
+    const shop = cleanShop(lot.shop);
+    if (!shop || !lot.owner) return 'このお店は閉まっています';
+    if (lot.owner === sender) return '自分のお店のゲーム機は無料で遊べます';
+    if (!Number.isSafeInteger(c.reserved) || c.reserved < a.fee) return '料金が変わりました。もう一度確認してください';
+    const played = recordPlay(shop, { id: c.id, day: w.economy.day, buyer: name, buyerId: sender, fee: a.fee });
+    if (typeof played === 'string') return played;
+    const paid = charge(w, sender, a.fee, `ゲーム機（${shop.name}）`);
+    if (typeof paid === 'string') return paid;
+    const received = paid.accounts?.[lot.owner] ? charge(paid, lot.owner, -a.fee, `ゲーム機の売上（${name}さん）`) : paid;
+    if (typeof received === 'string') return received;
+    const next = received.economy.lots.map(l => l.id === lot.id ? { ...l, shop: played } : l);
+    return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: a.fee, message: '' };
   }
   if (a.type === 'endLease') {
     if (!lot.tenant || (lot.tenant !== sender && lot.owner !== sender)) return '借りている家ではありません';

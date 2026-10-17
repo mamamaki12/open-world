@@ -126,7 +126,7 @@ export function ShopPanel() {
 
 /** 持ち主の宣伝：看板の文字・チラシ・地図のピン・イベント告知 */
 function Promo({ shop, today, onSave }: { shop: Shop; today: number; onSave: (s: Shop) => void }) {
-  const [p, setP] = useState(() => ({ sign: shop.sign ?? '', flyer: shop.flyer ?? '', pin: !!shop.pin, title: shop.event?.title ?? '', day: shop.event?.day ?? today, note: shop.event?.note ?? '' }));
+  const [p, setP] = useState(() => ({ sign: shop.sign ?? '', flyer: shop.flyer ?? '', pin: !!shop.pin, title: shop.event?.title ?? '', day: shop.event?.day ?? today, note: shop.event?.note ?? '', arcadeFee: shop.arcadeFee ?? 0 }));
   const promo = cleanPromo({ sign: p.sign, flyer: p.flyer, pin: p.pin, event: { title: p.title, day: p.day, note: p.note } });
   return <div className="shop-form">
     <div className="field"><div className="field-label">看板の文字（土地の前の看板）</div><input type="text" maxLength={SHOP_LIMITS.sign} value={p.sign} placeholder={shop.name} onChange={(e) => setP({ ...p, sign: e.target.value })} /></div>
@@ -139,6 +139,8 @@ function Promo({ shop, today, onSave }: { shop: Shop; today: number; onSave: (s:
       </select></label>
       <textarea maxLength={SHOP_LIMITS.eventNote} value={p.note} placeholder="内容（例：全品半額、夜8時から）" onChange={(e) => setP({ ...p, note: e.target.value })} />
     </div>
-    <button className="btn primary" onClick={() => onSave({ ...shop, sign: undefined, flyer: undefined, pin: undefined, event: undefined, ...promo })}>宣伝を保存</button>
+    <div className="field"><div className="field-label">ゲーム機の料金（1回・0円なら無料）</div><input type="text" inputMode="numeric" value={p.arcadeFee} onChange={(e) => setP({ ...p, arcadeFee: Number(e.target.value.replace(/[^0-9]/g, '')) })} />
+      <p className="shop-note">家具の「ゲーム機（アーケード）」を1階に置くと、お客さんがモグラたたきで遊べます。料金はあなたの所持金に入ります。</p></div>
+    <button className="btn primary" onClick={() => onSave({ ...shop, sign: undefined, flyer: undefined, pin: undefined, event: undefined, ...promo, arcadeFee: p.arcadeFee > 0 ? p.arcadeFee : undefined })}>宣伝を保存</button>
   </div>;
 }

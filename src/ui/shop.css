@@ -10,3 +10,7 @@
 .shop-panel .btn + .btn { margin-left: 6px; }
 .shop-kind { align-self: flex-start; font-size: 11px; padding: 1px 6px; border-radius: 999px; background: #eef3ff; color: #2d5bd7; }
 .shop-passes { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.arcade-head { display: flex; gap: 16px; align-items: baseline; margin: 8px 0; }
+.arcade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 360px; margin: 8px 0 12px; }
+.arcade-hole { aspect-ratio: 1; border-radius: 50%; border: 0; background: radial-gradient(#3b2a1e 55%, #6b4f37); font-size: 40px; cursor: pointer; }
+.arcade-hole.up { background: radial-gradient(#7a5a3c 55%, #a0794f); }

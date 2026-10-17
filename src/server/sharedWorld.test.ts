@@ -115,4 +115,15 @@ describe('shared world rentals', () => {
     const cancelled = step(posted, 'a', 'c2', 'cancel').world;
     expect(cancelled.accounts!.a.money).toBe(a0);
   });
+  it('charges the arcade fee from the player to the shop owner', () => {
+    const { w, lot } = town();
+    const opened = ok(w, 'a', { id: 's1', lot: lot.id, delta: [], reserved: 0, action: { type: 'shop', shop: { name: 'ゲームセンター', items: [], sales: [], revenue: 0, arcadeFee: 200 } } });
+    const play = (wo: typeof w, who: string, id: string, fee: number) => applyCommand(wo, who, { id, lot: lot.id, delta: [], reserved: fee, action: { type: 'play', fee } }, who);
+    expect(play(opened, 'a', 'g0', 200).result.ok).toBe(false);
+    expect(play(opened, 'b', 'g1', 100).result.message).toContain('料金が変わりました');
+    const done = play(opened, 'b', 'g2', 200).world;
+    expect(done.accounts!.b.money).toBe(opened.accounts!.b.money - 200);
+    expect(done.accounts!.a.money).toBe(opened.accounts!.a.money + 200);
+    expect(done.economy.lots[0].shop).toMatchObject({ revenue: 200, sales: [{ buyer: 'b', price: 200 }] });
+  });
 });

@@ -96,6 +96,19 @@ try {
   await owner.getByRole('button', { name: '完了（報酬を渡す）' }).click();
   await buyer.waitForFunction(m => window.__ow.economy.getState().money === m + 50000, buyerBefore);
   await buyer.screenshot({ path: out + '/request.png' });
+  // ゲーム機：店主が料金を決め、お客が遊ぶと料金が店主へ
+  await owner.evaluate(() => window.__ow.game.getState().setOverlay(null));
+  await openRegister(owner, lot);
+  await owner.getByRole('button', { name: '宣伝', exact: true }).click();
+  await owner.locator('.shop-form input[inputmode=numeric]').fill('200');
+  await owner.getByRole('button', { name: '宣伝を保存' }).click();
+  await buyer.waitForFunction(lot => window.__ow.economy.getState().lots.find(l => l.id === lot)?.shop?.arcadeFee === 200, lot);
+  const ownerArcade = await money(owner);
+  await buyer.evaluate(async lot => { window.__ow.game.getState().setOverlay(null); (await import('/src/state/vehicles.ts')).useVehicles.setState({ target: 'arcade:' + lot }); window.__ow.game.getState().setOverlay('arcade'); }, lot);
+  await buyer.getByRole('button', { name: '¥200 で遊ぶ' }).click();
+  await buyer.getByRole('button', { name: 'モグラ' }).click();
+  await owner.waitForFunction(m => window.__ow.economy.getState().money === m + 200, ownerArcade);
+  await buyer.screenshot({ path: out + '/arcade.png' });
   assert.deepEqual(errors, []);
   console.log('player shop: ok');
 } catch (e) { console.log("ERRORS", errors); await (await browser.contexts()[0].pages()[0]).screenshot({ path: out + "/fail.png" }); throw e; } finally { await browser.close(); relay.close(); }
