@@ -31,7 +31,7 @@ function RemotePlayer({ id, pose }: { id: string; pose: RemotePose }) {
   const plot = currentPlotOf(useEconomy.getState());
   return <group name={'remote-player-' + id} ref={root} position={[pose.x - plotX(plot), pose.y, pose.z - plotZ(plot)]}><AvatarModel rig={rig} outfit={pose.outfit} looks={sanitizeLooks(pose.looks)}/></group>;
 }
-/** 位置は10回/秒しか届かないので、受信した座標の間を補間して描く。助手席に乗っている車はカメラと同じ値を使う。 */
+/** 位置は20回/秒しか届かないので、受信した座標の間を補間して描く。助手席に乗っている車はカメラと同じ値を使う。 */
 function RemoteCar({ owner, car }: { owner: string; car: OwnedCar }) {
   const ref = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {

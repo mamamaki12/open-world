@@ -8,7 +8,7 @@ describe('poseBuffer', () => {
   it('受信した座標の間をなめらかに補間する', () => {
     for (let i = 0; i <= 10; i++) recordPose('a', pose(i, i * 2), i * 100);
     const d = renderDelay('a');
-    expect(d).toBeGreaterThanOrEqual(100);
+    expect(d).toBeGreaterThanOrEqual(50);
     const xs = [0, 25, 50, 75].map(t => samplePose('a', 800 + d + t)!.x);
     xs.forEach((x, i) => expect(x).toBeCloseTo(8 + i * .25, 5));
     expect(sampleCar('a', 'c', 850 + d)!.x).toBeCloseTo(17, 5);
@@ -37,5 +37,15 @@ describe('poseBuffer', () => {
     }
     expect(Math.min(...v)).toBeGreaterThan(3.5);
     expect(Math.max(...v)).toBeLessThan(4.5);
+  });
+  it('20回/秒なら描画の遅れは短い', () => {
+    let seed = 7;
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const arrivals = Array.from({ length: 100 }, (_, i) => ({ t: 5000 + i * 50 + rand() * 30, ts: i * 50, x: i * .2 })).sort((a, b) => a.t - b.t);
+    for (let now = 5000; now < 9900; now += 1000 / 60) {
+      while (arrivals.length && arrivals[0].t <= now) { const a = arrivals.shift()!; recordPose('f', pose(a.x, 0, a.ts), now); }
+      samplePose('f', now);
+    }
+    expect(renderDelay('f', 9900)).toBeLessThan(130);
   });
 });

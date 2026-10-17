@@ -1,7 +1,7 @@
 import type { RemotePose } from './session';
 
 /**
- * ほかのプレイヤーの位置は10回/秒しか届かない。届いた座標を時刻つきで貯めておき、
+ * ほかのプレイヤーの位置は20回/秒（古い版は10回/秒）しか届かない。届いた座標を時刻つきで貯めておき、
  * 少し過去（届く間隔＋揺らぎ分）の時刻で前後2つの座標の間を補間して描く（スナップショット補間）。
  * 次が遅れたときは最後の速度で少しだけ先読みし、それでも来なければ止める。
  */
@@ -47,7 +47,7 @@ export function forgetPose(id: string) { tracks.delete(id); }
 /** 描画を何ms遅らせるか。届く間隔が乱れるほど長くとる。急に変えると速さが揺れるので、少しずつ（5%まで）寄せる。 */
 export function renderDelay(id: string, now = performance.now()) {
   const tr = tracks.get(id); if (!tr) return 120;
-  const target = Math.min(350, Math.max(100, tr.gap + tr.jitter * 2 + 20));
+  const target = Math.min(350, Math.max(50, tr.gap + tr.jitter * 2 + 20));
   if (tr.delay === undefined) tr.delay = target;
   else if (now !== tr.at) { const step = Math.max(0, now - (tr.at ?? now)) * .05; tr.delay += Math.max(-step, Math.min(step, target - tr.delay)); }
   tr.at = now;

@@ -279,7 +279,11 @@ function openConnection(generation: number, resume: boolean) {
       else if (m.type === 'account' && m.account && Number.isSafeInteger(m.account.money)) receiveAccount(m.account);
       else if (m.type === 'result') await finish(m.result);
       else if (m.type === 'denied') await finish({ id: m.id, ok: false, message: m.message });
-      else if (m.type === 'pose' && validPose(m.pose)) { recordPose(m.sender, m.pose); useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } })); }
+      else if (m.type === 'pose' && m.pose && typeof m.pose === 'object') {
+        // 服・見た目・車が省かれた pose は、前に届いた分と合わせる。
+        const pose = { ...useSession.getState().poses[m.sender], ...m.pose } as RemotePose;
+        if (validPose(pose)) { recordPose(m.sender, pose); useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: pose } })); }
+      }
       else if (m.type === 'clock' && state.role === 'guest' && [m.clock?.day, m.clock?.clock, m.clock?.market].every(Number.isFinite)) {
         useEconomy.setState({ day: m.clock.day, clock: m.clock.clock, market: m.clock.market, marketHistory: m.clock.marketHistory });
       }
@@ -326,16 +330,23 @@ export function startSessionTimers() {
   let lastLots = '';
   sessionGate.visitors = () => { const p = currentPlotOf(useEconomy.getState()); return Object.values(useSession.getState().poses).map(q => ({ x: q.x - plotX(p), y: q.y, z: q.z - plotZ(p), walking: q.walking, driving: q.driving })); };
   sessionGate.remoteCars = () => Object.entries(useSession.getState().poses).flatMap(([owner, q]) => q.cars.map(car => ({ owner, car })));
+  // 位置と向きは20回/秒。服・見た目・車は変わったときと1秒ごと（あとから入った人向け）だけ送り、通信量を増やさない。
+  let poseTick = 0;
+  const sentHeavy: Record<string, string> = {};
   const pose = setInterval(() => {
     const s = useSession.getState(); if (s.status !== 'connected') return;
-    const plot = currentPlotOf(useEconomy.getState()), p = playerMemory;
-    send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw, ts: Math.round(performance.now()),
-      outfit: useWardrobe.getState().outfit, looks: useLooks.getState().looks, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving, riding: useVehicles.getState().riding?.car ?? null,
-      walking: useGame.getState().mode === 'walk' && !useVehicles.getState().driving && !useVehicles.getState().riding } });
-    if (s.role === 'host' || s.shared) autoVenueDoors(p, useGame.getState().mode === 'walk' && !useVehicles.getState().driving);
-    const driving = useVehicles.getState().driving;
-    if (driving !== wasDriving) { wasDriving = driving; void persist(); }
-  }, 100);
+    const plot = currentPlotOf(useEconomy.getState()), p = playerMemory, v = useVehicles.getState(), full = poseTick++ % 20 === 0;
+    const heavy: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries({ outfit: useWardrobe.getState().outfit, looks: useLooks.getState().looks, cars: v.cars })) {
+      const json = JSON.stringify(value);
+      if (full || json !== sentHeavy[key]) { heavy[key] = value; sentHeavy[key] = json; }
+    }
+    send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw, ts: Math.round(performance.now()), ...heavy,
+      driving: v.driving, riding: v.riding?.car ?? null, walking: useGame.getState().mode === 'walk' && !v.driving && !v.riding } });
+    if (poseTick % 2) return;
+    if (s.role === 'host' || s.shared) autoVenueDoors(p, useGame.getState().mode === 'walk' && !v.driving);
+    if (v.driving !== wasDriving) { wasDriving = v.driving; void persist(); }
+  }, 50);
   const save = setInterval(() => {
     if (useSession.getState().role === 'host' && useSession.getState().status === 'connected') {
       const e = useEconomy.getState(), lots = JSON.stringify(e.lots.map(l => [l.id, l.built, l.construction, l.shop]));
