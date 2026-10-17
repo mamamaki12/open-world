@@ -10,6 +10,7 @@ import { playerMemory } from './Player';
 import { CIVIC_SITE, plotX, plotZ } from '../economy/town';
 import { isBoutique } from '../building/boutiques';
 import { BoutiqueInterior } from './BoutiqueBuildings';
+import { CasinoDecor, EstateDecor } from './CasinoDecor';
 import { CarModel, Wheel } from './CarModel';
 import { CARS } from '../catalog/cars';
 import { ExchangeInterior } from './ExchangeBuilding';
@@ -166,7 +167,7 @@ export function VenueInteriors(){
         <VenueInteriorDetail kind={kind} centred>
         <Shell kind={kind}/>
         {(kind==='casino'||kind==='estate'||kind==='exchange')&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':kind==='exchange'?'#1e4d8c':'#ffe5a6'}/>)}
-        {kind==='casino'?<CasinoInterior/>:kind==='estate'?<EstateInterior/>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:kind==='exchange'?<ExchangeInterior/>:<DealerInterior/>}</VenueInteriorDetail>
+        {kind==='casino'?<><CasinoInterior/><CasinoDecor/></>:kind==='estate'?<><EstateInterior/><EstateDecor/></>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:kind==='exchange'?<ExchangeInterior/>:<DealerInterior/>}</VenueInteriorDetail>
       </group>;
     })}
   </group>;

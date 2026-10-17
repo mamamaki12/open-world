@@ -146,6 +146,89 @@ export function BoutiqueInterior({ id }: { id: BoutiqueId }) {
       <Mannequin outfit={shopLook(id, i * 2)} x={s * 3.8} z={-3.8} yaw={0} />
       <Mannequin outfit={shopLook(id, i * 2 + 1)} x={s * 2.8} z={-3.8} yaw={s * 0.3} />
     </group>)}
+    <BoutiqueDecor id={id} />
     {lux && [-2, 0, 2].map((z) => <mesh key={z} position={[0, 3.4, z]}><cylinderGeometry args={[0.35, 0.35, 0.05, 24]} /><meshStandardMaterial color="#fff4d6" emissive="#ffe9b0" emissiveIntensity={0.8} /></mesh>)}
+  </>;
+}
+
+const DECOR: Record<BoutiqueId, { rug: string; shelf: string; light: 'disk' | 'globe' | 'track' | 'panel'; plant: boolean }> = {
+  maison: { rug: '#2a2326', shelf: '#1b1a1c', light: 'disk', plant: true },
+  atelier: { rug: '#8a7a64', shelf: '#7a5d43', light: 'globe', plant: true },
+  urban: { rug: '#3b4a52', shelf: '#41484c', light: 'track', plant: false },
+  daily: { rug: '#e9e6df', shelf: '#f5f5f2', light: 'panel', plant: false },
+};
+
+/** たたんだ服の山（色ちがいを重ねる） */
+function Stack({ x, y, z, colors, n = 3 }: { x: number; y: number; z: number; colors: string[]; n?: number }) {
+  return <>{Array.from({ length: n }, (_, i) => <mesh key={i} position={[x, y + 0.035 + i * 0.07, z]}><boxGeometry args={[0.34, 0.065, 0.28]} /><meshStandardMaterial color={colors[(i + Math.round(x * 7 + z * 3)) % colors.length]} roughness={0.95} /></mesh>)}</>;
+}
+
+/** 靴（左右ひと組） */
+function Shoes({ x, y, z, c }: { x: number; y: number; z: number; c: string }) {
+  return <>{[-1, 1].map((s) => <group key={s} position={[x + s * 0.07, y, z]}>
+    <mesh position={[0, 0.03, 0]}><boxGeometry args={[0.1, 0.06, 0.26]} /><meshStandardMaterial color={c} roughness={0.5} /></mesh>
+    <mesh position={[0, 0.075, -0.06]}><boxGeometry args={[0.09, 0.05, 0.12]} /><meshStandardMaterial color={c} roughness={0.5} /></mesh>
+    <mesh position={[0, 0.005, 0]}><boxGeometry args={[0.105, 0.012, 0.27]} /><meshStandardMaterial color="#f1efe8" /></mesh>
+  </group>)}</>;
+}
+
+/** 鉢植えの観葉植物 */
+export function Plant({ x, z, h = 1.2, pot = '#e8e4da' }: { x: number; z: number; h?: number; pot?: string }) {
+  return <group position={[x, 0, z]}>
+    <mesh position={[0, 0.2, 0]} castShadow><cylinderGeometry args={[0.22, 0.17, 0.4, 20]} /><meshStandardMaterial color={pot} roughness={0.6} /></mesh>
+    <mesh position={[0, 0.4 + h * 0.2, 0]}><cylinderGeometry args={[0.02, 0.025, h * 0.4, 6]} /><meshStandardMaterial color="#5d4630" /></mesh>
+    {[0, 1, 2, 3, 4].map((i) => <mesh key={i} position={[Math.cos(i * 1.3) * 0.16, 0.4 + h * (0.42 + (i % 3) * 0.16), Math.sin(i * 1.3) * 0.16]} castShadow><sphereGeometry args={[0.2 + (i % 2) * 0.06, 10, 8]} /><meshStandardMaterial color={i % 2 ? '#3f7a45' : '#2f6a3a'} roughness={0.9} /></mesh>)}
+  </group>;
+}
+
+/** 壁の棚・靴棚・小物ケース・ラグ・照明・ロゴ壁。通路をふさがない壁ぎわと天井に足す */
+function BoutiqueDecor({ id }: { id: BoutiqueId }) {
+  const info = BOUTIQUE_INFO[id], dec = DECOR[id], items = garmentsOf(id), h = info.height;
+  const colors = items.map((g) => g.color);
+  const shoes = items.filter((g) => g.slot === 'shoes').map((g) => g.color);
+  const shoeColors = shoes.length ? shoes : ['#2b2b2b', '#e9e5dc', '#7a4a2a'];
+  const sign = useMemo(() => signTexture(id), [id]);
+  useEffect(() => () => sign.dispose(), [sign]);
+  const lux = id === 'maison';
+  const ceil = Math.min(h, 4.2) - 0.1;
+  return <>
+    {/* 床のラグ（中央の平台の下） */}
+    <mesh position={[0, 0.012, -0.4]} rotation-x={-Math.PI / 2} receiveShadow><planeGeometry args={[3.2, 2.4]} /><meshStandardMaterial color={dec.rug} roughness={1} /></mesh>
+    {/* 左右の壁の棚：下の段にたたんだ服、上の段に靴 */}
+    {[-1, 1].map((s) => <group key={s} position={[s * 4.48, 0, 0.6]}>
+      {[2.0, 2.6].map((y) => <Block key={y} p={[0, y, 0]} s={[0.32, 0.04, 4.4]} c={dec.shelf} />)}
+      {[-2.2, 2.2].map((z) => <Block key={z} p={[0, 2.3, z]} s={[0.32, 0.64, 0.04]} c={dec.shelf} />)}
+      {[-1.6, -0.8, 0, 0.8, 1.6].map((z, i) => <group key={z}>
+        <Stack x={0} y={2.02} z={z} colors={colors} n={lux ? 2 : 3} />
+        <group rotation-y={s * Math.PI / 2}><Shoes x={-z * s} y={2.62} z={0} c={shoeColors[i % shoeColors.length]} /></group>
+      </group>)}
+    </group>)}
+    {/* 小物のガラスケース（レジと平台のあいだ・右寄り） */}
+    <group position={[1.3, 0, 1.9]}>
+      <Block p={[0, 0.4, 0]} s={[1.0, 0.8, 0.5]} c={dec.shelf} />
+      <mesh position={[0, 1.02, 0]}><boxGeometry args={[1.0, 0.44, 0.5]} /><meshPhysicalMaterial color="#d8ecf2" transparent opacity={0.22} roughness={0.05} depthWrite={false} /></mesh>
+      {[-0.3, 0, 0.3].map((x, i) => <mesh key={x} position={[x, 0.86, 0]}>{i === 1 ? <torusGeometry args={[0.07, 0.018, 8, 20]} /> : <boxGeometry args={[0.18, 0.1, 0.12]} />}<meshStandardMaterial color={i === 1 ? '#d4af37' : colors[i % colors.length]} metalness={i === 1 ? 0.9 : 0} roughness={0.35} /></mesh>)}
+    </group>
+    {/* 奥の壁のロゴ（レジの上） */}
+    <mesh position={[-1.4, 2.55, 4.28]} rotation-y={Math.PI}><planeGeometry args={[2.8, 0.7]} /><meshBasicMaterial map={sign} toneMapped={false} /></mesh>
+    {/* レジ横の紙袋 */}
+    {[0, 1].map((i) => <group key={i} position={[-3.3 + i * 0.32, 0, 3.55]}>
+      <Block p={[0, 0.2, 0]} s={[0.28, 0.4, 0.14]} c={lux ? '#1b1a1c' : info.sign} />
+      <mesh position={[0, 0.44, 0]}><torusGeometry args={[0.07, 0.008, 6, 16, Math.PI]} /><meshStandardMaterial color={info.signText} /></mesh>
+    </group>)}
+    {/* 入口わきの植物 */}
+    {dec.plant && [-1, 1].map((s) => <Plant key={s} x={s * 4.25} z={-2.65} h={1.1} pot={lux ? '#1b1a1c' : '#d9cdb8'} />)}
+    {/* 天井の照明（店ごとに形を変える） */}
+    {dec.light === 'globe' && [-1.6, 1.6].flatMap((x) => [-1, 1.4].map((z) => <group key={x + ',' + z} position={[x, ceil, z]}>
+      <mesh position={[0, -0.5, 0]}><cylinderGeometry args={[0.006, 0.006, 1, 4]} /><meshBasicMaterial color="#333" /></mesh>
+      <mesh position={[0, -1.05, 0]}><sphereGeometry args={[0.16, 16, 12]} /><meshStandardMaterial color="#fff3dc" emissive="#ffdca0" emissiveIntensity={1.2} /></mesh>
+    </group>))}
+    {dec.light === 'track' && [-1.8, 1.8].map((x) => <group key={x} position={[x, ceil, 0.6]}>
+      <Block p={[0, 0, 0]} s={[0.06, 0.05, 5]} c="#1d2124" />
+      {[-2, -1, 0, 1, 2].map((z) => <mesh key={z} position={[x > 0 ? 0.08 : -0.08, -0.12, z]} rotation-z={x > 0 ? 0.6 : -0.6}><cylinderGeometry args={[0.06, 0.08, 0.2, 12]} /><meshStandardMaterial color="#1d2124" emissive="#fff6e0" emissiveIntensity={0.15} /></mesh>)}
+    </group>)}
+    {dec.light === 'panel' && [-1.5, 1.5].flatMap((x) => [-1.6, 1.6].map((z) => <mesh key={x + ',' + z} position={[x, ceil, z]} rotation-x={Math.PI / 2}><planeGeometry args={[1.2, 0.6]} /><meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.9} side={THREE.DoubleSide} /></mesh>))}
+    {dec.light === 'disk' && <mesh position={[0, ceil - 0.6, -0.4]}><torusGeometry args={[0.6, 0.03, 8, 40]} /><meshStandardMaterial color="#d9bd7a" metalness={0.9} roughness={0.2} emissive="#5a4520" /></mesh>}
+    {lux && <Block p={[0, 0.84 + 0.01, -0.4]} s={[1.84, 0.02, 1.14]} c="#d9bd7a" metal={0.8} rough={0.25} />}
   </>;
 }
