@@ -1,9 +1,7 @@
-// 美容室。服屋通りの西端（MAISON VÉRANE の西隣、間に2m）。座標は civic site 基準、正面（入口）は道路側（-Z）
-import { GRID, LOT_D } from './dimensions';
-import { BOUTIQUES } from './boutiques';
+// 美容室。西の商店街の証券取引所の隣。座標は civic site 基準。
+import { shopSite, SHOPPING_SOUTH, SHOPPING_WEST } from './shopSites';
 
-const W = 9.5, D = 9, X0 = BOUTIQUES.maison.x0 - 2 - W, Z0 = LOT_D * GRID + 9;
-export const SALON = { x0: X0, x1: X0 + W, z0: Z0, z1: Z0 + D, height: 4.6 };
+export const SALON = { ...shopSite(SHOPPING_WEST + 51, SHOPPING_SOUTH, 9.5, 9), height: 4.6 };
 export const SALON_NAME = 'HAIR SALON LUCE';
 /** 店内（店の中央が原点）：左の壁ぎわにカット台3つ、奥にシャンプー台、右奥に受付 */
 export const SALON_CHAIRS = [-2.4, 0, 2.4];

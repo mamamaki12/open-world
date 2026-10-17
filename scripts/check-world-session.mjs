@@ -17,7 +17,7 @@ async function open(name) {
   const context = await browser.newContext({ viewport: { width: 900, height: 650 } }), page = await context.newPage();
   pages.push(page);
   page.setDefaultTimeout(120000); page.on('pageerror', e => errors.push(e.message));
-  await page.goto('http://127.0.0.1:5173/?touch=0&relay=' + encodeURIComponent(relayURL)); await page.getByLabel('あなたの名前').fill(name);
+  await page.goto((process.env.WORLD_TEST_URL || 'http://127.0.0.1:5173/') + '?touch=0&relay=' + encodeURIComponent(relayURL)); await page.getByLabel('あなたの名前').fill(name);
   // Keep quotes stable while software-rendered CI browsers take different amounts of time.
   // Shared clock delivery is verified explicitly below; economic ticking has unit coverage.
   await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ tick: () => {} }));
@@ -38,12 +38,13 @@ try {
   for (const page of [host, guest]) await page.waitForFunction(async () => (await import('/src/session/session.ts')).useSession.getState().members.length === 2 && !!window.__ow);
   const code = 'SHARED';
   const S = '/src/session/session.ts';
-  for (const page of [host, guest]) await page.waitForFunction(() => window.__ow?.economy.getState().money === 1000000);
+  for (const page of [host, guest]) await until(page, async () => !(await import('/src/session/saves.ts')).savedBundle().wallet?.pending.length);
+  assert.equal(await money(guest), homeMoney);
   assert.equal(await guest.evaluate(() => window.__ow?.economy.getState().lots.length), 0, 'shared world starts without land');
   assert.equal(await guest.evaluate(async () => (await import('/src/state/vehicles.ts')).useVehicles.getState().cars.length), 0, 'home cars stay home');
   // 稼いだ想定でお金を入れ、不動産屋で土地を買う
   await guest.evaluate(() => window.__ow?.economy.getState().receive(50000000, 'テスト'));
-  await guest.waitForFunction(async S => { const m = await import(S); return !m.useSession.getState().busy; }, S);
+  await until(guest, async () => !(await import('/src/session/saves.ts')).savedBundle().wallet?.pending.length);
   const offer = await guest.evaluate(() => window.__ow?.economy.getState().offers[0].id);
   assert.equal(await guest.evaluate(o => window.__ow?.economy.getState().buyLand(o), offer), null);
   await guest.waitForFunction(() => window.__ow?.economy.getState().lots.length === 1);
@@ -51,7 +52,7 @@ try {
   const ids = await guest.evaluate(async () => ({ id: (await import('/src/session/saves.ts')).savedBundle().profile.id, lot: window.__ow?.economy.getState().lots[0].id }));
   assert.equal(await host.evaluate(() => window.__ow?.economy.getState().lots[0].ownerName), '友達');
   const budget = await money(guest);
-  assert.ok(budget < 51000000, 'land was paid');
+  assert.ok(budget < homeMoney + 50000000, 'land was paid');
   const template = await guest.evaluate(async () => (await import('/src/session/saves.ts')).savedBundle().home.house.furniture[0]);
   assert.ok(template, 'home sample house has furniture');
   const add = (page, id, x) => page.evaluate(({ id, x, template }) => { const s = window.__ow?.game.getState(), h = structuredClone(s.house); h.furniture.push({ ...template, id, x }); s.commit(h); }, { id, x, template });
@@ -72,9 +73,10 @@ try {
   await guest.evaluate(lot => import('/src/session/gate.ts').then(g => g.sessionGate.act(lot, { type: 'list', price: 3000000 }, 0)), ids.lot);
   await host.waitForFunction(() => window.__ow?.economy.getState().lots[0].listing?.price === 3000000);
   await host.evaluate(() => window.__ow?.economy.getState().receive(5000000, 'テスト'));
-  await host.waitForFunction(() => window.__ow?.economy.getState().money === 6000000);
+  await until(host, async () => !(await import('/src/session/saves.ts')).savedBundle().wallet?.pending.length);
+  assert.equal(await money(host), homeMoney + 5000000);
   await host.evaluate(lot => import('/src/session/gate.ts').then(g => g.sessionGate.act(lot, { type: 'buyLot' }, 3000000)), ids.lot);
-  await host.waitForFunction(() => window.__ow?.economy.getState().money === 3000000);
+  await host.waitForFunction(m => window.__ow?.economy.getState().money === m, homeMoney + 2000000);
   await guest.waitForFunction(b => window.__ow?.economy.getState().money === b + 3000000, budget);
   await guest.waitForFunction(() => window.__ow?.economy.getState().lots[0].ownerName === 'ホスト');
   const clock = await guest.evaluate(() => window.__ow?.economy.getState().clock);
@@ -83,16 +85,16 @@ try {
   await host.screenshot({ path: out + '/host-and-guest.png' });
   await guest.evaluate(async S => (await import(S)).leaveWorld(), S);
   await guest.getByRole('button', { name: 'ひとりで遊ぶ', exact: false }).waitFor();
-  assert.equal(await money(guest), homeMoney, 'shared money never reaches home');
+  assert.equal(await money(guest), budget + 3000000, 'shared earnings carry home');
   assert.equal(await guest.evaluate(async () => (await import('/src/state/store.ts')).useGame.getState().house.furniture.some(f => f.id === 'guest-built')), false, 'own house restored');
   await host.evaluate(async S => (await import(S)).leaveWorld(), S);
   await host.getByRole('button', { name: 'みんなのワールドで遊ぶ', exact: false }).click();
   await host.waitForFunction(() => window.__ow?.game.getState().house.furniture.some(f => f.id === 'guest-built'));
-  assert.equal(await money(host), 3000000, 'shared balance kept on the server');
+  assert.equal(await money(host), homeMoney + 2000000, 'common balance kept on the server');
   await host.evaluate(async S => (await import(S)).leaveWorld(), S);
   const backup = await host.evaluate(async () => { const m = await import('/src/session/saves.ts'); await m.persist(); return JSON.stringify(m.snapshot()); });
   await host.evaluate(async backup => (await import('/src/session/saves.ts')).importSave(backup), backup);
-  console.log(JSON.stringify({ code, budget, result: 'shared join / land / free build / owner-only / reconnect / sale between players / separate money / persistence / backup passed' }));
+  console.log(JSON.stringify({ code, budget, result: 'shared join / land / free build / owner-only / reconnect / sale between players / common money / persistence / backup passed' }));
   assert.deepEqual(errors, []);
 } catch (e) {
   console.log('browser errors', errors);

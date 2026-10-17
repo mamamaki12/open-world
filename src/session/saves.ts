@@ -9,6 +9,8 @@ import { sessionGate, visitingWorld } from './gate';
 import { useDoors } from '../state/doors';
 import { cleanMods } from '../catalog/carMods';
 import { readSave, writeSave } from './database';
+import { validWallet } from './wallet';
+import type { WalletSync } from './wallet';
 
 const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 export function captureWorld() {
@@ -26,7 +28,7 @@ export function captureProfile(id: string, name: string) {
 }
 export type GuestProfile = ReturnType<typeof captureProfile>;
 export interface Escrow { id: string; room: string; worldId: string; amount: number }
-export interface SaveBundle { version: 1; savedAt: number; profile: GuestProfile; home: WorldSave; pending?: Escrow[] }
+export interface SaveBundle { version: 1; savedAt: number; profile: GuestProfile; home: WorldSave; pending?: Escrow[]; wallet?: WalletSync }
 export function validWorld(v: unknown): v is WorldSave {
   if (!v || typeof v !== 'object') return false;
   const w = v as WorldSave, e = w.economy;
@@ -39,7 +41,7 @@ export function validWorld(v: unknown): v is WorldSave {
 export function validBundle(v: unknown): v is SaveBundle {
   if (!v || typeof v !== 'object') return false;
   const b = v as SaveBundle, p = b.profile;
-  return b.version === 1 && validWorld(b.home) && !!p && typeof p.id === 'string' && p.id.length < 100 &&
+  return b.version === 1 && (b.wallet === undefined || validWallet(b.wallet)) && validWorld(b.home) && !!p && typeof p.id === 'string' && p.id.length < 100 &&
     typeof p.name === 'string' && p.name.length <= 24 && Number.isFinite(p.money) && Array.isArray(p.ledger) &&
     Array.isArray(p.cars) && p.cars.length <= 10 && p.cars.every(validCar) && !!p.wardrobe && Array.isArray(p.wardrobe.owned);
 }
@@ -60,9 +62,12 @@ export function applyWorld(w: WorldSave, preserveSelection = false) {
   } finally { sessionGate.applying = previous; }
 }
 export function applyProfile(p: GuestProfile) {
+  const previous = sessionGate.applying; sessionGate.applying = true;
+  try {
   useEconomy.setState({ money: p.money, ledger: copy(p.ledger), gamble: p.gamble });
   useWardrobe.setState(sanitizeWardrobe(p.wardrobe));
   useVehicles.setState({ cars: copy(p.cars).map(c => ({ ...c, mods: cleanMods(c.mods) })), driving: null, target: null });
+  } finally { sessionGate.applying = previous; }
 }
 let bundle: SaveBundle;
 let saving = Promise.resolve();
@@ -104,10 +109,10 @@ export function downloadBackup() {
   const a = document.createElement('a'); a.href = url; a.download = 'open-world-backup.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-/** みんなのワールドの所持金・車は自分のワールドへ持ち込まない（引き継ぐのは見た目と服だけ） */
+/** 所持金と服は共通。共有ワールドの車は個別ワールドへ持ち込まない。 */
 function personalProfile(): GuestProfile {
   const now = captureProfile(bundle.profile.id, bundle.profile.name);
-  return sessionGate.shared ? { ...copy(bundle.profile), wardrobe: now.wardrobe } : now;
+  return sessionGate.shared ? { ...copy(bundle.profile), money: now.money, ledger: now.ledger, wardrobe: now.wardrobe } : now;
 }
 export function restoreHome() {
   const personal = personalProfile();

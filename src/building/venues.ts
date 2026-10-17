@@ -57,11 +57,14 @@ export function venueAction(kind:Venue,x:number,z:number):VenueAction|null {
 }
 export function resolveVenue(kind:Venue,p:{x:number;z:number},radius=.25) {
   const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
-  let x=Math.max(b.x0+.25+radius,Math.min(b.x1-.25-radius,p.x)),z=Math.max(b.z0+.25+radius,Math.min(b.z1-.25-radius,p.z));
+  const minX=b.x0+.25+radius,maxX=b.x1-.25-radius,minZ=b.z0+.25+radius,maxZ=b.z1-.25-radius;
+  let x=Math.max(minX,Math.min(maxX,p.x)),z=Math.max(minZ,Math.min(maxZ,p.z));
   for(const f of venueFixtures(kind)){
     const x0=cx+f.x-f.w/2-radius,x1=cx+f.x+f.w/2+radius,z0=cz+f.z-f.d/2-radius,z1=cz+f.z+f.d/2+radius;
     if(x<=x0||x>=x1||z<=z0||z>=z1)continue;
-    const q=[{x:x0,z,d:x-x0},{x:x1,z,d:x1-x},{x,z:z0,d:z-z0},{x,z:z1,d:z1-z}].sort((a,b)=>a.d-b.d)[0];x=q.x;z=q.z;
+    const q=[{x:x0,z,d:x-x0},{x:x1,z,d:x1-x},{x,z:z0,d:z-z0},{x,z:z1,d:z1-z}]
+      .filter(q=>q.x>=minX&&q.x<=maxX&&q.z>=minZ&&q.z<=maxZ).sort((a,b)=>a.d-b.d)[0];
+    if(q){x=q.x;z=q.z;}
   }
   return {x,z};
 }

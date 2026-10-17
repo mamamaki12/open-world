@@ -3,8 +3,8 @@
 import { GRID, LOT_D, LOT_W } from './dimensions';
 import { PLAYER } from './walk';
 import type { Vec2 } from './walk';
-import { PLOT_PITCH } from '../economy/town';
 import { BOUTIQUES, BOUTIQUE_IDS } from './boutiques';
+import { shopSite, SHOPPING_SOUTH, SHOPPING_WEST } from './shopSites';
 import { SALON } from './salon';
 
 export interface Box {
@@ -34,14 +34,11 @@ export const CASINO = {
 export const CASINO_PLAZA: Box = { x0: CASINO.x0 - 2, x1: CASINO.x1 + 2, z0: lotD + 6.2, z1: CASINO.z0 };
 
 const PILLAR = 0.25;
-/** カジノの東隣の不動産屋。入口は道路側（-Z）。 */
+/** 西の商店街の不動産屋。入口は道路側（-Z）。 */
 export const ESTATE = {
-  x0: lotW / 2 + PLOT_PITCH - 5,
-  x1: lotW / 2 + PLOT_PITCH + 5,
-  z0: lotD + 9,
-  z1: lotD + 17,
+  ...shopSite(SHOPPING_WEST + 12, SHOPPING_SOUTH, 10, 8),
   height: 4.5,
-  door: { x: lotW / 2 + PLOT_PITCH, width: 2.2 },
+  door: { x: shopSite(SHOPPING_WEST + 17, SHOPPING_SOUTH, 0, 0).x0, width: 2.2 },
 };
 /** ひさしの柱の位置 */
 export const CASINO_PILLARS: Vec2[] = [-1, 1].map((s) => ({

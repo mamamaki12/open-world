@@ -3742,11 +3742,11 @@ var require_react_production_min = __commonJS({
     }, enqueueSetState: function() {
     } };
     var C = Object.assign;
-    var D2 = {};
+    var D = {};
     function E(a, b, e) {
       this.props = a;
       this.context = b;
-      this.refs = D2;
+      this.refs = D;
       this.updater = e || B;
     }
     E.prototype.isReactComponent = {};
@@ -3763,7 +3763,7 @@ var require_react_production_min = __commonJS({
     function G(a, b, e) {
       this.props = a;
       this.context = b;
-      this.refs = D2;
+      this.refs = D;
       this.updater = e || B;
     }
     var H = G.prototype = new F();
@@ -3857,7 +3857,7 @@ var require_react_production_min = __commonJS({
     }
     var U = { current: null };
     var V = { transition: null };
-    var W2 = { ReactCurrentDispatcher: U, ReactCurrentBatchConfig: V, ReactCurrentOwner: K };
+    var W = { ReactCurrentDispatcher: U, ReactCurrentBatchConfig: V, ReactCurrentOwner: K };
     function X() {
       throw Error("act(...) is not supported in production builds of React.");
     }
@@ -3885,7 +3885,7 @@ var require_react_production_min = __commonJS({
     exports.PureComponent = G;
     exports.StrictMode = q;
     exports.Suspense = w;
-    exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = W2;
+    exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = W;
     exports.act = X;
     exports.cloneElement = function(a, b, e) {
       if (null === a || void 0 === a) throw Error("React.cloneElement(...): The argument must be a React element, but you passed " + a + ".");
@@ -10789,9 +10789,9 @@ function enclosedCells(house, level) {
   const key = `${level}:${LOT_W2}x${LOT_D2}`;
   const hit = byLevel.get(key);
   if (hit) return hit;
-  const W2 = LOT_W2 + 2;
-  const D2 = LOT_D2 + 2;
-  const idx = (x, z) => (z + 1) * W2 + (x + 1);
+  const W = LOT_W2 + 2;
+  const D = LOT_D2 + 2;
+  const idx = (x, z) => (z + 1) * W + (x + 1);
   const vBlock = /* @__PURE__ */ new Set();
   const hBlock = /* @__PURE__ */ new Set();
   for (const w of house.walls) {
@@ -10799,13 +10799,13 @@ function enclosedCells(house, level) {
     if (w.x0 === w.x1) for (let z = Math.min(w.z0, w.z1); z < Math.max(w.z0, w.z1); z++) vBlock.add(idx(w.x0, z));
     else for (let x = Math.min(w.x0, w.x1); x < Math.max(w.x0, w.x1); x++) hBlock.add(idx(x, w.z0));
   }
-  const seen = new Uint8Array(W2 * D2);
+  const seen = new Uint8Array(W * D);
   const stack = [idx(-1, -1)];
   seen[stack[0]] = 1;
   while (stack.length) {
     const i = stack.pop();
-    const x = i % W2 - 1;
-    const z = Math.floor(i / W2) - 1;
+    const x = i % W - 1;
+    const z = Math.floor(i / W) - 1;
     const go = (nx, nz, blocked) => {
       if (blocked || nx < -1 || nz < -1 || nx > LOT_W2 || nz > LOT_D2) return;
       const j = idx(nx, nz);
@@ -10895,6 +10895,19 @@ function canPlaceStair(house, s, ignoreId) {
 }
 var HALF_WALL = WALL_THICKNESS / 2;
 
+// src/building/shopSites.ts
+function shopSite(x, z, width, depth) {
+  return { x0: x - CIVIC_SITE.x, x1: x + width - CIVIC_SITE.x, z0: z - CIVIC_SITE.z, z1: z + depth - CIVIC_SITE.z };
+}
+var SHOPPING_SOUTH = TOWN_BOUNDS.z1 + 9;
+var SHOPPING_NORTH = TOWN_BOUNDS.z0 - 20;
+var SHOPPING_WEST = TOWN_BOUNDS.x0 + 5;
+var SHOPPING_AREAS = [
+  { name: "\u897F\u306E\u5546\u5E97\u8857", x: SHOPPING_WEST + 24, z: SHOPPING_SOUTH + 16 },
+  { name: "\u5317\u306E\u30D6\u30C6\u30A3\u30C3\u30AF\u901A\u308A", x: TOWN_BOUNDS.x0 + 45, z: SHOPPING_NORTH - 3.5 },
+  { name: "\u5317\u6771\u306E\u30B9\u30C8\u30EA\u30FC\u30C8\u30B7\u30E7\u30C3\u30D7", x: TOWN_BOUNDS.x1 - 35, z: SHOPPING_NORTH - 3.5 }
+];
+
 // src/building/boutiques.ts
 var BOUTIQUE_IDS = ["maison", "atelier", "urban", "daily"];
 var BOUTIQUE_INFO = {
@@ -10903,17 +10916,14 @@ var BOUTIQUE_INFO = {
   urban: { name: "URBAN THREAD", tagline: "CASUAL & STREET", tier: "\u30AB\u30B8\u30E5\u30A2\u30EB", floor: "#9fa6a8", wall: "#e8ecec", trim: "#2f6d8e", facade: "#2f6d8e", sign: "#ffffff", signText: "#2f6d8e", frame: "#24485c", height: 4.6 },
   daily: { name: "DAILY WEAR", tagline: "\u6BCE\u65E5\u306E\u670D\u3092\u3001\u6BCE\u65E5\u306E\u5024\u6BB5\u3067", tier: "\u30D5\u30A1\u30B9\u30C8\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3", floor: "#e4e1d8", wall: "#ffffff", trim: "#d6332f", facade: "#f4f1ea", sign: "#d6332f", signText: "#ffffff", frame: "#8c8c8c", height: 4.6 }
 };
-var lotD = LOT_D * GRID;
 var BOUTIQUE_W = 9.5;
 var BOUTIQUE_D = 9;
-var BOUTIQUE_GAP = 2;
-var ROW_WEST = -90 - CIVIC_SITE.x;
-var BOUTIQUES = Object.fromEntries(
-  BOUTIQUE_IDS.map((id2, i) => {
-    const x0 = ROW_WEST + i * (BOUTIQUE_W + BOUTIQUE_GAP);
-    return [id2, { x0, x1: x0 + BOUTIQUE_W, z0: lotD + 9, z1: lotD + 9 + BOUTIQUE_D }];
-  })
-);
+var BOUTIQUES = {
+  daily: shopSite(SHOPPING_WEST, SHOPPING_SOUTH, BOUTIQUE_W, BOUTIQUE_D),
+  atelier: shopSite(SHOPPING_WEST + 25, SHOPPING_SOUTH, BOUTIQUE_W, BOUTIQUE_D),
+  maison: shopSite(TOWN_BOUNDS.x0 + 40, SHOPPING_NORTH, BOUTIQUE_W, BOUTIQUE_D),
+  urban: shopSite(TOWN_BOUNDS.x1 - 40, SHOPPING_NORTH, BOUTIQUE_W, BOUTIQUE_D)
+};
 var BOUTIQUE_DOOR = { width: 2.2, height: 2.6 };
 var BOUTIQUE_ACTIONS = [
   { id: "browse", label: "\u670D\u3092\u898B\u308B\u30FB\u8CB7\u3046", x: 0, z: -1.6 },
@@ -10924,11 +10934,7 @@ var BOUTIQUE_ACTIONS = [
 ];
 
 // src/building/salon.ts
-var W = 9.5;
-var D = 9;
-var X0 = BOUTIQUES.maison.x0 - 2 - W;
-var Z0 = LOT_D * GRID + 9;
-var SALON = { x0: X0, x1: X0 + W, z0: Z0, z1: Z0 + D, height: 4.6 };
+var SALON = { ...shopSite(SHOPPING_WEST + 51, SHOPPING_SOUTH, 9.5, 9), height: 4.6 };
 var SALON_NAME = "HAIR SALON LUCE";
 var SALON_CHAIRS = [-2.4, 0, 2.4];
 var SALON_FIXTURES = [
@@ -10946,27 +10952,24 @@ var SALON_ACTIONS = [
 
 // src/building/landmarks.ts
 var lotW = LOT_W * GRID;
-var lotD2 = LOT_D * GRID;
+var lotD = LOT_D * GRID;
 var CASINO = {
   x0: lotW / 2 - 12,
   x1: lotW / 2 + 12,
-  z0: lotD2 + 9,
-  z1: lotD2 + 23,
+  z0: lotD + 9,
+  z1: lotD + 23,
   height: 9,
   /** 入口（正面の真ん中） */
   door: { x: lotW / 2, width: 4.2, height: 3.4 },
   /** 入口のひさし（柱2本で支える） */
   canopyDepth: 3.6
 };
-var CASINO_PLAZA = { x0: CASINO.x0 - 2, x1: CASINO.x1 + 2, z0: lotD2 + 6.2, z1: CASINO.z0 };
+var CASINO_PLAZA = { x0: CASINO.x0 - 2, x1: CASINO.x1 + 2, z0: lotD + 6.2, z1: CASINO.z0 };
 var PILLAR = 0.25;
 var ESTATE = {
-  x0: lotW / 2 + PLOT_PITCH - 5,
-  x1: lotW / 2 + PLOT_PITCH + 5,
-  z0: lotD2 + 9,
-  z1: lotD2 + 17,
+  ...shopSite(SHOPPING_WEST + 12, SHOPPING_SOUTH, 10, 8),
   height: 4.5,
-  door: { x: lotW / 2 + PLOT_PITCH, width: 2.2 }
+  door: { x: shopSite(SHOPPING_WEST + 17, SHOPPING_SOUTH, 0, 0).x0, width: 2.2 }
 };
 var CASINO_PILLARS = [-1, 1].map((s) => ({
   x: CASINO.door.x + s * (CASINO.door.width / 2 + 1.2),
@@ -11008,10 +11011,7 @@ var DEPTH = 12;
 var TUNER = { x0: DEALER.x0 - GAP2 - WIDTH2, x1: DEALER.x0 - GAP2, z0: DEALER.z0, z1: DEALER.z0 + DEPTH, height: 5.4 };
 
 // src/building/exchange.ts
-var GAP3 = 2;
-var WIDTH3 = 11;
-var DEPTH2 = 12;
-var EXCHANGE = { x0: TUNER.x0 - GAP3 - WIDTH3, x1: TUNER.x0 - GAP3, z0: TUNER.z0, z1: TUNER.z0 + DEPTH2, height: 7 };
+var EXCHANGE = { ...shopSite(SHOPPING_WEST + 38, SHOPPING_SOUTH, 11, 12), height: 7 };
 
 // src/building/venues.ts
 var boutiqueVenue = (id2) => ({ ...BOUTIQUES[id2], name: BOUTIQUE_INFO[id2].name, floor: BOUTIQUE_INFO[id2].floor, wall: BOUTIQUE_INFO[id2].wall, trim: BOUTIQUE_INFO[id2].trim });
@@ -11750,10 +11750,11 @@ function withAccount(w, id2, name) {
   if (a && a.name === name) return w;
   return { ...w, accounts: { ...w.accounts, [id2]: a ? { ...a, name } : { name, money: SHARED_START_MONEY, ledger: [{ day: w.economy.day, label: "\u306F\u3058\u3081\u306E\u6240\u6301\u91D1", amount: SHARED_START_MONEY }], cars: [] } } };
 }
-function charge(w, id2, amount, label) {
+function charge(w, id2, amount, label, allowDebt = false) {
   const a = w.accounts?.[id2];
   if (!a) return "\u53E3\u5EA7\u304C\u3042\u308A\u307E\u305B\u3093";
-  if (amount > 0 && a.money < amount) return "\u304A\u91D1\u304C\u8DB3\u308A\u307E\u305B\u3093";
+  if (!Number.isSafeInteger(a.money - amount)) return "\u91D1\u984D\u304C\u4E0D\u6B63\u3067\u3059";
+  if (!allowDebt && amount > 0 && a.money < amount) return "\u304A\u91D1\u304C\u8DB3\u308A\u307E\u305B\u3093";
   if (!amount) return w;
   return { ...w, accounts: { ...w.accounts, [id2]: { ...a, money: a.money - amount, ledger: [{ day: w.economy.day, label, amount: -amount }, ...a.ledger].slice(0, 50) } } };
 }
@@ -11775,7 +11776,7 @@ function applyAction(w, sender, name, c, a) {
   const lots = w.economy.lots, lot = lots.find((l) => l.id === c.lot);
   if (a.type === "money") {
     if (!Number.isSafeInteger(a.delta) || Math.abs(a.delta) > 1e13 || typeof a.label !== "string") return "\u91D1\u984D\u304C\u4E0D\u6B63\u3067\u3059";
-    const paid2 = charge(w, sender, -a.delta, a.label.slice(0, 60));
+    const paid2 = charge(w, sender, -a.delta, a.label.slice(0, 60), true);
     return typeof paid2 === "string" ? paid2 : { world: paid2, cost: 0, message: "" };
   }
   if (a.type === "stocks") {
