@@ -2,7 +2,7 @@
 
 - ブランチ: `claude/smooth-remote-players-a3v3ef`（mamamaki12/open-world）
 - 依頼: しんご「ほかのプレイヤーの動きがかくつく。受信した座標の間をアニメーションでつなぐなど」
-- PR: #91
+- PR: #91（補間、マージ済み）、20回/秒は次のPR
 
 ## 方針（クライアントだけ、中継サーバーは変えない）
 - 位置は 100ms ごと（10回/秒）に届く。今は最新値へ指数で追いかけるだけなので、届いた瞬間に速く動き、次が来るまで止まる → かくつく。
@@ -13,4 +13,5 @@
 - 済: `src/session/poseBuffer.ts`（recordPose / samplePose / sampleCar）、session.ts の受信で記録・退出で破棄、RemotePlayers と ridingCar が補間値を使う。単体テスト poseBuffer.test.ts。
 - 済: 送信側の時刻 `pose.ts`（performance.now）を pose に追加。受信側はこれを自分の時計に直して並べるので、届く間隔の揺れで速さが変わらない（中継はそのまま転送するので EC2 更新不要。ts の無い古いクライアントは受信時刻で補間）。遅延量は少しずつ変える（急変すると速さが揺れる）。
 - 確認: 単体テスト（揺れる到着でも60fpsの速さ 3.5〜4.5m/s、補正前は1.5〜8）、scripts/check-drive-ride.mjs 合格。
-- 次: PR → CI → マージ
+- 済: しんご「1秒に100回は？」→ 画面は60回/秒・全員分を全員へ配るので負担が大きいと説明し、20回/秒に。位置・向きは毎回、服・見た目・車は変わったときと1秒ごとだけ送る（session.ts の pose setInterval）。受け側は前の pose と合わせる。描画の遅れの下限を50msに。
+- 次: check-world-session → CI → マージ
