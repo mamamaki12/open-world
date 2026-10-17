@@ -23,9 +23,10 @@ import type { Outfit } from '../catalog/clothes';
 import type { OwnedCar } from '../state/vehicles';
 import { useStocks, homeHoldings } from '../state/stocks';
 import type { Holding } from '../economy/stocks';
+import { recordPose, forgetPose } from './poseBuffer';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
-export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean; riding?: string | null }
+export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean; riding?: string | null; /** 送った側の performance.now()。受け取り側の補間に使う */ ts?: number }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
   role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
@@ -253,6 +254,7 @@ function openConnection(generation: number, resume: boolean) {
           else if (escrow.worldId === m.world.worldId && escrow.id !== pending?.id) send({ type: 'settle', id: escrow.id });
         }
       } else if (m.type === 'members') {
+        for (const id of Object.keys(useSession.getState().poses)) if (!m.members.some((x: Member) => x.id === id)) forgetPose(id);
         useSession.setState({ members: m.members, poses: Object.fromEntries(Object.entries(useSession.getState().poses).filter(([id]) => m.members.some((x: Member) => x.id === id))) });
         if (state.role === 'host') publishWorld();
       } else if (m.type === 'command' && state.role === 'host') approvalQueue = approvalQueue.then(() => accept(m.sender, m.command));
@@ -277,7 +279,7 @@ function openConnection(generation: number, resume: boolean) {
       else if (m.type === 'account' && m.account && Number.isSafeInteger(m.account.money)) receiveAccount(m.account);
       else if (m.type === 'result') await finish(m.result);
       else if (m.type === 'denied') await finish({ id: m.id, ok: false, message: m.message });
-      else if (m.type === 'pose' && validPose(m.pose)) useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } }));
+      else if (m.type === 'pose' && validPose(m.pose)) { recordPose(m.sender, m.pose); useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } })); }
       else if (m.type === 'clock' && state.role === 'guest' && [m.clock?.day, m.clock?.clock, m.clock?.market].every(Number.isFinite)) {
         useEconomy.setState({ day: m.clock.day, clock: m.clock.clock, market: m.clock.market, marketHistory: m.clock.marketHistory });
       }
@@ -327,7 +329,7 @@ export function startSessionTimers() {
   const pose = setInterval(() => {
     const s = useSession.getState(); if (s.status !== 'connected') return;
     const plot = currentPlotOf(useEconomy.getState()), p = playerMemory;
-    send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw,
+    send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw, ts: Math.round(performance.now()),
       outfit: useWardrobe.getState().outfit, looks: useLooks.getState().looks, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving, riding: useVehicles.getState().riding?.car ?? null,
       walking: useGame.getState().mode === 'walk' && !useVehicles.getState().driving && !useVehicles.getState().riding } });
     if (s.role === 'host' || s.shared) autoVenueDoors(p, useGame.getState().mode === 'walk' && !useVehicles.getState().driving);

@@ -33,6 +33,7 @@ import { plotX, plotZ, TOWN_BOUNDS } from '../economy/town';
 import { touchMove } from '../state/touch';
 import { sessionGate } from '../session/gate';
 import type { OwnedCar } from '../state/vehicles';
+import { sampleCar } from '../session/poseBuffer';
 
 const FACILITY_BOXES = [...LANDMARK_COLLIDERS, ...SHOP_BOXES];
 export const driveButtons = { left:false, right:false, accelerator:false, brake:false, handbrake:false };
@@ -152,9 +153,11 @@ function getOut(p:Memory,car:Pick<OwnedCar,'x'|'z'|'yaw'|'model'|'id'>,side:numb
 export function ridingCar():OwnedCar|null{
   const r=useVehicles.getState().riding;if(!r)return null;
   if(!r.owner)return useVehicles.getState().cars.find(c=>c.id===r.car)??null;
-  return sessionGate.remoteCars().find(c=>c.owner===r.owner&&c.car.id===r.car)?.car??null;
+  const car=sessionGate.remoteCars().find(c=>c.owner===r.owner&&c.car.id===r.car)?.car;if(!car)return null;
+  // 受信した座標の間を補間した位置を使う（poseBuffer）。
+  const at=sampleCar(r.owner,r.car);return at?{...car,x:at.x,z:at.z,yaw:at.yaw}:car;
 }
-/** ほかのプレイヤーの車は10回/秒しか届かないので、なめらかに追いかける。 */
+/** 助手席の車の位置。ほかのプレイヤーの車は ridingCar がすでに補間しているので、そのまま使う。 */
 const smoothRide={x:0,z:0,yaw:0};
 export function vehicleInteract(p:Memory) {
   refreshVehicleTarget(p);
@@ -236,21 +239,19 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
 }
 let rideClock=-1;
 /** 助手席に乗っている車の、なめらかにした位置。描画（RemotePlayers）とカメラで同じ値を使うため、1フレームに1回だけ進める。 */
-export function rideSmoothPose(time:number,dt:number){
+export function rideSmoothPose(time:number){
   const r=useVehicles.getState().riding,car=ridingCar();
   if(!r||!car)return null;
   if(time!==rideClock){
     rideClock=time;
-    const k=r.owner&&Math.hypot(car.x-smoothRide.x,car.z-smoothRide.z)<30?Math.min(1,dt*10):1;
-    smoothRide.x+=(car.x-smoothRide.x)*k;smoothRide.z+=(car.z-smoothRide.z)*k;
-    smoothRide.yaw+=Math.atan2(Math.sin(car.yaw-smoothRide.yaw),Math.cos(car.yaw-smoothRide.yaw))*k;
+    smoothRide.x=car.x;smoothRide.z=car.z;smoothRide.yaw=car.yaw;
   }
   return {key:r.owner+'|'+r.car,...smoothRide,speed:car.speed,model:car.model};
 }
 let rideTime=0;
 function rideFrame(camera:THREE.Camera,dt:number,p:Memory,scene?:THREE.Scene){
   rideTime+=dt;
-  const ride=rideSmoothPose(rideTime,dt);
+  const ride=rideSmoothPose(rideTime);
   if(!ride){useVehicles.setState({riding:null});return false;}
   const d=getCar(ride.model)!,o=origin();
   if(useGame.getState().tool!=='select')useGame.getState().setTool('select');
