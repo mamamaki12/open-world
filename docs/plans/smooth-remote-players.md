@@ -10,4 +10,5 @@
 - 人（`RemotePlayer`）・車（`RemoteCar`）・助手席に乗っている車（`ridingCar`）が同じ補間値を使う。歩きアニメの速さも補間後の位置から出す。
 
 ## 進捗
-- 次: poseBuffer 実装 → RemotePlayers / vehicleLogic で使う → テスト
+- 済: `src/session/poseBuffer.ts`（recordPose / samplePose / sampleCar）、session.ts の受信で記録・退出で破棄、RemotePlayers と ridingCar が補間値を使う。単体テスト poseBuffer.test.ts。
+- 次: ブラウザで確認 → PR

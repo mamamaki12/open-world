@@ -23,6 +23,7 @@ import type { Outfit } from '../catalog/clothes';
 import type { OwnedCar } from '../state/vehicles';
 import { useStocks, homeHoldings } from '../state/stocks';
 import type { Holding } from '../economy/stocks';
+import { recordPose, forgetPose } from './poseBuffer';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
 export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean; riding?: string | null }
@@ -253,6 +254,7 @@ function openConnection(generation: number, resume: boolean) {
           else if (escrow.worldId === m.world.worldId && escrow.id !== pending?.id) send({ type: 'settle', id: escrow.id });
         }
       } else if (m.type === 'members') {
+        for (const id of Object.keys(useSession.getState().poses)) if (!m.members.some((x: Member) => x.id === id)) forgetPose(id);
         useSession.setState({ members: m.members, poses: Object.fromEntries(Object.entries(useSession.getState().poses).filter(([id]) => m.members.some((x: Member) => x.id === id))) });
         if (state.role === 'host') publishWorld();
       } else if (m.type === 'command' && state.role === 'host') approvalQueue = approvalQueue.then(() => accept(m.sender, m.command));
@@ -277,7 +279,7 @@ function openConnection(generation: number, resume: boolean) {
       else if (m.type === 'account' && m.account && Number.isSafeInteger(m.account.money)) receiveAccount(m.account);
       else if (m.type === 'result') await finish(m.result);
       else if (m.type === 'denied') await finish({ id: m.id, ok: false, message: m.message });
-      else if (m.type === 'pose' && validPose(m.pose)) useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } }));
+      else if (m.type === 'pose' && validPose(m.pose)) { recordPose(m.sender, m.pose); useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } })); }
       else if (m.type === 'clock' && state.role === 'guest' && [m.clock?.day, m.clock?.clock, m.clock?.market].every(Number.isFinite)) {
         useEconomy.setState({ day: m.clock.day, clock: m.clock.clock, market: m.clock.market, marketHistory: m.clock.marketHistory });
       }
