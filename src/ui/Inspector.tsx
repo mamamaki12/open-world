@@ -1,5 +1,6 @@
 // 右のパネル：選んだパーツの種類・素材・色・寸法を変える
-import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, getOpening, openingsOf } from '../catalog';
+import { FURNITURE, PANEL_COLORS, SASH_COLORS, furnitureDef, getFurniture, getOpening, openingsOf } from '../catalog';
+import { designOf, openDesigner, useDesigns } from '../catalog/designs';
 import { GRID, floorY, levelName } from '../building/dimensions';
 import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapFurniture, snapOpeningOffset, wallLength, wallOutsideSide } from '../building/rules';
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';
@@ -85,7 +86,7 @@ export function Inspector() {
     case 'furniture': {
       const f = house.furniture.find((p) => p.id === selection.id);
       if (!f) return null;
-      title = getFurniture(f.type).name;
+      title = furnitureDef(f).name;
       body = <FurnitureInspector item={f} />;
       break;
     }
@@ -265,7 +266,7 @@ function RoofInspector({ roof: r }: { roof: RoofPart }) {
 }
 
 function FurnitureInspector({ item: f }: { item: FurniturePart }) {
-  const def = getFurniture(f.type);
+  const def = furnitureDef(f);
   const set = (patch: Partial<FurniturePart>) => patchPart('furniture', f.id, patch);
   const rotate = (deg: number) => set({ rotation: (((f.rotation + deg) % 360) + 360) % 360 });
   const move = (dx: number, dz: number) => set(snapFurniture(f.x + dx, f.z + dz));
@@ -287,7 +288,14 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
       </div>}
       <div className="field">
         <div className="field-label">種類</div>
-        <select value={f.type} onChange={(e) => set({ type: e.target.value, color: getFurniture(e.target.value).colors[0] })}>
+        {f.design && <button className="btn" onClick={() => openDesigner(f.design!)}>このデザインを編集</button>}
+        <select value={f.type} onChange={(e) => set({ type: e.target.value, color: getFurniture(e.target.value).colors[0], design: undefined, ...designOf(e.target.value) })}>
+          {f.design && <option value={f.type}>{f.design.name}（デザイン）</option>}
+          {useDesigns.getState().designs.filter((t) => t.id !== f.type).map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}（デザイン）
+            </option>
+          ))}
           {FURNITURE.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
@@ -298,6 +306,7 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
       <div className="field">
         <div className="field-label">色</div>
         <Swatches colors={def.colors} value={f.color} onChange={(color) => set({ color })} />
+        {f.design && <input type="color" value={f.color} onChange={(e) => set({ color: e.target.value })} aria-label="メイン色を自由に選ぶ" />}
       </div>
       {def.label && <NameplateInput value={f.label} onChange={(label) => set({ label })} />}
       {!f.wallMount && <div className="field">

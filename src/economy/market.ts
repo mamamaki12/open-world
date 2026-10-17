@@ -9,10 +9,11 @@ export const DAY_SECONDS = 60;
  * 相場（1.0 が平均）を1日進める。平均へ戻ろうとする力のあるランダムウォーク（対数で計算）。
  * たまに好況・不況の大きな動きが出る。
  */
-export function stepMarket(index: number, rng: Rng): number {
-  const x = Math.log(index);
+export function stepMarket(index: number, rng: Rng, bias = 1): number {
+  // bias: 季節・天気で少しずれる「平均」（src/world/climate.ts climateMarketFactor）
+  const x = Math.log(index) - Math.log(bias);
   const shock = rng() < 0.04 ? gauss(rng) * 0.12 : 0;
-  const next = x - 0.06 * x + gauss(rng) * 0.035 + shock;
+  const next = Math.log(bias) + x - 0.06 * x + gauss(rng) * 0.035 + shock;
   return Math.round(Math.min(Math.max(Math.exp(next), 0.5), 2) * 1000) / 1000;
 }
 

@@ -1,4 +1,5 @@
 import { getFurniture, getOpening } from '../catalog';
+import { designOf } from '../catalog/designs';
 import { BASE_HEIGHT, GRID, lotSize, MAX_LEVEL, STORY_HEIGHT } from './dimensions';
 import { axisAlignedSegment, canPlaceFloor, canPlaceOpening, canPlaceRoof, canPlaceStair, canPlaceWall, newId, normalizeRect, removePart, snapOpeningOffset, wallDir, wallLength } from './rules';
 import { mountedTransform, nameplateMount } from './mounts';
@@ -49,7 +50,7 @@ export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number
   }else if(tool==='furniture'){
     const def=getFurniture(d.furnitureType),pos=snapFurniturePlacement(h,{level,type:def.id,rotation:d.furnitureRotation},p.x,p.z,false);
     preview={kind:'furniture',...pos};
-    next={...h,furniture:[...h.furniture,{id:newId('furniture'),level,type:def.id,...pos,rotation:d.furnitureRotation,color:def.colors[0],...(def.label?{label:d.nameplateText}:{})}]};
+    next={...h,furniture:[...h.furniture,{id:newId('furniture'),level,type:def.id,...pos,rotation:d.furnitureRotation,color:def.colors[0],...(def.label?{label:d.nameplateText}:{}),...designOf(def.id)}]};
   }else if(tool==='erase'){
     if(!p.ref)return {error:'消すパーツを狙ってください'};
     next=removePart(h,p.ref);

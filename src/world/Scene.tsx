@@ -1,7 +1,7 @@
 import { BuildingDetailProvider } from './BuildingDetail';
 import { RemotePlayers } from '../session/RemotePlayers';
 import { Canvas } from '@react-three/fiber';
-import { Environment, Grid, Lightformer, OrbitControls, Sky } from '@react-three/drei';
+import { Environment, Grid, Lightformer, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W, floorY } from '../building/dimensions';
 import { useGame } from '../state/store';
@@ -17,10 +17,10 @@ import { Player } from './Player';
 import { VenueInteriors } from './VenueInteriors';
 import { CarFleet } from './CarFleet';
 import { Town } from './Town';
+import { ClimateLights } from './Climate';
 import { useLotCells } from '../state/economy';
 
 const CENTER: [number, number, number] = [(LOT_W * GRID) / 2, 0, (LOT_D * GRID) / 2];
-const SUN: [number, number, number] = [CENTER[0] + 14, 26, CENTER[2] + 12];
 
 export function Scene() {
   const touch=useTouchDevice();
@@ -52,31 +52,13 @@ export function Scene() {
         if (e.button === 0 && useGame.getState().tool === 'select' && Date.now() >= useInteraction.getState().ignorePartClickUntil) select(null);
       }}
     >
-      <Sky sunPosition={SUN} turbidity={4} rayleigh={1.2} mieCoefficient={0.004} mieDirectionalG={0.85} />
       <Environment resolution={touch?128:256}>
         <Lightformer intensity={1.6} position={[0, 10, 0]} rotation-x={Math.PI / 2} scale={[40, 40, 1]} color="#dfe9f5" />
         <Lightformer intensity={0.8} position={[-20, 4, 0]} rotation-y={Math.PI / 2} scale={[40, 8, 1]} color="#f7efe2" />
         <Lightformer intensity={0.6} position={[20, 4, 0]} rotation-y={-Math.PI / 2} scale={[40, 8, 1]} color="#e3ecf7" />
         <Lightformer intensity={0.5} position={[0, -2, 0]} rotation-x={-Math.PI / 2} scale={[40, 40, 1]} color="#c9c3b4" />
       </Environment>
-      <hemisphereLight args={['#dfeaff', '#bdb6a6', 0.55]} />
-      <directionalLight
-        position={SUN}
-        intensity={2.6}
-        color="#fff3e2"
-        castShadow
-        shadow-mapSize={[shadowSize, shadowSize]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.03}
-        shadow-camera-left={-36}
-        shadow-camera-right={36}
-        shadow-camera-top={36}
-        shadow-camera-bottom={-36}
-        shadow-camera-near={1}
-        shadow-camera-far={110}
-      >
-        <object3D attach="target" position={CENTER} />
-      </directionalLight>
+      <ClimateLights center={CENTER} shadowSize={shadowSize} />
 
       <BuildingDetailProvider>
       <Ground />

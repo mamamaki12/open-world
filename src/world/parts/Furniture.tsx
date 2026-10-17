@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { getFurniture } from '../../catalog';
-import type { FurnitureDef, Paint } from '../../catalog';
+import { furnitureDef, hasMovingParts } from '../../catalog';
+import type { FurnitureDef, FurniturePiece, Paint } from '../../catalog';
 import { furnitureBaseY } from '../../building/rules';
 import { mountedTransform } from '../../building/mounts';
 import type { FurniturePart } from '../../building/types';
@@ -65,31 +65,62 @@ function LabelPlane({ text, plate, size, pos }: { text: string; plate: string; s
   );
 }
 
+/** 引き出し・扉の取っ手（部品の手前の面の中央、扉は軸と反対の端） */
+function Handle({ p, mat }: { p: FurniturePiece; mat: THREE.Material }) {
+  const w = Math.min(0.12, p.size[0] * 0.4);
+  const x = p.move === 'door-l' ? p.size[0] / 2 - 0.05 : p.move === 'door-r' ? -p.size[0] / 2 + 0.05 : 0;
+  const vertical = p.move !== 'drawer';
+  return (
+    <mesh position={[x, 0, p.size[2] / 2 + 0.012]} material={mat} castShadow>
+      <boxGeometry args={vertical ? [0.015, Math.min(0.14, p.size[1] * 0.4), 0.02] : [w, 0.015, 0.02]} />
+    </mesh>
+  );
+}
+
+function Piece({ p, color, highlight, open }: { p: FurniturePiece; color: string; highlight: Highlight; open: boolean }) {
+  const paint = p.paint === 'main' ? { color, roughness: 0.7 } : PAINT[p.paint];
+  const mat = plainMaterial(paint.color, highlight, { roughness: paint.roughness, metalness: paint.metalness });
+  const mesh = (pos: [number, number, number]) => (
+    <mesh position={pos} scale={p.shape === 'sphere' ? p.size : [1, 1, 1]} material={mat} castShadow receiveShadow>
+      {p.shape === 'box' && <boxGeometry args={p.size} />}
+      {p.shape === 'cylinder' && <cylinderGeometry args={[p.size[0] / 2, p.size[0] / 2.4, p.size[1], 20]} />}
+      {p.shape === 'sphere' && <sphereGeometry args={[0.5, 20, 14]} />}
+    </mesh>
+  );
+  if (!p.move) return mesh(p.pos);
+  const handle = <Handle p={p} mat={plainMaterial(PAINT.steel.color, highlight, { roughness: 0.3, metalness: 0.8 })} />;
+  if (p.move === 'drawer') {
+    // 手前（+Z）へ奥行きの 3/4 だけ引き出す
+    const out = open ? p.size[2] * 0.75 : 0;
+    return <group position={[p.pos[0], p.pos[1], p.pos[2] + out]}>{mesh([0, 0, 0])}{handle}</group>;
+  }
+  // 扉：縦の辺（左なら -X 側）を軸に手前へ 100° 開く
+  const side = p.move === 'door-l' ? -1 : 1;
+  const angle = open ? side * (100 * Math.PI) / 180 : 0;
+  return (
+    <group position={[p.pos[0] + (side * p.size[0]) / 2, p.pos[1], p.pos[2]]} rotation={[0, angle, 0]}>
+      <group position={[(-side * p.size[0]) / 2, 0, 0]}>{mesh([0, 0, 0])}{handle}</group>
+    </group>
+  );
+}
+
 export function FurnitureModel({ def, color, label, highlight = 'none', open = false }: { def: FurnitureDef; color: string; label?: string; highlight?: Highlight; open?: boolean }) {
   return (
     <>
       {def.label && label && <LabelPlane text={label} plate={color} size={def.label.size} pos={def.label.pos} />}
-      {def.parts.map((p, i) => {
-        const paint = p.paint === 'main' ? { color, roughness: 0.7 } : PAINT[p.paint];
-        const mat = plainMaterial(paint.color, highlight, { roughness: paint.roughness, metalness: paint.metalness });
-        return (
-          <mesh key={i} position={open && def.id === 'garage-shutter' && i >= 3 ? [p.pos[0], p.pos[1] + 2.55, p.pos[2]] : p.pos} scale={p.shape === 'sphere' ? p.size : [1, 1, 1]} material={mat} castShadow receiveShadow>
-            {p.shape === 'box' && <boxGeometry args={p.size} />}
-            {p.shape === 'cylinder' && <cylinderGeometry args={[p.size[0] / 2, p.size[0] / 2.4, p.size[1], 20]} />}
-            {p.shape === 'sphere' && <sphereGeometry args={[0.5, 20, 14]} />}
-          </mesh>
-        );
-      })}
+      {def.parts.map((p, i) => (
+        <Piece key={i} p={open && def.id === 'garage-shutter' && i >= 3 ? { ...p, pos: [p.pos[0], p.pos[1] + 2.55, p.pos[2]] } : p} color={color} highlight={highlight} open={open} />
+      ))}
     </>
   );
 }
 
 export function Furniture({ item }: { item: FurniturePart }) {
   const { highlight, handlers } = usePart({ kind: 'furniture', id: item.id });
-  const def = getFurniture(item.type);
+  const def = furnitureDef(item);
   const tool = useGame((s) => s.tool);
   const house = useHouseData();
-  const shutterOpen = useDoors(s => item.type === 'garage-shutter' && item.id in s.open);
+  const shutterOpen = useDoors(s => (item.type === 'garage-shutter' || hasMovingParts(def)) && item.id in s.open);
   const baseY = furnitureBaseY(house, item);
   const mounted = item.wallMount ? mountedTransform(house, item.wallMount) : null;
 

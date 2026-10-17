@@ -35,7 +35,7 @@ export function WorldActionHud(){
     </div>
   </div>;
   const venueLabel=inside&&target.startsWith('venue:')?VENUE_ACTIONS[inside].find(a=>target==='venue:'+a.id)?.label:undefined;
-  const label=venueLabel??(target.startsWith('land:')?'この土地を買う':target.startsWith('register:')?'お店のレジ':target.startsWith('arcade:')?'ゲーム機で遊ぶ':target.startsWith('shutter:')?'ガレージシャッターを開閉する':car?getCar(car.model)!.name+' に乗る':'');
+  const label=venueLabel??(target.startsWith('land:')?'この土地を買う':target.startsWith('register:')?'お店のレジ':target.startsWith('arcade:')?'ゲーム機で遊ぶ':target.startsWith('shutter:')?'ガレージシャッターを開閉する':target.startsWith('furn:')?'引き出し・扉を開け閉めする':car?getCar(car.model)!.name+' に乗る':'');
   const site=civicOffset(),action=inside==='dealer'?venueAction('dealer',playerMemory.x-site.x,playerMemory.z-site.z):null;
   return label?<div className="door-prompts"><button className="door-prompt" onClick={()=>interact()}><kbd>F</kbd>{label}</button>{action?.model&&<button className="door-prompt" onClick={()=>{useVenue.setState({model:action.model!,dealerIntent:'specs'});useGame.getState().setOverlay('dealer');}}>スペックを見る</button>}</div>:null;
 }

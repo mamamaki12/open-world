@@ -7,3 +7,4 @@ server/dist/shared-world.json*
 server/shared-world.json*
 !server/dist/
 job-checks/
+browser-checks/

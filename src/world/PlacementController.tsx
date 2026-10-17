@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getFurniture } from '../catalog';
+import { designOf } from '../catalog/designs';
 import { BASE_HEIGHT, GRID, lotSize, MAX_LEVEL, STORY_HEIGHT } from '../building/dimensions';
 import {
   axisAlignedSegment,
@@ -277,6 +278,7 @@ export function PlacementController() {
             rotation: g.defaults.furnitureRotation,
             color: getFurniture(g.defaults.furnitureType).colors[0],
             ...(getFurniture(g.defaults.furnitureType).label ? { label: g.defaults.nameplateText } : {}),
+            ...designOf(g.defaults.furnitureType),
           };
           g.commit({ ...g.house, furniture: [...g.house.furniture, item] });
           useInteraction.setState({ ignorePartClickUntil: Date.now() + 100 });
