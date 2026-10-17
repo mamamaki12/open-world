@@ -2,5 +2,9 @@ node_modules
 dist
 *.tsbuildinfo
 world-session-checks/
+player-shop-checks/
+server/dist/shared-world.json*
+server/shared-world.json*
+!server/dist/
 job-checks/
 browser-checks/

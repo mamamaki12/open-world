@@ -4,6 +4,7 @@ import { QUOTES_URL, soldCost, unitYen, unitsFor } from '../economy/stocks';
 import type { Holding, Quotes } from '../economy/stocks';
 import { yen } from '../economy/money';
 import { useEconomy } from './economy';
+import { sessionGate } from '../session/gate';
 
 const KEY = 'open-world:stocks:v1', QUOTE_KEY = 'open-world:quotes:v1';
 function load<T>(key: string, fallback: T): T {
@@ -26,7 +27,10 @@ export async function refreshQuotes(): Promise<void> {
     useStocks.setState({ quotes, status: 'ok' });
   } catch { useStocks.setState({ status: 'offline' }); }
 }
-function setHoldings(holdings: Record<string, Holding>) { save(KEY, holdings); useStocks.setState({ holdings }); }
+// みんなのワールドの株はサーバーの口座に入れ、自分のワールドの保存には書かない（src/session/session.ts が同期する）
+function setHoldings(holdings: Record<string, Holding>) { if (!sessionGate.shared) save(KEY, holdings); useStocks.setState({ holdings }); }
+/** 自分のワールドの保有株（みんなのワールドから戻るときに使う） */
+export const homeHoldings = (): Record<string, Holding> => load(KEY, {});
 
 /** 円の金額ぶん買う。エラーなら文言を返す */
 export function buyStock(symbol: string, name: string, amount: number): string | null {

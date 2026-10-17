@@ -116,6 +116,8 @@
     "sofa-l": 250000,
     "mailbox": 80000,
     "tree": 50000,
-    "hedge": 15000
+    "hedge": 15000,
+    "register": 150000,
+    "arcade": 300000
   }
 }

@@ -25,7 +25,7 @@ import { engineHum } from './engineSound';
 import { LANDMARK_COLLIDERS, resolveLandmarks } from '../building/landmarks';
 import { ceilingHeight, resolveCollisions, surfaceHeight } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
-import { currentPlotOf, civicOffset, lotHouse, useEconomy } from '../state/economy';
+import { currentPlotOf, civicOffset, lotHouse, plotOffset, plotOffsetZ, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { saveVehicles, useVehicles } from '../state/vehicles';
 import { plotX, plotZ, TOWN_BOUNDS } from '../economy/town';
@@ -99,6 +99,7 @@ export function refreshVehicleTarget(p:Memory) {
     for(const f of useGame.getState().house.furniture){
       if(f.type==='garage-shutter'&&Math.hypot(f.x-p.x,f.z-p.z)<2.5)target='shutter:'+f.id;
     }
+    if(!target)target=registerTarget(p);
   }
   if (!state.driving && !target) {
     // 引き出し・扉のあるデザイン家具：同じ階で手が届く距離なら開け閉めできる（訪ねた家でも）
@@ -112,6 +113,19 @@ export function refreshVehicleTarget(p:Memory) {
   }
   if (!state.driving && !target) { const o=origin(); const offer=useEconomy.getState().offers.find(offer=>typeof offer.plot==='number'&&atSaleSign(offer.plot,p.x+o.x,p.z+o.z,p.y));if(offer)target='land:'+offer.id; }
   if(state.target!==target)useVehicles.setState({target});
+}
+/** 近くにあるお店のレジかゲーム機（1階）。いま開いている土地と、ほかのお店の土地を見る */
+function registerTarget(p:Memory):string|null{
+  const e=useEconomy.getState();
+  for(const l of e.lots){
+    const current=l.id===e.currentLotId;
+    if(!current&&(!l.shop||typeof l.plot!=='number'))continue;
+    const house=current?useGame.getState().house:lotHouse(l);
+    const ox=current?0:plotOffset(l.plot!,e),oz=current?0:plotOffsetZ(l.plot!,e);
+    const near=house?.furniture.find(f=>(f.type==='register'||f.type==='arcade')&&f.level===0&&Math.hypot(f.x+ox-p.x,f.z+oz-p.z)<1.8);
+    if(near)return near.type+':'+l.id;
+  }
+  return null;
 }
 export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({driving:null,target:null});saveVehicles();}
 export function vehicleInteract(p:Memory) {
@@ -133,6 +147,8 @@ export function vehicleInteract(p:Memory) {
     useGame.getState().notify('降りる場所がありません。広い場所へ移動してください');return true;
   }
   if(s.target?.startsWith('land:')){useGame.getState().setOverlay('land');return true;}
+  if(s.target?.startsWith('register:')){useGame.getState().setOverlay('shop');return true;}
+  if(s.target?.startsWith('arcade:')){useGame.getState().setOverlay('arcade');return true;}
   if(s.target?.startsWith('shutter:')){useDoors.getState().toggle(s.target.slice(8),1);return true;}
   if(s.target?.startsWith('furn:')){const opened=useDoors.getState().toggle(s.target.slice(5),1);playDoorSound(opened,true);return true;}
   const c=s.cars.find(c=>c.id===s.target);

@@ -4,6 +4,20 @@ import { buildMenuOpen } from '../state/controls';
 import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { ToolOptions } from './ToolOptions';
+import { PREFABS, placePrefab } from '../building/prefabs';
+import { lotSize } from '../building/dimensions';
+
+const PREFAB_ICONS: Record<string, string> = { 'prefab-shop': '🏪', stall: '🏮', tent: '⛺' };
+
+/** すぐ建つお店を、いまの土地の空いている場所に置く */
+function placeShop(id: string, done: () => void) {
+  const g = useGame.getState();
+  const next = placePrefab(g.house, id, lotSize, crypto.randomUUID().slice(0, 8));
+  if (typeof next === 'string') { g.notify(next); return; }
+  g.commit(next);
+  g.notify('🏪 建てました。中のレジの前で F を押すとお店を開けます');
+  done();
+}
 
 const ICONS: Record<Tool, string> = {
   select: '👆',
@@ -83,6 +97,15 @@ export function BuildMenu({
           </div>
           <div className="build-menu-options">
             <ToolOptions />
+          </div>
+          <div className="build-menu-tools build-menu-prefabs" aria-label="すぐ建つお店">
+            {PREFABS.map((p) => (
+              <button key={p.id} className="tool-card" onClick={() => placeShop(p.id, onClose)}>
+                <span className="tool-card-icon">{PREFAB_ICONS[p.id]}</span>
+                <span className="tool-card-name">{p.name}</span>
+                <span className="tool-card-desc">{p.desc}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>

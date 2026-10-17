@@ -33,6 +33,24 @@ PlaywrightのChromiumを入れるか`PLAYWRIGHT_CHROMIUM_EXECUTABLE`で実行フ
 - Web本体をビルドする環境で`VITE_WORLD_RELAY=wss://...`を設定するか、開始画面の「接続・バックアップ」で接続先を指定する。招待リンクにも接続先が入る。
 - 最初は4人まで。ホスト切断後30秒は編集を停止して再接続を待つ。参加者の再接続用トークンは接続ごとの一時情報で、ログイン認証ではない。
 
+## みんなのワールド（共有ワールド）への更新手順
+
+中継は`npm run build:server`で依存（ws）ごと1ファイル`server/dist/relay.mjs`にまとめてある（CIで最新か確認）。町の正本は`WORLD_FILE`のJSONに保存され、建築や売買は保存が終わってから確定を返す。壊れた保存ファイルがあると上書きせずに起動を止める。旧方式の招待ルームもサーバー側で動き続ける。
+
+EC2 Instance Connectで次を実行する（PRのブランチ名は`claude/project-thread-p9vaed`。マージ後は`main`に読み替える）。
+
+```sh
+cd /home/ec2-user/open-world-relay
+cp relay.mjs relay.mjs.bak
+curl -fsSLo relay.mjs https://raw.githubusercontent.com/mamamaki12/open-world/claude/project-thread-p9vaed/server/dist/relay.mjs
+sudo mkdir -p /var/lib/open-world && sudo chown ec2-user /var/lib/open-world
+sudo systemctl edit open-world-relay   # [Service] に Environment=WORLD_FILE=/var/lib/open-world/shared-world.json を追加
+sudo systemctl restart open-world-relay
+curl -fsS https://shingo-open-world.duckdns.org/health
+```
+
+戻すときは`cp relay.mjs.bak relay.mjs && sudo systemctl restart open-world-relay`。サーバー更新が済むまで新しいWeb（このPR）はmainへマージしない。
+
 ## 引き継ぎ時の注意
 
 ### 現在の公開環境（2026-10-17）

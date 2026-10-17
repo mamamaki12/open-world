@@ -30,6 +30,7 @@ import { EstateBuilding } from './EstateBuilding';
 import { HouseParts } from './HouseView';
 import { TownHouses } from './TownHouses';
 import { grassTexture } from './textures';
+import type { Shop } from '../economy/shop';
 
 let grassMat: THREE.MeshStandardMaterial | null = null;
 /** 町の草地（冬は Climate が白っぽくする） */
@@ -53,6 +54,7 @@ export function Town() {
   const currentLotId = useEconomy((s) => s.currentLotId);
   const offers = useEconomy((s) => s.offers);
   const market = useEconomy((s) => s.market);
+  const today = useEconomy((s) => s.day);
   const shift = -plotX(here), shiftZ = -plotZ(here);
   const taken = useMemo(() => new Set([...lots.flatMap((l) => [l.plot, l.joined]), ...offers.map((o) => o.plot)].filter((p): p is number => typeof p === 'number')), [lots, offers]);
   const tiles = useMemo(() => {
@@ -141,10 +143,10 @@ export function Town() {
                 </mesh>
               )}
               {!current && house && <BuildingDetail bounds={houseEnvelope(house).bounds}>{tier => tier === 'distant' ? <group onPointerDown={e => activate(l.id,e)}><DistantHouse house={house}/></group> : <HouseParts house={house} showRoofs={showRoofs} exteriorOnly={tier === 'exterior'} activate={(e, ref) => activate(l.id, e, ref)}/>}</BuildingDetail>}
-              <Signboard
+              {l.shop ? <Signboard lines={shopSign(l.shop, today)} tone="shop" /> : <Signboard
                 lines={['あなたの土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
                 tone="owned"
-              />
+              />}
             </group>
           );
         })}
@@ -194,14 +196,20 @@ function SaleRope() {
   );
 }
 
-function boardTexture(lines: string[], tone: 'owned' | 'sale' | 'district') {
+/** お店の看板：看板の文字（なければ店名）と、これからのイベント */
+function shopSign(shop: Shop, today: number) {
+  const e = shop.event && shop.event.day >= today ? shop.event : undefined;
+  return [shop.sign || shop.name, e ? `${e.day === today ? '今日' : `${e.day}日目`} ${e.title}` : 'OPEN'];
+}
+
+function boardTexture(lines: string[], tone: 'owned' | 'sale' | 'district' | 'shop') {
   const w = 512;
   const h = 288;
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
   const g = c.getContext('2d')!;
-  const bg = tone === 'sale' ? '#fffdf6' : tone === 'owned' ? '#1f4e8c' : '#3d5a3a';
+  const bg = tone === 'sale' ? '#fffdf6' : tone === 'owned' ? '#1f4e8c' : tone === 'shop' ? '#c4561d' : '#3d5a3a';
   const fg = tone === 'sale' ? '#b3261e' : '#ffffff';
   g.fillStyle = bg;
   g.fillRect(0, 0, w, h);
@@ -229,7 +237,7 @@ function boardTexture(lines: string[], tone: 'owned' | 'sale' | 'district') {
 }
 
 /** 区画の前（道路側・左の角の外）に立てる看板。道路から読めるよう +Z を向く */
-function Signboard({ lines, tone }: { lines: string[]; tone: 'owned' | 'sale' }) {
+function Signboard({ lines, tone }: { lines: string[]; tone: 'owned' | 'sale' | 'shop' }) {
   const key = lines.join('\n');
   const tex = useMemo(() => boardTexture(lines, tone), [key, tone]);
   useLayoutEffect(() => () => tex.dispose(), [tex]);
