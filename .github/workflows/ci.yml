@@ -35,6 +35,7 @@ jobs:
           node scripts/check-aim-controls.mjs
           node scripts/check-fashion.mjs
           node scripts/check-looks.mjs
+          node scripts/check-furniture-lighting.mjs
           node scripts/check-jobs.mjs pc
       - uses: actions/upload-artifact@v4
         if: always()
@@ -88,6 +89,7 @@ jobs:
       - name: Check the bundled relay is up to date
         run: npm run build:server && git diff --exit-code server/dist
       - run: node --test server/relay.test.mjs
+      - run: node scripts/check-lighting-relay.mjs
       - name: Check deployed relay over HTTPS and WSS
         run: node scripts/check-public-relay.mjs
       - run: npm run build

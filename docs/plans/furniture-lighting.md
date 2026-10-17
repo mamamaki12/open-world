@@ -15,3 +15,8 @@
 - Implemented five lighting entries, generic wall mount placement/preview/aim/touch controls, type-compatible inspector replacement, emissive diffuser materials and global 6/3 light pool. Existing nameplate transform remains backward compatible; raised wall fixtures no longer create phantom floor collision columns.
 - Build and existing 633 tests passed; 12 targeted mounting/light-budget/material tests passed. Browser placement and night rendering next.
 - Compatibility: new fixture appraisal prices are explicitly 50000 yen, equal to the already deployed relay fallback. Existing money/build protocols and saved fields are unchanged; verify new placements against the captured deployed relay before requiring any EC2 update.
+
+- Chrome desktop and portrait phone checks passed: Lighting group visible on desktop, real wall click / mobile walking-aim placement, preview emits no scene light, 5cm height adjustment, real floor placement, global 6/3 shadow-free budget, night screenshots, backup/import and wall-deletion light cleanup.
+- Visual review confirms soft warm pools on the wall and floor. Files: browser-checks/furniture-lighting-desktop-night.png and phone-night.png (ignored test evidence).
+- Legacy deployed relay compatibility passed using captured pre-light bundle: all 4 new fixture types and mount metadata are persisted and duplicate receipts are idempotent. Current rebuilt bundle passed the same check. EC2 update is not required for this feature.
+- All 633 existing tests and build passed; 43 targeted tests including 9 new mounting/light/material regressions passed. CI and release next.

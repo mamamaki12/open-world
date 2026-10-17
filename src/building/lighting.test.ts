@@ -8,6 +8,7 @@ import { aimPlan } from './aimBuild';
 import { useGame } from '../state/store';
 import { applyChanges, changes } from '../session/edits';
 import { furniturePrice } from '../economy/pricing';
+import { resolveCollisions } from './walk';
 
 const finish = {material:'siding',color:'#fff'};
 const wall = {id:'wall',level:1,x0:1,z0:2,x1:6,z1:2,exterior:finish,interior:finish};
@@ -45,6 +46,14 @@ describe('furniture lighting', () => {
     const floors=[{id:'f',level:0,x0:0,z0:0,x1:4,z1:4,finish:{material:'flooring',color:'#fff'}}];
     expect(furnitureBaseY({...emptyHouse(),floors},f)).toBe(floorY(0));
     expect(furnitureBaseY(emptyHouse(),{...f,level:2})).toBe(floorY(2));
+  });
+  it('does not turn a raised wall lamp into an invisible obstruction at ground level', () => {
+    const w={...wall,level:0},h={...emptyHouse(),walls:[w]};
+    const mount=nameplateMount(h,w,{x:3*GRID,y:floorY(0)+1.6,z:2*GRID},{x:3*GRID,z:3*GRID},'wall-sconce')!;
+    const p=mountedTransform(h,mount,'wall-sconce')!;
+    const next={...h,furniture:[{id:'light',type:'wall-sconce',level:0,x:p.x,z:p.z,rotation:p.rotation,color:'#fff',wallMount:mount}]};
+    const point={x:p.x,z:2*GRID+.4};
+    expect(resolveCollisions(next,point,0,1.65)).toEqual(point);
   });
   it('keeps the existing relay pricing fallback compatible and defines warm finite light sources', () => {
     const lamps=FURNITURE.filter(f=>f.category==='lighting');
