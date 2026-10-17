@@ -18,6 +18,7 @@ import { TunerPanel } from './TunerPanel';
 import { ExchangePanel } from './ExchangePanel';
 import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
 import { ShopPanel } from './ShopPanel';
+import { RequestsPanel } from './RequestsPanel';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
 import { MapPanel } from './MapPanel';
@@ -97,6 +98,7 @@ export function App() {
       {overlay === 'closet' && <BoutiquePanel closetOnly />}
       {overlay === 'land' && <LandPurchasePanel />}
       {overlay === 'shop' && <ShopPanel />}
+      {overlay === 'requests' && <RequestsPanel />}
       {overlay === 'estate' && <EstatePanel />}
       {overlay === 'casino' && <CasinoPanel />}
       {overlay === 'map' && <MapPanel />}

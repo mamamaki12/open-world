@@ -15,6 +15,7 @@ import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { mergeHouses } from '../building/join';
 import { useGame } from './store';
 import { useInteraction } from './interaction';
+import type { WorkRequest } from '../economy/requests';
 import type { Shop } from '../economy/shop';
 
 export const START_MONEY = 1_000_000;
@@ -51,6 +52,8 @@ export interface Lot {
   /** 隣の区画とつなげて1つの土地にしているとき、その東側の区画（plot は西側） */
   joined?: number;
   /** お店に指定していれば、その店（src/economy/shop.ts） */
+  /** 仕事の依頼（報酬は預かり中） */
+  requests?: WorkRequest[];
   shop?: Shop;
   /** みんなのワールドでの持ち主（ゲストID）。ひとりで遊ぶときは使わない */
   owner?: string;

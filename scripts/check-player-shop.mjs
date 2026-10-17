@@ -11,7 +11,7 @@ const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_C
 const errors = [];
 async function open(name) {
   const page = await (await browser.newContext({ viewport: { width: 900, height: 650 } })).newPage();
-  page.setDefaultTimeout(120000); page.on('pageerror', e => errors.push(e.message));
+  page.setDefaultTimeout(+(process.env.STEP_TIMEOUT || 120000)); page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://127.0.0.1:5173/?touch=0&relay=' + encodeURIComponent(relayURL)); await page.getByLabel('あなたの名前').fill(name);
   await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ tick: () => {} }));
   return page;
@@ -82,6 +82,20 @@ try {
   await buyer.waitForTimeout(2000);
   // 土地の前の看板が店の色（オレンジ）の看板になっている
   assert.ok(await buyer.evaluate(() => { let n = 0; window.__ow.scene.traverse(o => { const img = o.material?.map?.image; if (img instanceof HTMLCanvasElement && img.width === 512 && img.height === 288) { const [r, g, b] = img.getContext('2d').getImageData(30, 30, 1, 1).data; if (r === 196 && g === 86 && b === 29) n++; } }); return n; }) >= 1, 'shop signboard');
+  // 仕事の依頼：店主が報酬を預けて依頼 → お客が引き受け → 店主が完了で報酬がお客へ
+  await owner.evaluate(() => window.__ow.game.getState().setOverlay('requests'));
+  const req = owner.locator('.shop-form');
+  await req.locator('input[type=text]').nth(0).fill('お店の店番（1日）');
+  await req.locator('input[type=text]').nth(1).fill('50000');
+  const ownerHeld = await money(owner);
+  await owner.getByRole('button', { name: '報酬を預けて依頼する' }).click();
+  await owner.waitForFunction(m => window.__ow.economy.getState().money === m - 50000, ownerHeld);
+  const buyerBefore = await money(buyer);
+  await buyer.evaluate(() => window.__ow.game.getState().setOverlay('requests'));
+  await buyer.getByRole('button', { name: '引き受ける' }).click();
+  await owner.getByRole('button', { name: '完了（報酬を渡す）' }).click();
+  await buyer.waitForFunction(m => window.__ow.economy.getState().money === m + 50000, buyerBefore);
+  await buyer.screenshot({ path: out + '/request.png' });
   assert.deepEqual(errors, []);
   console.log('player shop: ok');
-} finally { await browser.close(); relay.close(); }
+} catch (e) { console.log("ERRORS", errors); await (await browser.contexts()[0].pages()[0]).screenshot({ path: out + "/fail.png" }); throw e; } finally { await browser.close(); relay.close(); }

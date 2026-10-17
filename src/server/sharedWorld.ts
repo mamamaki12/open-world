@@ -11,12 +11,15 @@ import type { Change } from '../session/edits';
 import type { Lot } from '../state/economy';
 import type { WorldSave } from '../session/saves';
 import { cleanShop, recordSale } from '../economy/shop';
+import { REQUEST_LIMITS, cleanRequests, requestError, stepRequest } from '../economy/requests';
+import type { RequestOp } from '../economy/requests';
 
 /** 建築以外の操作。家・土地の代金は買った人の口座から売り手の口座へ直接移る（新しい土地だけは不動産屋へ払う） */
 export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; price: number | null } | { type: 'buyLot' }
   | { type: 'offerRent'; rent: number | null } | { type: 'rentLot' } | { type: 'endLease' }
   | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] } | { type: 'stocks'; holdings: Record<string, unknown> }
-  | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number };
+  | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number }
+  | { type: 'request'; title: string; description: string; reward: number } | { type: 'requestStep'; request: string; op: RequestOp };
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
 /** みんなのワールドでの所持金と車。自分のワールドとは完全に別（引き継ぐのは見た目と服だけ） */
 export interface Account { name: string; money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, unknown> }
@@ -100,6 +103,7 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
   if (a.type === 'list') {
     if (lot.owner !== sender) return '自分の土地だけ売りに出せます';
     if (lot.construction) return '工事中は売りに出せません';
+    if (a.price !== null && cleanRequests(lot.requests).length) return '仕事の依頼が残っている間は売りに出せません';
     if (a.price !== null && !(Number.isSafeInteger(a.price) && a.price > 0 && a.price <= 1e13)) return '値段が不正です';
     const next = lots.map(l => l.id === lot.id ? { ...l, listing: a.price === null ? undefined : { price: a.price } } : l);
     return { world: withLots(next), cost: 0, message: a.price === null ? '売りに出すのをやめました' : '売りに出しました' };
@@ -151,6 +155,29 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     if (typeof received === 'string') return received;
     const next = received.economy.lots.map(l => l.id === lot.id ? { ...l, shop: sale.shop } : l);
     return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: sale.item.price, message: `「${sale.item.name}」を買いました` };
+  }
+  if (a.type === 'request') {
+    // 仕事を頼む・人を雇う。報酬はこの時点で依頼主の口座から預かる
+    if (lot.owner !== sender) return '自分の土地から依頼を出してください';
+    if (lot.listing) return '売りに出している土地からは依頼を出せません';
+    const list = cleanRequests(lot.requests);
+    if (list.length >= REQUEST_LIMITS.perLot) return `依頼は1つの土地に${REQUEST_LIMITS.perLot}件までです`;
+    const err = requestError(a);
+    if (err) return err;
+    if (!Number.isSafeInteger(c.reserved) || c.reserved < a.reward) return '報酬の預かりが足りません';
+    const req = cleanRequests([{ id: c.id, title: a.title, description: a.description, reward: a.reward, poster: sender, posterName: name, day: w.economy.day }])[0];
+    const held = charge(w, sender, a.reward, `依頼の報酬を預けた：${req.title}`);
+    if (typeof held === 'string') return held;
+    const next = held.economy.lots.map(l => l.id === lot.id ? { ...l, requests: [...list, req] } : l);
+    return { world: { ...held, economy: { ...held.economy, lots: next } }, cost: a.reward, message: `「${req.title}」を依頼しました（報酬は預かりました）` };
+  }
+  if (a.type === 'requestStep') {
+    const step = stepRequest(cleanRequests(lot.requests), String(a.request), a.op, sender, name);
+    if (typeof step === 'string') return step;
+    const paid = step.pay && w.accounts?.[step.pay.to] ? charge(w, step.pay.to, -step.pay.amount, step.pay.label) : w;
+    if (typeof paid === 'string') return paid;
+    const next = paid.economy.lots.map(l => l.id === lot.id ? { ...l, requests: step.list.length ? step.list : undefined } : l);
+    return { world: { ...paid, economy: { ...paid.economy, lots: next } }, cost: 0, message: step.message };
   }
   if (a.type === 'endLease') {
     if (!lot.tenant || (lot.tenant !== sender && lot.owner !== sender)) return '借りている家ではありません';

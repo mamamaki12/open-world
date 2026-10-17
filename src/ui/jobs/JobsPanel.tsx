@@ -94,6 +94,7 @@ function JobList({ onPick }: { onPick: (id: JobId) => void }) {
   return (
     <div className="job-list">
       <p className="muted">1シフト働くと、できた件数とミスの数で給料が決まります。</p>
+      <button className="btn" onClick={() => useGame.getState().setOverlay('requests')}>🤝 プレイヤーからの依頼を見る</button>
       {JOBS.map((j: JobDef) => (
         <button key={j.id} className="job-card" onClick={() => onPick(j.id)}>
           <span className="job-name">{j.name}</span>

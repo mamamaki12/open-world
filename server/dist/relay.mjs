@@ -3774,8 +3774,8 @@ var LOCATIONS = [
   { id: "station", name: "\u99C5\u8FD1", land: 25e6, factor: 1.15 },
   { id: "city", name: "\u90FD\u5FC3\u306E\u4E00\u7B49\u5730", land: 6e7, factor: 1.3 }
 ];
-function getLocation(id) {
-  return LOCATIONS.find((l) => l.id === id) ?? LOCATIONS[0];
+function getLocation(id2) {
+  return LOCATIONS.find((l) => l.id === id2) ?? LOCATIONS[0];
 }
 var TOWNS = ["\u685C\u53F0", "\u7DD1\u30F6\u4E18", "\u6E2F\u5357", "\u6771\u753A", "\u82E5\u8449", "\u65ED", "\u672C\u753A", "\u9752\u8449\u53F0", "\u661F\u5DDD", "\u5927\u548C\u7530", "\u5149\u304C\u4E18", "\u4E2D\u592E"];
 function landOffers(day, rng) {
@@ -8076,12 +8076,12 @@ var FURNITURE = furniture_default.types;
 var materialById = new Map(MATERIALS.map((m) => [m.id, m]));
 var openingById = new Map(OPENINGS.map((o) => [o.id, o]));
 var furnitureById = new Map(FURNITURE.map((f) => [f.id, f]));
-function getSashType(id) {
-  return SASH_TYPES.find((t) => t.id === id) ?? SASH_TYPES[0];
+function getSashType(id2) {
+  return SASH_TYPES.find((t) => t.id === id2) ?? SASH_TYPES[0];
 }
-function getOpening(id) {
-  const def = openingById.get(id);
-  if (!def) throw new Error(`unknown opening type: ${id}`);
+function getOpening(id2) {
+  const def = openingById.get(id2);
+  if (!def) throw new Error(`unknown opening type: ${id2}`);
   return def;
 }
 
@@ -8321,9 +8321,9 @@ var BOUTIQUE_D = 9;
 var BOUTIQUE_GAP = 2;
 var ROW_WEST = -90 - CIVIC_SITE.x;
 var BOUTIQUES = Object.fromEntries(
-  BOUTIQUE_IDS.map((id, i) => {
+  BOUTIQUE_IDS.map((id2, i) => {
     const x0 = ROW_WEST + i * (BOUTIQUE_W + BOUTIQUE_GAP);
-    return [id, { x0, x1: x0 + BOUTIQUE_W, z0: lotD + 9, z1: lotD + 9 + BOUTIQUE_D }];
+    return [id2, { x0, x1: x0 + BOUTIQUE_W, z0: lotD + 9, z1: lotD + 9 + BOUTIQUE_D }];
   })
 );
 var BOUTIQUE_DOOR = { width: 2.2, height: 2.6 };
@@ -8371,7 +8371,7 @@ var LANDMARK_COLLIDERS = [
   ...[-1, 1].map((side) => ({ x0: CASINO.door.x + side * 9 - 1.15, x1: CASINO.door.x + side * 9 + 1.15, z0: CASINO.z0 - 2.75, z1: CASINO.z0 - 0.45 })),
   { x0: ESTATE.x0, x1: ESTATE.x1, z0: ESTATE.z0, z1: ESTATE.z1 },
   { x0: CASINO.x0, x1: CASINO.x1, z0: CASINO.z0, z1: CASINO.z1 },
-  ...BOUTIQUE_IDS.map((id) => ({ ...BOUTIQUES[id] })),
+  ...BOUTIQUE_IDS.map((id2) => ({ ...BOUTIQUES[id2] })),
   ...CASINO_PLANTERS,
   ...CASINO_PILLARS.map((p) => ({ x0: p.x - PILLAR, x1: p.x + PILLAR, z0: p.z - PILLAR, z1: p.z + PILLAR }))
 ];
@@ -8404,7 +8404,7 @@ var DEPTH2 = 12;
 var EXCHANGE = { x0: TUNER.x0 - GAP3 - WIDTH3, x1: TUNER.x0 - GAP3, z0: TUNER.z0, z1: TUNER.z0 + DEPTH2, height: 7 };
 
 // src/building/venues.ts
-var boutiqueVenue = (id) => ({ ...BOUTIQUES[id], name: BOUTIQUE_INFO[id].name, floor: BOUTIQUE_INFO[id].floor, wall: BOUTIQUE_INFO[id].wall, trim: BOUTIQUE_INFO[id].trim });
+var boutiqueVenue = (id2) => ({ ...BOUTIQUES[id2], name: BOUTIQUE_INFO[id2].name, floor: BOUTIQUE_INFO[id2].floor, wall: BOUTIQUE_INFO[id2].wall, trim: BOUTIQUE_INFO[id2].trim });
 var VENUES = {
   casino: { ...CASINO, name: "GRAND STRIP CASINO", floor: "#b5a487", wall: "#352c30", trim: "#bda065" },
   estate: { ...ESTATE, name: "\u307E\u3061\u306E\u4E0D\u52D5\u7523", floor: "#d3c1a0", wall: "#f0eee5", trim: "#397e7c" },
@@ -8420,7 +8420,7 @@ var VENUE_ACTIONS = {
   casino: [{ id: "slots", label: "\u30B9\u30ED\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: -3.2, game: "slots" }, { id: "roulette", label: "\u30EB\u30FC\u30EC\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: 2.6, game: "roulette" }, { id: "highlow", label: "\u30CF\u30A4\uFF06\u30ED\u30FC\u3067\u904A\u3076", x: 6, z: 2.6, game: "highlow" }, { id: "horse", label: "\u7AF6\u99AC\u3067\u904A\u3076", x: 4, z: -3.2, game: "horse" }, { id: "keirin", label: "\u7AF6\u8F2A\u3067\u904A\u3076", x: 6, z: -3.2, game: "keirin" }, { id: "boat", label: "\u30DC\u30FC\u30C8\u30EC\u30FC\u30B9\u3067\u904A\u3076", x: 8, z: -3.2, game: "boat" }, { id: "lobby", label: "\u30B2\u30FC\u30E0\u4E00\u89A7\u3092\u898B\u308B", x: 0, z: 2.7 }],
   estate: [{ id: "land", label: "\u571F\u5730\u3092\u898B\u308B", x: 0, z: 0.5 }],
   exchange: [{ id: "trade", label: "\u682A\u3092\u58F2\u8CB7\u3059\u308B", x: 0, z: 0.6 }],
-  ...Object.fromEntries(BOUTIQUE_IDS.map((id) => [id, BOUTIQUE_ACTIONS])),
+  ...Object.fromEntries(BOUTIQUE_IDS.map((id2) => [id2, BOUTIQUE_ACTIONS])),
   tuner: [
     { id: "custom", label: "\u30AB\u30B9\u30BF\u30E0\u306E\u76F8\u8AC7\u3092\u3059\u308B", x: 0, z: 3.2, tab: "paint" },
     { id: "paint", label: "\u5857\u88C5\u30FB\u30C7\u30B6\u30A4\u30F3\u3092\u9078\u3076", x: -5.5, z: 3.7, tab: "paint" },
@@ -8438,7 +8438,7 @@ var VENUE_DOORS = {
   dealer: { x: (DEALER.x0 + DEALER.x1) / 2, width: 2.2, height: 2.6 },
   tuner: { x: (TUNER.x0 + TUNER.x1) / 2, width: 2.2, height: 2.6 },
   exchange: { x: (EXCHANGE.x0 + EXCHANGE.x1) / 2, width: 2.2, height: 2.8 },
-  ...Object.fromEntries(BOUTIQUE_IDS.map((id) => [id, { x: (BOUTIQUES[id].x0 + BOUTIQUES[id].x1) / 2, ...BOUTIQUE_DOOR }]))
+  ...Object.fromEntries(BOUTIQUE_IDS.map((id2) => [id2, { x: (BOUTIQUES[id2].x0 + BOUTIQUES[id2].x1) / 2, ...BOUTIQUE_DOOR }]))
 };
 
 // src/economy/neighborhood.ts
@@ -8457,7 +8457,7 @@ function plotCenter(plot) {
   return { x: plotX(plot) + LOT_W * GRID / 2, z: plotZ(plot) + LOT_D * GRID / 2 };
 }
 var FIXED_BUILDINGS = [
-  ...Object.entries(TOWN_HOUSE_PLOTS).map(([p, id]) => ({ ...plotCenter(Number(p)), weight: TOWN_HOUSE_WEIGHT[id] ?? 1 })),
+  ...Object.entries(TOWN_HOUSE_PLOTS).map(([p, id2]) => ({ ...plotCenter(Number(p)), weight: TOWN_HOUSE_WEIGHT[id2] ?? 1 })),
   ...VENUE_KINDS.map((v) => {
     const b = VENUES[v];
     return { x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, weight: VENUE_WEIGHT(v) };
@@ -8632,7 +8632,7 @@ var STRUCTURE = {
   /** 階段1つの踏み板・蹴込み板の面積（m²）。木部の素材の単価をかける */
   stairFinishArea: 5
 };
-var materialPrice = (id) => MATERIAL_PRICE[id] ?? 8e3;
+var materialPrice = (id2) => MATERIAL_PRICE[id2] ?? 8e3;
 var openingPrice = (type) => OPENING_PRICE[type] ?? 8e4;
 var furniturePrice = (type) => FURNITURE_PRICE[type] ?? 5e4;
 function partCosts(house) {
@@ -8820,12 +8820,63 @@ function recordSale(shop, sale) {
   return { item, shop: { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + item.price } };
 }
 
+// src/economy/requests.ts
+var REQUEST_LIMITS = { perLot: 6, title: 30, description: 200, reward: 1e10 };
+var str2 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+var id = (v) => typeof v === "string" && v.length > 0 && v.length <= 100 ? v : "";
+function cleanRequests(v) {
+  return (Array.isArray(v) ? v : []).slice(0, REQUEST_LIMITS.perLot).flatMap((r) => {
+    if (!r || typeof r !== "object") return [];
+    const title = str2(r.title, REQUEST_LIMITS.title), poster = id(r.poster);
+    if (!id(r.id) || !title || !poster || !Number.isSafeInteger(r.reward) || r.reward < 1 || !Number.isSafeInteger(r.day)) return [];
+    const worker = id(r.worker);
+    return [{
+      id: r.id,
+      title,
+      description: str2(r.description, REQUEST_LIMITS.description),
+      reward: r.reward,
+      poster,
+      posterName: str2(r.posterName, 24) || "\u3060\u308C\u304B",
+      day: r.day,
+      ...worker ? { worker, workerName: str2(r.workerName, 24) || "\u3060\u308C\u304B" } : {}
+    }];
+  });
+}
+function requestError(r) {
+  if (!str2(r.title, REQUEST_LIMITS.title)) return "\u4F9D\u983C\u306E\u540D\u524D\u3092\u5165\u308C\u3066\u304F\u3060\u3055\u3044";
+  if (!Number.isSafeInteger(r.reward) || r.reward < 1) return "\u5831\u916C\u306F1\u5186\u4EE5\u4E0A\u306E\u6574\u6570\u306B\u3057\u3066\u304F\u3060\u3055\u3044";
+  if (r.reward > REQUEST_LIMITS.reward) return "\u5831\u916C\u304C\u9AD8\u3059\u304E\u307E\u3059\uFF08100\u5104\u5186\u307E\u3067\uFF09";
+  return null;
+}
+function stepRequest(list, reqId, op, who, name) {
+  const r = list.find((x) => x.id === reqId);
+  if (!r) return "\u305D\u306E\u4F9D\u983C\u306F\u3082\u3046\u3042\u308A\u307E\u305B\u3093";
+  const rest = list.filter((x) => x.id !== reqId);
+  if (op === "take") {
+    if (r.poster === who) return "\u81EA\u5206\u306E\u4F9D\u983C\u306F\u5F15\u304D\u53D7\u3051\u3089\u308C\u307E\u305B\u3093";
+    if (r.worker) return "\u3082\u3046\u307B\u304B\u306E\u4EBA\u304C\u5F15\u304D\u53D7\u3051\u3066\u3044\u307E\u3059";
+    return { list: list.map((x) => x.id === reqId ? { ...x, worker: who, workerName: str2(name, 24) || "\u3060\u308C\u304B" } : x), message: `\u300C${r.title}\u300D\u3092\u5F15\u304D\u53D7\u3051\u307E\u3057\u305F` };
+  }
+  if (op === "quit") {
+    if (r.worker !== who) return "\u5F15\u304D\u53D7\u3051\u3066\u3044\u308B\u4F9D\u983C\u3067\u306F\u3042\u308A\u307E\u305B\u3093";
+    const { worker: _w, workerName: _n, ...open2 } = r;
+    return { list: list.map((x) => x.id === reqId ? open2 : x), message: `\u300C${r.title}\u300D\u3092\u3084\u3081\u307E\u3057\u305F` };
+  }
+  if (r.poster !== who) return "\u4F9D\u983C\u3057\u305F\u4EBA\u3060\u3051\u304C\u3067\u304D\u307E\u3059";
+  if (op === "done") {
+    if (!r.worker) return "\u307E\u3060\u3060\u308C\u3082\u5F15\u304D\u53D7\u3051\u3066\u3044\u307E\u305B\u3093";
+    return { list: rest, pay: { to: r.worker, amount: r.reward, label: `\u4F9D\u983C\u306E\u5831\u916C\uFF1A${r.title}\uFF08${r.posterName}\u3055\u3093\uFF09` }, message: `${r.workerName}\u3055\u3093\u306B\u5831\u916C\u3092\u6E21\u3057\u307E\u3057\u305F` };
+  }
+  if (r.worker) return "\u5F15\u304D\u53D7\u3051\u305F\u4EBA\u304C\u3044\u308B\u9593\u306F\u53D6\u308A\u4E0B\u3052\u3089\u308C\u307E\u305B\u3093\uFF08\u5B8C\u4E86\u3092\u78BA\u8A8D\u3059\u308B\u304B\u3001\u76F8\u624B\u306B\u3084\u3081\u3066\u3082\u3089\u3063\u3066\u304F\u3060\u3055\u3044\uFF09";
+  return { list: rest, pay: { to: r.poster, amount: r.reward, label: `\u4F9D\u983C\u306E\u53D6\u308A\u4E0B\u3052\uFF1A${r.title}` }, message: "\u4F9D\u983C\u3092\u53D6\u308A\u4E0B\u3052\u307E\u3057\u305F\uFF08\u5831\u916C\u306F\u623B\u308A\u307E\u3057\u305F\uFF09" };
+}
+
 // src/server/sharedWorld.ts
 var SHARED_START_MONEY = 1e6;
 var SHARED_LIMIT = 10;
-function initialSharedWorld(id) {
+function initialSharedWorld(id2) {
   const w = {
-    worldId: id,
+    worldId: id2,
     doors: {},
     receipts: {},
     accounts: {},
@@ -8835,17 +8886,17 @@ function initialSharedWorld(id) {
   w.economy.offers = sharedOffers(w, Math.random);
   return w;
 }
-function withAccount(w, id, name) {
-  const a = w.accounts?.[id];
+function withAccount(w, id2, name) {
+  const a = w.accounts?.[id2];
   if (a && a.name === name) return w;
-  return { ...w, accounts: { ...w.accounts, [id]: a ? { ...a, name } : { name, money: SHARED_START_MONEY, ledger: [{ day: w.economy.day, label: "\u306F\u3058\u3081\u306E\u6240\u6301\u91D1", amount: SHARED_START_MONEY }], cars: [] } } };
+  return { ...w, accounts: { ...w.accounts, [id2]: a ? { ...a, name } : { name, money: SHARED_START_MONEY, ledger: [{ day: w.economy.day, label: "\u306F\u3058\u3081\u306E\u6240\u6301\u91D1", amount: SHARED_START_MONEY }], cars: [] } } };
 }
-function charge(w, id, amount, label) {
-  const a = w.accounts?.[id];
+function charge(w, id2, amount, label) {
+  const a = w.accounts?.[id2];
   if (!a) return "\u53E3\u5EA7\u304C\u3042\u308A\u307E\u305B\u3093";
   if (amount > 0 && a.money < amount) return "\u304A\u91D1\u304C\u8DB3\u308A\u307E\u305B\u3093";
   if (!amount) return w;
-  return { ...w, accounts: { ...w.accounts, [id]: { ...a, money: a.money - amount, ledger: [{ day: w.economy.day, label, amount: -amount }, ...a.ledger].slice(0, 50) } } };
+  return { ...w, accounts: { ...w.accounts, [id2]: { ...a, money: a.money - amount, ledger: [{ day: w.economy.day, label, amount: -amount }, ...a.ledger].slice(0, 50) } } };
 }
 function publicWorld(w) {
   const { accounts: _hidden, ...rest } = w;
@@ -8911,6 +8962,7 @@ function applyAction(w, sender, name, c, a) {
   if (a.type === "list") {
     if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u3060\u3051\u58F2\u308A\u306B\u51FA\u305B\u307E\u3059";
     if (lot.construction) return "\u5DE5\u4E8B\u4E2D\u306F\u58F2\u308A\u306B\u51FA\u305B\u307E\u305B\u3093";
+    if (a.price !== null && cleanRequests(lot.requests).length) return "\u4ED5\u4E8B\u306E\u4F9D\u983C\u304C\u6B8B\u3063\u3066\u3044\u308B\u9593\u306F\u58F2\u308A\u306B\u51FA\u305B\u307E\u305B\u3093";
     if (a.price !== null && !(Number.isSafeInteger(a.price) && a.price > 0 && a.price <= 1e13)) return "\u5024\u6BB5\u304C\u4E0D\u6B63\u3067\u3059";
     const next2 = lots.map((l) => l.id === lot.id ? { ...l, listing: a.price === null ? void 0 : { price: a.price } } : l);
     return { world: withLots(next2), cost: 0, message: a.price === null ? "\u58F2\u308A\u306B\u51FA\u3059\u306E\u3092\u3084\u3081\u307E\u3057\u305F" : "\u58F2\u308A\u306B\u51FA\u3057\u307E\u3057\u305F" };
@@ -8960,6 +9012,28 @@ function applyAction(w, sender, name, c, a) {
     const next2 = received2.economy.lots.map((l) => l.id === lot.id ? { ...l, shop: sale.shop } : l);
     return { world: { ...received2, economy: { ...received2.economy, lots: next2 } }, cost: sale.item.price, message: `\u300C${sale.item.name}\u300D\u3092\u8CB7\u3044\u307E\u3057\u305F` };
   }
+  if (a.type === "request") {
+    if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u304B\u3089\u4F9D\u983C\u3092\u51FA\u3057\u3066\u304F\u3060\u3055\u3044";
+    if (lot.listing) return "\u58F2\u308A\u306B\u51FA\u3057\u3066\u3044\u308B\u571F\u5730\u304B\u3089\u306F\u4F9D\u983C\u3092\u51FA\u305B\u307E\u305B\u3093";
+    const list = cleanRequests(lot.requests);
+    if (list.length >= REQUEST_LIMITS.perLot) return `\u4F9D\u983C\u306F1\u3064\u306E\u571F\u5730\u306B${REQUEST_LIMITS.perLot}\u4EF6\u307E\u3067\u3067\u3059`;
+    const err = requestError(a);
+    if (err) return err;
+    if (!Number.isSafeInteger(c.reserved) || c.reserved < a.reward) return "\u5831\u916C\u306E\u9810\u304B\u308A\u304C\u8DB3\u308A\u307E\u305B\u3093";
+    const req = cleanRequests([{ id: c.id, title: a.title, description: a.description, reward: a.reward, poster: sender, posterName: name, day: w.economy.day }])[0];
+    const held = charge(w, sender, a.reward, `\u4F9D\u983C\u306E\u5831\u916C\u3092\u9810\u3051\u305F\uFF1A${req.title}`);
+    if (typeof held === "string") return held;
+    const next2 = held.economy.lots.map((l) => l.id === lot.id ? { ...l, requests: [...list, req] } : l);
+    return { world: { ...held, economy: { ...held.economy, lots: next2 } }, cost: a.reward, message: `\u300C${req.title}\u300D\u3092\u4F9D\u983C\u3057\u307E\u3057\u305F\uFF08\u5831\u916C\u306F\u9810\u304B\u308A\u307E\u3057\u305F\uFF09` };
+  }
+  if (a.type === "requestStep") {
+    const step = stepRequest(cleanRequests(lot.requests), String(a.request), a.op, sender, name);
+    if (typeof step === "string") return step;
+    const paid2 = step.pay && w.accounts?.[step.pay.to] ? charge(w, step.pay.to, -step.pay.amount, step.pay.label) : w;
+    if (typeof paid2 === "string") return paid2;
+    const next2 = paid2.economy.lots.map((l) => l.id === lot.id ? { ...l, requests: step.list.length ? step.list : void 0 } : l);
+    return { world: { ...paid2, economy: { ...paid2.economy, lots: next2 } }, cost: 0, message: step.message };
+  }
   if (a.type === "endLease") {
     if (!lot.tenant || lot.tenant !== sender && lot.owner !== sender) return "\u501F\u308A\u3066\u3044\u308B\u5BB6\u3067\u306F\u3042\u308A\u307E\u305B\u3093";
     const next2 = lots.map((l) => l.id === lot.id ? { ...l, tenant: void 0, tenantName: void 0 } : l);
@@ -8979,15 +9053,15 @@ function applyAction(w, sender, name, c, a) {
 function canBuildOn(lot, member) {
   return !lot.owner || lot.owner === member;
 }
-function houseOf(w, id) {
-  const l = w.economy.lots.find((l2) => l2.id === id);
-  return !l ? null : id === w.economy.currentLotId ? w.house : l.design ?? l.built ?? emptyHouse();
+function houseOf(w, id2) {
+  const l = w.economy.lots.find((l2) => l2.id === id2);
+  return !l ? null : id2 === w.economy.currentLotId ? w.house : l.design ?? l.built ?? emptyHouse();
 }
-function withHouse(w, id, house) {
+function withHouse(w, id2, house) {
   return {
     ...w,
-    house: id === w.economy.currentLotId ? house : w.house,
-    economy: { ...w.economy, lots: w.economy.lots.map((l) => l.id === id ? { ...l, built: house, design: null, construction: null } : l) }
+    house: id2 === w.economy.currentLotId ? house : w.house,
+    economy: { ...w.economy, lots: w.economy.lots.map((l) => l.id === id2 ? { ...l, built: house, design: null, construction: null } : l) }
   };
 }
 function applyCommand(w, sender, c, name = "\u30B2\u30B9\u30C8") {
@@ -9033,7 +9107,7 @@ function applyCommand(w, sender, c, name = "\u30B2\u30B9\u30C8") {
     const nextReceipts = { ...receipts, [c.id]: { sender, cost, delta: c.delta } };
     if (c.undoOf) nextReceipts[c.undoOf] = { ...undo, undone: true };
     const ids = Object.keys(nextReceipts);
-    for (const id of ids.slice(0, -800)) if (nextReceipts[id].delta) nextReceipts[id] = { ...nextReceipts[id], delta: void 0 };
+    for (const id2 of ids.slice(0, -800)) if (nextReceipts[id2].delta) nextReceipts[id2] = { ...nextReceipts[id2], delta: void 0 };
     const world = { ...withHouse(charged, c.lot, next), receipts: nextReceipts };
     if (JSON.stringify(world).length > 18e5) return fail("\u30EF\u30FC\u30EB\u30C9\u306E\u4FDD\u5B58\u91CF\u304C\u4E0A\u9650\u306B\u9054\u3057\u305F\u305F\u3081\u3001\u3053\u306E\u5909\u66F4\u3092\u78BA\u5B9A\u3067\u304D\u307E\u305B\u3093");
     return { world, result: { id: c.id, ok: true, cost }, changed: true };
@@ -9160,27 +9234,27 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
         if (++count > 60 || bytes > 6 * 1024 * 1024) return socket.close(1008, "rate limit");
         const data = JSON.parse(raw.toString());
         if (!member) {
-          const id = data.id, name = data.name;
-          if (typeof id !== "string" || id.length > 100 || typeof name !== "string" || !name.length || name.length > 24) throw Error("\u53C2\u52A0\u8005\u60C5\u5831\u304C\u4E0D\u6B63\u3067\u3059");
-          if (data.type !== "resume" && identities.has(id)) throw Error("\u3053\u306E\u30B2\u30B9\u30C8\u306F\u3059\u3067\u306B\u5225\u306E\u30BF\u30D6\u3067\u53C2\u52A0\u3057\u3066\u3044\u307E\u3059");
+          const id2 = data.id, name = data.name;
+          if (typeof id2 !== "string" || id2.length > 100 || typeof name !== "string" || !name.length || name.length > 24) throw Error("\u53C2\u52A0\u8005\u60C5\u5831\u304C\u4E0D\u6B63\u3067\u3059");
+          if (data.type !== "resume" && identities.has(id2)) throw Error("\u3053\u306E\u30B2\u30B9\u30C8\u306F\u3059\u3067\u306B\u5225\u306E\u30BF\u30D6\u3067\u53C2\u52A0\u3057\u3066\u3044\u307E\u3059");
           if (data.type === "shared") {
             if (!shared.world) throw Error("\u30EF\u30FC\u30EB\u30C9\u3092\u6E96\u5099\u3057\u3066\u3044\u307E\u3059\u3002\u5C11\u3057\u5F85\u3063\u3066\u304B\u3089\u3084\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044");
-            const prev = shared.members.get(id);
+            const prev = shared.members.get(id2);
             if (prev?.socket) throw Error("\u3053\u306E\u30B2\u30B9\u30C8\u306F\u3059\u3067\u306B\u5225\u306E\u30BF\u30D6\u3067\u53C2\u52A0\u3057\u3066\u3044\u307E\u3059");
             if (!prev && [...shared.members.values()].filter((m) => m.socket).length >= SHARED_LIMIT) throw Error(`\u307F\u3093\u306A\u306E\u30EF\u30FC\u30EB\u30C9\u306F${SHARED_LIMIT}\u4EBA\u307E\u3067\u3067\u3059`);
-            member = prev ?? { id, shared: true };
+            member = prev ?? { id: id2, shared: true };
             member.name = name;
             member.socket = socket;
-            shared.members.set(id, member);
+            shared.members.set(id2, member);
             clearTimeout(handshake);
-            const joined = withAccount(shared.world, id, name);
+            const joined = withAccount(shared.world, id2, name);
             if (joined !== shared.world) {
               shared.world = joined;
               enqueue(() => saveWorld(worldFile, shared.world).catch((e) => console.error("save failed", e)));
             }
             send(socket, { type: "welcome", code: "SHARED", token: randomUUID(), host: "", canBuild: true, shared: true });
             send(socket, { type: "world", world: publicWorld(shared.world) });
-            send(socket, { type: "account", account: shared.world.accounts[id] });
+            send(socket, { type: "account", account: shared.world.accounts[id2] });
             sharedRoster();
             return;
           }
@@ -9189,14 +9263,14 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
             do {
               code = randomBytes(4).toString("hex").toUpperCase();
             } while (rooms.has(code));
-            room = { host: id, members: /* @__PURE__ */ new Map(), world: null, timer: null };
+            room = { host: id2, members: /* @__PURE__ */ new Map(), world: null, timer: null };
             rooms.set(code, room);
           } else {
             code = String(data.code).toUpperCase();
             room = rooms.get(code);
             if (!room) throw Error("\u90E8\u5C4B\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093");
           }
-          const previous = room.members.get(id);
+          const previous = room.members.get(id2);
           if (data.type === "resume") {
             if (!previous || previous.token !== data.token || previous.socket) throw Error("\u518D\u63A5\u7D9A\u3067\u304D\u307E\u305B\u3093");
             member = previous;
@@ -9205,20 +9279,20 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
             if (previous) throw Error("\u3053\u306E\u30B2\u30B9\u30C8\u306F\u3059\u3067\u306B\u53C2\u52A0\u3057\u3066\u3044\u307E\u3059");
             if (room.members.size >= 4) throw Error("\u53C2\u52A0\u3067\u304D\u308B\u306E\u306F4\u4EBA\u307E\u3067\u3067\u3059");
             if (data.type === "join" && !room.members.get(room.host)?.socket) throw Error("\u30DB\u30B9\u30C8\u306E\u518D\u63A5\u7D9A\u3092\u5F85\u3063\u3066\u3044\u307E\u3059");
-            member = { id, name, token: randomUUID(), socket: null, canBuild: id === room.host };
-            room.members.set(id, member);
-            identities.set(id, code);
+            member = { id: id2, name, token: randomUUID(), socket: null, canBuild: id2 === room.host };
+            room.members.set(id2, member);
+            identities.set(id2, code);
           }
           clearTimeout(handshake);
           member.socket = socket;
-          if (id === room.host) {
+          if (id2 === room.host) {
             clearTimeout(room.timer);
             room.timer = null;
           }
           send(socket, { type: "welcome", code, token: member.token, host: room.host, canBuild: member.canBuild });
           if (room.world) send(socket, { type: "world", world: room.world });
           roster(room);
-          if (id === room.host) broadcast(room, { type: "resumed" });
+          if (id2 === room.host) broadcast(room, { type: "resumed" });
           return;
         }
         if (member.shared) {
