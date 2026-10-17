@@ -36,7 +36,7 @@ export const homeHoldings = (): Record<string, Holding> => load(KEY, {});
 export function buyStock(symbol: string, name: string, amount: number): string | null {
   const unit = unitYen(symbol, useStocks.getState().quotes);
   if (!unit) return '値段がまだ読めていません';
-  if (!(amount >= 1)) return '金額を入れてください';
+  if (!Number.isFinite(amount) || !(amount >= 1)) return '金額を入れてください';
   const units = unitsFor(amount, unit);
   if (units <= 0) return '金額が少なすぎます';
   const cost = units * unit;
@@ -50,10 +50,14 @@ export function sellStock(symbol: string, name: string, units: number): string |
   const unit = unitYen(symbol, useStocks.getState().quotes), h = useStocks.getState().holdings[symbol];
   if (!unit) return '値段がまだ読めていません';
   if (!h || h.units <= 0) return '持っていません';
-  const n = Math.min(units, h.units);
-  if (!(n > 0)) return '口数を入れてください';
+  if (!Number.isFinite(units) || !(units > 0)) return '口数を入れてください';
+  // 保有と売却を同じ最小単位で精算する。支払い後の丸めで口数が戻るのを防ぐ。
+  const held = Math.round(h.units * 10000);
+  const sold = Math.min(Math.floor(units * 10000 + 1e-8), held);
+  if (sold <= 0) return '0.0001口以上で入力してください';
+  const n = sold / 10000;
   useEconomy.getState().receive(Math.round(n * unit), `株の売却（${name}）`);
-  const rest = +(h.units - n).toFixed(4), next = { ...useStocks.getState().holdings };
+  const rest = (held - sold) / 10000, next = { ...useStocks.getState().holdings };
   if (rest <= 0) delete next[symbol]; else next[symbol] = { units: rest, cost: h.cost - soldCost(h, n) };
   setHoldings(next);
   return null;

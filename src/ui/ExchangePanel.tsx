@@ -56,7 +56,7 @@ export function ExchangePanel() {
             <div><label>買う金額（円）<input type="number" inputMode="numeric" min={1} value={amount} onChange={e => setAmount(e.target.value)} /></label>
               <div className="ex-quick">{[10000, 100000, 1000000].map(v => <button key={v} className="btn" onClick={() => setAmount(String(v))}>{v / 10000}万</button>)}<button className="btn" onClick={() => setAmount(String(Math.floor(money)))}>全額</button></div>
               <button className="btn primary" disabled={!unit} onClick={() => act(buyStock(sym, inst.name, Number(amount)), `${inst.name} を ${yen(Number(amount))} ぶん買いました`)}>買う{unit && Number(amount) > 0 ? `（約${fmt(Number(amount) / unit, 4)}口）` : ''}</button></div>
-            <div><label>売る口数（保有 {h ? fmt(h.units, 4) : 0}口）<input type="number" inputMode="decimal" min={0} step="any" value={units} onChange={e => setUnits(e.target.value)} /></label>
+            <div><label>売る口数（保有 {h ? fmt(h.units, 4) : 0}口・0.0001口単位）<input type="number" inputMode="decimal" min={0.0001} step={0.0001} value={units} onChange={e => setUnits(e.target.value)} /></label>
               <div className="ex-quick"><button className="btn" disabled={!h} onClick={() => setUnits(String(+(h!.units / 2).toFixed(4)))}>半分</button><button className="btn" disabled={!h} onClick={() => setUnits(String(h!.units))}>全部</button></div>
               <button className="btn" disabled={!h || !unit} onClick={() => { act(sellStock(sym, inst.name, Number(units)), `${inst.name} を ${fmt(Number(units), 4)}口 売りました`); setUnits(''); }}>売る{unit && Number(units) > 0 ? `（約${yen(Math.min(Number(units), h?.units ?? 0) * unit)}）` : ''}</button></div>
           </div>
