@@ -1,4 +1,4 @@
-import { getOpening } from '../catalog';
+import { furnitureDef, getOpening } from '../catalog';
 import { furnitureBaseY, wallDir } from './rules';
 import { GRID } from './dimensions';
 import type { House } from './types';
@@ -6,15 +6,17 @@ import type { House } from './types';
 export function nearestSeat(house: House, x: number, y: number, z: number, isOpen: (id: string) => boolean = () => false) {
   let best: { id: string; x: number; y: number; z: number; yaw: number; height: number; distance: number } | null = null;
   for (const f of house.furniture) {
-    if (f.type !== 'sofa' && f.type !== 'chair') continue;
+    const seat = f.type === 'sofa' || f.type === 'chair' ? null : furnitureDef(f).seat;
+    if (f.type !== 'sofa' && f.type !== 'chair' && !seat) continue;
     const base = furnitureBaseY(house, f);
     if (Math.abs(base - y) > 0.35) continue;
     const a = f.rotation * Math.PI / 180;
     const c = Math.cos(a), s = Math.sin(a);
     const localX = (x - f.x) * c - (z - f.z) * s;
     const offset = f.type === 'sofa' ? Math.max(-0.6, Math.min(0.6, localX)) : 0;
-    const sx = f.x + offset * c + (f.type === 'sofa' ? 0.08 : 0) * s;
-    const sz = f.z - offset * s + (f.type === 'sofa' ? 0.08 : 0) * c;
+    const forward = seat ? seat.z : f.type === 'sofa' ? 0.08 : 0;
+    const sx = f.x + offset * c + forward * s;
+    const sz = f.z - offset * s + forward * c;
     const distance = Math.hypot(x - sx, z - sz);
     if (distance > 1.5 || (best && distance >= best.distance)) continue;
     // 壁越し・別の部屋の家具には座れない。開いたドアだけは通せる。
@@ -31,7 +33,7 @@ export function nearestSeat(house: House, x: number, y: number, z: number, isOpe
       if (along < 0 || along > length) return false;
       return !house.openings.some((o) => o.wallId === w.id && o.kind === 'door' && isOpen(o.id) && Math.abs(along - o.offset) < getOpening(o.type).width / 2);
     });
-    if (!blocked) best = { id: f.id, x: sx, y: base, z: sz, yaw: a + Math.PI, height: f.type === 'sofa' ? 0.43 : 0.45, distance };
+    if (!blocked) best = { id: f.id, x: sx, y: base, z: sz, yaw: a + Math.PI, height: seat ? seat.height : f.type === 'sofa' ? 0.43 : 0.45, distance };
   }
   return best;
 }

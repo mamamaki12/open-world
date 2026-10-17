@@ -15,9 +15,13 @@ import { WalkHud } from './WalkHud';
 import { DealerPanel } from './DealerPanel';
 import { BoutiquePanel } from './BoutiquePanel';
 import { TunerPanel } from './TunerPanel';
+import { ExchangePanel } from './ExchangePanel';
 import { LooksPanel } from './LooksPanel';
 import { useLooks } from '../state/looks';
 import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
+import { ShopPanel } from './ShopPanel';
+import { RequestsPanel } from './RequestsPanel';
+import { ArcadePanel } from './ArcadePanel';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
 import { MapPanel } from './MapPanel';
@@ -31,6 +35,7 @@ import { useTouchDevice } from './useTouchDevice';
 import { walkActions } from '../state/touch';
 import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
 import { reloadLatest } from './reload';
+import { FurnitureDesigner } from './FurnitureDesigner';
 import { leaveWorld, useSession } from '../session/session';
 import { downloadBackup } from '../session/saves';
 
@@ -94,16 +99,21 @@ export function App() {
       {overlay === 'inventory' && <InventoryPanel />}
       {overlay === 'dealer' && <DealerPanel />}
       {overlay === 'tuner' && <TunerPanel />}
+      {overlay === 'exchange' && <ExchangePanel />}
       {overlay === 'boutique' && <BoutiquePanel />}
       {overlay === 'closet' && <BoutiquePanel closetOnly />}
       {overlay === 'looks' && <LooksPanel mode="create" />}
       {overlay === 'looks-edit' && <LooksPanel mode="edit" />}
       {overlay === 'salon' && <LooksPanel mode="salon" />}
       {overlay === 'land' && <LandPurchasePanel />}
+      {overlay === 'shop' && <ShopPanel />}
+      {overlay === 'requests' && <RequestsPanel />}
+      {overlay === 'arcade' && <ArcadePanel />}
       {overlay === 'estate' && <EstatePanel />}
       {overlay === 'casino' && <CasinoPanel />}
       {overlay === 'map' && <MapPanel />}
       {overlay === 'jobs' && <JobsPanel />}
+      <FurnitureDesigner />
       <Toast />
     </div>
   );

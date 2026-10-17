@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WebSocket } from 'ws';
-import { createRelay } from './relay.mjs';
+import { createRelay } from './dist/relay.mjs';
 async function client(url) {
   const socket = new WebSocket(url), queue = [], waiters = [];
   socket.on('message', raw => { const data = JSON.parse(raw.toString()); queue.push(data); waiters.splice(0).forEach(w => w()); });
@@ -27,6 +27,8 @@ test('room permissions, sender identity, isolated routing and world resume', asy
     while (!(await guest.next('members')).members.find(x => x.id === 'guest').canBuild) {}
     guest.send({ type: 'command', command: { id: 'y' }, sender: 'host' }); assert.equal((await host.next('command')).sender, 'guest');
     host.send({ type: 'world', world: { sample: 1 } }); assert.deepEqual((await guest.next('world')).world, { sample: 1 });
+    guest.send({ type: 'trade', target: 'host', trade: { kind: 'offer', id: 't' }, sender: 'x' });
+    const traded = await host.next('trade'); assert.equal(traded.sender, 'guest'); assert.equal(traded.trade.id, 't');
     host.socket.close(); await guest.next('paused');
     const resumed = await client(url); resumed.send({ type: 'resume', id: 'host', name: 'ホスト', code: room.code, token: room.token });
     await resumed.next('welcome'); assert.deepEqual((await resumed.next('world')).world, { sample: 1 }); await guest.next('resumed');
@@ -57,5 +59,40 @@ test('leaving and rejoining is not removed by the previous connection cleanup', 
     assert.equal((await host.next('command')).command.id, 'after-rejoin');
     const duplicate = await client(url); duplicate.send({ type: 'create', id: 'guest', name: 'guest' });
     await duplicate.next('error');
+  } finally { relay.close(); }
+});
+test('shared world: everyone builds in one town, limit, settle and restart persistence', async () => {
+  const { mkdtemp, readFile } = await import('node:fs/promises'), { tmpdir } = await import('node:os'), { join } = await import('node:path');
+  const worldFile = join(await mkdtemp(join(tmpdir(), 'shared-')), 'world.json');
+  const start = async () => { const r = createRelay({ graceMs: 100, worldFile }); await r.ready; await new Promise(res => r.http.listen(0, '127.0.0.1', res)); return [r, 'ws://127.0.0.1:' + r.http.address().port]; };
+  let [relay, url] = await start();
+  const floor = { id: 'f-test', level: 0, x0: 20, z0: 16, x1: 22, z1: 18, finish: { material: 'flooring', color: '#c8a27a' } };
+  try {
+    const a = await client(url); a.send({ type: 'shared', id: 'a', name: 'A' });
+    assert.equal((await a.next('welcome')).canBuild, true); const first = await a.next('world');
+    const b = await client(url); b.send({ type: 'shared', id: 'b', name: 'B' }); await b.next('welcome'); await b.next('world');
+    const dup = await client(url); dup.send({ type: 'shared', id: 'b', name: 'B' }); assert.match((await dup.next('error')).message, /別のタブ/);
+    assert.equal(first.world.economy.lots.length, 0); assert.equal(first.world.accounts, undefined);
+    assert.equal((await a.next('account')).account.money, 1000000);
+    a.send({ type: 'command', command: { id: 'm1', lot: '', delta: [], reserved: 0, action: { type: 'money', delta: 1e8, label: 'test' } } });
+    assert.equal((await a.next('result')).result.ok, true); await a.next('account');
+    a.send({ type: 'command', command: { id: 'l1', lot: '', delta: [], reserved: 1e9, action: { type: 'buyLand', offer: first.world.economy.offers[0].id } } });
+    assert.equal((await a.next('result')).result.ok, true);
+    const lot = (await b.next('world')).world.economy.lots[0];
+    assert.equal(lot.owner, 'a'); assert.ok((await a.next('account')).account.money < 1e8);
+    a.send({ type: 'command', command: { id: 'c1', lot: lot.id, reserved: 1e9, delta: [{ kind: 'floors', id: 'f-test', before: null, after: floor }] } });
+    assert.equal((await a.next('result')).result.ok, true);
+    assert.ok((await b.next('world')).world.house.floors.some(f => f.id === 'f-test'));
+    b.send({ type: 'settle', id: 'never-sent' }); assert.equal((await b.next('result')).result.ok, false);
+    const extra = [];
+    for (let i = 0; i < 8; i++) { const c = await client(url); c.send({ type: 'shared', id: 'x' + i, name: 'x' }); await c.next('welcome'); extra.push(c); }
+    const eleventh = await client(url); eleventh.send({ type: 'shared', id: 'over', name: 'over' }); assert.match((await eleventh.next('error')).message, /10人/);
+    [a, b, ...extra].forEach(c => c.socket.close());
+    await relay.flush(); relay.close();
+    assert.ok(JSON.parse(await readFile(worldFile, 'utf8')).house.floors.some(f => f.id === 'f-test'));
+    [relay, url] = await start();
+    const c = await client(url); c.send({ type: 'shared', id: 'a', name: 'A' }); await c.next('welcome');
+    const again = (await c.next('world')).world;
+    assert.ok(again.house.floors.some(f => f.id === 'f-test')); assert.equal(again.receipts.c1.sender, 'a');
   } finally { relay.close(); }
 });

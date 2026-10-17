@@ -1,0 +1,16 @@
+.shop-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin: 10px 0; }
+.shop-item { display: flex; flex-direction: column; gap: 4px; }
+.shop-item img, .shop-photo-empty { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; background: #eee; }
+.shop-photo-empty { display: grid; place-items: center; color: #888; font-size: 12px; }
+.shop-item p { margin: 0; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.shop-form textarea { box-sizing: border-box; width: 100%; min-height: 70px; font: inherit; font-size: 16px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); }
+.shop-preview { display: block; width: 200px; max-width: 100%; border-radius: 6px; margin-bottom: 6px; }
+.shop-note { font-size: 12px; color: #666; }
+.shop-sales { padding-left: 18px; font-size: 13px; }
+.shop-panel .btn + .btn { margin-left: 6px; }
+.shop-kind { align-self: flex-start; font-size: 11px; padding: 1px 6px; border-radius: 999px; background: #eef3ff; color: #2d5bd7; }
+.shop-passes { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.arcade-head { display: flex; gap: 16px; align-items: baseline; margin: 8px 0; }
+.arcade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 360px; margin: 8px 0 12px; }
+.arcade-hole { aspect-ratio: 1; border-radius: 50%; border: 0; background: radial-gradient(#3b2a1e 55%, #6b4f37); font-size: 40px; cursor: pointer; }
+.arcade-hole.up { background: radial-gradient(#7a5a3c 55%, #a0794f); }

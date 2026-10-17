@@ -1,7 +1,8 @@
 // 配置ルール（置けるかどうかの判定、吸着、削除の連鎖）。描画からは独立させ、
 // 将来サーバー側でも同じ判定を使えるようにする。
 import { stairRects } from './stairs';
-import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
+import { getFurniture, getOpening, furnitureDef, furnitureFootprint } from '../catalog';
+import type { FurnitureDef } from '../catalog';
 import { GRID, lotSize, MAX_LEVEL, STAIR_WIDTH, WALL_HEIGHT, WALL_THICKNESS, floorY } from './dimensions';
 import type { FurniturePart, House, OpeningPart, PartRef, StairPart, StairRail, WallHeight, WallPart } from './types';
 
@@ -148,8 +149,8 @@ export function floorCovers(house: House, level: number, x: number, z: number, r
 }
 
 /** 家具を置く高さ：その階の床の上。1階で床のない所（庭）なら地面 */
-export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x' | 'z'> & { type?: string }): number {
-  if (f.type && getFurniture(f.type).grounded) return 0;
+export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x' | 'z'> & { type?: string; design?: FurnitureDef }): number {
+  if (f.type && furnitureDef(f).grounded) return 0;
   if (f.level > 0 || floorCovers(house, 0, f.x, f.z)) return floorY(f.level);
   return 0;
 }
