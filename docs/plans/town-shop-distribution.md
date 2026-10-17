@@ -26,3 +26,5 @@
 - User confirmed the EC2 update completed. Independent Chrome verification returned health=ok and a successful WSS connection.
 - The EC2 executable was pinned to a17fbd935fc59fb7571adfdcaec1681c2508a81c (same runtime code as the merged release). Earlier draft/deployment hold notes above are resolved.
 - GitHub Pages publication is being verified; no additional server changes are required for this release.
+
+- Done: GitHub Pages deployment run 39021467469 succeeded. A fresh Chrome context with service workers blocked fetched the public site (HTTP 200), loaded assets/index-DvovbPU4.js and verified both new wallet and dispersed-shop code. Release is public at https://mamamaki12.github.io/open-world/ . All requested work in PR #85 is complete.
