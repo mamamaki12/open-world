@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { avoidCameraWalls } from './cameraObstruction';
 import { driverEye } from './CarModel';
 import { getCar } from '../catalog/cars';
+import type { CarDef } from '../catalog/cars';
 import { carHitsBox, carHitsWalls } from '../building/vehicleWalls';
 import { GRID, LOT_W, LOT_D } from '../building/dimensions';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
@@ -30,6 +31,8 @@ import { useGame } from '../state/store';
 import { saveVehicles, useVehicles } from '../state/vehicles';
 import { plotX, plotZ, TOWN_BOUNDS } from '../economy/town';
 import { touchMove } from '../state/touch';
+import { sessionGate } from '../session/gate';
+import type { OwnedCar } from '../state/vehicles';
 
 const FACILITY_BOXES = [...LANDMARK_COLLIDERS, ...SHOP_BOXES];
 export const driveButtons = { left:false, right:false, accelerator:false, brake:false, handbrake:false };
@@ -79,7 +82,8 @@ export function blockedAt(x:number,z:number,radius:number,height:number,skip?:st
 }
 export function refreshVehicleTarget(p:Memory) {
   const state=useVehicles.getState();
-  autoVenueDoors(p,!state.driving);
+  autoVenueDoors(p,!state.driving&&!state.riding);
+  if(state.riding){if(state.target)useVehicles.setState({target:null});return;}
   let target:string|null=null;
   if(!state.driving){
     syncVenue(p);
@@ -89,12 +93,16 @@ export function refreshVehicleTarget(p:Memory) {
   if(state.driving)target=state.driving;
   else if(Math.abs(p.y)<.5){
     const o=origin();
-    let nearest=2.6;
-    for(const c of state.cars){
-      const d=getCar(c.model)!;
+    // 運転席のドアの前なら運転席、車のほかの場所なら助手席（ほかのプレイヤーの車は助手席だけ）
+    let nearest=Infinity;
+    const gx=p.x+o.x,gz=p.z+o.z;
+    for(const {owner,car:c} of [...state.cars.map(car=>({owner:'',car})),...sessionGate.remoteCars()]){
+      const d=getCar(c.model);if(!d)continue;
       const door={x:c.x-Math.cos(c.yaw)*(d.width/2+.4),z:c.z+Math.sin(c.yaw)*(d.width/2+.4)};
-      const distance=Math.hypot(p.x+o.x-door.x,p.z+o.z-door.z);
-      if(distance<nearest){nearest=distance;target=c.id;}
+      const doorDistance=Math.hypot(gx-door.x,gz-door.z);
+      if(!owner&&doorDistance<1.3&&doorDistance<nearest){nearest=doorDistance;target=c.id;continue;}
+      const body=Math.min(...carSamples(c,d).map(s=>Math.hypot(gx-s.x,gz-s.z)))-d.width/2;
+      if(body<1.1&&body+1<nearest){nearest=body+1;target='ride:'+owner+'|'+c.id;}
     }
     for(const f of useGame.getState().house.furniture){
       if(f.type==='garage-shutter'&&Math.hypot(f.x-p.x,f.z-p.z)<2.5)target='shutter:'+f.id;
@@ -127,24 +135,51 @@ function registerTarget(p:Memory):string|null{
   }
   return null;
 }
-export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({driving:null,target:null});saveVehicles();}
+export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({cars:[...s.cars],driving:null,target:null});saveVehicles();}
+/** 車の横の空いている場所に降りる。side=-1 は運転席側から探す。 */
+function getOut(p:Memory,car:Pick<OwnedCar,'x'|'z'|'yaw'|'model'|'id'>,side:number){
+  const d=getCar(car.model)!,o=origin();
+  for(const s of [side,-side])for(const along of [0,-1,1]){
+    const x=car.x-o.x+Math.cos(car.yaw)*s*(d.width/2+.65)-Math.sin(car.yaw)*along;
+    const z=car.z-o.z-Math.sin(car.yaw)*s*(d.width/2+.65)-Math.cos(car.yaw)*along;
+    if(!blockedAt(x,z,.26,1.7,car.id)){Object.assign(p,{x,z,y:0,yaw:car.yaw,bodyYaw:car.yaw});return true;}
+  }
+  useGame.getState().notify('降りる場所がありません。広い場所へ移動してください');return false;
+}
+/** 助手席に乗っている車（自分の車か、ほかのプレイヤーの車）。 */
+export function ridingCar():OwnedCar|null{
+  const r=useVehicles.getState().riding;if(!r)return null;
+  if(!r.owner)return useVehicles.getState().cars.find(c=>c.id===r.car)??null;
+  return sessionGate.remoteCars().find(c=>c.owner===r.owner&&c.car.id===r.car)?.car??null;
+}
+/** ほかのプレイヤーの車は10回/秒しか届かないので、なめらかに追いかける。 */
+const smoothRide={x:0,z:0,yaw:0};
 export function vehicleInteract(p:Memory) {
   refreshVehicleTarget(p);
   const venue=useVenue.getState().inside;
   if(venue){ const o=civicOffset(),action=venueAction(venue,p.x-o.x,p.z-o.z);if(!action)return false;useVenue.setState({game:action.game??null,model:action.model??null,dealerIntent:action.model?'buy':'catalog',tab:action.tab??null});if(isBoutique(venue)){useVenue.setState({shopTab:action.id==='fitting'?'closet':'shop'});useGame.getState().setOverlay('boutique');return true;}useGame.getState().setOverlay(venue);return true; }
   const s=useVehicles.getState();
+  if(s.riding){
+    const car=ridingCar();
+    if(!car){useVehicles.setState({riding:null});return true;}
+    if(Math.abs(car.speed)>.5){useGame.getState().notify('車が止まってから降りてください');return true;}
+    if(getOut(p,car,1))useVehicles.setState({riding:null,target:null});
+    return true;
+  }
   if(s.driving){
     const car=s.cars.find(c=>c.id===s.driving)!;
     if(Math.abs(car.speed)>.5){useGame.getState().notify('停車してから降りてください');return true;}
-    const d=getCar(car.model)!,o=origin();
-    for(const side of [-1,1])for(const along of [0,-1,1]){
-      const x=car.x-o.x+Math.cos(car.yaw)*side*(d.width/2+.65)-Math.sin(car.yaw)*along;
-      const z=car.z-o.z-Math.sin(car.yaw)*side*(d.width/2+.65)-Math.cos(car.yaw)*along;
-      if(!blockedAt(x,z,.26,1.7,car.id)){
-        Object.assign(p,{x,z,y:0,yaw:car.yaw,bodyYaw:car.yaw});parkVehicle();return true;
-      }
-    }
-    useGame.getState().notify('降りる場所がありません。広い場所へ移動してください');return true;
+    if(getOut(p,car,-1))parkVehicle();
+    return true;
+  }
+  if(s.target?.startsWith('ride:')){
+    const [owner,car]=s.target.slice(5).split('|');
+    useVehicles.setState({riding:{owner,car},target:null});
+    useGame.setState({view:'third'});
+    useGame.getState().setTool('select');
+    useDoors.getState().setTarget(null);
+    const c=ridingCar();if(c){Object.assign(p,{yaw:c.yaw,bodyYaw:c.yaw,pitch:DRIVE_PITCH});smoothRide.x=c.x;smoothRide.z=c.z;smoothRide.yaw=c.yaw;}
+    return true;
   }
   if(s.target?.startsWith('land:')){useGame.getState().setOverlay('land');return true;}
   if(s.target?.startsWith('register:')){useGame.getState().setOverlay('shop');return true;}
@@ -153,7 +188,7 @@ export function vehicleInteract(p:Memory) {
   if(s.target?.startsWith('furn:')){const opened=useDoors.getState().toggle(s.target.slice(5),1);playDoorSound(opened,true);return true;}
   const c=s.cars.find(c=>c.id===s.target);
   if(!c)return false;
-  useVehicles.setState({driving:c.id});
+  useVehicles.setState({driving:c.id,riding:null});
   useGame.setState({view:'third'});
   useGame.getState().setTool('select');
   useDoors.getState().setTarget(null);
@@ -168,7 +203,7 @@ export function driveElevation(pitch:number){return Math.min(1.2,Math.max(.06,.3
 const lookMemory={yaw:0,pitch:0,idle:9};
 export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memory,scene?:THREE.Scene) {
   const state=useVehicles.getState(),car=state.cars.find(c=>c.id===state.driving);
-  if(!car){engineHum(null,0,0);return false;}
+  if(!car){engineHum(null,0,0);return state.riding?rideFrame(camera,dt,p,scene):false;}
   const mods=car.mods??STOCK_MODS,d=tunedCar(getCar(car.model)!,mods);
   if(useGame.getState().tool!=='select')useGame.getState().setTool('select');
   const key=(...codes:string[])=>codes.some(c=>keys.has(c));
@@ -190,10 +225,41 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
   p.yaw+=car.yaw-previousYaw;
   Object.assign(p,{x:car.x-o.x,y:0,z:car.z-o.z,bodyYaw:car.yaw});
+  carCamera(camera,car,d,dt,p,-1,scene);
+  saveClock+=dt;if(saveClock>5){saveClock=0;saveVehicles();}
+  return true;
+}
+let rideClock=-1;
+/** 助手席に乗っている車の、なめらかにした位置。描画（RemotePlayers）とカメラで同じ値を使うため、1フレームに1回だけ進める。 */
+export function rideSmoothPose(time:number,dt:number){
+  const r=useVehicles.getState().riding,car=ridingCar();
+  if(!r||!car)return null;
+  if(time!==rideClock){
+    rideClock=time;
+    const k=r.owner&&Math.hypot(car.x-smoothRide.x,car.z-smoothRide.z)<30?Math.min(1,dt*10):1;
+    smoothRide.x+=(car.x-smoothRide.x)*k;smoothRide.z+=(car.z-smoothRide.z)*k;
+    smoothRide.yaw+=Math.atan2(Math.sin(car.yaw-smoothRide.yaw),Math.cos(car.yaw-smoothRide.yaw))*k;
+  }
+  return {key:r.owner+'|'+r.car,...smoothRide,speed:car.speed,model:car.model};
+}
+let rideTime=0;
+function rideFrame(camera:THREE.Camera,dt:number,p:Memory,scene?:THREE.Scene){
+  rideTime+=dt;
+  const ride=rideSmoothPose(rideTime,dt);
+  if(!ride){useVehicles.setState({riding:null});return false;}
+  const d=getCar(ride.model)!,o=origin();
+  if(useGame.getState().tool!=='select')useGame.getState().setTool('select');
+  p.yaw+=ride.yaw-p.bodyYaw;
+  Object.assign(p,{x:ride.x-o.x,y:0,z:ride.z-o.z,bodyYaw:ride.yaw});
+  carCamera(camera,ride,d,dt,p,1,scene);
+  return true;
+}
+/** 車に乗っているときのカメラ。seat=-1 は運転席、1 は助手席。 */
+function carCamera(camera:THREE.Camera,car:{yaw:number;speed:number},d:CarDef,dt:number,p:Memory,seat:number,scene?:THREE.Scene){
   const first=useGame.getState().view==='first';
   if(first){
-    // 運転席（ハンドルの後ろ）に座った目の高さ。車の座標を向きに合わせて回す。
-    const eye=driverEye(d),c=Math.cos(car.yaw),s=Math.sin(car.yaw);
+    // 座席に座った目の高さ。車の座標を向きに合わせて回す。
+    const e=driverEye(d),eye={...e,x:-seat*e.x},c=Math.cos(car.yaw),s=Math.sin(car.yaw);
     camera.position.set(p.x+eye.x*c+eye.z*s,eye.y,p.z-eye.x*s+eye.z*c);
     camera.lookAt(p.x-Math.sin(p.yaw)*10,camera.position.y+Math.sin(p.pitch)*4,p.z-Math.cos(p.yaw)*10);
   }else{
@@ -218,8 +284,6 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
     const next=camera.position.clone().lerp(desired,Math.min(1,dt*(lookMemory.idle<.3?14:7)));
     camera.position.copy(scene ? avoidCameraWalls(scene,focus,next) : next);camera.lookAt(focus);
   }
-  saveClock+=dt;if(saveClock>5){saveClock=0;saveVehicles();}
-  return true;
 }
 
 /** 駐車中の車にも歩行者の体が埋まらないようにする。 */

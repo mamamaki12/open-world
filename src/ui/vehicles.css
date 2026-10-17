@@ -91,3 +91,7 @@
 .drive-hud.first .drive-speed{font-size:28px;}
 .drive-hud.first .drive-actions{display:flex;flex-direction:column;align-items:stretch;gap:4px;}
 .drive-hud.first .drive-actions button{margin:0;}
+/* 視点の切り替えは丸いアイコン1つ（タップごとに3人称⇔座席） */
+.drive-hud .drive-view{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:46px;height:46px;padding:0;border-radius:50%;line-height:1;vertical-align:middle;margin-left:6px;}
+.drive-view span{font-size:18px;}.drive-view small{font-size:9px;margin-top:1px;}
+.drive-actions{display:flex;align-items:center;justify-content:center;}

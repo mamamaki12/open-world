@@ -129,9 +129,17 @@ function HoldButton({ className, onHold, children, label }: { className?: string
   );
 }
 
+/** サイドブレーキのレバー */
+function HandbrakeIcon() {
+  return <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+    <path d="M6 26h20"/><path d="M11 26 L22 8"/><rect x="18.5" y="3.5" width="8" height="6" rx="3" transform="rotate(30 22.5 6.5)" fill="currentColor"/><circle cx="11" cy="26" r="2.4" fill="currentColor"/>
+  </svg>;
+}
+
 /** 歩きモードの操作：左下のスティック（2回タップでジャンプ）と、右下の建てるボタン（運転中はブレーキ） */
 export function TouchWalkControls({ build }: { build: ReactNode }) {
   const driving = useVehicles(s=>s.driving);
+  const riding = useVehicles(s=>!!s.riding);
   useEffect(()=>{
     resetDriveButtons();
     const hidden=()=>{if(document.hidden)resetDriveButtons();};
@@ -140,6 +148,7 @@ export function TouchWalkControls({ build }: { build: ReactNode }) {
   },[driving]);
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
+  if (riding) return null;
   return (
     <div className="touch-walk">
       {driving ? <>
@@ -148,10 +157,12 @@ export function TouchWalkControls({ build }: { build: ReactNode }) {
           <HoldButton label="右にハンドルを切る" onHold={on=>{driveButtons.right=on;}}>→</HoldButton>
         </div>
         <div className="drive-pedals" role="group" aria-label="ペダル">
-          <HoldButton label="ブレーキ" className="drive-pedal drive-brake" onHold={on=>{driveButtons.brake=on;}}><span className="pedal-pad"/><span className="pedal-name">ブレーキ<small>長押しでバック</small></span></HoldButton>
+          <div className="drive-brakes">
+            <HoldButton label="サイドブレーキ" className="drive-handbrake" onHold={on=>{driveButtons.handbrake=on;}}><HandbrakeIcon/><small>サイド</small></HoldButton>
+            <HoldButton label="ブレーキ" className="drive-pedal drive-brake" onHold={on=>{driveButtons.brake=on;}}><span className="pedal-pad"/><span className="pedal-name">ブレーキ<small>長押しでバック</small></span></HoldButton>
+          </div>
           <HoldButton label="アクセル" className="drive-pedal drive-accelerator" onHold={on=>{driveButtons.accelerator=on;}}><span className="pedal-pad"/><span className="pedal-name">アクセル</span></HoldButton>
         </div>
-        <HoldButton label="サイドブレーキ" className="drive-handbrake" onHold={on=>{driveButtons.handbrake=on;}}>サイドブレーキ</HoldButton>
       </> : <Joystick driving={false} />}
       <div className="touch-actions">
         {!driving && <>

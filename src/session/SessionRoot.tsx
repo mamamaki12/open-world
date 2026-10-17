@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { App } from '../ui/App';
 import { useGame } from '../state/store';
+import { useVehicles } from '../state/vehicles';
 import { useTouchDevice } from '../ui/useTouchDevice';
 import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave } from './saves';
 import { allowBuilding, joinShared, currentEndpoint, enterOffline, leaveWorld, startSessionTimers, useSession } from './session';
@@ -46,7 +47,8 @@ function SessionHud() {
   // ひとりで遊ぶときは浮いた表示を出さない（開始画面へ・バックアップはセーブメニューの中）。お店などの画面を開いている間も隠す
   // スマホの建築中は四隅のボタンが多いので出さない（歩いているときだけ上の中央に小さく出す）
   const touch = useTouchDevice(), building = useGame(g => g.mode !== 'walk');
-  const overlay = useGame(g => g.overlay) || (touch && building);
+  const inCar = useVehicles(v => !!v.driving || !!v.riding);
+  const overlay = useGame(g => g.overlay) || (touch && (building || inCar));
   return <aside className="world-session">
     {state.role !== 'home' && !overlay && <button className="world-session-toggle" onClick={() => setOpen(!open)}>{touch ? `👥 ${state.members.length}` : state.shared ? `みんなのワールド · ${state.members.length}人` : `${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>}
     {open && state.role !== 'home' && !overlay && <section className="world-session-panel"><h2>一緒に遊んでいる人</h2>
