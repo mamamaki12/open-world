@@ -59,7 +59,7 @@ export function App() {
   useKeyboard();
   useAutosave();
   useEconomyClock();
-  const driving = useVehicles(s => s.driving !== null);
+  const driving = useVehicles(s => s.driving !== null || s.riding !== null);
   const overlay = useGame((s) => s.overlay);
   const touch = useTouchDevice();
   const walking = useGame((s) => s.mode === 'walk');

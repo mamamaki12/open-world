@@ -132,6 +132,7 @@ function HoldButton({ className, onHold, children, label }: { className?: string
 /** 歩きモードの操作：左下のスティック（2回タップでジャンプ）と、右下の建てるボタン（運転中はブレーキ） */
 export function TouchWalkControls({ build }: { build: ReactNode }) {
   const driving = useVehicles(s=>s.driving);
+  const riding = useVehicles(s=>!!s.riding);
   useEffect(()=>{
     resetDriveButtons();
     const hidden=()=>{if(document.hidden)resetDriveButtons();};
@@ -140,6 +141,7 @@ export function TouchWalkControls({ build }: { build: ReactNode }) {
   },[driving]);
   const climb = useDoors((s) => s.climb);
   const climbing = useDoors((s) => s.climbing);
+  if (riding) return null;
   return (
     <div className="touch-walk">
       {driving ? <>

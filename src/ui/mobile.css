@@ -300,19 +300,15 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .drive-keyboard-help, .touch .drive-key { display: none; }
 .touch .drive-actions {
   position: absolute; top: calc(8px + env(safe-area-inset-top, 0px));
-  right: calc(8px + var(--safe-r)); display: flex; gap: 6px;
+  right: calc(8px + var(--safe-r)); display: flex; gap: 8px; align-items: center;
 }
-.touch .drive-actions button {
-  min-height: 44px; margin: 0; padding: 8px 10px; font-size: 12px;
-  border: 1px solid #d4bd82; box-shadow: 0 2px 8px #0004;
+.touch .drive-hud button {
+  margin: 0; border: 1px solid #ffffff55; background: #101f2bb0; color: #fff;
+  box-shadow: 0 2px 8px #0004;
 }
-.touch .drive-actions button[aria-pressed=true] { background: #ffcf66; }
-.touch .drive-actions .drive-touch-only { display: block !important; }
+.touch .drive-hud .drive-exit { min-height: 40px; padding: 8px 14px; border-radius: 20px; font-size: 13px; }
+.touch .drive-hud .drive-view { width: 52px; height: 52px; margin: 0; }
 .touch .drive-hud.first { left: 0; bottom: 0; padding: 0; }
-.touch .drive-hud.first .drive-actions { flex-direction: row; }
-@media (orientation: portrait) {
-  .touch .drive-actions, .touch .drive-hud.first .drive-actions { display: grid; grid-template-columns: repeat(2, auto); }
-}
 
 /* 歩いているときのメニュー（左上の ☰ から開く） */
 .touch-cash.plain { box-shadow: none; background: rgba(250, 249, 246, 0.8); font-size: 13px; padding: 5px 9px; }

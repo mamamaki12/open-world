@@ -66,7 +66,7 @@ export function applyProfile(p: GuestProfile) {
   try {
   useEconomy.setState({ money: p.money, ledger: copy(p.ledger), gamble: p.gamble });
   useWardrobe.setState(sanitizeWardrobe(p.wardrobe));
-  useVehicles.setState({ cars: copy(p.cars).map(c => ({ ...c, mods: cleanMods(c.mods) })), driving: null, target: null });
+  useVehicles.setState({ cars: copy(p.cars).map(c => ({ ...c, mods: cleanMods(c.mods) })), driving: null, target: null, riding: null });
   } finally { sessionGate.applying = previous; }
 }
 let bundle: SaveBundle;

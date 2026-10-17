@@ -25,7 +25,7 @@ import { useStocks, homeHoldings } from '../state/stocks';
 import type { Holding } from '../economy/stocks';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
-export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean }
+export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean; riding?: string | null }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
   role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
@@ -155,7 +155,7 @@ export async function joinShared(url: string) {
     send({ type: 'command', command: { id, lot, delta: [], reserved, action } });
     return null;
   };
-  useVehicles.setState({ cars: [], driving: null, target: null }); useStocks.setState({ holdings: {} });
+  useVehicles.setState({ cars: [], driving: null, target: null, riding: null }); useStocks.setState({ holdings: {} });
   try { await connectWorld(url, '', true); } catch (e) { restoreHome(); leaveShared(); throw e; }
 }
 /** みんなのワールドの口座（サーバーの正本）に、まだ返事のない自分の出入りを足して表示する */
@@ -169,7 +169,9 @@ function showAccount() {
     const wallet = savedBundle().wallet;
     const money = wallet ? walletMoney(wallet) : useEconomy.getState().money;
     useEconomy.setState({ money, ledger: account.ledger });
-    const cars = account.cars.filter(validCar);
+    // 手元で動かした車の位置・向きは保つ（口座の車は駐車のときに同期されるので、運転中は古い位置のまま）
+    const local = new Map(useVehicles.getState().cars.map(c => [c.id, c]));
+    const cars = account.cars.filter(validCar).map(c => { const l = local.get(c.id); return l ? { ...l, model: c.model, color: c.color, mods: c.mods } : c; });
     if (JSON.stringify(cars) !== JSON.stringify(useVehicles.getState().cars)) useVehicles.setState({ cars });
     const stocks = account.stocks ?? {};
     if (JSON.stringify(stocks) !== JSON.stringify(useStocks.getState().holdings)) useStocks.setState({ holdings: stocks });
@@ -321,12 +323,13 @@ export function startSessionTimers() {
   let wasDriving: string | null = null;
   let lastLots = '';
   sessionGate.visitors = () => { const p = currentPlotOf(useEconomy.getState()); return Object.values(useSession.getState().poses).map(q => ({ x: q.x - plotX(p), y: q.y, z: q.z - plotZ(p), walking: q.walking, driving: q.driving })); };
+  sessionGate.remoteCars = () => Object.entries(useSession.getState().poses).flatMap(([owner, q]) => q.cars.map(car => ({ owner, car })));
   const pose = setInterval(() => {
     const s = useSession.getState(); if (s.status !== 'connected') return;
     const plot = currentPlotOf(useEconomy.getState()), p = playerMemory;
     send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw,
-      outfit: useWardrobe.getState().outfit, looks: useLooks.getState().looks, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving,
-      walking: useGame.getState().mode === 'walk' && !useVehicles.getState().driving } });
+      outfit: useWardrobe.getState().outfit, looks: useLooks.getState().looks, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving, riding: useVehicles.getState().riding?.car ?? null,
+      walking: useGame.getState().mode === 'walk' && !useVehicles.getState().driving && !useVehicles.getState().riding } });
     if (s.role === 'host' || s.shared) autoVenueDoors(p, useGame.getState().mode === 'walk' && !useVehicles.getState().driving);
     const driving = useVehicles.getState().driving;
     if (driving !== wasDriving) { wasDriving = driving; void persist(); }

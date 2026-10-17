@@ -9,6 +9,8 @@ import { CarModel } from '../world/CarModel';
 import { getCar } from '../catalog/cars';
 import { useEconomy, currentPlotOf } from '../state/economy';
 import { plotX, plotZ } from '../economy/town';
+import { rideSmoothPose } from '../world/vehicleLogic';
+import type { OwnedCar } from '../state/vehicles';
 
 function RemotePlayer({ id, pose }: { id: string; pose: RemotePose }) {
   const root = useRef<THREE.Group>(null), rig = useRig(), smooth = useSmooth();
@@ -28,12 +30,24 @@ function RemotePlayer({ id, pose }: { id: string; pose: RemotePose }) {
   const plot = currentPlotOf(useEconomy.getState());
   return <group name={'remote-player-' + id} ref={root} position={[pose.x - plotX(plot), pose.y, pose.z - plotZ(plot)]}><AvatarModel rig={rig} outfit={pose.outfit} looks={sanitizeLooks(pose.looks)}/></group>;
 }
-function RemoteCars({ pose }: { pose: RemotePose }) {
+/** 位置は10回/秒しか届かないので、なめらかに追いかける。助手席に乗っている車はカメラと同じ値を使う。 */
+function RemoteCar({ owner, car }: { owner: string; car: OwnedCar }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame(({ clock }, dt) => {
+    const g = ref.current; if (!g) return;
+    const ride = rideSmoothPose(clock.elapsedTime, dt), target = ride?.key === owner + '|' + car.id ? ride : car;
+    const k = ride === target || Math.hypot(target.x - g.position.x, target.z - g.position.z) > 30 ? 1 : 1 - Math.exp(-dt * 10);
+    g.position.x += (target.x - g.position.x) * k; g.position.z += (target.z - g.position.z) * k;
+    g.rotation.y += Math.atan2(Math.sin(target.yaw - g.rotation.y), Math.cos(target.yaw - g.rotation.y)) * k;
+  });
+  return <group ref={ref} position={[car.x, 0, car.z]} rotation-y={car.yaw}><CarModel def={getCar(car.model)!} color={car.color} mods={car.mods} pose={car}/></group>;
+}
+function RemoteCars({ id, pose }: { id: string; pose: RemotePose }) {
   const root = useRef<THREE.Group>(null);
   useFrame(() => { const p = currentPlotOf(useEconomy.getState()); root.current?.position.set(-plotX(p), 0, -plotZ(p)); });
-  return <group ref={root}>{pose.cars.map(car => <group key={car.id} position={[car.x, 0, car.z]} rotation-y={car.yaw}><CarModel def={getCar(car.model)!} color={car.color} mods={car.mods} pose={car}/></group>)}</group>;
+  return <group ref={root}>{pose.cars.filter(car => getCar(car.model)).map(car => <RemoteCar key={car.id} owner={id} car={car}/>)}</group>;
 }
 export function RemotePlayers() {
   const poses = useSession(s => s.poses);
-  return <group name="remote-players">{Object.entries(poses).map(([id, pose]) => <group key={id}>{!pose.driving && <RemotePlayer id={id} pose={pose}/>}<RemoteCars pose={pose}/></group>)}</group>;
+  return <group name="remote-players">{Object.entries(poses).map(([id, pose]) => <group key={id}>{!pose.driving && !pose.riding && <RemotePlayer id={id} pose={pose}/>}<RemoteCars id={id} pose={pose}/></group>)}</group>;
 }
