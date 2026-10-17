@@ -1,6 +1,7 @@
 # Furniture lighting
 
 - Branch: feat/furniture-lighting (mamamaki12/open-world)
+- PR: #86
 - Request: add wall-mounted electric lights and ground/floor indirect lighting to Furniture.
 
 ## Approach
@@ -22,3 +23,10 @@
 - All 633 existing tests and build passed; 43 targeted tests including 9 new mounting/light/material regressions passed. CI and release next.
 
 - PR #86. First CI run 39022562238 passed full units/build, building-detail and world-session, but the new lighting browser check sampled light-pool intensity before a slow software-rendered frame updated. Replaced the fixed 1s wait with polling for actual active lights and added light diagnostics. Lighting browser checks now have a dedicated CI job/artifact, separate from unrelated controls. Revalidation in progress.
+
+## Release complete (2026-10-17 JST)
+- Done: CI run 39023405946 passed all 4 jobs (642 unit tests, build, controls, building-detail, lighting, shared/offline sessions). The timing issue in the first CI run is resolved.
+- Done: PR #86 auto-merged as 725073ce92cab85af5e6ec8b8d8ce5b81b4fd16d. GitHub Pages run 39024158043 succeeded.
+- Done: fresh Chrome with service workers blocked fetched the public site (HTTP 200), loaded assets/index-DNpY3ORh.js and confirmed wall/floor lighting definitions and light-pool renderer are present.
+- Public: https://mamamaki12.github.io/open-world/ . Furniture > Lighting contains 4 new fixtures and the now-lit existing floor lamp. No EC2 update or save migration is required.
+- No remaining work for this request.
