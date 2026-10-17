@@ -21,7 +21,7 @@ import { useStocks, homeHoldings } from '../state/stocks';
 import type { Holding } from '../economy/stocks';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
-export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; cars: OwnedCar[]; driving?: string | null }
+export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; cars: OwnedCar[]; driving?: string | null; walking?: boolean }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
   role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
@@ -250,13 +250,14 @@ export async function leaveWorld() {
 export function startSessionTimers() {
   let wasDriving: string | null = null;
   let lastLots = '';
-  sessionGate.visitors = () => { const p = currentPlotOf(useEconomy.getState()); return Object.values(useSession.getState().poses).map(q => ({ x: q.x - plotX(p), y: q.y, z: q.z - plotZ(p) })); };
+  sessionGate.visitors = () => { const p = currentPlotOf(useEconomy.getState()); return Object.values(useSession.getState().poses).map(q => ({ x: q.x - plotX(p), y: q.y, z: q.z - plotZ(p), walking: q.walking, driving: q.driving })); };
   const pose = setInterval(() => {
     const s = useSession.getState(); if (s.status !== 'connected') return;
     const plot = currentPlotOf(useEconomy.getState()), p = playerMemory;
     send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw,
-      outfit: useWardrobe.getState().outfit, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving } });
-    if (s.role === 'host') autoVenueDoors(p, useGame.getState().mode === 'walk');
+      outfit: useWardrobe.getState().outfit, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving,
+      walking: useGame.getState().mode === 'walk' && !useVehicles.getState().driving } });
+    if (s.role === 'host' || s.shared) autoVenueDoors(p, useGame.getState().mode === 'walk' && !useVehicles.getState().driving);
     const driving = useVehicles.getState().driving;
     if (driving !== wasDriving) { wasDriving = driving; void persist(); }
   }, 100);

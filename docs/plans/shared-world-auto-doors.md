@@ -12,5 +12,9 @@
 
 ## 進捗
 - 済: 最新mainとplansを確認、専用worktree作成。実装前に本計画を保存。
+- 済: shared guestも開閉を判定し、歩行中/運転中フラグを遠隔位置へ引き継ぐ。共有の自動開閉はネットワークへ送り返さない。回帰単体13件（自動ドア6件＋既存店舗7件）通過。
+- 検証補修: 既存`climate.ts`と`Climate.tsx`を拡張子なしで参照するとWindowsでは前者へ誤解決し、型/実行時エラーになった。SceneとMoneyBarのコンポーネントimportだけ`.tsx`を明示する。天候の動作は変更しない。
 - 次: 自動ドアの条件と歩行者位置の扱いを修正し、回帰検証。
 - 未完: 公開反映と検証結果の追記。EC2や保存データの更新は不要。
+
+- Browser verification passed with two isolated Chrome contexts: remote pedestrian, snapshot recovery, remaining visitor, build-mode exclusion and zero automatic-door relay messages.

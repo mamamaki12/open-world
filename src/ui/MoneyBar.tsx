@@ -6,7 +6,7 @@ import { saveEconomy, useCurrentLot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { onlineWorld } from '../session/gate';
 import { clockLabel } from '../world/climate';
-import { useClimate } from '../world/Climate';
+import { useClimate } from '../world/Climate.tsx';
 
 export function MoneyBar() {
   const money = useEconomy((s) => s.money);

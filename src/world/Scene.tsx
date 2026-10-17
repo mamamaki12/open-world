@@ -17,7 +17,7 @@ import { Player } from './Player';
 import { VenueInteriors } from './VenueInteriors';
 import { CarFleet } from './CarFleet';
 import { Town } from './Town';
-import { ClimateLights } from './Climate';
+import { ClimateLights } from './Climate.tsx';
 import { useLotCells } from '../state/economy';
 
 const CENTER: [number, number, number] = [(LOT_W * GRID) / 2, 0, (LOT_D * GRID) / 2];

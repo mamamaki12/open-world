@@ -19,12 +19,16 @@ export function syncVenue(p:Point){
 }
 /** 自動ドア：人が近づくと開き、離れるか店の奥へ入ると閉まる。車で通りかかっても開かない。 */
 export function autoVenueDoors(p:Point,walking:boolean){
-  if (sessionGate.role === 'guest') return;
-  const o=civicOffset(),points=walking?[p,...sessionGate.visitors()]:sessionGate.visitors(),near=new Set(points.map(q=>venueDoorAt(q.x-o.x,q.z-o.z,q.y))),doors=useDoors.getState();
-  for(const kind of VENUE_KINDS){
+  if (sessionGate.role === 'guest' && !sessionGate.shared) return;
+  const visitors=sessionGate.visitors().filter(q=>q.walking!==false&&!q.driving);
+  const o=civicOffset(),points=walking?[p,...visitors]:visitors,near=new Set(points.map(q=>venueDoorAt(q.x-o.x,q.z-o.z,q.y))),doors=useDoors.getState();
+  // Shared players derive automatic doors from presence; do not echo competing door messages.
+  const applying=sessionGate.applying;
+  if(sessionGate.shared)sessionGate.applying=true;
+  try { for(const kind of VENUE_KINDS){
     const id=venueDoorId(kind),open=isDoorOpen(id),want=near.has(kind);
     // 戸口に立っているあいだは閉めない（はさまないように）
     if(open===want||(!want&&points.some(q=>throughDoorway(kind,{x:q.x-o.x,z:q.z-o.z}))))continue;
     doors.toggle(id,1);playDoorSound(want,true);
-  }
+  }} finally {sessionGate.applying=applying;}
 }

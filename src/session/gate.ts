@@ -10,7 +10,7 @@ export const sessionGate: {
   undo: null | (() => void);
   receipts: Record<string, { sender: string; cost: number; delta?: Change[]; undone?: boolean; cancelled?: boolean }>;
   worldId: string;
-  visitors: () => { x: number; y: number; z: number }[];
+  visitors: () => { x: number; y: number; z: number; walking?: boolean; driving?: string | null }[];
   /** みんなのワールドに入っている間だけ。所持金・車は自分のワールドと別の口座 */
   shared: boolean;
   money: null | ((delta: number, label: string) => void);

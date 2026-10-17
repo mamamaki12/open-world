@@ -104,6 +104,7 @@ jobs:
             sleep 1
           done
           node scripts/check-world-session.mjs
+          node scripts/check-shared-doors.mjs
           node scripts/check-world-offline.mjs
       - uses: actions/upload-artifact@v4
         if: always()
