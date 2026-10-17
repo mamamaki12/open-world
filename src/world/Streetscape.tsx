@@ -129,7 +129,7 @@ function Instances({ items, geometry, material, castShadow }: { items: { p: [num
 
 const box = new THREE.BoxGeometry(1, 1, 1);
 const plane = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-const MAT = {
+export const MAT = {
   walk: new THREE.MeshStandardMaterial({ color: '#cfccc3', roughness: 0.92 }),
   curb: new THREE.MeshStandardMaterial({ color: '#e4e2db', roughness: 0.8 }),
   stripe: new THREE.MeshStandardMaterial({ color: '#f2f1ea', roughness: 0.7 }),

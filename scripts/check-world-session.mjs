@@ -23,6 +23,11 @@ async function open(name) {
   await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ tick: () => {} }));
   return { context, page };
 }
+/** ページ内の async な判定が true になるまで待つ */
+async function until(page, fn, arg) {
+  for (const end = Date.now() + 120000; Date.now() < end; await page.waitForTimeout(100)) if (await page.evaluate(fn, arg)) return;
+  throw Error('timed out waiting for ' + fn);
+}
 try {
   const { page: host } = await open('ホスト'), { page: guest } = await open('友達');
   await host.screenshot({ path: out + '/launcher.png' });

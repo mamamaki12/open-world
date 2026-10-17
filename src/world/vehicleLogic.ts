@@ -5,7 +5,10 @@ import { getCar } from '../catalog/cars';
 import { carHitsBox, carHitsWalls } from '../building/vehicleWalls';
 import { GRID, LOT_W, LOT_D } from '../building/dimensions';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
-import { takenPlots } from './visit';
+import { takenPlots, visitAt } from './visit';
+import { furnitureDef, hasMovingParts } from '../catalog';
+import { furnitureBaseY } from '../building/rules';
+import { playDoorSound } from './sound';
 import type { House } from '../building/types';
 import { carSamples, integrateDrive } from '../building/driving';
 import type { DrivePose } from '../building/driving';
@@ -98,6 +101,16 @@ export function refreshVehicleTarget(p:Memory) {
     }
     if(!target)target=registerTarget(p);
   }
+  if (!state.driving && !target) {
+    // 引き出し・扉のあるデザイン家具：同じ階で手が届く距離なら開け閉めできる（訪ねた家でも）
+    const h=visitAt(p.x,p.z)?.world??useGame.getState().house;
+    let reach=1.3;
+    for(const f of h.furniture){
+      if(!hasMovingParts(furnitureDef(f))||Math.abs(furnitureBaseY(h,f)-p.y)>.6)continue;
+      const d=Math.hypot(f.x-p.x,f.z-p.z);
+      if(d<reach){reach=d;target='furn:'+f.id;}
+    }
+  }
   if (!state.driving && !target) { const o=origin(); const offer=useEconomy.getState().offers.find(offer=>typeof offer.plot==='number'&&atSaleSign(offer.plot,p.x+o.x,p.z+o.z,p.y));if(offer)target='land:'+offer.id; }
   if(state.target!==target)useVehicles.setState({target});
 }
@@ -135,6 +148,7 @@ export function vehicleInteract(p:Memory) {
   if(s.target?.startsWith('land:')){useGame.getState().setOverlay('land');return true;}
   if(s.target?.startsWith('register:')){useGame.getState().setOverlay('shop');return true;}
   if(s.target?.startsWith('shutter:')){useDoors.getState().toggle(s.target.slice(8),1);return true;}
+  if(s.target?.startsWith('furn:')){const opened=useDoors.getState().toggle(s.target.slice(5),1);playDoorSound(opened,true);return true;}
   const c=s.cars.find(c=>c.id===s.target);
   if(!c)return false;
   useVehicles.setState({driving:c.id});
