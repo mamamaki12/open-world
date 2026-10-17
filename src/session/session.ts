@@ -6,6 +6,8 @@ import { VENUES, VENUE_DOORS } from '../building/venues';
 import { startWallet, settleWallet, walletMoney } from './wallet';
 import { lotSize } from '../building/dimensions';
 import { useWardrobe } from '../state/wardrobe';
+import { useLooks } from '../state/looks';
+import type { Looks } from '../catalog/looks';
 import { useVehicles, validCar } from '../state/vehicles';
 import { useDoors } from '../state/doors';
 import { useVisit } from '../world/visit';
@@ -23,7 +25,7 @@ import { useStocks, homeHoldings } from '../state/stocks';
 import type { Holding } from '../economy/stocks';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
-export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; cars: OwnedCar[]; driving?: string | null; walking?: boolean }
+export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
   role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
@@ -144,7 +146,7 @@ export async function enterOffline() {
 export async function joinShared(url: string) {
   await persist(); // 自分のワールドの所持金・車を保存してから切り替える
   homePosition = { ...playerMemory }; sharedSpawn = true;
-  sessionGate.shared = true; walletSending = null; walletAck = null; account = null;
+  sessionGate.shared = true; walletSending = null; account = null;
   sessionGate.money = null; // The economy subscription journals all money changes, including offline ticking.
   sessionGate.act = (lot, action, reserved) => {
     if (!account || savedBundle().wallet?.pending.length) return '所持金を同期中です。少し待ってからお試しください';
@@ -158,7 +160,7 @@ export async function joinShared(url: string) {
 }
 /** みんなのワールドの口座（サーバーの正本）に、まだ返事のない自分の出入りを足して表示する */
 const actions = new Set<string>(), actionAcks = new Set<string>();
-let walletSending: string | null = null, walletAck: string | null = null, firstAccount = true;
+let walletSending: string | null = null, firstAccount = true;
 let account: { money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, Holding> } | null = null, accountApplying = false;
 function showAccount() {
   if (!account) return;
@@ -185,15 +187,14 @@ function flushWallet() {
 }
 function receiveAccount(next: NonNullable<typeof account>) {
   const b = savedBundle(), acknowledged = new Set<string>();
-  if (walletAck) acknowledged.add(walletAck);
   if (firstAccount) {
     for (const p of b.wallet?.pending ?? []) if (remoteWorld?.receipts?.[p.id]?.sender === b.profile.id) acknowledged.add(p.id);
   }
   if (!b.wallet || b.wallet.worldId !== sessionGate.worldId) {
     b.wallet = startWallet(sessionGate.worldId, next.money, useEconomy.getState().money, crypto.randomUUID());
   } else b.wallet = settleWallet(b.wallet, next.money, acknowledged);
-  if (firstAccount || walletAck) walletSending = null;
-  walletAck = null; firstAccount = false;
+  if (firstAccount) walletSending = null;
+  firstAccount = false;
   for (const id of actionAcks) actions.delete(id);
   actionAcks.clear(); account = next; showAccount();
   void persist().then(flushWallet).catch(() => useSession.setState({ message: '所持金を保存できませんでした' }));
@@ -205,7 +206,7 @@ function leaveShared() {
   }
   homePosition = null; sharedSpawn = false;
   sessionGate.shared = false; sessionGate.money = null; sessionGate.act = null;
-  walletSending = null; walletAck = null; actions.clear(); actionAcks.clear(); account = null;
+  walletSending = null; actions.clear(); actionAcks.clear(); account = null;
 }
 export async function connectWorld(url: string, code = '', shared = false) {
   if (!navigator.onLine) throw Error('みんなと遊ぶには通信が必要です');
@@ -216,7 +217,7 @@ export async function connectWorld(url: string, code = '', shared = false) {
   openConnection(++epoch, false);
 }
 function openConnection(generation: number, resume: boolean) {
-  firstAccount = true; walletSending = null; walletAck = null; account = null;
+  firstAccount = true; walletSending = null; account = null;
   actions.clear(); actionAcks.clear(); // Account/world snapshots resolve actions whose replies were interrupted.
   const p = savedBundle().profile, state = useSession.getState();
   socket = new WebSocket(endpoint);
@@ -254,8 +255,13 @@ function openConnection(generation: number, resume: boolean) {
         if (state.role === 'host') publishWorld();
       } else if (m.type === 'command' && state.role === 'host') approvalQueue = approvalQueue.then(() => accept(m.sender, m.command));
       else if (m.type === 'result' && m.result?.id === walletSending) {
-        if (m.result.ok) walletAck = m.result.id; // Server sends the matching account immediately after its result.
-        else {
+        if (m.result.ok) {
+          const b = savedBundle(), w = b.wallet!, payment = w.pending.find(p => p.id === m.result.id)!;
+          // A duplicate receipt may return only a result (no account). Settle from the confirmed delta;
+          // the next account snapshot remains authoritative and includes any unrelated server income.
+          b.wallet = settleWallet(w, w.balance + payment.delta, new Set([payment.id])); walletSending = null;
+          showAccount(); void persist().then(flushWallet);
+        } else {
           const w = savedBundle().wallet!;
           w.pending = w.pending.filter(p => p.id !== m.result.id); walletSending = null;
           useGame.getState().notify(m.result.message || '所持金を同期できませんでした');
@@ -319,7 +325,7 @@ export function startSessionTimers() {
     const s = useSession.getState(); if (s.status !== 'connected') return;
     const plot = currentPlotOf(useEconomy.getState()), p = playerMemory;
     send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw,
-      outfit: useWardrobe.getState().outfit, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving,
+      outfit: useWardrobe.getState().outfit, looks: useLooks.getState().looks, cars: useVehicles.getState().cars, driving: useVehicles.getState().driving,
       walking: useGame.getState().mode === 'walk' && !useVehicles.getState().driving } });
     if (s.role === 'host' || s.shared) autoVenueDoors(p, useGame.getState().mode === 'walk' && !useVehicles.getState().driving);
     const driving = useVehicles.getState().driving;

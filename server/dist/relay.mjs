@@ -10895,6 +10895,19 @@ function canPlaceStair(house, s, ignoreId) {
 }
 var HALF_WALL = WALL_THICKNESS / 2;
 
+// src/building/shopSites.ts
+function shopSite(x, z, width, depth) {
+  return { x0: x - CIVIC_SITE.x, x1: x + width - CIVIC_SITE.x, z0: z - CIVIC_SITE.z, z1: z + depth - CIVIC_SITE.z };
+}
+var SHOPPING_SOUTH = TOWN_BOUNDS.z1 + 9;
+var SHOPPING_NORTH = TOWN_BOUNDS.z0 - 20;
+var SHOPPING_WEST = TOWN_BOUNDS.x0 + 5;
+var SHOPPING_AREAS = [
+  { name: "\u897F\u306E\u5546\u5E97\u8857", x: SHOPPING_WEST + 24, z: SHOPPING_SOUTH + 16 },
+  { name: "\u5317\u306E\u30D6\u30C6\u30A3\u30C3\u30AF\u901A\u308A", x: TOWN_BOUNDS.x0 + 45, z: SHOPPING_NORTH - 3.5 },
+  { name: "\u5317\u6771\u306E\u30B9\u30C8\u30EA\u30FC\u30C8\u30B7\u30E7\u30C3\u30D7", x: TOWN_BOUNDS.x1 - 35, z: SHOPPING_NORTH - 3.5 }
+];
+
 // src/building/boutiques.ts
 var BOUTIQUE_IDS = ["maison", "atelier", "urban", "daily"];
 var BOUTIQUE_INFO = {
@@ -10903,17 +10916,14 @@ var BOUTIQUE_INFO = {
   urban: { name: "URBAN THREAD", tagline: "CASUAL & STREET", tier: "\u30AB\u30B8\u30E5\u30A2\u30EB", floor: "#9fa6a8", wall: "#e8ecec", trim: "#2f6d8e", facade: "#2f6d8e", sign: "#ffffff", signText: "#2f6d8e", frame: "#24485c", height: 4.6 },
   daily: { name: "DAILY WEAR", tagline: "\u6BCE\u65E5\u306E\u670D\u3092\u3001\u6BCE\u65E5\u306E\u5024\u6BB5\u3067", tier: "\u30D5\u30A1\u30B9\u30C8\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3", floor: "#e4e1d8", wall: "#ffffff", trim: "#d6332f", facade: "#f4f1ea", sign: "#d6332f", signText: "#ffffff", frame: "#8c8c8c", height: 4.6 }
 };
-var lotD = LOT_D * GRID;
 var BOUTIQUE_W = 9.5;
 var BOUTIQUE_D = 9;
-var BOUTIQUE_GAP = 2;
-var ROW_WEST = -90 - CIVIC_SITE.x;
-var BOUTIQUES = Object.fromEntries(
-  BOUTIQUE_IDS.map((id2, i) => {
-    const x0 = ROW_WEST + i * (BOUTIQUE_W + BOUTIQUE_GAP);
-    return [id2, { x0, x1: x0 + BOUTIQUE_W, z0: lotD + 9, z1: lotD + 9 + BOUTIQUE_D }];
-  })
-);
+var BOUTIQUES = {
+  daily: shopSite(SHOPPING_WEST, SHOPPING_SOUTH, BOUTIQUE_W, BOUTIQUE_D),
+  atelier: shopSite(SHOPPING_WEST + 25, SHOPPING_SOUTH, BOUTIQUE_W, BOUTIQUE_D),
+  maison: shopSite(TOWN_BOUNDS.x0 + 40, SHOPPING_NORTH, BOUTIQUE_W, BOUTIQUE_D),
+  urban: shopSite(TOWN_BOUNDS.x1 - 40, SHOPPING_NORTH, BOUTIQUE_W, BOUTIQUE_D)
+};
 var BOUTIQUE_DOOR = { width: 2.2, height: 2.6 };
 var BOUTIQUE_ACTIONS = [
   { id: "browse", label: "\u670D\u3092\u898B\u308B\u30FB\u8CB7\u3046", x: 0, z: -1.6 },
@@ -10923,29 +10933,43 @@ var BOUTIQUE_ACTIONS = [
   { id: "fitting", label: "\u8A66\u7740\u5BA4\u3067\u7740\u66FF\u3048\u308B", x: 3.35, z: 2.4 }
 ];
 
+// src/building/salon.ts
+var SALON = { ...shopSite(SHOPPING_WEST + 51, SHOPPING_SOUTH, 9.5, 9), height: 4.6 };
+var SALON_NAME = "HAIR SALON LUCE";
+var SALON_CHAIRS = [-2.4, 0, 2.4];
+var SALON_FIXTURES = [
+  ...SALON_CHAIRS.map((z) => ({ x: -3.75, z, w: 1.5, d: 1.1 })),
+  { x: -1.2, z: 3.85, w: 3, d: 1 },
+  { x: 3.1, z: 2.4, w: 2.4, d: 0.8 },
+  { x: 3.5, z: -2.4, w: 1.4, d: 2.2 }
+];
+var SALON_ACTIONS = [
+  { id: "cut", label: "\u9AEA\u3092\u5207\u308B\u30FB\u67D3\u3081\u308B", x: -2.5, z: 0 },
+  { id: "cut2", label: "\u9AEA\u3092\u5207\u308B\u30FB\u67D3\u3081\u308B", x: -2.5, z: -2.4 },
+  { id: "cut3", label: "\u9AEA\u3092\u5207\u308B\u30FB\u67D3\u3081\u308B", x: -2.5, z: 2.4 },
+  { id: "desk", label: "\u53D7\u4ED8\u3067\u9AEA\u578B\u3092\u76F8\u8AC7\u3059\u308B", x: 3.1, z: 1.2 }
+];
+
 // src/building/landmarks.ts
 var lotW = LOT_W * GRID;
-var lotD2 = LOT_D * GRID;
+var lotD = LOT_D * GRID;
 var CASINO = {
   x0: lotW / 2 - 12,
   x1: lotW / 2 + 12,
-  z0: lotD2 + 9,
-  z1: lotD2 + 23,
+  z0: lotD + 9,
+  z1: lotD + 23,
   height: 9,
   /** 入口（正面の真ん中） */
   door: { x: lotW / 2, width: 4.2, height: 3.4 },
   /** 入口のひさし（柱2本で支える） */
   canopyDepth: 3.6
 };
-var CASINO_PLAZA = { x0: CASINO.x0 - 2, x1: CASINO.x1 + 2, z0: lotD2 + 6.2, z1: CASINO.z0 };
+var CASINO_PLAZA = { x0: CASINO.x0 - 2, x1: CASINO.x1 + 2, z0: lotD + 6.2, z1: CASINO.z0 };
 var PILLAR = 0.25;
 var ESTATE = {
-  x0: lotW / 2 + PLOT_PITCH - 5,
-  x1: lotW / 2 + PLOT_PITCH + 5,
-  z0: lotD2 + 9,
-  z1: lotD2 + 17,
+  ...shopSite(SHOPPING_WEST + 12, SHOPPING_SOUTH, 10, 8),
   height: 4.5,
-  door: { x: lotW / 2 + PLOT_PITCH, width: 2.2 }
+  door: { x: shopSite(SHOPPING_WEST + 17, SHOPPING_SOUTH, 0, 0).x0, width: 2.2 }
 };
 var CASINO_PILLARS = [-1, 1].map((s) => ({
   x: CASINO.door.x + s * (CASINO.door.width / 2 + 1.2),
@@ -10960,6 +10984,7 @@ var LANDMARK_COLLIDERS = [
   { x0: ESTATE.x0, x1: ESTATE.x1, z0: ESTATE.z0, z1: ESTATE.z1 },
   { x0: CASINO.x0, x1: CASINO.x1, z0: CASINO.z0, z1: CASINO.z1 },
   ...BOUTIQUE_IDS.map((id2) => ({ ...BOUTIQUES[id2] })),
+  { x0: SALON.x0, x1: SALON.x1, z0: SALON.z0, z1: SALON.z1 },
   ...CASINO_PLANTERS,
   ...CASINO_PILLARS.map((p) => ({ x0: p.x - PILLAR, x1: p.x + PILLAR, z0: p.z - PILLAR, z1: p.z + PILLAR }))
 ];
@@ -10986,10 +11011,7 @@ var DEPTH = 12;
 var TUNER = { x0: DEALER.x0 - GAP2 - WIDTH2, x1: DEALER.x0 - GAP2, z0: DEALER.z0, z1: DEALER.z0 + DEPTH, height: 5.4 };
 
 // src/building/exchange.ts
-var GAP3 = 2;
-var WIDTH3 = 11;
-var DEPTH2 = 12;
-var EXCHANGE = { x0: TUNER.x0 - GAP3 - WIDTH3, x1: TUNER.x0 - GAP3, z0: TUNER.z0, z1: TUNER.z0 + DEPTH2, height: 7 };
+var EXCHANGE = { ...shopSite(SHOPPING_WEST + 38, SHOPPING_SOUTH, 11, 12), height: 7 };
 
 // src/building/venues.ts
 var boutiqueVenue = (id2) => ({ ...BOUTIQUES[id2], name: BOUTIQUE_INFO[id2].name, floor: BOUTIQUE_INFO[id2].floor, wall: BOUTIQUE_INFO[id2].wall, trim: BOUTIQUE_INFO[id2].trim });
@@ -10998,6 +11020,7 @@ var VENUES = {
   estate: { ...ESTATE, name: "\u307E\u3061\u306E\u4E0D\u52D5\u7523", floor: "#d3c1a0", wall: "#f0eee5", trim: "#397e7c" },
   dealer: { ...DEALER, name: "AVENUE MOTORS", floor: "#8797a0", wall: "#dce3e6", trim: "#203e50" },
   tuner: { ...TUNER, name: "STANCE GARAGE", floor: "#5d6166", wall: "#2b2e33", trim: "#e0b400" },
+  salon: { ...SALON, name: SALON_NAME, floor: "#d8d2c8", wall: "#f6f3ee", trim: "#a07850" },
   exchange: { ...EXCHANGE, name: "\u307E\u3061\u8A3C\u5238\u53D6\u5F15\u6240", floor: "#c9c2b4", wall: "#eeebe3", trim: "#1e4d8c" },
   maison: boutiqueVenue("maison"),
   atelier: boutiqueVenue("atelier"),
@@ -11007,6 +11030,7 @@ var VENUES = {
 var VENUE_ACTIONS = {
   casino: [{ id: "slots", label: "\u30B9\u30ED\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: -3.2, game: "slots" }, { id: "roulette", label: "\u30EB\u30FC\u30EC\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: 2.6, game: "roulette" }, { id: "highlow", label: "\u30CF\u30A4\uFF06\u30ED\u30FC\u3067\u904A\u3076", x: 6, z: 2.6, game: "highlow" }, { id: "horse", label: "\u7AF6\u99AC\u3067\u904A\u3076", x: 4, z: -3.2, game: "horse" }, { id: "keirin", label: "\u7AF6\u8F2A\u3067\u904A\u3076", x: 6, z: -3.2, game: "keirin" }, { id: "boat", label: "\u30DC\u30FC\u30C8\u30EC\u30FC\u30B9\u3067\u904A\u3076", x: 8, z: -3.2, game: "boat" }, { id: "lobby", label: "\u30B2\u30FC\u30E0\u4E00\u89A7\u3092\u898B\u308B", x: 0, z: 2.7 }],
   estate: [{ id: "land", label: "\u571F\u5730\u3092\u898B\u308B", x: 0, z: 0.5 }],
+  salon: SALON_ACTIONS,
   exchange: [{ id: "trade", label: "\u682A\u3092\u58F2\u8CB7\u3059\u308B", x: 0, z: 0.6 }],
   ...Object.fromEntries(BOUTIQUE_IDS.map((id2) => [id2, BOUTIQUE_ACTIONS])),
   tuner: [
@@ -11019,12 +11043,13 @@ var VENUE_ACTIONS = {
   ],
   dealer: [{ id: "catalog", label: "\u30AB\u30BF\u30ED\u30B0\u3092\u898B\u308B", x: 0, z: 2.7 }, { id: "moco", label: "MOCO 660 \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: -5.7, z: -2.8, model: "moco" }, { id: "ridge", label: "RIDGE AWD \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: 0, z: -2.8, model: "ridge" }, { id: "raven", label: "RAVEN GT \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: 5.7, z: -2.8, model: "raven" }]
 };
-var VENUE_KINDS = ["casino", "estate", "dealer", "tuner", "exchange", ...BOUTIQUE_IDS];
+var VENUE_KINDS = ["casino", "estate", "dealer", "tuner", "exchange", "salon", ...BOUTIQUE_IDS];
 var VENUE_DOORS = {
   casino: { x: CASINO.door.x, width: CASINO.door.width, height: CASINO.door.height },
   estate: { x: ESTATE.door.x, width: ESTATE.door.width, height: 2.6 },
   dealer: { x: (DEALER.x0 + DEALER.x1) / 2, width: 2.2, height: 2.6 },
   tuner: { x: (TUNER.x0 + TUNER.x1) / 2, width: 2.2, height: 2.6 },
+  salon: { x: (SALON.x0 + SALON.x1) / 2, width: 2.2, height: 2.6 },
   exchange: { x: (EXCHANGE.x0 + EXCHANGE.x1) / 2, width: 2.2, height: 2.8 },
   ...Object.fromEntries(BOUTIQUE_IDS.map((id2) => [id2, { x: (BOUTIQUES[id2].x0 + BOUTIQUES[id2].x1) / 2, ...BOUTIQUE_DOOR }]))
 };
@@ -11725,10 +11750,11 @@ function withAccount(w, id2, name) {
   if (a && a.name === name) return w;
   return { ...w, accounts: { ...w.accounts, [id2]: a ? { ...a, name } : { name, money: SHARED_START_MONEY, ledger: [{ day: w.economy.day, label: "\u306F\u3058\u3081\u306E\u6240\u6301\u91D1", amount: SHARED_START_MONEY }], cars: [] } } };
 }
-function charge(w, id2, amount, label) {
+function charge(w, id2, amount, label, allowDebt = false) {
   const a = w.accounts?.[id2];
   if (!a) return "\u53E3\u5EA7\u304C\u3042\u308A\u307E\u305B\u3093";
-  if (amount > 0 && a.money < amount) return "\u304A\u91D1\u304C\u8DB3\u308A\u307E\u305B\u3093";
+  if (!Number.isSafeInteger(a.money - amount)) return "\u91D1\u984D\u304C\u4E0D\u6B63\u3067\u3059";
+  if (!allowDebt && amount > 0 && a.money < amount) return "\u304A\u91D1\u304C\u8DB3\u308A\u307E\u305B\u3093";
   if (!amount) return w;
   return { ...w, accounts: { ...w.accounts, [id2]: { ...a, money: a.money - amount, ledger: [{ day: w.economy.day, label, amount: -amount }, ...a.ledger].slice(0, 50) } } };
 }
@@ -11750,7 +11776,7 @@ function applyAction(w, sender, name, c, a) {
   const lots = w.economy.lots, lot = lots.find((l) => l.id === c.lot);
   if (a.type === "money") {
     if (!Number.isSafeInteger(a.delta) || Math.abs(a.delta) > 1e13 || typeof a.label !== "string") return "\u91D1\u984D\u304C\u4E0D\u6B63\u3067\u3059";
-    const paid2 = charge(w, sender, -a.delta, a.label.slice(0, 60));
+    const paid2 = charge(w, sender, -a.delta, a.label.slice(0, 60), true);
     return typeof paid2 === "string" ? paid2 : { world: paid2, cost: 0, message: "" };
   }
   if (a.type === "stocks") {

@@ -16,6 +16,14 @@ function town() {
 const addFloor = (w: SharedWorld, id: string) => changes(w.economy.lots.find(l => l.id === id)!.built ?? w.house, { ...w.house, floors: [floor as never] });
 
 describe('shared world', () => {
+  it('carries offline expenses below zero once while purchases still require funds', () => {
+    const w = withAccount(initialSharedWorld('w'), 'a', 'A');
+    const command = { id: 'offline-debt', lot: '', delta: [], reserved: 0, action: { type: 'money' as const, delta: -SHARED_START_MONEY - 100, label: '維持費' } };
+    const next = ok(w, 'a', command);
+    expect(next.accounts!.a.money).toBe(-100);
+    expect(ok(next, 'a', command).accounts!.a.money).toBe(-100);
+    expect(applyCommand(next, 'a', { id: 'buy-debt', lot: '', delta: [], reserved: 0, action: { type: 'buyLand', offer: next.economy.offers[0].id } }).result.ok).toBe(false);
+  });
   it('starts with no land and a separate starting balance', () => {
     const w = withAccount(initialSharedWorld('w'), 'a', 'A');
     expect(w.economy.lots).toEqual([]);

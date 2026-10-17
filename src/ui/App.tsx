@@ -16,6 +16,8 @@ import { DealerPanel } from './DealerPanel';
 import { BoutiquePanel } from './BoutiquePanel';
 import { TunerPanel } from './TunerPanel';
 import { ExchangePanel } from './ExchangePanel';
+import { LooksPanel } from './LooksPanel';
+import { useLooks } from '../state/looks';
 import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
 import { ShopPanel } from './ShopPanel';
 import { RequestsPanel } from './RequestsPanel';
@@ -64,12 +66,14 @@ export function App() {
   const app = useRef<HTMLDivElement>(null);
   useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
+  // 見た目をまだ作っていなければ、最初に作成画面を出す（前からのセーブも一度だけ）。自動テストのブラウザでは出さない
+  useEffect(() => { if (!useLooks.getState().created && !navigator.webdriver) useGame.getState().setOverlay('looks'); }, []);
   return (
     <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}${overlay ? ' has-overlay' : ''}`}>
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
@@ -98,6 +102,9 @@ export function App() {
       {overlay === 'exchange' && <ExchangePanel />}
       {overlay === 'boutique' && <BoutiquePanel />}
       {overlay === 'closet' && <BoutiquePanel closetOnly />}
+      {overlay === 'looks' && <LooksPanel mode="create" />}
+      {overlay === 'looks-edit' && <LooksPanel mode="edit" />}
+      {overlay === 'salon' && <LooksPanel mode="salon" />}
       {overlay === 'land' && <LandPurchasePanel />}
       {overlay === 'shop' && <ShopPanel />}
       {overlay === 'requests' && <RequestsPanel />}
@@ -188,6 +195,7 @@ function WalkMenu() {
           <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>🏗️ 建築に戻る</button>
           <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>👁 視点を切り替え</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}>👕 クローゼット</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>🙂 見た目を変える</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>⚙ 操作設定</button>
           <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>↶ 取り消し</button>
           <SaveMenu />

@@ -6,13 +6,14 @@ import { getLocation } from '../economy/market';
 import { offerPrice } from '../state/economy';
 import { yen } from '../economy/money';
 import { TOWN_HOUSE_PLOTS, townHouseDesign } from '../building/townHouses';
-import { BLOCK_COLUMNS, BLOCK_ROWS, CIVIC_SITE, FIRST_PLOT, LAST_PLOT, TOWN_BOUNDS, TOWN_ROADS, blockOf, districtOf, plotX, plotZ } from '../economy/town';
+import { CIVIC_SITE, FIRST_PLOT, LAST_PLOT, TOWN_BOUNDS, TOWN_ROADS, blockOf, districtOf, plotX, plotZ } from '../economy/town';
 import { joinCandidate, lotCells, lotPlots, useCurrentPlot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { playerMemory, warpToLot } from '../world/Player';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { DEALER } from '../building/dealer';
 import { TUNER } from '../building/tuner';
+import { SALON } from '../building/salon';
 import { CASINO, ESTATE } from '../building/landmarks';
 import { BOUTIQUES, BOUTIQUE_IDS, BOUTIQUE_INFO } from '../building/boutiques';
 import type { BoutiqueId } from '../building/boutiques';
@@ -27,7 +28,7 @@ const SCALE = 3.2, PAD = 28;
 const sx = (x: number) => PAD + (x - TOWN_BOUNDS.x0 + 12) * SCALE;
 const sy = (z: number) => PAD + (z - TOWN_BOUNDS.z0 + 28) * SCALE;
 const WIDTH = sx(TOWN_BOUNDS.x1 + 35) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 35) + PAD;
-type Pick = { kind: 'plot'; plot: number } | { kind: 'casino' | 'estate' | 'dealer' | 'tuner' | 'exchange' } | { kind: 'boutique'; id: BoutiqueId } | null;
+type Pick = { kind: 'plot'; plot: number } | { kind: 'casino' | 'estate' | 'dealer' | 'tuner' | 'exchange' | 'salon' } | { kind: 'boutique'; id: BoutiqueId } | null;
 
 export function MapPanel() {
   const close = useGame(s => s.setOverlay), walking = useGame(s => s.mode === 'walk');
@@ -58,7 +59,7 @@ export function MapPanel() {
   };
   return <Modal title="🗺 町の地図" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="map-modal">
     <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span><span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span><span>📍お店・イベント</span><button className="btn small" onClick={() => close('jobs')}>💼 バイトをする</button><button className="btn small" onClick={() => close('requests')}>🤝 依頼</button></div>
-    <p className="info">西の商店街には服屋・不動産屋・証券取引所、北側には2つの服屋があります。南側はカジノと車のお店が並びます。</p>
+    <p className="info">西の商店街には服屋・不動産屋・証券取引所・美容室、北側には2つの服屋があります。南側はカジノと車のお店が並びます。</p>
     <div className="map-controls" aria-label="地図の表示">
       <button className="btn" onClick={() => { setZoom(1); map.current?.scrollTo(0, 0); }}>全体</button>
       <button className="btn" aria-label="地図を拡大" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, z + .5))}>＋ 拡大</button>
@@ -92,7 +93,7 @@ export function MapPanel() {
             <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + 16)} textAnchor="middle" fontSize={6} fill="#78877c">BLOCK {String(blockOf(plot) + 1).padStart(2, '0')} · {plot - FIRST_PLOT + 1}</text>
           </g>;
         })}
-        {[{ kind: 'casino' as const, box: CASINO, label: 'GRAND STRIP' }, { kind: 'estate' as const, box: ESTATE, label: '不動産屋' }, { kind: 'dealer' as const, box: DEALER, label: '車販売' }, { kind: 'tuner' as const, box: TUNER, label: 'カスタム' }, { kind: 'exchange' as const, box: EXCHANGE, label: '証券' }].map(({ kind, box, label }) => <g key={kind} role="button" tabIndex={0} aria-label={label} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind }); }}>
+        {[{ kind: 'casino' as const, box: CASINO, label: 'GRAND STRIP' }, { kind: 'estate' as const, box: ESTATE, label: '不動産屋' }, { kind: 'dealer' as const, box: DEALER, label: '車販売' }, { kind: 'tuner' as const, box: TUNER, label: 'カスタム' }, { kind: 'exchange' as const, box: EXCHANGE, label: '証券' }, { kind: 'salon' as const, box: SALON, label: '美容室' }].map(({ kind, box, label }) => <g key={kind} role="button" tabIndex={0} aria-label={label} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind }); }}>
           <rect x={sx(CIVIC_SITE.x + box.x0)} y={sy(CIVIC_SITE.z + box.z0)} width={(box.x1 - box.x0) * SCALE} height={(box.z1 - box.z0) * SCALE} rx={3} fill={kind === 'casino' ? '#755743' : '#34777a'} stroke={pick?.kind === kind ? '#f6bf4d' : '#fff9'} strokeWidth={2} />
           <text x={sx(CIVIC_SITE.x + (box.x0 + box.x1) / 2)} y={sy(CIVIC_SITE.z + (box.z0 + box.z1) / 2)} textAnchor="middle" fontSize={kind === 'casino' ? 8 : 7} fill="#fff">{label}</text>
         </g>)}
@@ -112,8 +113,8 @@ export function MapPanel() {
         {typeof selectedLot.joined === 'number' && <p className="info">隣の区画とつなげた広い土地です。</p>}
         {joinWith && <button className="btn" onClick={() => { const err = useEconomy.getState().joinLots(selectedLot.id); if (err) useGame.getState().notify(err); }}>🔗 隣の「{joinWith.name.replace(/（.*）$/, '')}」とつなげる</button>}</>
       : selectedOffer ? <><h3>売り土地：{selectedOffer.name}</h3><p>価格 {yen(offerPrice(selectedOffer, market))}</p><p className="info">看板の前でFを押すと、この土地を購入できます。不動産屋でも購入できます。</p></>
-      : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' || pick?.kind === 'tuner' || pick?.kind === 'exchange' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : pick.kind === 'tuner' ? 'STANCE GARAGE（車のカスタム）' : pick.kind === 'exchange' ? 'まち証券取引所（実際の株価で売買）' : 'まちの不動産'}</h3><p>住宅街の南側にあります。店舗の入口でFキー（スマホは入場ボタン）を押してください。</p></>
-      : pick?.kind === 'boutique' ? <><h3>{BOUTIQUE_INFO[pick.id].name}</h3><p className="muted">服屋さん・{BOUTIQUE_INFO[pick.id].tier}</p><p>住宅街の南側、車屋より西のファッション通りにあります。中で服を選んで試着・購入できます。</p></>
+      : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' || pick?.kind === 'tuner' || pick?.kind === 'exchange' || pick?.kind === 'salon' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : pick.kind === 'tuner' ? 'STANCE GARAGE（車のカスタム）' : pick.kind === 'exchange' ? 'まち証券取引所（実際の株価で売買）' : pick.kind === 'salon' ? 'HAIR SALON LUCE（美容室）' : 'まちの不動産'}</h3><p>地図に表示された店舗へ歩いて入れます。入口のドアは近づくと自動で開きます。</p></>
+      : pick?.kind === 'boutique' ? <><h3>{BOUTIQUE_INFO[pick.id].name}</h3><p className="muted">服屋さん・{BOUTIQUE_INFO[pick.id].tier}</p><p>{pick.id === 'maison' ? '北のブティック通り' : pick.id === 'urban' ? '北東のストリートショップ' : '西の商店街'}にあります。中で服を選んで試着・購入できます。</p></>
       : pick?.kind === 'plot' && townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot] ?? '') ? <><h3>{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.name}</h3><p className="muted">ほかの住人の家・{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.model}</p></>
       : <p className="muted">地図の家・土地・店舗を選んでください。</p>}
     </div>

@@ -70,6 +70,10 @@ try {
   await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ tick: () => {} }));
   await join(); assert.equal(await money(), 2350533, 'offline journal survives reload');
   await leave(); await join(); assert.equal(await money(), 2350533, 'no repeated migration or replay');
+  await leave();
+  await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ money: -100 }));
+  await join(); assert.equal(await money(), -100, 'offline expenses below zero also carry over');
+  await change(200); await until(ready); assert.equal(await money(), 100);
   await leave(); assert.deepEqual(errors, []);
   console.log('Common wallet / casino spawn / home restoration / offline journal / interrupted acknowledgement / reload / no double credit passed');
 } catch (e) {

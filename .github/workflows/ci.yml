@@ -34,6 +34,7 @@ jobs:
           node scripts/check-driving-assists.mjs
           node scripts/check-aim-controls.mjs
           node scripts/check-fashion.mjs
+          node scripts/check-looks.mjs
           node scripts/check-jobs.mjs pc
       - uses: actions/upload-artifact@v4
         if: always()
@@ -42,6 +43,7 @@ jobs:
           path: |
             control-checks/
             fashion-checks/
+            looks-checks/
             job-checks/
           if-no-files-found: ignore
 
@@ -106,6 +108,7 @@ jobs:
           node scripts/check-world-session.mjs
           node scripts/check-shared-doors.mjs
           node scripts/check-shared-wallet.mjs
+          node scripts/check-town-shops.mjs
           node scripts/check-world-offline.mjs
       - uses: actions/upload-artifact@v4
         if: always()

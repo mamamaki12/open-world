@@ -14,3 +14,6 @@
 - Implemented south-west mixed shopping district (daily clothes, estate, atelier, exchange), north and north-east boutiques, pedestrian approach paths and map labels. Existing residential plots and venue IDs are unchanged.
 - Road/residential/building overlap and pedestrian connectivity checks pass. Relocation exposed a fixture collision escape at a room corner; resolveVenue now chooses only displacement candidates inside room bounds.
 - Next: integrate latest main (including newly merged salon), place salon in the mixed district, run full build/unit/browser checks.
+
+- Integrated main 94d6221 (avatar/salon, mobile HUD and selection changes), preserving looks+walking in pose messages. Salon moved beside the exchange in the west district; map text follows the new locations.
+- Full unit suite passed (632 tests before one added debt regression); production build passed. Relay persistence/restart integration passed all 4 tests with a workspace TEMP directory (default Windows sandbox temp denied rename).

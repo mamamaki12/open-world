@@ -17,3 +17,7 @@
 
 - Browser passed against a fresh Vite process: exact initial migration, shared spending carried home, offline income/spending synced, interrupted acknowledgement reconciled once, persisted pending payment survived reload, repeated entry did not duplicate money; casino spawn and no respawn on reconnect verified.
 - Test note: restart Vite after source edits before using dynamic-import diagnostics; HMR URLs otherwise create separate store instances in probes.
+
+- Offline daily expenses can legitimately make money negative. The money-delta server action now permits carrying debt; land and shop purchases still require funds. Added a server regression and regenerated server/dist/relay.mjs.
+- The common-wallet acknowledgement also handles duplicate receipts that return no account snapshot. Reconnecting clears ephemeral property-action wait state.
+- Deployment prerequisite: update EC2 relay before publishing the client so debt and new venue density calculations agree. scripts/update-relay-amazon-linux.sh downloads a pinned revision, checks syntax, backs up executable, restarts and health-checks with rollback; saved world and systemd configuration remain untouched. No SSH credentials are available to this agent. Keep PR #85 draft pending user execution on EC2.

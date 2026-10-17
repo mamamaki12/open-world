@@ -9,6 +9,9 @@ import { plainMaterial } from './materials';
 import { getGarment } from '../catalog/clothes';
 import type { Outfit } from '../catalog/clothes';
 import { useWardrobe } from '../state/wardrobe';
+import { useLooks } from '../state/looks';
+import { DEFAULT_LOOKS, FACES, HAIR_COLORS, SKIN_TONES, buildWidth, getHair } from '../catalog/looks';
+import type { HairShape, Looks } from '../catalog/looks';
 
 /** 体の寸法（m）。体は -Z が正面、原点は足もと */
 const THIGH = 0.43;
@@ -283,16 +286,19 @@ export function outfitLook(outfit: Outfit) {
 }
 
 /** The animation groups stay unchanged; continuous skinned limbs follow their joints. */
-export function AvatarModel({rig,children,outfit,mannequin=false}:{rig:MutableRefObject<Rig>;children?:ReactNode;outfit?:Outfit;mannequin?:boolean}) {
-  const worn=useWardrobe(s=>s.outfit),look=outfitLook(outfit??worn),r=rig.current;
-  const skin=plainMaterial(mannequin?'#ece8e0':'#e8c4a0','none',{roughness:.65});
+export function AvatarModel({rig,children,outfit,looks,mannequin=false}:{rig:MutableRefObject<Rig>;children?:ReactNode;outfit?:Outfit;looks?:Looks;mannequin?:boolean}) {
+  const worn=useWardrobe(s=>s.outfit),mine=useLooks(s=>s.looks),look=outfitLook(outfit??worn),r=rig.current;
+  const me=mannequin?DEFAULT_LOOKS:looks??mine,female=me.sex==='f',bw=buildWidth(me.build),face=FACES[me.face]??FACES[0];
+  /** 肩幅：女性は肩を少し狭く。体型で全体の幅を変える */
+  const sw=bw*(female?.92:1),hw=bw;
+  const skin=plainMaterial(mannequin?'#ece8e0':SKIN_TONES[me.skin]??SKIN_TONES[1],'none',{roughness:.65});
   const shirt=plainMaterial(look.top,'none',{roughness:look.topStyle==='knit'||look.topStyle==='hoodie'?1:.85});
   const accent=plainMaterial(look.topAccent,'none',{roughness:.85});
   const pants=plainMaterial(look.bottom,'none',{roughness:.9});
-  const hair=plainMaterial('#2a221d','none',{roughness:.95});
+  const hair=plainMaterial(HAIR_COLORS[me.hairColor]?.color??'#2a221d','none',{roughness:.9});
   const shoe=plainMaterial(look.shoe,'none',{roughness:look.shoeStyle==='leather'?.3:.7});
   const sole=plainMaterial(look.shoeStyle==='leather'?'#1a1310':look.shoeAccent??'#d9d6cf','none',{roughness:.8});
-  const eye=plainMaterial('#252222'),lip=plainMaterial('#c98f7c');
+  const eye=plainMaterial('#252222'),lip=plainMaterial(female?'#c46f6a':'#c98f7c');
   const hatMat=look.hat?plainMaterial(look.hat.color):null,hatBand=look.hat?plainMaterial(look.hat.accent):null;
   const outer=look.topStyle==='jacket'||look.topStyle==='coat',coat=look.topStyle==='coat',hood=look.topStyle==='hoodie';
   const volume=outer?1.14:hood?1.12:1.04;
@@ -307,7 +313,7 @@ export function AvatarModel({rig,children,outfit,mannequin=false}:{rig:MutableRe
   const wide=getGarment((outfit??worn).bottom)?.id==='ak-wide';
   return <group ref={g=>(r.root=g)}>
     <group ref={g=>(r.hips=g)} position={[0,STAND_HIP,0]}>
-      <mesh geometry={pelvis} scale={[1,1,.78]} material={pants} castShadow/>
+      <mesh geometry={pelvis} scale={[hw,1,.78*Math.sqrt(hw)]} material={pants} castShadow/>
       {look.bottomStyle==='skirt'&&<mesh geometry={lathe('draped-skirt',[[.27,-.51],[.26,-.49],[.235,-.3],[.195,-.1],[.17,.035],[.15,.085],[0,.085]],48)} scale={[1,1,.8]} material={pants} castShadow/>}
       {[0,1].map(i=><group key={'leg'+i} ref={g=>(r.thigh[i]=g)} position={[(i===0?-1:1)*HIP_X,0,0]}>
         <TailoredLimb rig={rig} index={i} leg style={look.bottomStyle} wide={wide} cloth={pants} skin={skin}/>
@@ -319,7 +325,7 @@ export function AvatarModel({rig,children,outfit,mannequin=false}:{rig:MutableRe
       </group>)}
       <group ref={g=>(r.spine=g)} position={[0,.06,0]}>
         {/* A hanging garment shell, with no exposed anatomical chest shapes. */}
-        <mesh geometry={body} scale={[volume,1,volume*.78]} material={shirt} castShadow/>
+        <mesh geometry={body} scale={[volume*bw*(female?.96:1),1,volume*.78*Math.sqrt(bw)]} material={shirt} castShadow/>
         {outer&&<>
           <mesh geometry={panel('inner-shirt',[[-.052,.465],[.052,.465],[.038,.11],[-.038,.11]])} position={[0,0,-.175*volume]} rotation-y={Math.PI} material={accent}/>
           {[-1,1].map(side=><group key={'lapel'+side}>
@@ -343,18 +349,19 @@ export function AvatarModel({rig,children,outfit,mannequin=false}:{rig:MutableRe
         <group ref={g=>(r.head=g)} position={[0,.55,0]}>
           <mesh geometry={head} scale={[.94,1,1]} material={skin} castShadow/>
           {!mannequin&&<>
-            <mesh position={[0,.102,-.092]} scale={[.7,1.15,1]} material={skin}><sphereGeometry args={[.014,16,12]}/></mesh>
+            <mesh position={[0,.102,-.092]} scale={[.7*face.nose,1.15*face.nose,face.nose]} material={skin}><sphereGeometry args={[.014,16,12]}/></mesh>
             {[-1,1].map(side=><group key={side}>
-              <mesh position={[side*.033,.131,-.087]} scale={[1,.65,.35]} material={eye}><sphereGeometry args={[.009,16,10]}/></mesh>
-              <mesh position={[side*.033,.149,-.085]} rotation-z={side*.08} scale={[1.5,.2,.25]} material={hair}><sphereGeometry args={[.009,12,8]}/></mesh>
+              <mesh position={[side*.033,.131,-.087]} scale={[face.eye,.65*face.eye,.35]} material={eye}><sphereGeometry args={[.009,16,10]}/></mesh>
+              {female&&<mesh position={[side*.035,.137,-.088]} rotation-z={-side*.15} scale={[1.6*face.eye,.16,.25]} material={eye}><sphereGeometry args={[.009,12,8]}/></mesh>}
+              <mesh position={[side*.033,.149,-.085]} rotation-z={side*face.brow} scale={[female?1.4:1.6,female?.16:.24,.25]} material={hair}><sphereGeometry args={[.009,12,8]}/></mesh>
               <mesh position={[side*.09,.108,0]} scale={[.4,1,.7]} material={skin}><sphereGeometry args={[.025,16,12]}/></mesh>
             </group>)}
             <mesh position={[0,.062,-.073]} scale={[1.5,.22,.3]} material={lip}><sphereGeometry args={[.011,16,8]}/></mesh>
-            <mesh position={[0,.156,.008]} scale={[.94,.68,1.02]} material={hair} castShadow><sphereGeometry args={[.108,32,20,0,Math.PI*2,0,Math.PI/1.8]}/></mesh>
+            <group scale={look.hat?.94:1}><Hair shape={getHair(me.hair).shape} material={hair}/></group>
           </>}
           {look.hat&&hatMat&&hatBand&&<Hat style={look.hat.style} material={hatMat} band={hatBand}/>}
         </group>
-        {[0,1].map(i=><group key={'arm'+i} ref={g=>(r.shoulder[i]=g)} rotation-z={(i===0?-1:1)*.12} position={[(i===0?-1:1)*SHOULDER.x,SHOULDER.y,0]}>
+        {[0,1].map(i=><group key={'arm'+i} ref={g=>(r.shoulder[i]=g)} rotation-z={(i===0?-1:1)*.12} position={[(i===0?-1:1)*SHOULDER.x*sw,SHOULDER.y,0]}>
           <TailoredLimb rig={rig} index={i} style={look.topStyle} cloth={shirt} skin={skin}/>
           <group ref={g=>(r.elbow[i]=g)} position={[0,-UPPER_ARM,0]}>
             <group position={[0,-FOREARM-.005,0]}>
@@ -387,4 +394,31 @@ function Hat({ style, material, band }: { style: string; material: THREE.Materia
     <mesh position={[0, 0.012, 0]} material={band}><cylinderGeometry args={[0.105, 0.105, 0.026, 24]} /></mesh>
     <mesh material={material} castShadow><cylinderGeometry args={[0.19, 0.19, 0.01, 32]} /></mesh>
   </group>;
+}
+
+/** 髪。頭のグループの中に置く（頭の中心はおよそ y = 0.13、顔は -Z） */
+const PI=Math.PI;
+function Shell({r,y=.13,z=.004,phi=[0,2*PI],theta,sx=.96,sy=1,material}:{r:number;y?:number;z?:number;phi?:[number,number];theta:number;sx?:number;sy?:number;material:THREE.Material}){
+  return <mesh position={[0,y,z]} scale={[sx,sy,1.03]} material={material} castShadow><sphereGeometry args={[r,32,18,phi[0],phi[1],0,theta]}/></mesh>;
+}
+/** 後ろ半分（+Z）に回り込む部分。spread で顔の横へどれだけ回り込むか */
+const back=(spread:number):[number,number]=>[-spread,PI+2*spread];
+export function Hair({shape,material:m}:{shape:HairShape;material:THREE.Material}){
+  switch(shape){
+    case 'buzz':return <Shell r={.1} theta={PI*.56} sy={.98} material={m}/>;
+    case 'short':return <><Shell r={.107} y={.135} theta={PI*.42} material={m}/><Shell r={.105} phi={back(.1)} theta={PI*.62} material={m}/></>;
+    case 'twoblock':return <><Shell r={.104} phi={back(.15)} theta={PI*.62} material={m}/><Shell r={.114} y={.142} theta={PI*.36} sy={.95} material={m}/></>;
+    case 'mash':return <><Shell r={.116} y={.13} theta={PI*.47} sy={.98} material={m}/><Shell r={.11} phi={back(.25)} theta={PI*.64} material={m}/></>;
+    case 'bob':return <><Shell r={.114} y={.135} theta={PI*.44} material={m}/><Shell r={.116} y={.125} phi={back(.65)} theta={PI*.8} sx={.98} material={m}/></>;
+    case 'wavy':return <><Shell r={.116} y={.135} theta={PI*.44} material={m}/><Shell r={.118} y={.125} phi={back(.6)} theta={PI*.78} sx={1} material={m}/>
+      {Array.from({length:9},(_,i)=>{const a=-.55+i*(PI+1.1)/8;return <mesh key={i} position={[-Math.cos(a)*.105,.03+Math.abs(Math.sin(i*1.7))*.02,Math.sin(a)*.105+.005]} material={m}><sphereGeometry args={[.035,14,10]}/></mesh>;})}</>;
+    case 'long':return <><Shell r={.113} y={.135} theta={PI*.44} material={m}/><Shell r={.115} y={.125} phi={back(.55)} theta={PI*.75} material={m}/>
+      <mesh position={[0,-.03,.07]} scale={[1,1,.42]} material={m} castShadow><cylinderGeometry args={[.105,.085,.3,24]}/></mesh>
+      <mesh position={[0,-.18,.07]} scale={[1,.35,.42]} material={m}><sphereGeometry args={[.085,20,12]}/></mesh></>;
+    case 'pony':return <><Shell r={.108} y={.134} theta={PI*.44} material={m}/><Shell r={.106} phi={back(.1)} theta={PI*.66} material={m}/>
+      <mesh position={[0,.15,.115]} material={m}><sphereGeometry args={[.03,14,10]}/></mesh>
+      <mesh position={[0,.05,.135]} rotation-x={PI+.2} material={m} castShadow><coneGeometry args={[.045,.24,16]}/></mesh></>;
+    case 'bun':return <><Shell r={.107} y={.134} theta={PI*.44} material={m}/><Shell r={.105} phi={back(.1)} theta={PI*.64} material={m}/>
+      <mesh position={[0,.235,.06]} material={m} castShadow><sphereGeometry args={[.052,20,14]}/></mesh></>;
+  }
 }

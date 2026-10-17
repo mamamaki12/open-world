@@ -21,7 +21,7 @@ export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; 
   | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number } | { type: 'play'; fee: number }
   | { type: 'request'; title: string; description: string; reward: number } | { type: 'requestStep'; request: string; op: RequestOp };
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
-/** みんなのワールドでの所持金と車。自分のワールドとは完全に別（引き継ぐのは見た目と服だけ） */
+/** 共有側の口座。所持金は端末の個別ワールドと同期し、車や株は共有側だけに保存する。 */
 export interface Account { name: string; money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, unknown> }
 export type SharedWorld = WorldSave & { accounts?: Record<string, Account> };
 export const SHARED_START_MONEY = 1_000_000;
@@ -45,10 +45,11 @@ export function withAccount(w: SharedWorld, id: string, name: string): SharedWor
   return { ...w, accounts: { ...w.accounts, [id]: a ? { ...a, name } :
     { name, money: SHARED_START_MONEY, ledger: [{ day: w.economy.day, label: 'はじめの所持金', amount: SHARED_START_MONEY }], cars: [] } } };
 }
-function charge(w: SharedWorld, id: string, amount: number, label: string): SharedWorld | string {
+function charge(w: SharedWorld, id: string, amount: number, label: string, allowDebt = false): SharedWorld | string {
   const a = w.accounts?.[id];
   if (!a) return '口座がありません';
-  if (amount > 0 && a.money < amount) return 'お金が足りません';
+  if (!Number.isSafeInteger(a.money - amount)) return '金額が不正です';
+  if (!allowDebt && amount > 0 && a.money < amount) return 'お金が足りません';
   if (!amount) return w;
   return { ...w, accounts: { ...w.accounts, [id]: { ...a, money: a.money - amount, ledger: [{ day: w.economy.day, label, amount: -amount }, ...a.ledger].slice(0, 50) } } };
 }
@@ -71,7 +72,8 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
   if (a.type === 'money') {
     // カジノやバイトなど端末で計算するお金の出入り（端末の申告を信頼する。将来はサーバーで計算する）
     if (!Number.isSafeInteger(a.delta) || Math.abs(a.delta) > 1e13 || typeof a.label !== 'string') return '金額が不正です';
-    const paid = charge(w, sender, -a.delta, a.label.slice(0, 60));
+    // Offline property expenses can produce debt; carry that balance without allowing purchases on credit.
+    const paid = charge(w, sender, -a.delta, a.label.slice(0, 60), true);
     return typeof paid === 'string' ? paid : { world: paid, cost: 0, message: '' };
   }
   if (a.type === 'stocks') {
