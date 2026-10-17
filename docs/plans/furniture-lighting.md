@@ -20,3 +20,5 @@
 - Visual review confirms soft warm pools on the wall and floor. Files: browser-checks/furniture-lighting-desktop-night.png and phone-night.png (ignored test evidence).
 - Legacy deployed relay compatibility passed using captured pre-light bundle: all 4 new fixture types and mount metadata are persisted and duplicate receipts are idempotent. Current rebuilt bundle passed the same check. EC2 update is not required for this feature.
 - All 633 existing tests and build passed; 43 targeted tests including 9 new mounting/light/material regressions passed. CI and release next.
+
+- PR #86. First CI run 39022562238 passed full units/build, building-detail and world-session, but the new lighting browser check sampled light-pool intensity before a slow software-rendered frame updated. Replaced the fixed 1s wait with polling for actual active lights and added light diagnostics. Lighting browser checks now have a dedicated CI job/artifact, separate from unrelated controls. Revalidation in progress.

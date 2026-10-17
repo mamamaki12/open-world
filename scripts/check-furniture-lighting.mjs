@@ -10,7 +10,7 @@ async function stats(page){return page.evaluate(async()=>{
   const own=window.__ow.scene.getObjectByName('house');
   const sources=[...furnitureLightSources.keys()].filter(o=>{for(let p=o;p;p=p.parent)if(p===own)return true;return false;});
   const pool=[];window.__ow.scene.traverse(o=>{if(o.isPointLight&&o.name.startsWith('furniture-light-'))pool.push({intensity:o.intensity,shadows:o.castShadow});});
-  return {sources:sources.length,pool};
+  return {sources:sources.length,pool,camera:window.__ow.camera.position.toArray(),positions:sources.map(o=>o.getWorldPosition(o.position.clone()).toArray())};
 });}
 async function run(touch){
   const context=await browser.newContext({viewport:touch?{width:390,height:844}:{width:1280,height:800},hasTouch:touch,isMobile:touch});
@@ -59,7 +59,10 @@ async function run(touch){
     }
     await until(page,()=>window.__ow.game.getState().house.furniture.length===2);
     await page.evaluate(()=>window.__ow.game.getState().select(null));
-    await page.waitForTimeout(1000);
+    await until(page,()=>{
+      let active=0;window.__ow.scene.traverse(o=>{if(o.isPointLight&&o.name.startsWith('furniture-light-')&&o.intensity>0)active++;});
+      return active>=2;
+    });
     const info=await stats(page);assert.equal(info.sources,2);assert.equal(info.pool.length,touch?3:6);assert.ok(info.pool.filter(p=>p.intensity>0).length>=2);assert.ok(info.pool.every(p=>!p.shadows));
     await page.screenshot({path:`browser-checks/furniture-lighting-${touch?'phone':'desktop'}-night.png`});
     // Saving/restoring must retain both the wall attachment and the floor light.
@@ -70,7 +73,7 @@ async function run(touch){
     await until(page,()=>window.__ow.game.getState().house.furniture.length===1);
     await page.waitForTimeout(500);assert.equal((await stats(page)).sources,1,'removing wall cleans up its light');
     assert.deepEqual(errors,[]);console.log(touch?'Phone lighting passed':'Desktop lighting passed');
-  }catch(e){console.error('Lighting failure',touch,e);try{console.log(await page.evaluate(async()=>({house:window.__ow?.game.getState().house,preview:(await import('/src/state/interaction.ts')).useInteraction.getState().preview})));await page.screenshot({path:`browser-checks/furniture-lighting-${touch?'phone':'desktop'}-failure.png`});}catch{}throw e;}
+  }catch(e){console.error('Lighting failure',touch,e);try{console.log('Lighting stats',await stats(page));console.log(await page.evaluate(async()=>({house:window.__ow?.game.getState().house,preview:(await import('/src/state/interaction.ts')).useInteraction.getState().preview})));await page.screenshot({path:`browser-checks/furniture-lighting-${touch?'phone':'desktop'}-failure.png`});}catch{}throw e;}
   finally{await context.close();}
 }
 try{await run(false);await run(true);}finally{await browser.close();}

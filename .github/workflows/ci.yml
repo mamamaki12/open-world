@@ -35,7 +35,6 @@ jobs:
           node scripts/check-aim-controls.mjs
           node scripts/check-fashion.mjs
           node scripts/check-looks.mjs
-          node scripts/check-furniture-lighting.mjs
           node scripts/check-jobs.mjs pc
       - uses: actions/upload-artifact@v4
         if: always()
@@ -46,6 +45,34 @@ jobs:
             fashion-checks/
             looks-checks/
             job-checks/
+          if-no-files-found: ignore
+
+  furniture-lighting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Check desktop and phone lighting placement and rendering
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/furniture-lighting-vite.log 2>&1 &
+          web=$!
+          trap 'kill "$web"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-furniture-lighting.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: furniture-lighting-checks
+          path: browser-checks/furniture-lighting-*.png
           if-no-files-found: ignore
 
   building-detail:
