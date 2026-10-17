@@ -1,6 +1,7 @@
 # 共有ワールド更新の直列化（実装方針と進捗）
 
 - ブランチ: `codex/fix-verified-gameplay-bugs`
+- PR: #87（draft）
 - 依頼: 保存中の日替わりで家賃精算が消える不具合を修正。
 
 ## 方針
@@ -13,4 +14,5 @@
 - 済: 計画をcommit/push。時計・参加・取引を同じqueueに直列化し、保存成功後に確定・配信。中継bundleを再生成。
 - 済: 保存待機中の取引＋日替わり＋新規参加、口座保存失敗を追加検証。中継テスト6件成功。
 - 済: 全体645テスト、型チェック、本番ビルド、照明relay互換性、追加ブラウザー回帰、既存共通所持金検証が成功。WindowsのNode24.11はビルドでnative異常終了したため、同梱Node24.19でビルド成功を確認。
-- 次: 2人セッション検証、draft PR。本番反映にはEC2の中継更新が必要。既存の`shared-world.json`を保持する。
+- 済: 既存2人セッション検証成功。draft PR #87を作成、CI実行中。
+- 次: CI確認後、EC2で`scripts/update-relay-amazon-linux.sh <このPRの確定SHA>`を実行して中継更新→health確認→ready/merge。既存の`shared-world.json`を保持する。エージェントはSSH認証情報を持っていないため本番更新は未実施。

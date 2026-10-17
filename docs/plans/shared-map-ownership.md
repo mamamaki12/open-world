@@ -1,6 +1,7 @@
 # 共有地図の土地所有者表示（実装方針と進捗）
 
 - ブランチ: `codex/fix-verified-gameplay-bugs`
+- PR: #87（draft）
 - 依頼: 他人の土地を「あなたの家・土地」に含める表示を修正。
 
 ## 方針
@@ -11,4 +12,5 @@
 - 済: 最新mainと関連plans確認、実装前の計画作成。
 - 済: 計画をcommit/push。自分の土地だけの件数/一覧と、他人の土地の色/所有者表示を実装。土地ゼロ・他人の土地のPC表示を確認。
 - 済: 自分0件/他人あり、自分1件と他人の混在をPC・390×844のスマホで確認。所有者表示・自分一覧からの除外・横はみ出しなしを検証、画像を目視確認。JavaScript例外なし。
-- 次: draft PRとCI確認。画像は`world-session-checks/ownership-*.png`（gitignore対象）。
+- 済: draft PR #87、CI実行中。画像は`world-session-checks/ownership-*.png`（gitignore対象）。
+- 次: CI確認、EC2更新後にready/merge。
