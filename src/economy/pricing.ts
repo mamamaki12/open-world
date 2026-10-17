@@ -1,6 +1,7 @@
 // 建築費の見積もり、改築の差額、家の査定（品質係数）。描画から独立した計算。
 import prices from '../catalog/prices.json';
-import { getSashType } from '../catalog';
+import { furnitureDef, getSashType } from '../catalog';
+import { designPrice } from '../catalog/designs';
 import { GRID } from '../building/dimensions';
 import { wallHeight, wallLength, wallOutsideSide } from '../building/rules';
 import type { House } from '../building/types';
@@ -80,7 +81,7 @@ export function partCosts(house: House): PartCost[] {
   }
   for (const f of house.furniture) {
     // 位置や向きを変えるだけならお金はかからない（種類と色だけを比べる）
-    out.push({ category: 'furniture', id: f.id, cost: furniturePrice(f.type), key: `${f.type}:${f.color}` });
+    out.push({ category: 'furniture', id: f.id, cost: f.design ? designPrice(furnitureDef(f)) : furniturePrice(f.type), key: `${f.type}:${f.color}` });
   }
   for (const p of out) p.cost = Math.round(p.cost / 1000) * 1000;
   return out;

@@ -12,7 +12,9 @@ import { useVehicles } from '../state/vehicles';
 import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract, resolveParkedCars } from './vehicleLogic';
 import { useVenue } from '../state/venue';
 import { resolveVenue, throughDoorway, VENUE_KINDS, venueDoorId } from '../building/venues';
-import { SHOP_BOXES } from '../building/tuner';
+import { SHOP_BOXES as TUNER_SHOPS } from '../building/tuner';
+import { EXCHANGE } from '../building/exchange';
+const SHOP_BOXES=[...TUNER_SHOPS,EXCHANGE];
 import { useSeating } from '../state/seating';
 import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
@@ -713,7 +715,7 @@ export function Player() {
       const focus = new THREE.Vector3(playerMemory.x, eye - 0.1, playerMemory.z);
       let dist = playerMemory.distance;
       // 壁や屋根でカメラが埋もれないよう、手前に寄せる
-      const blockers = ['house', 'casino', 'estate', 'dealer', 'tuner', 'boutiques', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
+      const blockers = ['house', 'casino', 'estate', 'dealer', 'tuner', 'exchange', 'boutiques', 'venue-interior', 'neighbors'].map((n) => scene.getObjectByName(n)).filter((o): o is THREE.Object3D => !!o);
       if (blockers.length) {
         raycaster.current.set(focus, dir.clone().negate());
         raycaster.current.far = dist;

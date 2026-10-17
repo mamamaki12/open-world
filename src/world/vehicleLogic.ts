@@ -5,7 +5,10 @@ import { getCar } from '../catalog/cars';
 import { carHitsBox, carHitsWalls } from '../building/vehicleWalls';
 import { GRID, LOT_W, LOT_D } from '../building/dimensions';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
-import { takenPlots } from './visit';
+import { takenPlots, visitAt } from './visit';
+import { furnitureDef, hasMovingParts } from '../catalog';
+import { furnitureBaseY } from '../building/rules';
+import { playDoorSound } from './sound';
 import type { House } from '../building/types';
 import { carSamples, integrateDrive } from '../building/driving';
 import type { DrivePose } from '../building/driving';
@@ -14,13 +17,15 @@ import { isBoutique } from '../building/boutiques';
 import { venueAction } from '../building/venues';
 import { atSaleSign } from '../building/landSale';
 import { atDealerDoor } from '../building/dealer';
-import { SHOP_BOXES } from '../building/tuner';
+import { SHOP_BOXES as TUNER_SHOPS } from '../building/tuner';
+import { EXCHANGE } from '../building/exchange';
+const SHOP_BOXES=[...TUNER_SHOPS,EXCHANGE];
 import { STOCK_MODS, tunedCar } from '../catalog/carMods';
 import { engineHum } from './engineSound';
 import { LANDMARK_COLLIDERS, resolveLandmarks } from '../building/landmarks';
 import { ceilingHeight, resolveCollisions, surfaceHeight } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
-import { currentPlotOf, civicOffset, lotHouse, useEconomy } from '../state/economy';
+import { currentPlotOf, civicOffset, lotHouse, plotOffset, plotOffsetZ, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
 import { saveVehicles, useVehicles } from '../state/vehicles';
 import { plotX, plotZ, TOWN_BOUNDS } from '../economy/town';
@@ -94,9 +99,33 @@ export function refreshVehicleTarget(p:Memory) {
     for(const f of useGame.getState().house.furniture){
       if(f.type==='garage-shutter'&&Math.hypot(f.x-p.x,f.z-p.z)<2.5)target='shutter:'+f.id;
     }
+    if(!target)target=registerTarget(p);
+  }
+  if (!state.driving && !target) {
+    // 引き出し・扉のあるデザイン家具：同じ階で手が届く距離なら開け閉めできる（訪ねた家でも）
+    const h=visitAt(p.x,p.z)?.world??useGame.getState().house;
+    let reach=1.3;
+    for(const f of h.furniture){
+      if(!hasMovingParts(furnitureDef(f))||Math.abs(furnitureBaseY(h,f)-p.y)>.6)continue;
+      const d=Math.hypot(f.x-p.x,f.z-p.z);
+      if(d<reach){reach=d;target='furn:'+f.id;}
+    }
   }
   if (!state.driving && !target) { const o=origin(); const offer=useEconomy.getState().offers.find(offer=>typeof offer.plot==='number'&&atSaleSign(offer.plot,p.x+o.x,p.z+o.z,p.y));if(offer)target='land:'+offer.id; }
   if(state.target!==target)useVehicles.setState({target});
+}
+/** 近くにあるお店のレジかゲーム機（1階）。いま開いている土地と、ほかのお店の土地を見る */
+function registerTarget(p:Memory):string|null{
+  const e=useEconomy.getState();
+  for(const l of e.lots){
+    const current=l.id===e.currentLotId;
+    if(!current&&(!l.shop||typeof l.plot!=='number'))continue;
+    const house=current?useGame.getState().house:lotHouse(l);
+    const ox=current?0:plotOffset(l.plot!,e),oz=current?0:plotOffsetZ(l.plot!,e);
+    const near=house?.furniture.find(f=>(f.type==='register'||f.type==='arcade')&&f.level===0&&Math.hypot(f.x+ox-p.x,f.z+oz-p.z)<1.8);
+    if(near)return near.type+':'+l.id;
+  }
+  return null;
 }
 export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({driving:null,target:null});saveVehicles();}
 export function vehicleInteract(p:Memory) {
@@ -118,7 +147,10 @@ export function vehicleInteract(p:Memory) {
     useGame.getState().notify('降りる場所がありません。広い場所へ移動してください');return true;
   }
   if(s.target?.startsWith('land:')){useGame.getState().setOverlay('land');return true;}
+  if(s.target?.startsWith('register:')){useGame.getState().setOverlay('shop');return true;}
+  if(s.target?.startsWith('arcade:')){useGame.getState().setOverlay('arcade');return true;}
   if(s.target?.startsWith('shutter:')){useDoors.getState().toggle(s.target.slice(8),1);return true;}
+  if(s.target?.startsWith('furn:')){const opened=useDoors.getState().toggle(s.target.slice(5),1);playDoorSound(opened,true);return true;}
   const c=s.cars.find(c=>c.id===s.target);
   if(!c)return false;
   useVehicles.setState({driving:c.id});
