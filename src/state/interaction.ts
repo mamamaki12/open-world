@@ -8,7 +8,7 @@ export type Preview =
   | { kind: 'wall'; x0: number; z0: number; x1: number; z1: number; valid: boolean }
   | { kind: 'stair'; x: number; z: number; valid: boolean }
   | { kind: 'furniture'; x: number; z: number }
-  | { kind: 'nameplate'; mount: NonNullable<import('../building/types').FurniturePart['wallMount']> }
+  | { kind: 'nameplate'; mount: NonNullable<import('../building/types').FurniturePart['wallMount']>; type?: string }
   | { kind: 'opening'; wallId: string; offset: number; valid: boolean };
 
 interface InteractionState {

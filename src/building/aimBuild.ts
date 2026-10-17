@@ -34,13 +34,13 @@ export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number
     const st={level,x:point.x,z:point.z,rot,shape:d.stairShape};error=canPlaceStair(h,st);
     preview={kind:'stair',x:point.x,z:point.z,valid:!error};
     next={...h,stairs:[...h.stairs,{id:newId('stair'),...st,finish:d.stairFinish,rail:d.stairRail}]};
-  }else if(tool==='door'||tool==='window'||(tool==='furniture'&&d.furnitureType==='nameplate')){
+  }else if(tool==='door'||tool==='window'||(tool==='furniture'&&getFurniture(d.furnitureType).mount)){
     const wall=p.ref?.kind==='wall'?h.walls.find(w=>w.id===p.ref!.id):undefined;
     if(!wall)return {error:'取り付ける壁面を狙ってください'};
     if(tool==='furniture'){
-      const mount=nameplateMount(h,wall,p,viewer);if(!mount)return {error:'窓やドアを避けて壁を狙ってください'};
-      const t=mountedTransform(h,mount)!;preview={kind:'nameplate',mount};
-      next={...h,furniture:[...h.furniture,{id:newId('furniture'),type:'nameplate',level:wall.level,x:t.x,z:t.z,rotation:t.rotation,color:'#f2efe8',label:d.nameplateText,wallMount:mount}]};
+      const def=getFurniture(d.furnitureType),mount=nameplateMount(h,wall,p,viewer,def.id);if(!mount)return {error:'窓やドアを避けて壁を狙ってください'};
+      const t=mountedTransform(h,mount,def.id)!;preview={kind:'nameplate',mount,type:def.id};
+      next={...h,furniture:[...h.furniture,{id:newId('furniture'),type:def.id,level:wall.level,x:t.x,z:t.z,rotation:t.rotation,color:def.id==='nameplate'?'#f2efe8':def.colors[0],...(def.label?{label:d.nameplateText}:{}),wallMount:mount}]};
     }else{
       const type=tool==='door'?d.doorType:d.windowType,{dx,dz}=wallDir(wall);
       const offset=snapOpeningOffset(wallLength(wall),(p.x-wall.x0*GRID)*dx+(p.z-wall.z0*GRID)*dz,getOpening(type).width);

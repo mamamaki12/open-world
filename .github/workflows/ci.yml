@@ -47,6 +47,34 @@ jobs:
             job-checks/
           if-no-files-found: ignore
 
+  furniture-lighting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Check desktop and phone lighting placement and rendering
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/furniture-lighting-vite.log 2>&1 &
+          web=$!
+          trap 'kill "$web"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-furniture-lighting.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: furniture-lighting-checks
+          path: browser-checks/furniture-lighting-*.png
+          if-no-files-found: ignore
+
   building-detail:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -88,6 +116,7 @@ jobs:
       - name: Check the bundled relay is up to date
         run: npm run build:server && git diff --exit-code server/dist
       - run: node --test server/relay.test.mjs
+      - run: node scripts/check-lighting-relay.mjs
       - name: Check deployed relay over HTTPS and WSS
         run: node scripts/check-public-relay.mjs
       - run: npm run build

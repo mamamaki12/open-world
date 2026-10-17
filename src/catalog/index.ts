@@ -2,6 +2,7 @@
 import materialsData from './materials.json';
 import openingsData from './openings.json';
 import furnitureData from './furniture.json';
+import { LIGHTING } from './lighting';
 import type { OpeningKind } from '../building/types';
 
 export type MaterialCategory = 'exterior' | 'interior' | 'roof' | 'floor' | 'wood';
@@ -96,6 +97,8 @@ export interface FurniturePiece {
   size: [number, number, number];
   pos: [number, number, number];
   paint: Paint;
+  /** 発光するシェード・拡散板。実際の周辺光は FurnitureLighting の共有枠で描く。 */
+  glow?: boolean;
   /** 動く部品：引き出しは手前（+Z）へ引き出す。扉は左右どちらかの縦の辺を軸に開く */
   move?: 'drawer' | 'door-l' | 'door-r';
 }
@@ -104,7 +107,10 @@ export interface FurnitureDef {
   id: string;
   name: string;
   /** outdoor：庭・外構に置くもの（プール・花など）。省略は家の中の家具 */
-  category?: 'outdoor';
+  category?: 'outdoor' | 'lighting';
+  /** 取付中心はモデル内の y=1.6m。back は取付中心から背面までの距離。 */
+  mount?: { width: number; height: number; back: number };
+  light?: { position: [number, number, number]; color: string; intensity: number; distance: number };
   /** 外構・ガレージ部材は地面基準。部品ごとの衝突判定で車庫の内部を通れる。 */
   grounded?: boolean;
   collisionParts?: boolean;
@@ -122,7 +128,13 @@ export const OPENINGS = openingsData.types as OpeningDef[];
 export const SASH_COLORS = openingsData.sashColors as NamedColor[];
 export const PANEL_COLORS = openingsData.panelColors as NamedColor[];
 export const SASH_TYPES = openingsData.sashTypes as SashTypeDef[];
-export const FURNITURE = furnitureData.types as FurnitureDef[];
+export const FURNITURE: FurnitureDef[] = [
+  ...(furnitureData.types as FurnitureDef[]).map(f => f.id === 'nameplate' ? { ...f, mount: { width: .34, height: .13, back: .0125 } } :
+    f.id === 'floor-lamp' ? { ...f, category: 'lighting' as const,
+      light: { position: [0, 1.55, 0] as [number, number, number], color: '#ffd6a0', intensity: 3, distance: 5 },
+      parts: f.parts.map((p, i) => i === 2 ? { ...p, glow: true } : p) } : f),
+  ...LIGHTING,
+];
 
 const materialById = new Map(MATERIALS.map((m) => [m.id, m]));
 const openingById = new Map(OPENINGS.map((o) => [o.id, o]));

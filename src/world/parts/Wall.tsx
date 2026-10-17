@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
-import { getOpening } from '../../catalog';
+import { getOpening, getFurniture } from '../../catalog';
 import { GRID, WALL_THICKNESS } from '../../building/dimensions';
 import { canPlaceOpening, newId, snapOpeningOffset, wallBaseY, wallHeight, wallLength, wallOutsideSide } from '../../building/rules';
 import type { OpeningPart, WallPart } from '../../building/types';
@@ -24,7 +24,7 @@ export function Wall({ wall, openings, outside }: Props) {
   const { highlight, handlers } = usePart({ kind: 'wall', id: wall.id });
   const tool = useGame((s) => s.tool);
   const foreign = !!useContext(HouseScope).activate;
-  const placingNameplate = useGame((s) => s.tool === 'furniture' && s.defaults.furnitureType === 'nameplate');
+  const placingNameplate = useGame((s) => s.tool === 'furniture' && !!getFurniture(s.defaults.furnitureType).mount);
   const house = useHouseData();
   const length = wallLength(wall);
   const height = wallHeight(wall);
@@ -117,8 +117,8 @@ export function Wall({ wall, openings, outside }: Props) {
 
   const previewNameplate = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
     const game = useGame.getState();
-    const mount = nameplateMount(game.house, wall, e.point, e.ray.origin);
-    useInteraction.getState().setPreview(mount ? { kind: 'nameplate', mount } : null);
+    const mount = nameplateMount(game.house, wall, e.point, e.ray.origin, game.defaults.furnitureType);
+    useInteraction.getState().setPreview(mount ? { kind: 'nameplate', mount, type: game.defaults.furnitureType } : null);
     return mount;
   };
   const nameplateHandlers = placingNameplate && !foreign ? {
@@ -134,10 +134,10 @@ export function Wall({ wall, openings, outside }: Props) {
       if (e.delta > 12) return;
       const game = useGame.getState();
       const wallMount = previewNameplate(e);
-      if (!wallMount) return game.notify('表札は窓・ドアを避けて壁面に取り付けてください');
-      const transform = mountedTransform(game.house, wallMount)!;
-      const item = { id: newId('furniture'), type: 'nameplate', level: wall.level, x: transform.x, z: transform.z,
-        rotation: transform.rotation, color: '#f2efe8', label: game.defaults.nameplateText, wallMount };
+      if (!wallMount) return game.notify('窓・ドアを避けて壁面に取り付けてください');
+      const def = getFurniture(game.defaults.furnitureType), transform = mountedTransform(game.house, wallMount, def.id)!;
+      const item = { id: newId('furniture'), type: def.id, level: wall.level, x: transform.x, z: transform.z,
+        rotation: transform.rotation, color: def.id === 'nameplate' ? '#f2efe8' : def.colors[0], ...(def.label ? { label: game.defaults.nameplateText } : {}), wallMount };
       game.commit({ ...game.house, furniture: [...game.house.furniture, item] });
       useInteraction.setState({ ignorePartClickUntil: Date.now() + 100 });
       game.setTool('select'); game.select({ kind: 'furniture', id: item.id });

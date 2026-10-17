@@ -169,7 +169,7 @@ export function PlacementController() {
       lastPointer = e;
       const g = useGame.getState();
       const ui = useInteraction.getState();
-      if (g.tool === 'furniture' && g.defaults.furnitureType === 'nameplate') return;
+      if (g.tool === 'furniture' && getFurniture(g.defaults.furnitureType).mount) return;
       const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
@@ -216,7 +216,7 @@ export function PlacementController() {
       if (aimBuilding()) return;
       if (e.button !== 0) return;
       if (Date.now() < useInteraction.getState().ignorePartClickUntil) return;
-      if (useGame.getState().tool === 'furniture' && useGame.getState().defaults.furnitureType === 'nameplate') return;
+      if (useGame.getState().tool === 'furniture' && getFurniture(useGame.getState().defaults.furnitureType).mount) return;
       if (e.pointerType === 'touch') {
         touches.add(e.pointerId);
         if (touches.size > 1) return cancelTouch();

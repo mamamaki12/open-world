@@ -118,6 +118,10 @@
     "tree": 50000,
     "hedge": 15000,
     "register": 150000,
-    "arcade": 300000
+    "arcade": 300000,
+    "wall-sconce": 50000,
+    "wall-light-bar": 50000,
+    "indirect-floor-light": 50000,
+    "garden-bollard-light": 50000
   }
 }
