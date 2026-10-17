@@ -33,7 +33,10 @@ export function startPartLongPress(ref: PartRef, x: number, y: number) {
     const s = useGame.getState();
     s.commit(removePart(s.house, ref));
     s.select(null);
-    useInteraction.setState({ ignorePartClickUntil: Date.now() + 800 });
+    // 指・ボタンを離したときのクリックで、後ろのパーツを選ばないようにする（canvas より先に受ける）
+    const block = () => useInteraction.setState({ ignorePartClickUntil: Date.now() + 300 });
+    block();
+    window.addEventListener('pointerup', block, { capture: true, once: true });
     navigator.vibrate?.(30);
   }, LONG_PRESS_MS);
   window.addEventListener('pointermove', onMove);

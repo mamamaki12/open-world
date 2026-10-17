@@ -10,6 +10,6 @@
 - 実装: `src/world/partLongPress.ts`（`beginPartDrag` から開始。町の自分の家も同じ経路）。
 
 ## 進捗
-- [ ] 実装
-- [ ] Playwright でスマホ・PC確認
+- [x] 実装（離した瞬間のクリックで後ろのパーツを選ばないよう、pointerup を capture で抑止）
+- [x] Playwright でスマホ・PC確認（scripts/check-tap-select.mjs）
 - [ ] PR・マージ
