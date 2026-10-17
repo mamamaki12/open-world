@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import type { House } from '../building/types';
 import { useGame } from '../state/store';
-import { useEconomy, currentPlotOf, lotCells } from '../state/economy';
+import { useEconomy, currentPlotOf, lotCells, civicOffset } from '../state/economy';
+import { VENUES, VENUE_DOORS } from '../building/venues';
+import { startWallet, settleWallet, walletMoney } from './wallet';
 import { lotSize } from '../building/dimensions';
 import { useWardrobe } from '../state/wardrobe';
 import { useVehicles, validCar } from '../state/vehicles';
@@ -31,6 +33,7 @@ let socket: WebSocket | null = null, token = '', endpoint = '', reconnectTimer: 
 let approvalQueue = Promise.resolve();
 let approving = false;
 let intendedLeave = false, epoch = 0, remoteWorld: WorldSave | null = null;
+let sharedSpawn = false, homePosition: typeof playerMemory | null = null;
 const send = (data: unknown) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); };
 export const currentEndpoint = () => endpoint;
 interface Command { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string }
@@ -140,29 +143,29 @@ export async function enterOffline() {
 /** みんなのワールド（サーバーが正本を持つ1つの町）に入る。自宅は訪問中と同じく上書きしない */
 export async function joinShared(url: string) {
   await persist(); // 自分のワールドの所持金・車を保存してから切り替える
-  sessionGate.shared = true; inflight.clear(); account = null;
-  sessionGate.money = (delta, label) => {
-    if (accountApplying || !delta || useSession.getState().status !== 'connected') return;
-    const id = crypto.randomUUID(); inflight.set(id, delta);
-    send({ type: 'command', command: { id, lot: '', delta: [], reserved: 0, action: { type: 'money', delta, label } } });
-  };
+  homePosition = { ...playerMemory }; sharedSpawn = true;
+  sessionGate.shared = true; walletSending = null; walletAck = null; account = null;
+  sessionGate.money = null; // The economy subscription journals all money changes, including offline ticking.
   sessionGate.act = (lot, action, reserved) => {
+    if (!account || savedBundle().wallet?.pending.length) return '所持金を同期中です。少し待ってからお試しください';
     if (useSession.getState().status !== 'connected') return '接続を待っています';
     const id = crypto.randomUUID(); actions.add(id);
     send({ type: 'command', command: { id, lot, delta: [], reserved, action } });
     return null;
   };
-  useEconomy.setState({ money: 0, ledger: [] }); useVehicles.setState({ cars: [], driving: null, target: null }); useStocks.setState({ holdings: {} });
+  useVehicles.setState({ cars: [], driving: null, target: null }); useStocks.setState({ holdings: {} });
   try { await connectWorld(url, '', true); } catch (e) { restoreHome(); leaveShared(); throw e; }
 }
 /** みんなのワールドの口座（サーバーの正本）に、まだ返事のない自分の出入りを足して表示する */
-const inflight = new Map<string, number>(), actions = new Set<string>();
+const actions = new Set<string>(), actionAcks = new Set<string>();
+let walletSending: string | null = null, walletAck: string | null = null, firstAccount = true;
 let account: { money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, Holding> } | null = null, accountApplying = false;
 function showAccount() {
   if (!account) return;
   accountApplying = true;
   try {
-    const money = account.money + [...inflight.values()].reduce((a, b) => a + b, 0);
+    const wallet = savedBundle().wallet;
+    const money = wallet ? walletMoney(wallet) : useEconomy.getState().money;
     useEconomy.setState({ money, ledger: account.ledger });
     const cars = account.cars.filter(validCar);
     if (JSON.stringify(cars) !== JSON.stringify(useVehicles.getState().cars)) useVehicles.setState({ cars });
@@ -170,7 +173,40 @@ function showAccount() {
     if (JSON.stringify(stocks) !== JSON.stringify(useStocks.getState().holdings)) useStocks.setState({ holdings: stocks });
   } finally { accountApplying = false; }
 }
-function leaveShared() { if (sessionGate.shared) useStocks.setState({ holdings: homeHoldings() }); sessionGate.shared = false; sessionGate.money = null; sessionGate.act = null; inflight.clear(); actions.clear(); account = null; }
+function flushWallet() {
+  if (!sessionGate.shared || !account || firstAccount || walletSending || useSession.getState().status !== 'connected') return;
+  const payment = savedBundle().wallet?.pending[0]; if (!payment) return;
+  walletSending = payment.id;
+  const generation = epoch;
+  void persist().then(() => {
+    if (generation !== epoch || walletSending !== payment.id || socket?.readyState !== WebSocket.OPEN) return;
+    send({ type: 'command', command: { id: payment.id, lot: '', delta: [], reserved: 0, action: { type: 'money', delta: payment.delta, label: payment.label } } });
+  }).catch(() => { walletSending = null; useSession.setState({ message: '所持金を保存できません。再接続前にバックアップを保存してください' }); });
+}
+function receiveAccount(next: NonNullable<typeof account>) {
+  const b = savedBundle(), acknowledged = new Set<string>();
+  if (walletAck) acknowledged.add(walletAck);
+  if (firstAccount) {
+    for (const p of b.wallet?.pending ?? []) if (remoteWorld?.receipts?.[p.id]?.sender === b.profile.id) acknowledged.add(p.id);
+  }
+  if (!b.wallet || b.wallet.worldId !== sessionGate.worldId) {
+    b.wallet = startWallet(sessionGate.worldId, next.money, useEconomy.getState().money, crypto.randomUUID());
+  } else b.wallet = settleWallet(b.wallet, next.money, acknowledged);
+  if (firstAccount || walletAck) walletSending = null;
+  walletAck = null; firstAccount = false;
+  for (const id of actionAcks) actions.delete(id);
+  actionAcks.clear(); account = next; showAccount();
+  void persist().then(flushWallet).catch(() => useSession.setState({ message: '所持金を保存できませんでした' }));
+}
+function leaveShared() {
+  if (sessionGate.shared) {
+    useStocks.setState({ holdings: homeHoldings() });
+    if (homePosition) Object.assign(playerMemory, homePosition);
+  }
+  homePosition = null; sharedSpawn = false;
+  sessionGate.shared = false; sessionGate.money = null; sessionGate.act = null;
+  walletSending = null; walletAck = null; actions.clear(); actionAcks.clear(); account = null;
+}
 export async function connectWorld(url: string, code = '', shared = false) {
   if (!navigator.onLine) throw Error('みんなと遊ぶには通信が必要です');
   endpoint = endpointURL(url); await persist();
@@ -180,6 +216,7 @@ export async function connectWorld(url: string, code = '', shared = false) {
   openConnection(++epoch, false);
 }
 function openConnection(generation: number, resume: boolean) {
+  firstAccount = true; walletSending = null; walletAck = null; account = null;
   const p = savedBundle().profile, state = useSession.getState();
   socket = new WebSocket(endpoint);
   socket.onopen = () => send({ type: state.shared ? 'shared' : resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token });
@@ -198,6 +235,13 @@ function openConnection(generation: number, resume: boolean) {
         if (!validWorld(m.world)) throw Error('ワールドを読み込めません');
         remoteWorld = m.world;
         if (!useGame.getState().dragBase) applyWorld(remoteWorld!, true);
+        if (state.shared && sharedSpawn) {
+          sharedSpawn = false;
+          const o = civicOffset();
+          Object.assign(playerMemory, { x: o.x + VENUE_DOORS.casino.x, y: 0, z: o.z + VENUES.casino.z0 - 2.5,
+            yaw: Math.PI, bodyYaw: Math.PI, pitch: -.22, distance: 4.2 });
+          useGame.setState({ mode: 'walk', tool: 'select', overlay: null });
+        }
         syncHistory();
         for (const escrow of savedBundle().pending ?? []) {
           const receipt = m.world.receipts?.[escrow.id];
@@ -208,12 +252,20 @@ function openConnection(generation: number, resume: boolean) {
         useSession.setState({ members: m.members, poses: Object.fromEntries(Object.entries(useSession.getState().poses).filter(([id]) => m.members.some((x: Member) => x.id === id))) });
         if (state.role === 'host') publishWorld();
       } else if (m.type === 'command' && state.role === 'host') approvalQueue = approvalQueue.then(() => accept(m.sender, m.command));
-      else if (m.type === 'result' && (inflight.has(m.result?.id) || actions.has(m.result?.id))) {
-        const id = m.result.id; inflight.delete(id);
-        if (actions.delete(id)) useGame.getState().notify(m.result.ok ? m.result.message || '完了しました' : m.result.message || 'できませんでした');
-        showAccount();
+      else if (m.type === 'result' && m.result?.id === walletSending) {
+        if (m.result.ok) walletAck = m.result.id; // Server sends the matching account immediately after its result.
+        else {
+          const w = savedBundle().wallet!;
+          w.pending = w.pending.filter(p => p.id !== m.result.id); walletSending = null;
+          useGame.getState().notify(m.result.message || '所持金を同期できませんでした');
+          showAccount(); void persist().then(flushWallet);
+        }
       }
-      else if (m.type === 'account' && m.account && Number.isFinite(m.account.money)) { account = m.account; showAccount(); }
+      else if (m.type === 'result' && actions.has(m.result?.id)) {
+        if (m.result.ok) actionAcks.add(m.result.id); else actions.delete(m.result.id);
+        useGame.getState().notify(m.result.message || (m.result.ok ? '完了しました' : 'できませんでした'));
+      }
+      else if (m.type === 'account' && m.account && Number.isSafeInteger(m.account.money)) receiveAccount(m.account);
       else if (m.type === 'result') await finish(m.result);
       else if (m.type === 'denied') await finish({ id: m.id, ok: false, message: m.message });
       else if (m.type === 'pose' && validPose(m.pose)) useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } }));
@@ -239,6 +291,9 @@ function openConnection(generation: number, resume: boolean) {
 function validPose(p: RemotePose) { return !!p && [p.x, p.y, p.z, p.yaw].every(v => Number.isFinite(v) && Math.abs(v) < 10000) && !!p.outfit && Array.isArray(p.cars) && p.cars.length <= 10 && p.cars.every(validCar); }
 export function allowBuilding(id: string, canBuild: boolean) { send({ type: 'permission', target: id, canBuild }); }
 export async function leaveWorld() {
+  if (sessionGate.shared && useSession.getState().status === 'connected' && (savedBundle().wallet?.pending.length || actions.size)) {
+    useSession.setState({ message: '所持金の同期中です。少し待ってから退出してください' }); return;
+  }
   if (useSession.getState().busy && useSession.getState().status !== 'closed') { useSession.setState({ message: '建築費の精算待ちです。接続の復帰後に退出してください' }); return; }
   await persist(); intendedLeave = true; ++epoch; clearTimeout(reconnectTimer); send({ type: 'leave' }); socket?.close(); socket = null;
   sessionGate.edit = null; sessionGate.undo = null; ownHistory.length = 0; restoreHome(); leaveShared();
@@ -248,6 +303,14 @@ export async function leaveWorld() {
 }
 /** Install once outside React effects; subscriptions never outlive the page. */
 export function startSessionTimers() {
+  const money = useEconomy.subscribe((s, prev) => {
+    const w = savedBundle().wallet;
+    if (!w || accountApplying || sessionGate.applying || s.money === prev.money) return;
+    const delta = s.money - prev.money;
+    const txn = s.ledger[0];
+    w.pending.push({ id: crypto.randomUUID(), delta, label: (txn?.amount === delta ? txn.label : '個別ワールドの収支').slice(0, 120) });
+    void persist().then(flushWallet).catch(() => useSession.setState({ message: '所持金を保存できませんでした' }));
+  });
   let wasDriving: string | null = null;
   let lastLots = '';
   sessionGate.visitors = () => { const p = currentPlotOf(useEconomy.getState()); return Object.values(useSession.getState().poses).map(q => ({ x: q.x - plotX(p), y: q.y, z: q.z - plotZ(p), walking: q.walking, driving: q.driving })); };
@@ -285,5 +348,5 @@ export function startSessionTimers() {
     if (!sessionGate.applying && s.house !== prev.house && !s.dragBase) void persist().catch(() => undefined);
   });
   const hide = () => { if (document.hidden) void persist(); }; document.addEventListener('visibilitychange', hide);
-  return () => { cars(); stocks(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
+  return () => { money(); cars(); stocks(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
 }

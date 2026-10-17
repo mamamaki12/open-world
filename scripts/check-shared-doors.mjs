@@ -42,6 +42,7 @@ async function moveAway(page) { await page.evaluate(() => Object.assign(window._
 try {
   const a = await open('ドア確認A'), b = await open('ドア確認B');
   for (const page of pages) await until(page, async () => (await import('/src/session/session.ts')).useSession.getState().members.length === 2);
+  await b.evaluate(() => window.__ow.game.setState({ mode: 'build' }));
   await walkToDoor(a);
   for (const page of pages) await until(page, isOpen);
   // The other client remains in build mode and still sees a nearby pedestrian open the door.

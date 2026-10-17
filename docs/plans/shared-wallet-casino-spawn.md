@@ -12,3 +12,5 @@
 
 ## Progress
 - Planned; automatic-door fix is implemented separately and undergoing browser verification.
+
+- Implemented durable wallet deltas, receipt reconciliation, local money subscriptions, pending-payment exit guard and first-snapshot casino spawn/home-position restoration. Five pure wallet tests pass; browser reconnect/reload verification is running.
