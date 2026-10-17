@@ -114,7 +114,7 @@ export function refreshVehicleTarget(p:Memory) {
   if (!state.driving && !target) { const o=origin(); const offer=useEconomy.getState().offers.find(offer=>typeof offer.plot==='number'&&atSaleSign(offer.plot,p.x+o.x,p.z+o.z,p.y));if(offer)target='land:'+offer.id; }
   if(state.target!==target)useVehicles.setState({target});
 }
-/** 近くにあるお店のレジ（1階）。いま開いている土地と、ほかのお店の土地を見る */
+/** 近くにあるお店のレジかゲーム機（1階）。いま開いている土地と、ほかのお店の土地を見る */
 function registerTarget(p:Memory):string|null{
   const e=useEconomy.getState();
   for(const l of e.lots){
@@ -122,7 +122,8 @@ function registerTarget(p:Memory):string|null{
     if(!current&&(!l.shop||typeof l.plot!=='number'))continue;
     const house=current?useGame.getState().house:lotHouse(l);
     const ox=current?0:plotOffset(l.plot!,e),oz=current?0:plotOffsetZ(l.plot!,e);
-    if(house?.furniture.some(f=>f.type==='register'&&f.level===0&&Math.hypot(f.x+ox-p.x,f.z+oz-p.z)<1.8))return 'register:'+l.id;
+    const near=house?.furniture.find(f=>(f.type==='register'||f.type==='arcade')&&f.level===0&&Math.hypot(f.x+ox-p.x,f.z+oz-p.z)<1.8);
+    if(near)return near.type+':'+l.id;
   }
   return null;
 }
@@ -147,6 +148,7 @@ export function vehicleInteract(p:Memory) {
   }
   if(s.target?.startsWith('land:')){useGame.getState().setOverlay('land');return true;}
   if(s.target?.startsWith('register:')){useGame.getState().setOverlay('shop');return true;}
+  if(s.target?.startsWith('arcade:')){useGame.getState().setOverlay('arcade');return true;}
   if(s.target?.startsWith('shutter:')){useDoors.getState().toggle(s.target.slice(8),1);return true;}
   if(s.target?.startsWith('furn:')){const opened=useDoors.getState().toggle(s.target.slice(5),1);playDoorSound(opened,true);return true;}
   const c=s.cars.find(c=>c.id===s.target);

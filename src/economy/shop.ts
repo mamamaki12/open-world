@@ -51,6 +51,8 @@ export interface Shop {
   pin?: boolean;
   /** イベント告知（day は何日目か） */
   event?: ShopEvent;
+  /** 店に置いたゲーム機の1回の料金（なければ無料） */
+  arcadeFee?: number;
 }
 
 export interface ShopEvent { title: string; day: number; note: string }
@@ -94,7 +96,8 @@ export function cleanShop(v: unknown): Shop | null {
         ...(Number.isSafeInteger(x.until) ? { until: x.until } : {}), ...(Number.isSafeInteger(x.forDay) ? { forDay: x.forDay } : {}) }]
       : [],
   );
-  return { name: str(s.name, SHOP_LIMITS.name) || 'お店', items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue! : 0, ...cleanPromo(s) };
+  return { name: str(s.name, SHOP_LIMITS.name) || 'お店', items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue! : 0, ...cleanPromo(s),
+    ...(!priceError(s.arcadeFee as number) ? { arcadeFee: s.arcadeFee } : {}) };
 }
 
 /** 看板・チラシ・ピン・イベントを正しい形にそろえる（空のものは付けない） */
@@ -154,4 +157,14 @@ export function recordSale(shop: Shop, sale: { id: string; day: number; buyer: s
 export function passesOf(shop: Shop, buyerId: string, today: number): ShopSale[] {
   return shop.sales.filter((s) => s.buyerId === buyerId && s.kind && s.kind !== 'goods' &&
     (s.kind === 'membership' ? (s.until ?? -1) >= today : s.kind === 'reservation' ? (s.forDay ?? -1) >= today : true));
+}
+
+export const ARCADE_PLAY = 'ゲーム機で1回遊ぶ';
+
+/** ゲーム機の料金を店の売上に記録する。料金が変わっていたら理由を返す（お金の移動は呼び出し側） */
+export function recordPlay(shop: Shop, play: { id: string; day: number; buyer: string; buyerId?: string; fee: number }): Shop | string {
+  if (!shop.arcadeFee) return 'このお店のゲーム機は無料です';
+  if (shop.arcadeFee !== play.fee) return '料金が変わりました。もう一度確認してください';
+  const entry: ShopSale = { id: play.id, day: play.day, buyer: str(play.buyer, 24) || 'お客さん', item: ARCADE_PLAY, price: play.fee, ...(play.buyerId ? { buyerId: play.buyerId } : {}) };
+  return { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + play.fee };
 }
