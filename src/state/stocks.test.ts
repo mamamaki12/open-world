@@ -15,7 +15,8 @@ it('rejects repeated sales smaller than the minimum holding unit without crediti
 });
 it('pays only for whole minimum units and supports an exact final sale', () => {
   setup();
-  expect(sellStock('test', 'test', 0.00019)).toBeNull();
+  expect(sellStock('test', 'test', 0.00019)).not.toBeNull();
+  expect(sellStock('test', 'test', 0.0001)).toBeNull();
   expect(useEconomy.getState().money).toBe(1010);
   expect(useStocks.getState().holdings.test.units).toBe(0.9999);
   expect(sellStock('test', 'test', 0.9999)).toBeNull();

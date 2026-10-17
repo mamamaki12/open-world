@@ -53,7 +53,10 @@ export function sellStock(symbol: string, name: string, units: number): string |
   if (!Number.isFinite(units) || !(units > 0)) return '口数を入れてください';
   // 保有と売却を同じ最小単位で精算する。支払い後の丸めで口数が戻るのを防ぐ。
   const held = Math.round(h.units * 10000);
-  const sold = Math.min(Math.floor(units * 10000 + 1e-8), held);
+  const requested = units * 10000;
+  if (requested < 1 - 1e-8) return '0.0001口以上で入力してください';
+  if (Math.abs(requested - Math.round(requested)) > 1e-8) return '0.0001口単位で入力してください';
+  const sold = Math.min(Math.round(requested), held);
   if (sold <= 0) return '0.0001口以上で入力してください';
   const n = sold / 10000;
   useEconomy.getState().receive(Math.round(n * unit), `株の売却（${name}）`);
