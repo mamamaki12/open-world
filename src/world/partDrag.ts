@@ -4,11 +4,13 @@ import { materialGroup, movableBuilding } from '../building/groups';
 import type { PartRef } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
+import { startPartLongPress } from './partLongPress';
 
 export function beginPartDrag(ref: PartRef, ray: THREE.Ray, clientX: number, clientY: number) {
   const game = useGame.getState();
   if (game.mode !== 'build' || game.tool !== 'select') return;
   game.select(ref);
+  startPartLongPress(ref, clientX, clientY);
   if (ref.kind === 'furniture') {
     const item = game.house.furniture.find(p => p.id === ref.id);
     if (!item || item.wallMount) return;
