@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { App } from '../ui/App';
 import { useGame } from '../state/store';
+import { useTouchDevice } from '../ui/useTouchDevice';
 import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave } from './saves';
 import { allowBuilding, joinShared, currentEndpoint, enterOffline, leaveWorld, startSessionTimers, useSession } from './session';
 import './session.css';
@@ -43,9 +44,11 @@ function SessionHud() {
   const invite = async () => { const url = new URL(location.href); url.search = ''; url.searchParams.set('room', state.code); url.searchParams.set('relay', currentEndpoint());
     try { await navigator.clipboard.writeText(url.href); setNotice('招待リンクをコピーしました'); } catch { setNotice(`招待コード: ${state.code}`); } };
   // ひとりで遊ぶときは浮いた表示を出さない（開始画面へ・バックアップはセーブメニューの中）。お店などの画面を開いている間も隠す
-  const overlay = useGame(g => g.overlay);
+  // スマホの建築中は四隅のボタンが多いので出さない（歩いているときだけ上の中央に小さく出す）
+  const touch = useTouchDevice(), building = useGame(g => g.mode !== 'walk');
+  const overlay = useGame(g => g.overlay) || (touch && building);
   return <aside className="world-session">
-    {state.role !== 'home' && !overlay && <button className="world-session-toggle" onClick={() => setOpen(!open)}>{state.shared ? `みんなのワールド · ${state.members.length}人` : `${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>}
+    {state.role !== 'home' && !overlay && <button className="world-session-toggle" onClick={() => setOpen(!open)}>{touch ? `👥 ${state.members.length}` : state.shared ? `みんなのワールド · ${state.members.length}人` : `${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>}
     {open && state.role !== 'home' && !overlay && <section className="world-session-panel"><h2>一緒に遊んでいる人</h2>
       {state.members.map(m => <div className="world-member" key={m.id}><span>{m.name}{m.host ? '（ホスト）' : ''}</span>{state.role === 'host' && !m.host && <label><input type="checkbox" checked={m.canBuild} onChange={e => allowBuilding(m.id, e.target.checked)}/>共同建築</label>}</div>)}
       {state.shared ? <p className="world-note">町はサーバーに保存され、だれが抜けても残ります。持ち主のいる土地はその人だけが建てられます。建築費は建てた本人が支払います。</p> : <><p>招待コード: <strong>{state.code}</strong></p><button onClick={() => void invite()}>招待リンクをコピー</button><p className="world-note">建築費は建てた本人が支払います。配置したものはこの町に残ります。元に戻しても支払った建材費は戻りません。</p></>}
