@@ -93,16 +93,18 @@ export function refreshVehicleTarget(p:Memory) {
   if(state.driving)target=state.driving;
   else if(Math.abs(p.y)<.5){
     const o=origin();
-    // 運転席のドアの前なら運転席、車のほかの場所なら助手席（ほかのプレイヤーの車は助手席だけ）
-    let nearest=Infinity;
+    // いちばん近い車を選び、運転席側の横（座席の前後1.3m）なら運転席、それ以外は助手席（ほかのプレイヤーの車は助手席だけ）
+    let nearest=1.1;
     const gx=p.x+o.x,gz=p.z+o.z;
     for(const {owner,car:c} of [...state.cars.map(car=>({owner:'',car})),...sessionGate.remoteCars()]){
       const d=getCar(c.model);if(!d)continue;
-      const door={x:c.x-Math.cos(c.yaw)*(d.width/2+.4),z:c.z+Math.sin(c.yaw)*(d.width/2+.4)};
-      const doorDistance=Math.hypot(gx-door.x,gz-door.z);
-      if(!owner&&doorDistance<1.3&&doorDistance<nearest){nearest=doorDistance;target=c.id;continue;}
       const body=Math.min(...carSamples(c,d).map(s=>Math.hypot(gx-s.x,gz-s.z)))-d.width/2;
-      if(body<1.1&&body+1<nearest){nearest=body+1;target='ride:'+owner+'|'+c.id;}
+      if(body>=nearest)continue;
+      nearest=body;
+      target='ride:'+owner+'|'+c.id;
+      if(owner)continue;
+      const dx=gx-c.x,dz=gz-c.z,side=-dx*Math.cos(c.yaw)+dz*Math.sin(c.yaw),along=dx*Math.sin(c.yaw)+dz*Math.cos(c.yaw);
+      if(side>d.width/2-.2&&Math.abs(along-driverEye(d).z)<1.3)target=c.id;
     }
     for(const f of useGame.getState().house.furniture){
       if(f.type==='garage-shutter'&&Math.hypot(f.x-p.x,f.z-p.z)<2.5)target='shutter:'+f.id;
@@ -218,10 +220,13 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   const previousYaw=car.yaw;
   const site=civicOffset(),facilityOffset={x:o.x+site.x,z:o.z+site.z};
   const obstacles=houses(car.x-o.x,car.z-o.z,Math.hypot(d.length,d.width)/2+d.maxSpeed*Math.min(dt,.25)+.2);
+  // 歩いているほかのプレイヤーは通り抜けられない（すでに重なっている人は、離れるまで動けなくならないよう除く）
+  const people=sessionGate.visitors().filter(q=>q.walking!==false&&!q.driving&&q.y<d.height&&!carSamples(car,d).some(s=>Math.hypot(q.x+o.x-s.x,q.z+o.z-s.z)<d.width/2+.3));
   integrateDrive(car,{throttle,steering,buttonSteering,reverseOnBrake:!paused&&driveButtons.brake,handbrake:!paused&&(driveButtons.handbrake||key('ShiftLeft','ShiftRight')),brake:paused||driveButtons.brake||key('Space')},dt,d,(pose:DrivePose)=>
     FACILITY_BOXES.some(box=>carHitsBox(pose,d,box,facilityOffset)) ||
     obstacles.some(({h,x,z})=>carHitsWalls(pose,d,h,isDoorOpen,{x:o.x+x,z:o.z+z})) ||
-    carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id,obstacles)));
+    carSamples(pose,d).some(s=>blockedAt(s.x-o.x,s.z-o.z,d.width/2+.04,d.height,car.id,obstacles)) ||
+    people.some(q=>carSamples(pose,d).some(s=>Math.hypot(q.x+o.x-s.x,q.z+o.z-s.z)<d.width/2+.3)));
   engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
   p.yaw+=car.yaw-previousYaw;
   Object.assign(p,{x:car.x-o.x,y:0,z:car.z-o.z,bodyYaw:car.yaw});
@@ -289,8 +294,8 @@ function carCamera(camera:THREE.Camera,car:{yaw:number;speed:number},d:CarDef,dt
 /** 駐車中の車にも歩行者の体が埋まらないようにする。 */
 export function resolveParkedCars(p:{x:number;z:number},feetY:number){
   const o=origin();let x=p.x+o.x,z=p.z+o.z;
-  for(const car of useVehicles.getState().cars){
-    const d=getCar(car.model)!;if(feetY>d.height)continue;
+  for(const car of [...useVehicles.getState().cars,...sessionGate.remoteCars().map(r=>r.car)]){
+    const d=getCar(car.model);if(!d||feetY>d.height)continue;
     for(const c of carSamples(car,d)){
       const dx=x-c.x,dz=z-c.z,dist=Math.hypot(dx,dz),min=d.width/2+.25;
       if(dist<min){x=c.x+(dist>.0001?dx/dist:1)*min;z=c.z+(dist>.0001?dz/dist:0)*min;}
