@@ -13,6 +13,50 @@ async function client(url) {
     throw Error('timeout waiting for ' + type + JSON.stringify(queue));
   }};
 }
+test('slow transaction saves serialize midnight rent and new accounts without losing either', async t => {
+  t.mock.timers.enable({ apis: ['setInterval'] });
+  let unblock, entered, disk;
+  const saving = new Promise(r => { entered = r; }), resume = new Promise(r => { unblock = r; });
+  let blocked = false;
+  const relay = createRelay({ persistWorld: async (_file, world) => {
+    if (world.receipts['race-money'] && !blocked) { blocked = true; entered(); await resume; }
+    disk = structuredClone(world);
+  } });
+  await relay.ready; await new Promise(r => relay.http.listen(0, '127.0.0.1', r));
+  const url = 'ws://127.0.0.1:' + relay.http.address().port;
+  try {
+    const a = await client(url); a.send({ type: 'shared', id: 'tenant', name: 'Tenant' }); await a.next('welcome');
+    const w = relay.world();
+    w.accounts.tenant.money = 1000;
+    w.accounts.owner = { name: 'Owner', money: 100, cars: [], ledger: [] };
+    w.economy.clock = 59.99;
+    w.economy.lots = [{ id: 'rental', name: 'Rental', owner: 'owner', tenant: 'tenant', rentOffer: { rent: 100 } }];
+    a.send({ type: 'command', command: { id: 'race-money', lot: '', delta: [], reserved: 0, action: { type: 'money', delta: 1, label: 'test' } } });
+    await saving;
+    t.mock.timers.tick(1000);
+    const b = await client(url); b.send({ type: 'shared', id: 'newcomer', name: 'New' });
+    // The new account and midnight must both wait until the transaction is durable.
+    assert.equal(relay.world().economy.day, 1);
+    assert.equal(relay.world().accounts.tenant.money, 1000);
+    unblock(); await b.next('welcome'); await relay.flush();
+    assert.equal(relay.world().economy.day, 2);
+    assert.equal(relay.world().accounts.tenant.money, 901);
+    assert.equal(relay.world().accounts.owner.money, 200);
+    assert.ok(relay.world().accounts.newcomer);
+    assert.deepEqual(disk, relay.world());
+  } finally { unblock(); relay.close(); }
+});
+test('failed account saves do not publish or retain an uncommitted account', async () => {
+  const relay = createRelay({ persistWorld: async () => { throw Error('disk full'); } });
+  await relay.ready; await new Promise(r => relay.http.listen(0, '127.0.0.1', r));
+  try {
+    const a = await client('ws://127.0.0.1:' + relay.http.address().port);
+    a.send({ type: 'shared', id: 'unsaved', name: 'Unsaved' });
+    assert.match((await a.next('error')).message, /保存/);
+    await relay.flush().catch(() => {});
+    assert.equal(relay.world().accounts.unsaved, undefined);
+  } finally { relay.close(); }
+});
 test('room permissions, sender identity, isolated routing and world resume', async () => {
   const relay = createRelay({ graceMs: 2000 });
   await new Promise(resolve => relay.http.listen(0, '127.0.0.1', resolve));

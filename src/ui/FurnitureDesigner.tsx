@@ -57,16 +57,18 @@ function Slider({ label, value, min, max, onChange }: { label: string; value: nu
 
 export function FurnitureDesigner() {
   const draft = useDesigner((s) => s.draft);
+  const overlay = useGame(s => s.overlay);
   const [selected, setSelected] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   useEffect(() => setSelected(null), [draft?.id]);
+  useEffect(() => { if (overlay !== 'designer' && draft) useDesigner.setState({ draft: null }); }, [overlay, !!draft]);
   useEffect(() => {
     if (!draft) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [!!draft]);
-  if (!draft) return null;
+  if (!draft || overlay !== 'designer') return null;
 
   const color = draft.colors[0];
   const update = (patch: Partial<FurnitureDef>) => useDesigner.setState({ draft: { ...draft, ...patch } });
@@ -89,6 +91,7 @@ export function FurnitureDesigner() {
 
   function close() {
     useDesigner.setState({ draft: null });
+    useGame.getState().setOverlay(null);
   }
   function save(place: boolean) {
     if (!draft || !draft.parts.length) return useGame.getState().notify('部品を1つ以上つけてください');
