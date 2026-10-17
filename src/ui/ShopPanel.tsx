@@ -31,8 +31,8 @@ const blank = (): ShopItem => ({ id: crypto.randomUUID(), name: '', price: 1000,
 
 export function ShopPanel() {
   const close = useGame((s) => s.setOverlay);
-  const target = useVehicles((s) => s.target);
-  const lotId = target?.startsWith('register:') ? target.slice(9) : null;
+  // 開いたときのレジの店を見続ける（パネルを開いている間に目の前の対象が変わっても消えない）
+  const [lotId] = useState(() => { const t = useVehicles.getState().target; return t?.startsWith('register:') ? t.slice(9) : null; });
   const lot = useEconomy((s) => s.lots.find((l) => l.id === lotId));
   const money = useEconomy((s) => s.money);
   const today = useEconomy((s) => s.day);

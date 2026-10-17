@@ -96,4 +96,23 @@ describe('shared world rentals', () => {
     expect(sold.economy.lots[0].shop).toMatchObject({ revenue: 300000, sales: [{ buyer: 'b', item: '設計代行' }] });
     expect(applyCommand(sold, 'b', { id: 'p2', lot: lot.id, delta: [], reserved: 300000, action: { type: 'purchase', item: 'i1', price: 300000 } }, 'b').changed).toBe(false); // 二重払いしない
   });
+  it('holds a request reward and pays it to the worker only when the poster confirms', () => {
+    const { w, lot } = town();
+    const a0 = w.accounts!.a.money, b0 = w.accounts!.b.money;
+    const step = (wo: typeof w, who: string, id: string, op: string) => applyCommand(wo, who, { id, lot: lot.id, delta: [], reserved: 0, action: { type: 'requestStep', request: 'r1', op } as never }, who);
+    expect(applyCommand(w, 'b', { id: 'r0', lot: lot.id, delta: [], reserved: 50000, action: { type: 'request', title: '庭の手入れ', description: '', reward: 50000 } }, 'b').result.ok).toBe(false);
+    const posted = ok(w, 'a', { id: 'r1', lot: lot.id, delta: [], reserved: 50000, action: { type: 'request', title: '庭の手入れ', description: '芝刈り', reward: 50000 } });
+    expect(posted.accounts!.a.money).toBe(a0 - 50000);
+    expect(applyCommand(posted, 'a', { id: 'l1', lot: lot.id, delta: [], reserved: 0, action: { type: 'list', price: 1000 } }, 'a').result.ok).toBe(false); // 依頼が残っている土地は売れない
+    expect(step(posted, 'a', 't0', 'take').result.ok).toBe(false);
+    expect(step(posted, 'a', 'd0', 'done').result.ok).toBe(false);
+    const taken = step(posted, 'b', 't1', 'take').world;
+    expect(step(taken, 'a', 'c1', 'cancel').result.ok).toBe(false);
+    expect(step(taken, 'b', 'd1', 'done').result.ok).toBe(false);
+    const done = step(taken, 'a', 'd2', 'done').world;
+    expect(done.accounts!.b.money).toBe(b0 + 50000);
+    expect(done.economy.lots[0].requests).toBeUndefined();
+    const cancelled = step(posted, 'a', 'c2', 'cancel').world;
+    expect(cancelled.accounts!.a.money).toBe(a0);
+  });
 });
