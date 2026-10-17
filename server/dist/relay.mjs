@@ -3742,11 +3742,11 @@ var require_react_production_min = __commonJS({
     }, enqueueSetState: function() {
     } };
     var C = Object.assign;
-    var D = {};
+    var D2 = {};
     function E(a, b, e) {
       this.props = a;
       this.context = b;
-      this.refs = D;
+      this.refs = D2;
       this.updater = e || B;
     }
     E.prototype.isReactComponent = {};
@@ -3763,7 +3763,7 @@ var require_react_production_min = __commonJS({
     function G(a, b, e) {
       this.props = a;
       this.context = b;
-      this.refs = D;
+      this.refs = D2;
       this.updater = e || B;
     }
     var H = G.prototype = new F();
@@ -3857,7 +3857,7 @@ var require_react_production_min = __commonJS({
     }
     var U = { current: null };
     var V = { transition: null };
-    var W = { ReactCurrentDispatcher: U, ReactCurrentBatchConfig: V, ReactCurrentOwner: K };
+    var W2 = { ReactCurrentDispatcher: U, ReactCurrentBatchConfig: V, ReactCurrentOwner: K };
     function X() {
       throw Error("act(...) is not supported in production builds of React.");
     }
@@ -3885,7 +3885,7 @@ var require_react_production_min = __commonJS({
     exports.PureComponent = G;
     exports.StrictMode = q;
     exports.Suspense = w;
-    exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = W;
+    exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = W2;
     exports.act = X;
     exports.cloneElement = function(a, b, e) {
       if (null === a || void 0 === a) throw Error("React.cloneElement(...): The argument must be a React element, but you passed " + a + ".");
@@ -10789,9 +10789,9 @@ function enclosedCells(house, level) {
   const key = `${level}:${LOT_W2}x${LOT_D2}`;
   const hit = byLevel.get(key);
   if (hit) return hit;
-  const W = LOT_W2 + 2;
-  const D = LOT_D2 + 2;
-  const idx = (x, z) => (z + 1) * W + (x + 1);
+  const W2 = LOT_W2 + 2;
+  const D2 = LOT_D2 + 2;
+  const idx = (x, z) => (z + 1) * W2 + (x + 1);
   const vBlock = /* @__PURE__ */ new Set();
   const hBlock = /* @__PURE__ */ new Set();
   for (const w of house.walls) {
@@ -10799,13 +10799,13 @@ function enclosedCells(house, level) {
     if (w.x0 === w.x1) for (let z = Math.min(w.z0, w.z1); z < Math.max(w.z0, w.z1); z++) vBlock.add(idx(w.x0, z));
     else for (let x = Math.min(w.x0, w.x1); x < Math.max(w.x0, w.x1); x++) hBlock.add(idx(x, w.z0));
   }
-  const seen = new Uint8Array(W * D);
+  const seen = new Uint8Array(W2 * D2);
   const stack = [idx(-1, -1)];
   seen[stack[0]] = 1;
   while (stack.length) {
     const i = stack.pop();
-    const x = i % W - 1;
-    const z = Math.floor(i / W) - 1;
+    const x = i % W2 - 1;
+    const z = Math.floor(i / W2) - 1;
     const go = (nx, nz, blocked) => {
       if (blocked || nx < -1 || nz < -1 || nx > LOT_W2 || nz > LOT_D2) return;
       const j = idx(nx, nz);
@@ -10923,6 +10923,27 @@ var BOUTIQUE_ACTIONS = [
   { id: "fitting", label: "\u8A66\u7740\u5BA4\u3067\u7740\u66FF\u3048\u308B", x: 3.35, z: 2.4 }
 ];
 
+// src/building/salon.ts
+var W = 9.5;
+var D = 9;
+var X0 = BOUTIQUES.maison.x0 - 2 - W;
+var Z0 = LOT_D * GRID + 9;
+var SALON = { x0: X0, x1: X0 + W, z0: Z0, z1: Z0 + D, height: 4.6 };
+var SALON_NAME = "HAIR SALON LUCE";
+var SALON_CHAIRS = [-2.4, 0, 2.4];
+var SALON_FIXTURES = [
+  ...SALON_CHAIRS.map((z) => ({ x: -3.75, z, w: 1.5, d: 1.1 })),
+  { x: -1.2, z: 3.85, w: 3, d: 1 },
+  { x: 3.1, z: 2.4, w: 2.4, d: 0.8 },
+  { x: 3.5, z: -2.4, w: 1.4, d: 2.2 }
+];
+var SALON_ACTIONS = [
+  { id: "cut", label: "\u9AEA\u3092\u5207\u308B\u30FB\u67D3\u3081\u308B", x: -2.5, z: 0 },
+  { id: "cut2", label: "\u9AEA\u3092\u5207\u308B\u30FB\u67D3\u3081\u308B", x: -2.5, z: -2.4 },
+  { id: "cut3", label: "\u9AEA\u3092\u5207\u308B\u30FB\u67D3\u3081\u308B", x: -2.5, z: 2.4 },
+  { id: "desk", label: "\u53D7\u4ED8\u3067\u9AEA\u578B\u3092\u76F8\u8AC7\u3059\u308B", x: 3.1, z: 1.2 }
+];
+
 // src/building/landmarks.ts
 var lotW = LOT_W * GRID;
 var lotD2 = LOT_D * GRID;
@@ -10960,6 +10981,7 @@ var LANDMARK_COLLIDERS = [
   { x0: ESTATE.x0, x1: ESTATE.x1, z0: ESTATE.z0, z1: ESTATE.z1 },
   { x0: CASINO.x0, x1: CASINO.x1, z0: CASINO.z0, z1: CASINO.z1 },
   ...BOUTIQUE_IDS.map((id2) => ({ ...BOUTIQUES[id2] })),
+  { x0: SALON.x0, x1: SALON.x1, z0: SALON.z0, z1: SALON.z1 },
   ...CASINO_PLANTERS,
   ...CASINO_PILLARS.map((p) => ({ x0: p.x - PILLAR, x1: p.x + PILLAR, z0: p.z - PILLAR, z1: p.z + PILLAR }))
 ];
@@ -10998,6 +11020,7 @@ var VENUES = {
   estate: { ...ESTATE, name: "\u307E\u3061\u306E\u4E0D\u52D5\u7523", floor: "#d3c1a0", wall: "#f0eee5", trim: "#397e7c" },
   dealer: { ...DEALER, name: "AVENUE MOTORS", floor: "#8797a0", wall: "#dce3e6", trim: "#203e50" },
   tuner: { ...TUNER, name: "STANCE GARAGE", floor: "#5d6166", wall: "#2b2e33", trim: "#e0b400" },
+  salon: { ...SALON, name: SALON_NAME, floor: "#d8d2c8", wall: "#f6f3ee", trim: "#a07850" },
   exchange: { ...EXCHANGE, name: "\u307E\u3061\u8A3C\u5238\u53D6\u5F15\u6240", floor: "#c9c2b4", wall: "#eeebe3", trim: "#1e4d8c" },
   maison: boutiqueVenue("maison"),
   atelier: boutiqueVenue("atelier"),
@@ -11007,6 +11030,7 @@ var VENUES = {
 var VENUE_ACTIONS = {
   casino: [{ id: "slots", label: "\u30B9\u30ED\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: -3.2, game: "slots" }, { id: "roulette", label: "\u30EB\u30FC\u30EC\u30C3\u30C8\u3067\u904A\u3076", x: -6, z: 2.6, game: "roulette" }, { id: "highlow", label: "\u30CF\u30A4\uFF06\u30ED\u30FC\u3067\u904A\u3076", x: 6, z: 2.6, game: "highlow" }, { id: "horse", label: "\u7AF6\u99AC\u3067\u904A\u3076", x: 4, z: -3.2, game: "horse" }, { id: "keirin", label: "\u7AF6\u8F2A\u3067\u904A\u3076", x: 6, z: -3.2, game: "keirin" }, { id: "boat", label: "\u30DC\u30FC\u30C8\u30EC\u30FC\u30B9\u3067\u904A\u3076", x: 8, z: -3.2, game: "boat" }, { id: "lobby", label: "\u30B2\u30FC\u30E0\u4E00\u89A7\u3092\u898B\u308B", x: 0, z: 2.7 }],
   estate: [{ id: "land", label: "\u571F\u5730\u3092\u898B\u308B", x: 0, z: 0.5 }],
+  salon: SALON_ACTIONS,
   exchange: [{ id: "trade", label: "\u682A\u3092\u58F2\u8CB7\u3059\u308B", x: 0, z: 0.6 }],
   ...Object.fromEntries(BOUTIQUE_IDS.map((id2) => [id2, BOUTIQUE_ACTIONS])),
   tuner: [
@@ -11019,12 +11043,13 @@ var VENUE_ACTIONS = {
   ],
   dealer: [{ id: "catalog", label: "\u30AB\u30BF\u30ED\u30B0\u3092\u898B\u308B", x: 0, z: 2.7 }, { id: "moco", label: "MOCO 660 \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: -5.7, z: -2.8, model: "moco" }, { id: "ridge", label: "RIDGE AWD \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: 0, z: -2.8, model: "ridge" }, { id: "raven", label: "RAVEN GT \xB7 \u3053\u308C\u3092\u8CB7\u3046", x: 5.7, z: -2.8, model: "raven" }]
 };
-var VENUE_KINDS = ["casino", "estate", "dealer", "tuner", "exchange", ...BOUTIQUE_IDS];
+var VENUE_KINDS = ["casino", "estate", "dealer", "tuner", "exchange", "salon", ...BOUTIQUE_IDS];
 var VENUE_DOORS = {
   casino: { x: CASINO.door.x, width: CASINO.door.width, height: CASINO.door.height },
   estate: { x: ESTATE.door.x, width: ESTATE.door.width, height: 2.6 },
   dealer: { x: (DEALER.x0 + DEALER.x1) / 2, width: 2.2, height: 2.6 },
   tuner: { x: (TUNER.x0 + TUNER.x1) / 2, width: 2.2, height: 2.6 },
+  salon: { x: (SALON.x0 + SALON.x1) / 2, width: 2.2, height: 2.6 },
   exchange: { x: (EXCHANGE.x0 + EXCHANGE.x1) / 2, width: 2.2, height: 2.8 },
   ...Object.fromEntries(BOUTIQUE_IDS.map((id2) => [id2, { x: (BOUTIQUES[id2].x0 + BOUTIQUES[id2].x1) / 2, ...BOUTIQUE_DOOR }]))
 };
