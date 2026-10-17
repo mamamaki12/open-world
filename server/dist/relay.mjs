@@ -8750,7 +8750,7 @@ var ITEM_KINDS = [
   { id: "membership", name: "\u4F1A\u54E1\u6A29" }
 ];
 var RESERVE_AHEAD = 30;
-var SHOP_LIMITS = { items: 12, name: 24, itemName: 30, description: 200, photo: 6e4, sales: 100, price: 1e10 };
+var SHOP_LIMITS = { items: 12, name: 24, itemName: 30, description: 200, photo: 6e4, sales: 100, price: 1e10, sign: 16, flyer: 120, eventTitle: 30, eventNote: 120 };
 var kindOf = (v) => ITEM_KINDS.some((k) => k.id === v) ? v : "goods";
 var daysOf = (v) => Number.isSafeInteger(v) && v >= 1 && v <= 365 ? v : 30;
 function typed(i) {
@@ -8787,7 +8787,18 @@ function cleanShop(v) {
       ...Number.isSafeInteger(x.forDay) ? { forDay: x.forDay } : {}
     }] : []
   );
-  return { name: str(s.name, SHOP_LIMITS.name) || "\u304A\u5E97", items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue : 0 };
+  return { name: str(s.name, SHOP_LIMITS.name) || "\u304A\u5E97", items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue : 0, ...cleanPromo(s) };
+}
+function cleanPromo(s) {
+  const sign = str(s.sign, SHOP_LIMITS.sign), flyer = str(s.flyer, SHOP_LIMITS.flyer);
+  const e = s.event && typeof s.event === "object" ? s.event : null;
+  const title = e ? str(e.title, SHOP_LIMITS.eventTitle) : "";
+  return {
+    ...sign ? { sign } : {},
+    ...flyer ? { flyer } : {},
+    ...s.pin === true ? { pin: true } : {},
+    ...e && title && Number.isSafeInteger(e.day) && e.day >= 0 ? { event: { title, day: e.day, note: str(e.note, SHOP_LIMITS.eventNote) } } : {}
+  };
 }
 function recordSale(shop, sale) {
   const item = shop.items.find((i) => i.id === sale.itemId);

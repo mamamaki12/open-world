@@ -64,6 +64,24 @@ try {
   await buyer.screenshot({ path: out + '/passes.png' });
   await buyer.getByRole('button', { name: '売上', exact: true }).click();
   await buyer.screenshot({ path: out + '/sales.png' });
+  // 宣伝：看板・チラシ・地図のピン・イベント告知が、ほかのプレイヤーの地図に出る
+  await owner.getByRole('button', { name: '宣伝', exact: true }).click();
+  const promo = owner.locator('.shop-form');
+  await promo.locator('input[type=text]').nth(0).fill('設計します');
+  await promo.locator('textarea').nth(0).fill('家の設計、1軒30万円から');
+  await promo.locator('input[type=checkbox]').check();
+  await promo.locator('input[type=text]').nth(1).fill('オープン記念相談会');
+  await owner.getByRole('button', { name: '宣伝を保存' }).click();
+  await buyer.waitForFunction(lot => window.__ow.economy.getState().lots.find(l => l.id === lot)?.shop?.event?.title === 'オープン記念相談会', lot);
+  await buyer.evaluate(() => window.__ow.game.getState().setOverlay('map'));
+  await buyer.locator('.map-shops', { hasText: 'しんご設計事務所' }).waitFor();
+  assert.ok(await buyer.getByRole('button', { name: 'お店 しんご設計事務所' }).count(), 'pin on the map');
+  await buyer.locator('.map-shops li').filter({ hasText: 'オープン記念相談会' }).waitFor();
+  await buyer.screenshot({ path: out + '/map.png', fullPage: true });
+  await buyer.locator('.map-shops').getByRole('button', { name: 'ワープ' }).click();
+  await buyer.waitForTimeout(2000);
+  // 土地の前の看板が店の色（オレンジ）の看板になっている
+  assert.ok(await buyer.evaluate(() => { let n = 0; window.__ow.scene.traverse(o => { const img = o.material?.map?.image; if (img instanceof HTMLCanvasElement && img.width === 512 && img.height === 288) { const [r, g, b] = img.getContext('2d').getImageData(30, 30, 1, 1).data; if (r === 196 && g === 86 && b === 29) n++; } }); return n; }) >= 1, 'shop signboard');
   assert.deepEqual(errors, []);
   console.log('player shop: ok');
 } finally { await browser.close(); relay.close(); }
