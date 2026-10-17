@@ -47,6 +47,7 @@ try {
   });
   console.log('joining first'); await join(); console.log('joined first');
   assert.equal(await money(), 2345678, 'personal money replaces old shared money exactly once');
+  await page.waitForFunction(() => window.__ow); // 参加直後は画面の作り直しで少し遅れることがある
   assert.equal(await page.evaluate(() => window.__ow.game.getState().mode), 'walk');
   assert.ok(await page.evaluate(async () => {
     const o = (await import('/src/state/economy.ts')).civicOffset();
