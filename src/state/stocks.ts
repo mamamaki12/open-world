@@ -31,6 +31,10 @@ export async function refreshQuotes(): Promise<void> {
 function setHoldings(holdings: Record<string, Holding>) { if (!sessionGate.shared) save(KEY, holdings); useStocks.setState({ holdings }); }
 /** 自分のワールドの保有株（みんなのワールドから戻るときに使う） */
 export const homeHoldings = (): Record<string, Holding> => load(KEY, {});
+/** 個人バックアップから復元する。共有口座の保有とは別に保存する。 */
+export function restoreHomeHoldings(holdings: Record<string, Holding>) {
+  save(KEY, holdings); useStocks.setState({ holdings });
+}
 
 /** 円の金額ぶん買う。エラーなら文言を返す */
 export function buyStock(symbol: string, name: string, amount: number): string | null {
@@ -39,10 +43,10 @@ export function buyStock(symbol: string, name: string, amount: number): string |
   if (!Number.isFinite(amount) || !(amount >= 1)) return '金額を入れてください';
   const units = unitsFor(amount, unit);
   if (units <= 0) return '金額が少なすぎます';
-  const cost = units * unit;
-  if (!useEconomy.getState().pay(Math.round(cost), `株の購入（${name}）`)) return `お金が足りません（${yen(cost)}）`;
+  const cost = Math.ceil(units * unit - 1e-8);
+  if (!useEconomy.getState().pay(cost, `株の購入（${name}）`)) return `お金が足りません（${yen(cost)}）`;
   const h = useStocks.getState().holdings[symbol] ?? { units: 0, cost: 0 };
-  setHoldings({ ...useStocks.getState().holdings, [symbol]: { units: +(h.units + units).toFixed(4), cost: h.cost + Math.round(cost) } });
+  setHoldings({ ...useStocks.getState().holdings, [symbol]: { units: +(h.units + units).toFixed(4), cost: h.cost + cost } });
   return null;
 }
 /** 口数ぶん売る（持っている以上は売れない） */
@@ -59,7 +63,9 @@ export function sellStock(symbol: string, name: string, units: number): string |
   const sold = Math.min(Math.round(requested), held);
   if (sold <= 0) return '0.0001口以上で入力してください';
   const n = sold / 10000;
-  useEconomy.getState().receive(Math.round(n * unit), `株の売却（${name}）`);
+  const proceeds = Math.floor(n * unit + 1e-8);
+  if (proceeds < 1) return '売却額が1円以上になる口数を入力してください';
+  useEconomy.getState().receive(proceeds, `株の売却（${name}）`);
   const rest = (held - sold) / 10000, next = { ...useStocks.getState().holdings };
   if (rest <= 0) delete next[symbol]; else next[symbol] = { units: rest, cost: h.cost - soldCost(h, n) };
   setHoldings(next);

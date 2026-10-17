@@ -71,6 +71,6 @@ export function ExchangePanel() {
         <tr className="ex-total"><td>合計</td><td /><td>{yen(total.cost)}</td><td>{yen(total.value)}</td><td className={pctClass(total.value - total.cost)}>{total.value - total.cost >= 0 ? '+' : ''}{yen(total.value - total.cost)}</td></tr>
       </tbody></table> : <p>まだ株を持っていません。「銘柄」から買えます。</p>}
     </div>}
-    <p className="info">値段は実際の市場（東証・ニューヨーク）と同じです。取引時間外は最後の値のまま動きません。ドル建ての銘柄は売買の時点の為替で円に換算します。</p>
+    <p className="info">値段は実際の市場（東証・ニューヨーク）と同じです。取引時間外は最後の値のまま動きません。ドル建ての銘柄は売買の時点の為替で円に換算します。円未満は購入時に切り上げ、売却時に切り捨てます。売却額が1円未満になる口数では売れません。</p>
   </Modal>;
 }
