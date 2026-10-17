@@ -1,0 +1,31 @@
+import { chromium } from 'playwright';
+const out=process.argv[2]||'browser-checks';
+const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const page=await browser.newPage({viewport:{width:1280,height:760},deviceScaleFactor:1});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+page.setDefaultTimeout(90000);
+await page.goto('http://127.0.0.1:5173');
+await page.getByLabel('あなたの名前').fill('しらべ');
+await page.getByRole('button',{name:'ひとりで遊ぶ',exact:false}).click();
+await page.waitForFunction(()=>window.__ow);
+const shot=async(name,kind,dx,dz,yaw,view='first',pitch=-.05)=>{
+  await page.evaluate(async({kind,dx,dz,yaw,view,pitch})=>{
+    const {VENUES}=await import('/src/building/venues.ts');const {civicOffset}=await import('/src/state/economy.ts');
+    const g=window.__ow;g.game.getState().setOverlay(null);g.game.getState().setMode('walk');
+    if(g.game.getState().view!==view)g.game.setState({view});
+    const b=VENUES[kind],o=civicOffset();
+    Object.assign(g.player,{x:o.x+(b.x0+b.x1)/2+dx,z:o.z+(b.z0+b.z1)/2+dz,y:0,yaw,bodyYaw:yaw,pitch});
+  },{kind,dx,dz,yaw,view,pitch});
+  await page.waitForTimeout(1800);
+  await page.screenshot({path:`${out}/${name}.png`});
+};
+await shot('casino-left','casino',-1,-5.5,Math.PI*0.75);
+await shot('casino-right','casino',1,-5.5,Math.PI*1.25);
+await shot('casino-back','casino',0,4.5,0);
+await shot('casino-front','casino',0,2,0);
+await shot('estate','estate',0,-3,Math.PI);
+await shot('estate-front','estate',0,2.8,0);
+for(const id of ['maison','atelier','urban','daily'])await shot(id,id,0,-3.2,Math.PI);
+await shot('maison-wall','maison',-1.5,1.5,Math.PI*.6,'first',.1);
+console.log('errors',errors);
+await browser.close();
