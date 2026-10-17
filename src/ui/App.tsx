@@ -65,11 +65,11 @@ export function App() {
   useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
   return (
-    <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}`}>
+    <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}${overlay ? ' has-overlay' : ''}`}>
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('map')}>地図</button><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>服</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
@@ -222,7 +222,7 @@ function TouchHud() {
       <div className="touch-hud-row">
         <span className={`touch-cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
         <button className="tool icon labeled" onClick={() => setOverlay('map')} aria-label="町の地図">
-          🗺<span>マップ</span>
+          🗺<span>地図</span>
         </button>
         <button className="tool icon labeled" onClick={() => setOverlay('jobs')} aria-label="バイト">
           💼<span>バイト</span>

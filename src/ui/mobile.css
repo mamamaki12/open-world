@@ -81,6 +81,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 }
 
 .touch .toast { top: calc(var(--hud-top) + 8px); max-width: calc(100% - 24px); text-align: center; z-index: 30; }
+/* お店・地図などの画面を開いているときは、見出しに重ならないよう下に出す */
+.touch.has-overlay .toast { top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
 
 /* 操作の説明：上のバーのすぐ下に小さく */
 .touch .controls-help {

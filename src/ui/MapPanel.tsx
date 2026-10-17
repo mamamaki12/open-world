@@ -79,11 +79,12 @@ export function MapPanel() {
           const resident = !lot && !offer ? townHouseDesign(TOWN_HOUSE_PLOTS[plot] ?? '') : undefined;
           const name = lot ? lot.name.replace(/（.*）$/, '') : offer ? '売地' : resident ? resident.name : '区画';
           const district = districtOf(plot);
+          const label = fitLabel(name, w * SCALE - 6, lot ? 7 : 9);
           return <g key={plot} role="button" aria-label={name} tabIndex={0} onClick={() => setPick({ kind: 'plot', plot })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind: 'plot', plot }); }} style={{ cursor: 'pointer' }}>
             <rect x={sx(plotX(plot))} y={sy(plotZ(plot))} width={w * SCALE} height={LOT_D * GRID * SCALE} rx={3}
               fill={lot ? '#e0e9f2' : offer ? '#fff4d8' : resident ? '#d9d6cf' : district?.color ?? '#dce2d5'} stroke={picked ? '#255db1' : lot ? '#7897ae' : '#bdc6b6'} strokeWidth={picked ? 3 : 1} />
             {lot && <path d="M-9 0 L0 -8 L9 0 L7 0 L7 10 L-7 10 L-7 0 Z" transform={`translate(${sx(plotX(plot) + w / 2)},${sy(plotZ(plot) + 5)})`} fill="#457591" />}
-            <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + (lot ? 12 : 9))} textAnchor="middle" fontSize={lot ? 7 : 9} fill={offer ? '#ac4c30' : '#3a5553'}>{name.slice(0, 10)}</text>
+            <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + (lot ? 12 : 9))} textAnchor="middle" fontSize={label.size} fill={offer ? '#ac4c30' : '#3a5553'}>{label.text}</text>
             <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + 16)} textAnchor="middle" fontSize={6} fill="#78877c">BLOCK {String(blockOf(plot) + 1).padStart(2, '0')} · {plot - FIRST_PLOT + 1}</text>
           </g>;
         })}
@@ -123,3 +124,10 @@ export function MapPanel() {
   </Modal>;
 }
 
+
+/** 区画の名前を枠の幅に収める：文字を小さくし、それでも入らなければ末尾を「…」にする（和文1文字 ≒ 文字サイズ分の幅） */
+function fitLabel(name: string, room: number, base: number) {
+  const size = Math.min(base, room / name.length);
+  if (size >= 6) return { text: name, size };
+  return { text: name.slice(0, Math.max(1, Math.floor(room / 6) - 1)) + '…', size: 6 };
+}
