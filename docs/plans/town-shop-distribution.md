@@ -17,3 +17,6 @@
 
 - Integrated main 94d6221 (avatar/salon, mobile HUD and selection changes), preserving looks+walking in pose messages. Salon moved beside the exchange in the west district; map text follows the new locations.
 - Full unit suite passed (632 tests before one added debt regression); production build passed. Relay persistence/restart integration passed all 4 tests with a workspace TEMP directory (default Windows sandbox temp denied rename).
+
+- Final Chrome traversal passed all 10 venues (including salon and both north stores): automatic doors opened and W-key walking entered each interior. Map selection and new location descriptions passed; screenshot: world-session-checks/distributed-shop-map.png (ignored test output).
+- Browser traversal holds W until entry rather than assuming 1.3 seconds, because software-rendered CI can advance fewer physics frames.
