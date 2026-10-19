@@ -3,6 +3,7 @@ import { App } from '../ui/App';
 import { useGame } from '../state/store';
 import { useVehicles } from '../state/vehicles';
 import { useTouchDevice } from '../ui/useTouchDevice';
+import { VersionStatus } from '../ui/VersionStatus';
 import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave } from './saves';
 import { allowBuilding, joinShared, currentEndpoint, enterOffline, leaveWorld, startSessionTimers, useSession } from './session';
 import './session.css';
@@ -39,6 +40,7 @@ function Launcher() {
     </details><p className="world-note">ログイン不要。データはこのブラウザに保存されます。</p>
     {!!savedBundle().pending?.length && <p className="world-note">精算待ちの建築が{savedBundle().pending!.length}件あります。同じ町へ再参加するとホストの記録と照合して精算します。</p>}
     {(error || state.message || state.status === 'connecting') && <p className="world-error" role="status">{error || state.message || 'ワールドに接続しています…'}</p>}
+    <VersionStatus />
   </section></main>;
 }
 function SessionHud() {

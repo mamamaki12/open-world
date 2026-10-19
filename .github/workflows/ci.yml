@@ -168,6 +168,7 @@ jobs:
             if curl -fsS http://127.0.0.1:5173/ > /dev/null && curl -fsS http://127.0.0.1:8787/health > /dev/null; then break; fi
             sleep 1
           done
+          node scripts/check-app-version.mjs
           node scripts/check-offline-update.mjs
           node scripts/check-world-session.mjs
           node scripts/check-shared-doors.mjs
