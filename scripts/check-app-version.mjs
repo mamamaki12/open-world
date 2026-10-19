@@ -25,12 +25,13 @@ const server=http.createServer((req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,
   args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-const errors=[];fs.mkdirSync('world-session-checks',{recursive:true});
+const errors=[];let activePage;fs.mkdirSync('world-session-checks',{recursive:true});
 try{
   for(const touch of [false,true]){
     mode='current';
     const context=await browser.newContext({viewport:touch?{width:320,height:568}:{width:1280,height:800},hasTouch:touch});
     const page=await context.newPage();page.setDefaultTimeout(90000);page.on('pageerror',e=>errors.push(e.message));
+    activePage=page;
     await page.goto('http://127.0.0.1:'+server.address().port+'/open-world/?touch='+Number(touch));
     const panel=page.locator('.app-version');
     await panel.getByText('最新版です',{exact:true}).waitFor();
@@ -57,6 +58,7 @@ try{
     await panel.getByText('公開情報の反映待ちです。少し後でもう一度確認してください',{exact:true}).waitFor();
     await context.setOffline(true);await panel.getByRole('button',{name:'最新版を確認',exact:true}).click();
     await panel.getByText('オフラインのため最新版を確認できません',{exact:true}).waitFor();
+    console.log('Offline check passed',touch);
     await page.reload();
     await panel.getByText('オフラインのため最新版を確認できません',{exact:true}).waitFor();
     assert.equal((await saved()).profile.id,before.profile.id);
@@ -76,4 +78,10 @@ try{
     await context.close();console.log('Version display / uncached latest / update / invalid / stale / offline / save-preserving refresh passed',touch?'phone':'pc');
   }
   assert.deepEqual(errors,[]);
+}catch(error){
+  if(activePage&&!activePage.isClosed()){
+    console.error('Version test failure state',await activePage.evaluate(()=>({online:navigator.onLine,text:document.body.innerText,controller:!!navigator.serviceWorker.controller})),errors);
+    await activePage.screenshot({path:'world-session-checks/version-failure.png'});
+  }
+  throw error;
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

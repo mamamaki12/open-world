@@ -13,6 +13,12 @@ export function VersionStatus() {
   const [attempt, setAttempt] = useState(0), [updating, setUpdating] = useState(false), [error, setError] = useState('');
   const busy = useSession(s => s.busy);
   useEffect(() => {
+    const recheck = () => setAttempt(n => n + 1);
+    window.addEventListener('online', recheck); window.addEventListener('offline', recheck);
+    return () => { window.removeEventListener('online', recheck); window.removeEventListener('offline', recheck); };
+  }, []);
+  useEffect(() => {
+    if (!navigator.onLine) { setResult({ status: 'offline' }); return; }
     let active = true;
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
     setResult({ status: 'checking' });
