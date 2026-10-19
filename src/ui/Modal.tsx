@@ -1,6 +1,7 @@
 // 画面の真ん中に開くメニュー（不動産屋・カジノ）。Esc か背景のクリックで閉じる
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { useSession } from '../session/session';
 
 interface Props<T extends string> {
   title: string;
@@ -14,6 +15,8 @@ interface Props<T extends string> {
 }
 
 export function Modal<T extends string>({ title, onClose, tabs, tab, onTab, children, className }: Props<T>) {
+  const reconnecting = useSession(s => s.status === 'reconnecting');
+  const networkMessage = useSession(s => s.message);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -35,7 +38,7 @@ export function Modal<T extends string>({ title, onClose, tabs, tab, onTab, chil
           </div>
           <button className="tool close" onClick={onClose} aria-label="閉じる">✕ 閉じる</button>
         </div>
-        <div className="modal-body">{children}</div>
+        <div className="modal-body">{reconnecting && <p className="modal-network-warning" role="status">{networkMessage}</p>}{children}</div>
       </div>
     </div>
   );

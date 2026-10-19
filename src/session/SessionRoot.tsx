@@ -48,8 +48,9 @@ function SessionHud() {
   // スマホの建築中は四隅のボタンが多いので出さない（歩いているときだけ上の中央に小さく出す）
   const touch = useTouchDevice(), building = useGame(g => g.mode !== 'walk');
   const inCar = useVehicles(v => !!v.driving || !!v.riding);
-  const overlay = useGame(g => g.overlay) || (touch && (building || inCar));
-  return <aside className="world-session">
+  const gameOverlay = useGame(g => g.overlay);
+  const overlay = gameOverlay || (touch && (building || inCar));
+  return <><aside className="world-session">
     {state.role !== 'home' && !overlay && <button className="world-session-toggle" onClick={() => setOpen(!open)}>{touch ? `👥 ${state.members.length}` : state.shared ? `みんなのワールド · ${state.members.length}人` : `${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>}
     {open && state.role !== 'home' && !overlay && <section className="world-session-panel"><h2>一緒に遊んでいる人</h2>
       {state.members.map(m => <div className="world-member" key={m.id}><span>{m.name}{m.host ? '（ホスト）' : ''}</span>{state.role === 'host' && !m.host && <label><input type="checkbox" checked={m.canBuild} onChange={e => allowBuilding(m.id, e.target.checked)}/>共同建築</label>}</div>)}
@@ -57,7 +58,8 @@ function SessionHud() {
       <button onClick={downloadBackup}>自分のデータをバックアップ</button><button disabled={state.busy} onClick={() => void leaveWorld()}>保存して開始画面へ</button>
       {(notice || state.message) && <p role="status">{notice || state.message}</p>}
     </section>}
-    {state.status === 'reconnecting' && <p className="world-network-warning" role="status">{state.message}</p>}
+    {state.status === 'reconnecting' && !gameOverlay && <p className="world-network-warning" role="status">{state.message}</p>}
+  </aside>
     {state.status === 'closed' && <div className="world-disconnected"><section className="world-card"><h2>接続が終了しました</h2><p>{state.message || '自分の町へ戻れます'}</p><button onClick={() => void leaveWorld()}>自分の町へ戻る</button></section></div>}
-  </aside>;
+  </>;
 }
