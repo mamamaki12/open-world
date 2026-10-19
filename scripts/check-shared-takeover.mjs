@@ -19,6 +19,7 @@ try{
  const newer=await open();await join(newer);await old.getByRole('button',{name:'開始画面へ戻る',exact:true}).waitFor();
  assert.equal(await old.evaluate(async()=>(await import('/src/session/gate.ts')).sessionGate.superseded),true);
  assert.equal(await old.locator('canvas').count(),0,'old world rendering is released');
+ assert.ok((await old.getByRole('button',{name:'開始画面へ戻る',exact:true}).boundingBox()).height>=44,'return action remains touchable');
  assert.equal(await newer.evaluate(()=>window.__ow.economy.getState().money),1001234);
  await newer.evaluate(async()=>{window.__ow.economy.getState().receive(234,'new screen');await(await import('/src/session/saves.ts')).persist();});await settled(newer);await newer.evaluate(async()=>await(await import('/src/session/saves.ts')).persist());
  await old.evaluate(async()=>{window.__ow.economy.getState().receive(9999,'stale screen');await(await import('/src/session/saves.ts')).persist();});await newer.waitForTimeout(2300);
