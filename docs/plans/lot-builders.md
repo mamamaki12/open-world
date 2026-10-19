@@ -12,4 +12,6 @@
 - テスト: src/server/sharedWorld.test.ts に許可/解除/持ち主以外の操作拒否/売買で解除。
 
 ## 進捗
-- 次: 実装
+- 済: サーバー（sharedWorld.ts の builders 操作・canBuildOn）、単体テスト、不動産の「一緒に建てる人」カード、マップのワープ、server/dist 再ビルド。
+- 済: scripts/check-lot-builders.mjs（2ブラウザーで許可→友達がワープして建築→外す）をCIに追加、ローカル通過。
+- 次: PRマージ後、EC2 の relay を再取得・再起動（server/README.md）。それまで公開版では許可操作がサーバーに拒否される。
