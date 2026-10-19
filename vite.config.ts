@@ -13,7 +13,7 @@ function offlineCache() {
     writeFileSync(join(root, 'sw.js'), `
 const CACHE = 'open-world-offline-${Date.now()}';
 const FILES = ${JSON.stringify(files)};
-self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))));
+self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(url => new Request(url, { cache: 'reload' }))))));
 self.addEventListener('activate', event => event.waitUntil((async () => {
   const old = (await caches.keys()).filter(k => k.startsWith('open-world-offline-') && k !== CACHE).sort().reverse();
   await Promise.all(old.slice(1).map(k => caches.delete(k))); await self.clients.claim();
