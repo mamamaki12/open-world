@@ -40,6 +40,21 @@ describe('shared world', () => {
     expect(built.accounts!.a.money).toBe(before); // 着工は無料
     expect(applyCommand(built, 'b', { id: 'c1', lot: lot.id, delta: [], reserved: 0 }).result.ok).toBe(false);
   });
+  it('lets the owner allow and remove friends who build on the lot', () => {
+    const { w, lot } = town();
+    const allow = { type: 'builders' as const, id: 'b', name: 'B', allow: true };
+    expect(applyCommand(w, 'b', { id: 'p0', lot: lot.id, delta: [], reserved: 0, action: allow }).result.ok).toBe(false);
+    const allowed = ok(w, 'a', { id: 'p1', lot: lot.id, delta: [], reserved: 0, action: allow });
+    expect(allowed.economy.lots[0].builders).toEqual([{ id: 'b', name: 'B' }]);
+    const built = ok(allowed, 'b', { id: 'c2', lot: lot.id, delta: addFloor(allowed, lot.id), reserved: 0 });
+    expect(built.economy.lots[0].built?.floors).toHaveLength(1);
+    const removed = ok(built, 'a', { id: 'p2', lot: lot.id, delta: [], reserved: 0, action: { ...allow, allow: false } });
+    expect(removed.economy.lots[0].builders).toBeUndefined();
+    expect(applyCommand(removed, 'b', { id: 'c3', lot: lot.id, delta: [{ ...addFloor(allowed, lot.id)[0] }], reserved: 0 }).result.message).toContain('ほかの人');
+    // 売れたら許可は消える
+    const listed = ok(allowed, 'a', { id: 'l9', lot: lot.id, delta: [], reserved: 0, action: { type: 'list', price: 1000 } });
+    expect(ok(listed, 'b', { id: 'b9', lot: lot.id, delta: [], reserved: 1e9, action: { type: 'buyLot' } }).economy.lots[0].builders).toBeUndefined();
+  });
   it('moves money from the buyer to the seller when a listed lot sells', () => {
     const { w, lot } = town();
     const listed = ok(w, 'a', { id: 'l1', lot: lot.id, delta: [], reserved: 0, action: { type: 'list', price: 300000 } });
