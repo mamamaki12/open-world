@@ -22,10 +22,14 @@ try {
       const o = (await import('/src/state/economy.ts')).civicOffset();
       const p=venueEntrance(k,1.8),yaw=venueTurn(k)===1?Math.PI:0;
       Object.assign(window.__ow.player, { x: o.x + p.x, y: 0, z: o.z + p.z, yaw, bodyYaw:yaw });
+      if(k==='maison'||k==='urban')window.__ow.game.setState({view:'first'});
     }, kind);
     await until(async k => !!(await import('/src/state/doors.ts')).useDoors.getState().open['venue:' + k], kind);
     if(kind==='maison'||kind==='urban'){
       fs.mkdirSync('world-session-checks',{recursive:true});
+      await until(()=>Math.hypot(window.__ow.camera.position.x-window.__ow.player.x,window.__ow.camera.position.z-window.__ow.player.z)<.1);
+      await until(k=>window.__ow.scene.getObjectByName('venue-'+k)?.userData.buildingDetail==='near',kind);
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       await page.screenshot({path:'world-session-checks/road-front-'+kind+'.png'});
     }
     await page.keyboard.down('KeyW');
