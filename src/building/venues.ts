@@ -16,6 +16,14 @@ export const VENUES:Record<Venue,{x0:number;x1:number;z0:number;z1:number;name:s
   exchange:{...EXCHANGE,name:'まち証券取引所',floor:'#c9c2b4',wall:'#eeebe3',trim:'#1e4d8c'},
   maison:boutiqueVenue('maison'),atelier:boutiqueVenue('atelier'),urban:boutiqueVenue('urban'),daily:boutiqueVenue('daily'),
 };
+/** North-side boutiques face +Z toward the road; other storefronts face -Z. */
+export const venueTurn = (kind:Venue):1|-1 => kind==='maison'||kind==='urban' ? -1 : 1;
+export const venueRotation = (kind:Venue) => venueTurn(kind)===-1 ? Math.PI : 0;
+/** Rotate between the canonical storefront coordinates and its actual town orientation (self-inverse). */
+export function orientVenuePoint(kind:Venue,p:{x:number;z:number}) {
+  const b=VENUES[kind];
+  return venueTurn(kind)===1 ? p : {x:b.x0+b.x1-p.x,z:b.z0+b.z1-p.z};
+}
 export type CasinoGame='slots'|'roulette'|'highlow'|'horse'|'keirin'|'boat';
 export type TunerTab='paint'|'engine'|'wheels'|'chassis'|'aero';
 export interface VenueAction { id:string; label:string; x:number; z:number; game?:CasinoGame; model?:string; tab?:TunerTab }
@@ -53,14 +61,16 @@ export function venueFixtures(kind:Venue) {
 }
 export function venueAction(kind:Venue,x:number,z:number):VenueAction|null {
   const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
-  return VENUE_ACTIONS[kind].map(a=>({...a,d:Math.hypot(x-cx-a.x,z-cz-a.z)})).filter(a=>a.d<1.65).sort((a,b)=>a.d-b.d)[0]??null;
+  const p=orientVenuePoint(kind,{x,z});
+  return VENUE_ACTIONS[kind].map(a=>({...a,d:Math.hypot(p.x-cx-a.x,p.z-cz-a.z)})).filter(a=>a.d<1.65).sort((a,b)=>a.d-b.d)[0]??null;
 }
 export function resolveVenue(kind:Venue,p:{x:number;z:number},radius=.25) {
   const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
   const minX=b.x0+.25+radius,maxX=b.x1-.25-radius,minZ=b.z0+.25+radius,maxZ=b.z1-.25-radius;
   let x=Math.max(minX,Math.min(maxX,p.x)),z=Math.max(minZ,Math.min(maxZ,p.z));
   for(const f of venueFixtures(kind)){
-    const x0=cx+f.x-f.w/2-radius,x1=cx+f.x+f.w/2+radius,z0=cz+f.z-f.d/2-radius,z1=cz+f.z+f.d/2+radius;
+    const center=orientVenuePoint(kind,{x:cx+f.x,z:cz+f.z});
+    const x0=center.x-f.w/2-radius,x1=center.x+f.w/2+radius,z0=center.z-f.d/2-radius,z1=center.z+f.d/2+radius;
     if(x<=x0||x>=x1||z<=z0||z>=z1)continue;
     const q=[{x:x0,z,d:x-x0},{x:x1,z,d:x1-x},{x,z:z0,d:z-z0},{x,z:z1,d:z1-z}]
       .filter(q=>q.x>=minX&&q.x<=maxX&&q.z>=minZ&&q.z<=maxZ).sort((a,b)=>a.d-b.d)[0];
@@ -82,6 +92,10 @@ export const VENUE_DOORS:Record<Venue,{x:number;width:number;height:number}>={
 };
 /** 入口の壁の厚み（z0 から内側へ） */
 export const VENUE_WALL=.25;
+/** Actual door position, optionally some distance outside the storefront. */
+export function venueEntrance(kind:Venue,outside=0) {
+  return orientVenuePoint(kind,{x:VENUE_DOORS[kind].x,z:VENUES[kind].z0-outside});
+}
 export const venueDoorId=(kind:Venue)=>'venue:'+kind;
 /** 店の壁の内側にいる店 */
 export function venueAt(x:number,z:number):Venue|null {
@@ -90,11 +104,12 @@ export function venueAt(x:number,z:number):Venue|null {
 /** 自動ドアのセンサーが人を感じる範囲：外は扉の前2.4m、中は戸口から1.5mまで（店に入って奥へ進むと閉まる） */
 export function venueDoorAt(x:number,z:number,y=0):Venue|null {
   if(Math.abs(y)>=.6)return null;
-  return VENUE_KINDS.find(k=>{const d=VENUE_DOORS[k],z0=VENUES[k].z0;return Math.abs(x-d.x)<d.width/2+.6&&z>z0-2.4&&z<z0+VENUE_WALL+1.5;})??null;
+  return VENUE_KINDS.find(k=>{const d=VENUE_DOORS[k],z0=VENUES[k].z0,p=orientVenuePoint(k,{x,z});return Math.abs(p.x-d.x)<d.width/2+.6&&p.z>z0-2.4&&p.z<z0+VENUE_WALL+1.5;})??null;
 }
 /** 開いた入口の中（壁の厚みの部分）にいれば、入口の幅に収めた位置を返す。いなければ null */
 export function throughDoorway(kind:Venue,p:{x:number;z:number},radius=.25) {
+  p=orientVenuePoint(kind,p);
   const d=VENUE_DOORS[kind],z0=VENUES[kind].z0;
   if(p.z<z0-radius-.05||p.z>z0+VENUE_WALL+radius||Math.abs(p.x-d.x)>=d.width/2)return null;
-  return {x:Math.max(d.x-d.width/2+radius,Math.min(d.x+d.width/2-radius,p.x)),z:p.z};
+  return orientVenuePoint(kind,{x:Math.max(d.x-d.width/2+radius,Math.min(d.x+d.width/2-radius,p.x)),z:p.z});
 }

@@ -1,5 +1,5 @@
 // 服屋さん4店舗。南西の商店街2軒と北側2軒に分散する。
-// 座標はほかの店と同じく civic site 基準。正面（入口）は道路側（-Z）。
+// 座標は civic site 基準。形状の正面は-Z、北側の店はvenuesの向きで道路側へ回転する。
 import { TOWN_BOUNDS } from '../economy/town';
 import { shopSite, SHOPPING_SOUTH, SHOPPING_NORTH, SHOPPING_WEST } from './shopSites';
 

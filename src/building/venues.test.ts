@@ -1,5 +1,5 @@
 import { expect,it } from 'vitest';
-import { VENUE_KINDS,VENUES,VENUE_ACTIONS,VENUE_DOORS,venueAction,resolveVenue,venueAt,venueDoorAt,throughDoorway } from './venues';
+import { VENUE_KINDS,VENUES,VENUE_ACTIONS,VENUE_DOORS,venueAction,resolveVenue,venueAt,venueDoorAt,throughDoorway,orientVenuePoint,venueEntrance,venueTurn } from './venues';
 import { atDealerDoor,DEALER,DEALER_LOT } from './dealer';
 import { atSaleSign } from './landSale';
 import { plotX,plotZ } from '../economy/town';
@@ -7,7 +7,7 @@ import { GRID,LOT_D } from './dimensions';
 it('offers every booth and showroom action only nearby',()=>{
   for(const kind of VENUE_KINDS){
     const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
-    for(const a of VENUE_ACTIONS[kind])expect(venueAction(kind,cx+a.x,cz+a.z)?.id).toBe(a.id);
+    for(const a of VENUE_ACTIONS[kind]){const p=orientVenuePoint(kind,{x:cx+a.x,z:cz+a.z});expect(venueAction(kind,p.x,p.z)?.id).toBe(a.id);}
     expect(venueAction(kind,-1000,-1000)).toBeNull();
     const q=resolveVenue(kind,{x:b.x0-10,z:b.z0-10});expect(q.x).toBeGreaterThan(b.x0);expect(q.z).toBeGreaterThan(b.z0);
   }
@@ -24,13 +24,17 @@ it('requires ground level and the front of the dealer or sale sign',()=>{
 it('lets the player walk through an open shop door without changing space',()=>{
   for(const kind of VENUE_KINDS){
     const b=VENUES[kind],d=VENUE_DOORS[kind];
-    expect(venueDoorAt(d.x,b.z0-1)).toBe(kind);expect(venueDoorAt(d.x,b.z0+1)).toBe(kind);
+    const sensor=(distance:number)=>{const p=venueEntrance(kind,distance);return venueDoorAt(p.x,p.z);};
+    expect(sensor(1)).toBe(kind);expect(sensor(-1)).toBe(kind);
     // 店の奥へ入る・外で離れると自動ドアのセンサーから外れる
-    expect(venueDoorAt(d.x,b.z0+2.5)).toBeNull();expect(venueDoorAt(d.x,b.z0-3)).toBeNull();
-    expect(venueAt(d.x,b.z0-1)).toBeNull();expect(venueAt(d.x,b.z0+1)).toBe(kind);
-    expect(throughDoorway(kind,{x:d.x+d.width/2-.1,z:b.z0+.1})?.x).toBeCloseTo(d.x+d.width/2-.25);
-    expect(throughDoorway(kind,{x:d.x+d.width/2+.3,z:b.z0+.1})).toBeNull();
-    expect(throughDoorway(kind,{x:d.x,z:b.z0+3})).toBeNull();
+    expect(sensor(-2.5)).toBeNull();expect(sensor(3)).toBeNull();
+    const outside=venueEntrance(kind,1),inside=venueEntrance(kind,-1);
+    expect(venueAt(outside.x,outside.z)).toBeNull();expect(venueAt(inside.x,inside.z)).toBe(kind);
+    const point=orientVenuePoint(kind,{x:d.x+d.width/2-.1,z:b.z0+.1});
+    const expected=orientVenuePoint(kind,{x:d.x+d.width/2-.25,z:b.z0+.1});
+    expect(throughDoorway(kind,point)?.x).toBeCloseTo(expected.x);
+    expect(throughDoorway(kind,orientVenuePoint(kind,{x:d.x+d.width/2+.3,z:b.z0+.1}))).toBeNull();
+    expect(throughDoorway(kind,venueEntrance(kind,-3))).toBeNull();
   }
 });
 it('keeps every shop and dealer parking off roads and residential plots',async()=>{
@@ -64,11 +68,14 @@ it('provides walkable approaches linked to a town road for the north stores',asy
   const { CIVIC_SITE,TOWN_ROADS,TOWN_BOUNDS }=await import('../economy/town');
   const overlaps=(a:{x0:number;x1:number;z0:number;z1:number},b:typeof a)=>a.x0<b.x1&&a.x1>b.x0&&a.z0<b.z1&&a.z1>b.z0;
   for(const k of ['maison','urban'] as const){
-    const b=VENUES[k],x=VENUE_DOORS[k].x+CIVIC_SITE.x,z=b.z0+CIVIC_SITE.z-1;
+    const p=venueEntrance(k,1),x=p.x+CIVIC_SITE.x,z=p.z+CIVIC_SITE.z;
     const front=SHOP_PATHS.find(p=>x>p.x0&&x<p.x1&&z>p.z0&&z<p.z1)!;
     expect(front).toBeDefined();expect(front.z0).toBeGreaterThan(TOWN_BOUNDS.z0-25);
-    const connector=SHOP_PATHS.find(p=>overlaps(front,p)&&TOWN_ROADS.some(r=>overlaps(p,r)));
-    expect(connector).toBeDefined();
+    expect(TOWN_ROADS.some(r=>overlaps(front,r))).toBe(true);
+    // The entrance now directly faces the nearest road, without walking around the back.
+    expect(venueEntrance(k).z+CIVIC_SITE.z).toBeLessThan(TOWN_BOUNDS.z0-10);
+    expect(venueTurn(k)).toBe(-1);
+    expect(venueDoorAt(VENUE_DOORS[k].x,VENUES[k].z0-1)).toBeNull();
     for(const path of SHOP_PATHS)for(const kind of VENUE_KINDS){
       const v=VENUES[kind],g={x0:v.x0+CIVIC_SITE.x,x1:v.x1+CIVIC_SITE.x,z0:v.z0+CIVIC_SITE.z,z1:v.z1+CIVIC_SITE.z};
       expect(overlaps(path,g)).toBe(false);
