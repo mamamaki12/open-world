@@ -40,6 +40,11 @@ export function AimBuilder() {
       if(!aimBuilding()||useVenue.getState().inside)return;
       const p=pick(),g=useGame.getState();
       if(!p)return g.notify(`届く場所を狙ってください（${AIM_REACH}m以内・自分の土地）`);
+      if(g.tool==='erase' && g.eraseMulti) {
+        if(p.ref) g.toggleMark(p.ref);
+        else g.notify('選ぶパーツを狙ってください');
+        return;
+      }
       const plan=aimPlan(g.house,g.tool,g.defaults,p,camera.position,useInteraction.getState().stairRot,anchor.current);
       if(plan.range&&!anchor.current&&plan.point){anchor.current=plan.point;useAim.setState({range:true});return;}
       if(plan.error)return g.notify(plan.error);
@@ -63,7 +68,7 @@ export function AimBuilder() {
     if(!p){useAim.setState({valid:false,label:`${AIM_REACH}m以内の自分の土地を狙う`,target:null});useInteraction.getState().setPreview(null);return;}
     const g=useGame.getState(),plan=aimPlan(g.house,g.tool,g.defaults,p,camera.position,useInteraction.getState().stairRot,anchor.current);
     const starting=!!plan.range&&!anchor.current;
-    useAim.setState({valid:starting||!plan.error,label:starting?'始点を決める':plan.error??(plan.range?'終点に配置する':g.tool==='erase'?'狙ったパーツを消す':'狙った場所に配置する'),target:p.ref??null,range:!!anchor.current});
+    useAim.setState({valid:starting||!plan.error,label:starting?'始点を決める':plan.error??(plan.range?'終点に配置する':g.tool==='erase'?(g.eraseMulti?'狙ったパーツを選ぶ・外す':'狙ったパーツを消す'):'狙った場所に配置する'),target:p.ref??null,range:!!anchor.current});
     g.setLevel(plan.point ? (g.tool==='roof'?Math.max(0,(anchor.current?.level??plan.point.level)-1):anchor.current?.level??plan.point.level) : g.activeLevel);
     useInteraction.getState().setPreview(plan.preview??null);
   });

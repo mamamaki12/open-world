@@ -9,7 +9,7 @@ import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { Scene } from '../world/Scene';
 import { Inspector } from './Inspector';
-import { ToolOptions } from './ToolOptions';
+import { EraseSelectionActions, ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
 import { DealerPanel } from './DealerPanel';
@@ -63,6 +63,7 @@ export function App() {
   const overlay = useGame((s) => s.overlay);
   const touch = useTouchDevice();
   const walking = useGame((s) => s.mode === 'walk');
+  const bulkErase = useGame((s) => s.tool === 'erase' && s.eraseMulti);
   const app = useRef<HTMLDivElement>(null);
   useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
@@ -94,6 +95,7 @@ export function App() {
         </>
       )}
       {walking && <WorldActionHud />}
+      {!touch && walking && bulkErase && !overlay && <div className="side left"><div className="panel"><EraseSelectionActions /></div></div>}
       {walking && <QuickBar />}
       {overlay === 'controls' && <ControlsPanel />}
       {overlay === 'inventory' && <InventoryPanel />}
@@ -125,6 +127,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
   const tool = useGame((s) => s.tool);
   const setTool = useGame((s) => s.setTool);
   const selected = useGame((s) => s.selection !== null);
+  const bulkErase = useGame((s) => s.tool === 'erase' && s.eraseMulti);
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
   const [menu, setMenu] = useState(false);
   const closeMenu = useCallback(() => setMenu(false), []);
@@ -156,6 +159,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
         </div>
       )}
       {!bare && <ControlsHelp />}
+      {bulkErase && !overlay && !menu && <div className={`touch-dock bulk-erase-dock${walking ? ' walking' : ''}`}><div className="panel"><EraseSelectionActions /></div></div>}
       {menu && <BuildMenu tools={TOOLS} walking={walking} onClose={closeMenu} />}
     </>
   );

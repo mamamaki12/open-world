@@ -10,7 +10,8 @@ export function beginPartDrag(ref: PartRef, ray: THREE.Ray, clientX: number, cli
   const game = useGame.getState();
   if (game.mode !== 'build' || game.tool !== 'select') return;
   game.select(ref);
-  startPartLongPress(ref, clientX, clientY);
+  // 一括移動でつかむ時間を、1個だけの削除と取り違えない。
+  if (!game.groupSelection || !movableBuilding(ref)) startPartLongPress(ref, clientX, clientY);
   if (ref.kind === 'furniture') {
     const item = game.house.furniture.find(p => p.id === ref.id);
     if (!item || item.wallMount) return;

@@ -124,7 +124,7 @@ function GroupMove() {
         <button className="btn" onClick={() => move(0, -1)}>↑ 1マス</button>
         <button className="btn" onClick={() => move(0, 1)}>↓ 1マス</button>
       </div>
-      <p className="info">選択したパーツをドラッグしても移動できます。素材・色の変更と削除は、最初に選んだ1個に適用します。</p>
+      <p className="info">選択したパーツをドラッグしても移動できます。{enabled && '一括移動中は長押しで消えません。'}素材・色の変更と削除は、最初に選んだ1個に適用します。</p>
     </div>
   );
 }

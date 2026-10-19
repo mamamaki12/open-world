@@ -95,7 +95,7 @@ export function PlacementController() {
 
     const groundPoint = (e: PointerEvent, level: number) => {
       const g=useGame.getState();
-      const grounded = (g.tool==='wall' && (g.defaults.wallHeight==='fence'||g.defaults.wallHeight==='privacyFence')) ||
+      const grounded = g.tool === 'erase' || (g.tool==='wall' && (g.defaults.wallHeight==='fence'||g.defaults.wallHeight==='privacyFence')) ||
         (g.tool==='furniture' && getFurniture(g.defaults.furnitureType).grounded);
       return placementPoint(camera, el.getBoundingClientRect(), e.clientX, e.clientY, level, grounded?0:undefined);
     };
@@ -150,6 +150,7 @@ export function PlacementController() {
     const surfaceAt = (e: PointerEvent) => {
       if (dragStart) return dragSurface;
       const g = useGame.getState();
+      if (g.tool === 'erase') return 0;
       if (g.tool === 'wall' && (g.defaults.wallHeight === 'fence' || g.defaults.wallHeight === 'privacyFence')) return 0;
       if (g.tool === 'furniture' && getFurniture(g.defaults.furnitureType).grounded) return 0;
       if (g.tool === 'roof') return roofSurface(e);
@@ -333,7 +334,8 @@ export function PlacementController() {
           if (game.tool === 'erase' && game.eraseMulti) game.toggleMark(pendingErase.ref);
           else if (game.tool === 'erase') game.commit(removePart(game.house, pendingErase.ref));
         }
-        return;
+        // 別の所有地を選んだ直後も、ドラッグなら範囲選択の終了処理へ進む。
+        if (!dragStart) return;
       }
       const building = useInteraction.getState().buildingDrag;
       if (building) {
@@ -386,6 +388,7 @@ export function PlacementController() {
           // 「1つずつ」のときに範囲で選んだら、「まとめて選ぶ」に切り替えて選んだものを見せる
           if (!g.eraseMulti) g.setEraseMulti(true);
           useGame.getState().addMarks(partsInRect(g.house, cellRect(start, cellAt(p))));
+          useInteraction.setState({ ignorePartClickUntil: Date.now() + 150 });
         }
         return;
       }
@@ -449,15 +452,23 @@ export function PlacementController() {
     const onCancel = (e: PointerEvent) => {
       useInteraction.setState({ pendingErase: null });
       touches.delete(e.pointerId);
-      if (activeTouch === e.pointerId || useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag) cancelTouch();
+      if (activeTouch === e.pointerId || dragStart || useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag) cancelTouch();
     };
+
+    const cancel = () => { touches.clear(); cancelTouch(); useInteraction.setState({ pendingErase: null }); };
+    const unsubscribe = useGame.subscribe((s, prev) => {
+      if (s.tool !== prev.tool || s.mode !== prev.mode || s.overlay !== prev.overlay || s.eraseMulti !== prev.eraseMulti) cancel();
+    });
 
     el.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onCancel);
     el.addEventListener('pointerleave', onLeave);
+    window.addEventListener('blur', cancel);
     return () => {
+      unsubscribe();
+      window.removeEventListener('blur', cancel);
       el.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);

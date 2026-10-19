@@ -197,9 +197,7 @@ export function NameplateInput({ value = '', onChange }: { value?: string; onCha
 
 function EraseOptions() {
   const multi = useGame((s) => s.eraseMulti);
-  const count = useGame((s) => s.marked.length);
   const g = useGame.getState();
-  const touch = useTouchDevice();
   return (
     <>
       <div className="field">
@@ -213,22 +211,24 @@ function EraseOptions() {
           </button>
         </div>
       </div>
-      {multi && (
-        <>
-          <p className="info">
-            {touch ? 'タップで選ぶ・外す、なぞると範囲で選べます。' : 'クリックで選ぶ・外す、ドラッグすると範囲で選べます。'}
-            選んだもの：<b>{count}</b> 個
-          </p>
-          <button className="btn danger" disabled={!count} onClick={() => useGame.getState().deleteMarked()}>
-            まとめて削除{!touch && <span className="kbd-hint">（Delete）</span>}
-          </button>
-          <button className="btn" disabled={!count} onClick={() => useGame.getState().clearMarks()}>
-            選び直す
-          </button>
-        </>
-      )}
+      {multi && <EraseSelectionActions />}
     </>
   );
+}
+
+/** 選んだ後も画面に残し、建築メニューを開き直さず確定できる。 */
+export function EraseSelectionActions() {
+  const count = useGame((s) => s.marked.length);
+  const walking = useGame((s) => s.mode === 'walk');
+  const touch = useTouchDevice();
+  return <section aria-label="まとめて削除の選択" className="erase-selection-actions">
+    <p className="info">{walking ? '狙ったパーツを選ぶ・外す。' : touch ? 'タップで選ぶ・外す。なぞって範囲で選ぶ（全階）。' : 'クリックで選ぶ・外す。ドラッグで範囲選択（全階）。'}</p>
+    <p className="info" role="status">選んだもの：<b>{count}</b> 個</p>
+    <div className="row">
+      <button className="btn danger" disabled={!count} onClick={() => useGame.getState().deleteMarked()}>まとめて削除{!touch && !walking && <span className="kbd-hint">（Delete）</span>}</button>
+      <button className="btn" disabled={!count} onClick={() => useGame.getState().clearMarks()}>選び直す</button>
+    </div>
+  </section>;
 }
 
 const FLOOR_KIND_NAMES: Record<FloorKind, string> = { room: '部屋の床', terrace: 'テラス' };

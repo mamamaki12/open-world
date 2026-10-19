@@ -191,7 +191,7 @@ export const useGame = create<GameState>((set, get) => ({
   // 歩きモードに入るときは手ぶら（選択ツール）から始める
   setMode: (mode) => set({ mode, selection: null, tool: mode === 'walk' ? 'select' : get().tool }),
   toggleView: () => set({ view: get().view === 'third' ? 'first' : 'third' }),
-  setTool: (tool) => set({ tool, selection: tool === 'select' ? get().selection : null, marked: [] }),
+  setTool: (tool) => { if (tool !== get().tool) set({ tool, selection: tool === 'select' ? get().selection : null, marked: [] }); },
   setLevel: (level) => {
     if (get().activeLevel !== level) set({ activeLevel: level });
   },
@@ -202,7 +202,7 @@ export const useGame = create<GameState>((set, get) => ({
     commit(removePart(house, selection));
     set({ selection: null });
   },
-  setEraseMulti: (on) => set({ eraseMulti: on, marked: [] }),
+  setEraseMulti: (on) => { if (on !== get().eraseMulti) set({ eraseMulti: on, marked: [] }); },
   toggleMark: (ref) => {
     const { marked } = get();
     const has = marked.some((m) => m.kind === ref.kind && m.id === ref.id);

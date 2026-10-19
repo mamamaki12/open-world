@@ -35,7 +35,8 @@ export function BuildCamera() {
   const touch = useTouchDevice();
   const tool = useGame((s) => s.tool);
   const mode = useGame((s) => s.mode);
-  const preciseTouch = touch && mode === 'build' && (tool === 'floor' || tool === 'wall');
+  const eraseMulti = useGame((s) => s.eraseMulti);
+  const preciseTouch = touch && mode === 'build' && (tool === 'floor' || tool === 'wall' || tool === 'erase' && eraseMulti);
   // 真上からなら床・壁の高さで画面上の位置がずれず、指の真下に配置できる。
   useEffect(() => {
     if (!preciseTouch || !controls) return;
