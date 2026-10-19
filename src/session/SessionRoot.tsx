@@ -12,6 +12,7 @@ const initialRelay = () => new URLSearchParams(location.search).get('relay') || 
 export function SessionRoot() {
   const [ready, setReady] = useState(false), [failure, setFailure] = useState('');
   const screen = useSession(s => s.screen);
+  const replaced = useSession(s => s.replaced);
   useEffect(() => { let alive = true; initialization ??= initializeSave();
     initialization.then(() => { if (alive) setReady(true); }).catch(e => { if (alive) setFailure(String(e.message)); });
     return () => { alive = false; };
@@ -20,7 +21,7 @@ export function SessionRoot() {
   // Existing regression scripts deliberately bypass the launcher in development only.
   useEffect(() => { if (ready && import.meta.env.DEV && new URLSearchParams(location.search).get('play') === '1') void enterOffline(); }, [ready]);
   if (!ready) return <main className="world-launch"><section className="world-card"><h1>OPEN WORLD</h1><p>{failure || 'ワールドを読み込んでいます…'}</p>{failure && <p>このブラウザの保存領域を利用できるか確認してください。既存セーブは削除していません。</p>}</section></main>;
-  return screen === 'menu' ? <Launcher/> : <><App/><SessionHud/></>;
+  return screen === 'menu' ? <Launcher/> : <>{!replaced && <App/>}<SessionHud/></>;
 }
 function Launcher() {
   const profile = savedBundle().profile, [name, setName] = useState(profile.name), [relay, setRelay] = useState(initialRelay);
@@ -60,6 +61,6 @@ function SessionHud() {
     </section>}
     {state.status === 'reconnecting' && !gameOverlay && <p className="world-network-warning" role="status">{state.message}</p>}
   </aside>
-    {state.status === 'closed' && <div className="world-disconnected"><section className="world-card"><h2>接続が終了しました</h2><p>{state.message || '自分の町へ戻れます'}</p><button onClick={() => void leaveWorld()}>自分の町へ戻る</button></section></div>}
+    {state.status === 'closed' && <div className="world-disconnected"><section className="world-card"><h2>接続が終了しました</h2><p>{state.message || '自分の町へ戻れます'}</p><button onClick={() => void leaveWorld()}>{state.replaced ? '開始画面へ戻る' : '自分の町へ戻る'}</button></section></div>}
   </>;
 }

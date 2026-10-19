@@ -29,9 +29,9 @@ export interface Member { id: string; name: string; host: boolean; canBuild: boo
 export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean; riding?: string | null; /** 送った側の performance.now()。受け取り側の補間に使う */ ts?: number }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
-  role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean;
+  role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean; replaced: boolean;
 }
-export const useSession = create<SessionState>(() => ({ screen: 'menu', status: 'offline', role: 'home', shared: false, code: '', message: '', members: [], poses: {}, busy: false }));
+export const useSession = create<SessionState>(() => ({ screen: 'menu', status: 'offline', role: 'home', shared: false, code: '', message: '', members: [], poses: {}, busy: false, replaced: false }));
 let socket: WebSocket | null = null, token = '', endpoint = '', reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 let approvalQueue = Promise.resolve();
 let approving = false;
@@ -226,7 +226,7 @@ function openConnection(generation: number, resume: boolean) {
   actions.clear(); actionAcks.clear(); // Account/world snapshots resolve actions whose replies were interrupted.
   const p = savedBundle().profile, state = useSession.getState();
   socket = new WebSocket(endpoint);
-  socket.onopen = () => send({ type: state.shared ? 'shared' : resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token });
+  socket.onopen = () => send({ type: state.shared ? 'shared' : resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token, takeover: state.shared && !resume });
   socket.onmessage = async event => {
     if (generation !== epoch) return;
     try {
@@ -294,7 +294,12 @@ function openConnection(generation: number, resume: boolean) {
         sessionGate.applying = true; useDoors.setState({ open }); sessionGate.applying = false;
       } else if (m.type === 'paused') useSession.setState({ status: 'reconnecting', message: m.message });
       else if (m.type === 'resumed') useSession.setState({ status: 'connected', message: '' });
-      else if (m.type === 'closed' || m.type === 'error') { useSession.setState({ status: 'closed', message: m.message }); intendedLeave = true; }
+      else if (m.type === 'closed' || m.type === 'error') {
+        const replaced = m.reason === 'replaced';
+        if (replaced) sessionGate.superseded = true;
+        useSession.setState({ status: 'closed', message: m.message, replaced }); intendedLeave = true;
+        socket?.close();
+      }
     } catch (e) { useSession.setState({ message: e instanceof Error ? e.message : '通信内容を読み込めません' }); }
   };
   socket.onerror = () => useSession.setState({ message: '接続できません。接続先と通信状態を確認してください' });
@@ -308,6 +313,7 @@ function openConnection(generation: number, resume: boolean) {
 function validPose(p: RemotePose) { return !!p && [p.x, p.y, p.z, p.yaw].every(v => Number.isFinite(v) && Math.abs(v) < 10000) && !!p.outfit && Array.isArray(p.cars) && p.cars.length <= 10 && p.cars.every(validCar); }
 export function allowBuilding(id: string, canBuild: boolean) { send({ type: 'permission', target: id, canBuild }); }
 export async function leaveWorld() {
+  if (sessionGate.superseded) { location.reload(); return; }
   if (sessionGate.shared && useSession.getState().status === 'connected' && (savedBundle().wallet?.pending.length || actions.size)) {
     useSession.setState({ message: '所持金の同期中です。少し待ってから退出してください' }); return;
   }

@@ -61,6 +61,7 @@ jobs:
       - name: Play shared world in desktop and phone browsers
         env:
           QA_PORT: 5173
+          WORLD_TEST_URL: http://127.0.0.1:5173/
         run: |
           npm run dev -- --host 127.0.0.1 > /tmp/shared-ui-vite.log 2>&1 &
           web=$!
@@ -70,6 +71,7 @@ jobs:
             sleep 1
           done
           node scripts/check-shared-ui-layout.mjs
+          node scripts/check-shared-takeover.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
