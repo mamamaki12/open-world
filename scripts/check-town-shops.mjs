@@ -18,15 +18,33 @@ try {
   for (const kind of kinds) {
     console.log('Checking entrance', kind);
     await page.evaluate(async k => {
-      const { VENUE_DOORS, VENUES } = await import('/src/building/venues.ts');
+      const { venueEntrance, venueTurn } = await import('/src/building/venues.ts');
       const o = (await import('/src/state/economy.ts')).civicOffset();
-      Object.assign(window.__ow.player, { x: o.x + VENUE_DOORS[k].x, y: 0, z: o.z + VENUES[k].z0 - 1.8, yaw: Math.PI, bodyYaw: Math.PI });
+      const p=venueEntrance(k,1.8),yaw=venueTurn(k)===1?Math.PI:0;
+      Object.assign(window.__ow.player, { x: o.x + p.x, y: 0, z: o.z + p.z, yaw, bodyYaw:yaw });
     }, kind);
     await until(async k => !!(await import('/src/state/doors.ts')).useDoors.getState().open['venue:' + k], kind);
+    if(kind==='maison'||kind==='urban'){
+      fs.mkdirSync('world-session-checks',{recursive:true});
+      await page.screenshot({path:'world-session-checks/road-front-'+kind+'.png'});
+    }
     await page.keyboard.down('KeyW');
     try { await until(async k => (await import('/src/state/venue.ts')).useVenue.getState().inside === k, kind); }
     finally { await page.keyboard.up('KeyW'); }
     console.log('Entered', kind);
+    if(kind==='maison'||kind==='urban'){
+    await page.evaluate(async k=>{
+      const {VENUES,VENUE_ACTIONS,orientVenuePoint}=await import('/src/building/venues.ts');
+      const o=(await import('/src/state/economy.ts')).civicOffset(),b=VENUES[k],a=VENUE_ACTIONS[k][0];
+      const p=orientVenuePoint(k,{x:(b.x0+b.x1)/2+a.x,z:(b.z0+b.z1)/2+a.z});
+      Object.assign(window.__ow.player,{x:o.x+p.x,z:o.z+p.z});
+    },kind);
+    await page.locator('.door-prompt').filter({hasText:'服を見る・買う'}).first().waitFor();
+    await page.screenshot({path:'world-session-checks/road-facing-'+kind+'.png'});
+    await page.locator('.door-prompt').filter({hasText:'服を見る・買う'}).first().click();
+    await page.locator('.garment').first().waitFor();
+    await page.getByRole('button',{name:'閉じる',exact:true}).click();
+    }
   }
   fs.mkdirSync('world-session-checks', { recursive: true });
   await page.evaluate(() => window.__ow.game.getState().setOverlay('map'));

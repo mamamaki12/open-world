@@ -2,14 +2,15 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { autoVenueDoors } from './venue';
 import { useDoors } from './doors';
 import { sessionGate } from '../session/gate';
-import { VENUES, VENUE_DOORS, VENUE_KINDS, venueDoorId } from '../building/venues';
+import { VENUES, VENUE_DOORS, VENUE_KINDS, venueDoorId, venueEntrance } from '../building/venues';
 
 vi.mock('./economy', () => ({ civicOffset: () => ({ x: 123, z: -45 }) }));
 vi.mock('../world/sound', () => ({ playDoorSound: vi.fn() }));
 const original = { ...sessionGate };
 const far = { x: -10000, y: 0, z: -10000 };
 function entrance(kind: typeof VENUE_KINDS[number]) {
-  return { x: 123 + VENUE_DOORS[kind].x, y: 0, z: -45 + VENUES[kind].z0 - 1 };
+  const p=venueEntrance(kind,1);
+  return { x: 123 + p.x, y: 0, z: -45 + p.z };
 }
 beforeEach(() => {
   Object.assign(sessionGate, { role: 'guest', shared: true, applying: false, visitors: () => [] });

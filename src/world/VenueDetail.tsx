@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { BuildingDetail } from './BuildingDetail';
 import type { BuildingBounds } from './buildingLod';
-import { VENUES } from '../building/venues';
+import { VENUES, venueRotation } from '../building/venues';
 import type { Venue } from '../building/venues';
 import { BOUTIQUE_INFO, isBoutique } from '../building/boutiques';
 import { CASINO } from '../building/landmarks';
@@ -22,7 +22,8 @@ function DistantVenue({kind}:{kind:Venue}){
 /** Exterior names remain stable so aim and camera obstruction still find the building. */
 export function VenueExteriorDetail({kind,children}:{kind:Venue;children:ReactNode}){
   const inside=useVenue(s=>s.inside===kind);
-  return <BuildingDetail bounds={venueBounds(kind)} forceFull={inside} name={isBoutique(kind)?'venue-'+kind:kind}>{tier=>tier==='distant'?<DistantVenue kind={kind}/>:children}</BuildingDetail>;
+  const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
+  return <BuildingDetail bounds={venueBounds(kind)} forceFull={inside} name={isBoutique(kind)?'venue-'+kind:kind}>{tier=><group position={[cx,0,cz]} rotation-y={venueRotation(kind)}><group position={[-cx,0,-cz]}>{tier==='distant'?<DistantVenue kind={kind}/>:children}</group></group>}</BuildingDetail>;
 }
 export function VenueInteriorDetail({kind,centred=false,children}:{kind:Venue;centred?:boolean;children:ReactNode}){
   const inside=useVenue(s=>s.inside===kind);

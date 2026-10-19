@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
-import { VENUES, VENUE_ACTIONS, VENUE_DOORS, VENUE_KINDS } from '../building/venues';
+import { VENUES, VENUE_ACTIONS, VENUE_DOORS, VENUE_KINDS, venueRotation, venueTurn } from '../building/venues';
 import type { Venue } from '../building/venues';
 import { civicOffset, useCurrentPlot } from '../state/economy';
 import { playerMemory } from './Player';
@@ -170,7 +170,7 @@ function VenueLight(){
     const o=civicOffset(),p=playerMemory,x=p.x-o.x,z=p.z-o.z;
     const kind=VENUE_KINDS.map(k=>{const b=VENUES[k];return {k,d:Math.hypot(x-(b.x0+b.x1)/2,z-(b.z0+b.z1)/2)};}).sort((a,b)=>a.d-b.d)[0].k;
     const b=VENUES[kind],c=LIGHT[kind];
-    const near=x>b.x0-2&&x<b.x1+2&&z>b.z0-6&&z<b.z1;
+    const near=x>b.x0-2&&x<b.x1+2&&z>b.z0-(venueTurn(kind)===1?6:0)&&z<b.z1+(venueTurn(kind)===-1?6:0);
     l.position.set((b.x0+b.x1)/2,c.y,(b.z0+b.z1)/2);l.intensity=near?c.intensity:0;l.color.set(c.color);l.distance=c.distance;
   });
   return <pointLight ref={ref} intensity={0}/>;
@@ -182,7 +182,7 @@ export function VenueInteriors(){
     <VenueLight/>
     {VENUE_KINDS.map(kind=>{
       const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
-      return <group key={kind} position={[cx,0,cz]}>
+      return <group key={kind} position={[cx,0,cz]} rotation-y={venueRotation(kind)}>
         <VenueInteriorDetail kind={kind} centred>
         <Shell kind={kind}/>
         {(kind==='casino'||kind==='estate'||kind==='exchange')&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':kind==='exchange'?'#1e4d8c':'#ffe5a6'}/>)}
