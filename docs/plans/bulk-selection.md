@@ -16,3 +16,13 @@
 - 済: 全階の範囲指定を地面に統一し、スマホの一括選択では上から表示。中断時のドラッグ破棄、範囲指定後の誤クリック抑止、歩行時の狙い操作でも一括選択を尊重する修正。型チェック成功。
 - 済: 再選択時の選択維持、一括削除・取り消し、グループ移動時の長押し削除抑止と単体長押し維持を含む単体11件成功。
 - 次: PC／390px・320pxスマホで削除・解除・取り消し、一括移動（長押し後のドラッグ含む）を実ブラウザ検証し、CIへ追加する。
+
+## 2026-10-20 引き継ぎ（実行環境の接続切断）
+- 作業場所: `work/open-world-appearance`、ブランチ `codex/fix-bulk-selection`。
+- ローカル実装済み・未push: 選択ツールの範囲選択（boxSelect）、任意の選択グループの移動／削除、左ドラッグを視点回転に使わない設定、Shift＋ドラッグ、選択数とモード切替UI、TouchFurnitureEditの範囲選択競合回避。`groups.ts`、`store.ts`、`PlacementController.tsx`、`Scene.tsx`、`BuildCamera.tsx`、`usePart.ts`、各UIなどに差分がある。
+- ローカル実装済み・未push: `buildCameraPose.ts` と `Player.tsx` による現在の歩行位置・向きからの建築カメラへの切替（詳細は build-camera-entry.md）。
+- 検証: 型チェック成功。Vitest全60ファイル・660件の成功サマリー出力を確認。ただし終了時にexec-server transport disconnected（exit 1073807364）が発生。
+- ブラウザ: `scripts/check-bulk-selection.mjs` を作成し、PCの背景ドラッグ→2個選択、カメラ位置維持、一括削除と1回の取り消しまで成功。次の同素材グループのcheckbox検査で停止。スマホ390px／320px、全ケースは未完了。CIへの追加はローカル .github/workflows/ci.yml にあり、まだpushしていない。
+- 要修正: PlacementController.onUp の buildingDrag／furnitureDrag 分岐で dragStart・eraseFrom・tap を確実に消すこと。単体クリック後に範囲開始の状態が残ると、次のUIクリックを範囲選択として拾い、checkbox操作後に marked が2個へ戻る症状に一致する。修正apply_patchを試したが実行環境が応答せず、適用成否は未確認。新しいViteポートでテストを再実行する（HMRによる状態の混線にも注意）。
+- 実行環境: exec_command／apply_patch が接続復旧待ちから戻らず、再接続の試行を打ち切った。ソースはローカルに残るが、新しい範囲選択・カメラ変更のpush／公開は未完了。このPRはdraftのままにする。
+- 次: 実行環境復旧後、ローカル差分を保持したまま fetch し、上のonUpの消し忘れを確認・修正。ブラウザ全ケース成功後、全差分を小さくpushし、PR #97 のマージ結果を取り込んでCIとPages公開を確認する。
