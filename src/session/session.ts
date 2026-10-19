@@ -64,6 +64,7 @@ async function finish(result: Result) {
     else { ownHistory.push(pending); if (ownHistory.length > 100) ownHistory.shift(); }
   }
   pending = null; useSession.setState({ busy: false, message: result.ok ? '建築を確定しました' : result.message ?? '変更できませんでした' });
+  if (!result.ok) useGame.getState().notify(result.message ?? '変更できませんでした');
   if (sessionGate.role === 'guest' && remoteWorld && !useGame.getState().dragBase) applyWorld(remoteWorld, true);
   syncHistory();
   await persist();
@@ -119,14 +120,15 @@ async function undoOwnEdit() {
 }
 async function submit(before: House, after: House) {
   const s = useSession.getState(), me = savedBundle().profile.id;
-  if (s.status !== 'connected' || !s.members.some(m => m.id === me && m.canBuild)) return useGame.getState().notify('ホストに共同建築の許可をもらってください');
+  if (s.status !== 'connected') return useGame.getState().notify('接続が戻ってから建築してください');
+  if (!s.members.some(m => m.id === me && m.canBuild)) return useGame.getState().notify('ホストに共同建築の許可をもらってください');
   if (pending || s.busy) return useGame.getState().notify('前の変更を確定しています');
   const delta = changes(before, after); if (!delta.length) return;
   // 着工は無料（ひとりモードと同じ）
   const cost = 0;
   if (!Number.isSafeInteger(cost) || cost < 0 || (cost > 0 && !useEconomy.getState().pay(cost, '共同建築（確定待ち）'))) return useGame.getState().notify('所持金が足りません');
   const id = crypto.randomUUID(), lot = useEconomy.getState().currentLotId;
-  if (!lot) { useEconomy.getState().receive(cost, '共同建築の取消'); return; }
+  if (!lot) { useEconomy.getState().receive(cost, '共同建築の取消'); useGame.getState().notify('先に不動産屋で土地を購入してください'); return; }
   pending = { id, lot, delta, reserved: cost }; useSession.setState({ busy: true });
   savedBundle().pending = [...(savedBundle().pending ?? []), { id, room: s.code, worldId: sessionGate.worldId, amount: cost }];
   try { await persist(); if (s.role === 'host') { const command = pending; approvalQueue = approvalQueue.then(() => accept(me, command)); } else send({ type: 'command', command: pending }); }

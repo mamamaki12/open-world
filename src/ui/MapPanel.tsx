@@ -20,6 +20,8 @@ import type { BoutiqueId } from '../building/boutiques';
 import { Modal } from './Modal';
 import { listedShops } from '../economy/shop';
 import type { Shop } from '../economy/shop';
+import { useSession } from '../session/session';
+import { savedBundle } from '../session/saves';
 
 /** イベントの日の書き方 */
 const eventLine = (shop: Shop, today: number) => shop.event && shop.event.day >= today ? `📅 ${shop.event.day === today ? '今日' : `${shop.event.day}日目`}「${shop.event.title}」${shop.event.note ? ` ${shop.event.note}` : ''}` : '';
@@ -35,6 +37,9 @@ export function MapPanel() {
   const lots = useEconomy(s => s.lots), offers = useEconomy(s => s.offers), market = useEconomy(s => s.market);
   const currentId = useEconomy(s => s.currentLotId), here = useCurrentPlot(), today = useEconomy(s => s.day);
   const shops = listedShops(lots, today);
+  const shared = useSession(s => s.shared);
+  const mine = (lot: (typeof lots)[number]) => !shared || lot.owner === savedBundle().profile.id;
+  const myLots = lots.filter(mine);
   const map = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [pick, setPick] = useState<Pick>({ kind: 'plot', plot: here });
@@ -58,7 +63,7 @@ export function MapPanel() {
     }));
   };
   return <Modal title="🗺 町の地図" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="map-modal">
-    <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span><span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span><span>📍お店・イベント</span><button className="btn small" onClick={() => close('jobs')}>💼 バイトをする</button><button className="btn small" onClick={() => close('requests')}>🤝 依頼</button></div>
+    <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span>{shared && <span><i className="sw" style={{ background: '#d9d6cf' }} />ほかの人の家・土地</span>}<span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span><span>📍お店・イベント</span><button className="btn small" onClick={() => close('jobs')}>💼 バイトをする</button><button className="btn small" onClick={() => close('requests')}>🤝 依頼</button></div>
     <p className="info">西の商店街には服屋・不動産屋・証券取引所・美容室、北側には2つの服屋があります。南側はカジノと車のお店が並びます。</p>
     <div className="map-controls" aria-label="地図の表示">
       <button className="btn" onClick={() => { setZoom(1); map.current?.scrollTo(0, 0); }}>全体</button>
@@ -79,6 +84,7 @@ export function MapPanel() {
           // つなげた土地は西の区画で2区画ぶんの幅に描き、東の区画は描かない
           if (lots.some(l => l.joined === plot)) return null;
           const lot = lots.find(l => l.plot === plot), offer = offers.find(o => o.plot === plot);
+          const owned = lot && mine(lot);
           const w = lotCells(lot).w * GRID;
           const picked = pick?.kind === 'plot' && pick.plot === plot;
           const resident = !lot && !offer ? townHouseDesign(TOWN_HOUSE_PLOTS[plot] ?? '') : undefined;
@@ -87,7 +93,7 @@ export function MapPanel() {
           const label = fitLabel(name, w * SCALE - 6, lot ? 7 : 9);
           return <g key={plot} role="button" aria-label={name} tabIndex={0} onClick={() => setPick({ kind: 'plot', plot })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind: 'plot', plot }); }} style={{ cursor: 'pointer' }}>
             <rect x={sx(plotX(plot))} y={sy(plotZ(plot))} width={w * SCALE} height={LOT_D * GRID * SCALE} rx={3}
-              fill={lot ? '#e0e9f2' : offer ? '#fff4d8' : resident ? '#d9d6cf' : district?.color ?? '#dce2d5'} stroke={picked ? '#255db1' : lot ? '#7897ae' : '#bdc6b6'} strokeWidth={picked ? 3 : 1} />
+              fill={owned ? '#e0e9f2' : lot ? '#d9d6cf' : offer ? '#fff4d8' : resident ? '#d9d6cf' : district?.color ?? '#dce2d5'} stroke={picked ? '#255db1' : owned ? '#7897ae' : '#bdc6b6'} strokeWidth={picked ? 3 : 1} />
             {lot && <path d="M-9 0 L0 -8 L9 0 L7 0 L7 10 L-7 10 L-7 0 Z" transform={`translate(${sx(plotX(plot) + w / 2)},${sy(plotZ(plot) + 5)})`} fill="#457591" />}
             <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + (lot ? 12 : 9))} textAnchor="middle" fontSize={label.size} fill={offer ? '#ac4c30' : '#3a5553'}>{label.text}</text>
             <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + 16)} textAnchor="middle" fontSize={6} fill="#78877c">BLOCK {String(blockOf(plot) + 1).padStart(2, '0')} · {plot - FIRST_PLOT + 1}</text>
@@ -123,8 +129,9 @@ export function MapPanel() {
         {(l.shop.flyer || eventLine(l.shop, today)) && <small className="muted">{eventLine(l.shop, today) || l.shop.flyer}</small>}
         <button className="btn small" onClick={() => warpToLot(l.id)}>ワープ</button></li>)}
     </ul></section>}
-    <section className="map-mylots"><div className="card-title">あなたの家・土地（{lots.length}）</div><ul>
-      {lots.map(lot => <li key={lot.id}><button className="link-btn" onClick={() => setPick({ kind: 'plot', plot: lot.plot ?? here })}>{lot.name}</button><button className="btn small" onClick={() => warpToLot(lot.id)}>ワープ</button></li>)}
+    {shared && selectedLot && <p className="info">所有者：{mine(selectedLot) ? 'あなた' : selectedLot.ownerName || 'ほかのプレイヤー'}</p>}
+    <section className="map-mylots"><div className="card-title">あなたの家・土地（{myLots.length}）</div><ul>
+      {myLots.map(lot => <li key={lot.id}><button className="link-btn" onClick={() => setPick({ kind: 'plot', plot: lot.plot ?? here })}>{lot.name}</button><button className="btn small" onClick={() => warpToLot(lot.id)}>ワープ</button></li>)}
     </ul></section>
   </Modal>;
 }
