@@ -61,9 +61,17 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
           if (data.type === 'shared') {
             if (!shared.world) throw Error('ワールドを準備しています。少し待ってからやり直してください');
             const prev = shared.members.get(id);
-            if (prev?.socket) throw Error('このゲストはすでに別のタブで参加しています');
+            const previousSocket = prev?.socket;
+            if (previousSocket && data.takeover !== true) {
+              send(socket, { type: 'error', reason: 'replaced', message: '別の画面で参加中です。開始画面から入り直してください' });
+              socket.close(1008, 'replaced'); return;
+            }
             if (!prev && [...shared.members.values()].filter(m => m.socket).length >= SHARED_LIMIT) throw Error(`みんなのワールドは${SHARED_LIMIT}人までです`);
             member = prev ?? { id, shared: true }; member.name = name; member.socket = socket; shared.members.set(id, member);
+            if (previousSocket) {
+              send(previousSocket, { type: 'closed', reason: 'replaced', message: '別の画面でワールドに入りました。この画面の接続を終了しました' });
+              previousSocket.close(1000, 'replaced');
+            }
             clearTimeout(handshake);
             const joined = withAccount(shared.world, id, name);
             if (joined !== shared.world) { shared.world = joined; enqueue(() => saveWorld(worldFile, shared.world).catch(e => console.error('save failed', e))); }
@@ -100,6 +108,8 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
           return;
         }
         if (member.shared) {
+          // A superseded socket must not edit, leave, or broadcast for its replacement.
+          if (member.socket !== socket) { socket.close(1000, 'replaced'); return; }
           if (data.type === 'leave') { shared.members.delete(member.id); socket.close(); sharedRoster(); return; }
           if (data.type === 'command' || (data.type === 'settle' && typeof data.id === 'string')) {
             const command = data.type === 'settle' ? { id: data.id, settle: true } : data.command, who = member;

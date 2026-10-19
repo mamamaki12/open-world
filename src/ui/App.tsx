@@ -348,8 +348,9 @@ function SaveMenu() {
   const house = useGame((s) => s.house);
   const replaceHouse = useGame((s) => s.replaceHouse);
   const notify = useGame((s) => s.notify);
-  // ひとりで遊ぶときは右下のワールド表示を出さないので、開始画面へ戻る操作はここに置く
-  const solo = useSession((s) => s.role === 'home');
+  // スマホの共有建築中も、ここから開始画面へ戻れるようにする。
+  const busy = useSession((s) => s.busy);
+  const sessionMessage = useSession((s) => s.message);
   return (
     <div className="save">
       <button
@@ -421,8 +422,9 @@ function SaveMenu() {
           </div>
           <div className="row">
             <button className="btn" onClick={downloadBackup}>バックアップ</button>
-            {solo && <button className="btn" onClick={() => void leaveWorld()}>保存して開始画面へ</button>}
+            <button className="btn" disabled={busy} onClick={() => void leaveWorld()}>保存して開始画面へ</button>
           </div>
+          {sessionMessage && <p className="info" role="status">{sessionMessage}</p>}
           <div className="row update">
             <button className="btn" onClick={() => void reloadLatest()} title="セーブしてからページを読み込み直します">
               🔄 最新版にする

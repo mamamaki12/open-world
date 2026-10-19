@@ -12183,12 +12183,21 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
           if (data.type === "shared") {
             if (!shared.world) throw Error("\u30EF\u30FC\u30EB\u30C9\u3092\u6E96\u5099\u3057\u3066\u3044\u307E\u3059\u3002\u5C11\u3057\u5F85\u3063\u3066\u304B\u3089\u3084\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044");
             const prev = shared.members.get(id2);
-            if (prev?.socket) throw Error("\u3053\u306E\u30B2\u30B9\u30C8\u306F\u3059\u3067\u306B\u5225\u306E\u30BF\u30D6\u3067\u53C2\u52A0\u3057\u3066\u3044\u307E\u3059");
+            const previousSocket = prev?.socket;
+            if (previousSocket && data.takeover !== true) {
+              send(socket, { type: "error", reason: "replaced", message: "\u5225\u306E\u753B\u9762\u3067\u53C2\u52A0\u4E2D\u3067\u3059\u3002\u958B\u59CB\u753B\u9762\u304B\u3089\u5165\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044" });
+              socket.close(1008, "replaced");
+              return;
+            }
             if (!prev && [...shared.members.values()].filter((m) => m.socket).length >= SHARED_LIMIT) throw Error(`\u307F\u3093\u306A\u306E\u30EF\u30FC\u30EB\u30C9\u306F${SHARED_LIMIT}\u4EBA\u307E\u3067\u3067\u3059`);
             member = prev ?? { id: id2, shared: true };
             member.name = name;
             member.socket = socket;
             shared.members.set(id2, member);
+            if (previousSocket) {
+              send(previousSocket, { type: "closed", reason: "replaced", message: "\u5225\u306E\u753B\u9762\u3067\u30EF\u30FC\u30EB\u30C9\u306B\u5165\u308A\u307E\u3057\u305F\u3002\u3053\u306E\u753B\u9762\u306E\u63A5\u7D9A\u3092\u7D42\u4E86\u3057\u307E\u3057\u305F" });
+              previousSocket.close(1e3, "replaced");
+            }
             clearTimeout(handshake);
             const joined = withAccount(shared.world, id2, name);
             if (joined !== shared.world) {
@@ -12239,6 +12248,10 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
           return;
         }
         if (member.shared) {
+          if (member.socket !== socket) {
+            socket.close(1e3, "replaced");
+            return;
+          }
           if (data.type === "leave") {
             shared.members.delete(member.id);
             socket.close();

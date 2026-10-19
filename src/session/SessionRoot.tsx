@@ -12,6 +12,7 @@ const initialRelay = () => new URLSearchParams(location.search).get('relay') || 
 export function SessionRoot() {
   const [ready, setReady] = useState(false), [failure, setFailure] = useState('');
   const screen = useSession(s => s.screen);
+  const replaced = useSession(s => s.replaced);
   useEffect(() => { let alive = true; initialization ??= initializeSave();
     initialization.then(() => { if (alive) setReady(true); }).catch(e => { if (alive) setFailure(String(e.message)); });
     return () => { alive = false; };
@@ -20,7 +21,7 @@ export function SessionRoot() {
   // Existing regression scripts deliberately bypass the launcher in development only.
   useEffect(() => { if (ready && import.meta.env.DEV && new URLSearchParams(location.search).get('play') === '1') void enterOffline(); }, [ready]);
   if (!ready) return <main className="world-launch"><section className="world-card"><h1>OPEN WORLD</h1><p>{failure || 'ワールドを読み込んでいます…'}</p>{failure && <p>このブラウザの保存領域を利用できるか確認してください。既存セーブは削除していません。</p>}</section></main>;
-  return screen === 'menu' ? <Launcher/> : <><App/><SessionHud/></>;
+  return screen === 'menu' ? <Launcher/> : <>{!replaced && <App/>}<SessionHud/></>;
 }
 function Launcher() {
   const profile = savedBundle().profile, [name, setName] = useState(profile.name), [relay, setRelay] = useState(initialRelay);
@@ -48,16 +49,18 @@ function SessionHud() {
   // スマホの建築中は四隅のボタンが多いので出さない（歩いているときだけ上の中央に小さく出す）
   const touch = useTouchDevice(), building = useGame(g => g.mode !== 'walk');
   const inCar = useVehicles(v => !!v.driving || !!v.riding);
-  const overlay = useGame(g => g.overlay) || (touch && (building || inCar));
-  return <aside className="world-session">
+  const gameOverlay = useGame(g => g.overlay);
+  const overlay = gameOverlay || (touch && (building || inCar));
+  return <><aside className="world-session">
     {state.role !== 'home' && !overlay && <button className="world-session-toggle" onClick={() => setOpen(!open)}>{touch ? `👥 ${state.members.length}` : state.shared ? `みんなのワールド · ${state.members.length}人` : `${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>}
     {open && state.role !== 'home' && !overlay && <section className="world-session-panel"><h2>一緒に遊んでいる人</h2>
       {state.members.map(m => <div className="world-member" key={m.id}><span>{m.name}{m.host ? '（ホスト）' : ''}</span>{state.role === 'host' && !m.host && <label><input type="checkbox" checked={m.canBuild} onChange={e => allowBuilding(m.id, e.target.checked)}/>共同建築</label>}</div>)}
-      {state.shared ? <p className="world-note">町はサーバーに保存され、だれが抜けても残ります。持ち主のいる土地はその人だけが建てられます。建築費は建てた本人が支払います。</p> : <><p>招待コード: <strong>{state.code}</strong></p><button onClick={() => void invite()}>招待リンクをコピー</button><p className="world-note">建築費は建てた本人が支払います。配置したものはこの町に残ります。元に戻しても支払った建材費は戻りません。</p></>}
+      {state.shared ? <p className="world-note">町はサーバーに保存され、だれが抜けても残ります。持ち主のいる土地はその人だけが建てられます。建築・着工は無料です。土地の購入や買い物にはお金がかかります。</p> : <><p>招待コード: <strong>{state.code}</strong></p><button onClick={() => void invite()}>招待リンクをコピー</button><p className="world-note">建築・着工は無料です。配置したものはこの町に残ります。</p></>}
       <button onClick={downloadBackup}>自分のデータをバックアップ</button><button disabled={state.busy} onClick={() => void leaveWorld()}>保存して開始画面へ</button>
       {(notice || state.message) && <p role="status">{notice || state.message}</p>}
     </section>}
-    {state.status === 'reconnecting' && <p className="world-network-warning" role="status">{state.message}</p>}
-    {state.status === 'closed' && <div className="world-disconnected"><section className="world-card"><h2>接続が終了しました</h2><p>{state.message || '自分の町へ戻れます'}</p><button onClick={() => void leaveWorld()}>自分の町へ戻る</button></section></div>}
-  </aside>;
+    {state.status === 'reconnecting' && !gameOverlay && <p className="world-network-warning" role="status">{state.message}</p>}
+  </aside>
+    {state.status === 'closed' && <div className="world-disconnected"><section className="world-card"><h2>接続が終了しました</h2><p>{state.message || '自分の町へ戻れます'}</p><button onClick={() => void leaveWorld()}>{state.replaced ? '開始画面へ戻る' : '自分の町へ戻る'}</button></section></div>}
+  </>;
 }

@@ -2,6 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WebSocket } from 'ws';
 import { createRelay } from './dist/relay.mjs';
+test('fresh shared entry replaces the old connection and keeps the town and account', async () => {
+  const relay = createRelay({ graceMs: 20, tickMs: 1000000 }); await relay.ready;
+  await new Promise(r => relay.http.listen(0, '127.0.0.1', r));
+  try {
+    const url = 'ws://127.0.0.1:' + relay.http.address().port;
+    const old = await client(url); old.send({ type: 'shared', id: 'same', name: 'A' });
+    await old.next('welcome'); const initial = (await old.next('world')).world;
+    await old.next('account');
+    old.send({ type: 'command', command: { id: 'fund', lot: '', delta: [], reserved: 0, action: { type: 'money', delta: 100000000, label: 'test' } } });
+    assert.equal((await old.next('result')).result.ok, true); await old.next('account');
+    old.send({ type: 'command', command: { id: 'land', lot: '', delta: [], reserved: 1000000000, action: { type: 'buyLand', offer: initial.economy.offers[0].id } } });
+    assert.equal((await old.next('result')).result.ok, true); await old.next('world');
+    const before = structuredClone(relay.world());
+    const fresh = await client(url); fresh.send({ type: 'shared', id: 'same', name: 'A', takeover: true });
+    await fresh.next('welcome'); assert.equal((await old.next('closed')).reason, 'replaced');
+    assert.deepEqual((await fresh.next('world')).world.economy.lots, before.economy.lots);
+    assert.equal((await fresh.next('account')).account.money, before.accounts.same.money);
+    assert.equal((await fresh.next('members')).members.length, 1);
+    const staleResume = await client(url); staleResume.send({ type: 'shared', id: 'same', name: 'A', takeover: false });
+    assert.match((await staleResume.next('error')).message, /別の画面/);
+    await new Promise(r => setTimeout(r, 60));
+    fresh.send({ type: 'command', command: { id: 'after', lot: '', delta: [], reserved: 0, action: { type: 'money', delta: 10, label: 'after replacement' } } });
+    assert.equal((await fresh.next('result')).result.ok, true);
+    assert.equal(relay.world().accounts.same.money, before.accounts.same.money + 10);
+  } finally { relay.close(); }
+});
 async function client(url) {
   const socket = new WebSocket(url), queue = [], waiters = [];
   socket.on('message', raw => { const data = JSON.parse(raw.toString()); queue.push(data); waiters.splice(0).forEach(w => w()); });
@@ -71,7 +97,7 @@ test('shared world: everyone builds in one town, limit, settle and restart persi
     const a = await client(url); a.send({ type: 'shared', id: 'a', name: 'A' });
     assert.equal((await a.next('welcome')).canBuild, true); const first = await a.next('world');
     const b = await client(url); b.send({ type: 'shared', id: 'b', name: 'B' }); await b.next('welcome'); await b.next('world');
-    const dup = await client(url); dup.send({ type: 'shared', id: 'b', name: 'B' }); assert.match((await dup.next('error')).message, /別のタブ/);
+    const dup = await client(url); dup.send({ type: 'shared', id: 'b', name: 'B' }); assert.match((await dup.next('error')).message, /別の画面/);
     assert.equal(first.world.economy.lots.length, 0); assert.equal(first.world.accounts, undefined);
     assert.equal((await a.next('account')).account.money, 1000000);
     a.send({ type: 'command', command: { id: 'm1', lot: '', delta: [], reserved: 0, action: { type: 'money', delta: 1e8, label: 'test' } } });

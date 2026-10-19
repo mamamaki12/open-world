@@ -78,8 +78,9 @@ export function snapshot(): SaveBundle {
   return copy(bundle);
 }
 export function persist(): Promise<void> {
+  if (sessionGate.superseded) return Promise.resolve();
   const data = snapshot();
-  saving = saving.catch(() => undefined).then(() => writeSave(data));
+  saving = saving.catch(() => undefined).then(() => sessionGate.superseded ? undefined : writeSave(data));
   return saving;
 }
 export async function initializeSave() {

@@ -47,6 +47,38 @@ jobs:
             job-checks/
           if-no-files-found: ignore
 
+  shared-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Play shared world in desktop and phone browsers
+        env:
+          QA_PORT: 5173
+          WORLD_TEST_URL: http://127.0.0.1:5173/
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/shared-ui-vite.log 2>&1 &
+          web=$!
+          trap 'kill "$web"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-shared-ui-layout.mjs
+          node scripts/check-shared-takeover.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-ui-checks
+          path: browser-checks/shared-ui/
+          if-no-files-found: ignore
+
   furniture-lighting:
     runs-on: ubuntu-latest
     timeout-minutes: 10
