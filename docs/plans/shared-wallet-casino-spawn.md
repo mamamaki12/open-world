@@ -1,16 +1,30 @@
 # Shared wallet and casino spawn
 
+## 現在の状態
+
+- 状態: 完了
+- PR: [#85](https://github.com/mamamaki12/open-world/pull/85)（マージ済み）
+- 公開: [Pages成功・公開版確認](extended-gameplay-audit.md#公開完了2026-10-20)（2026-10-20、`7f68760`）。
+- 残作業: なし（このplanの依頼範囲）。
+- 将来の拡張・追加確認: なし。
+- 確認根拠: #85: a71e38d。
+- 最終更新: 2026-10-20
+
+## 経過記録（過去の方針・進捗）
+
+> 現在の判断には上の「現在の状態」を使用する。以下の「次」「未完」「課題」は当時の記録であり、現在の残作業一覧ではない。
+
 - Branch: fix/shared-world-auto-doors
 - Request: start shared play in front of the casino and carry money between offline and shared worlds.
 - Decision: user selected the individual-world balance for the initial migration; do not add both balances. Cars, land and stocks remain world-specific.
 
-## Approach
+### Approach
 - Persist a common-wallet journal beside the personal profile. Reconcile acknowledged command IDs against server receipts before replaying durable offline deltas. Preserve pending changes across reconnect/reload.
 - Keep server-side account changes (purchases, income) authoritative and apply pending personal deltas optimistically. Suppress feedback when applying account snapshots.
 - Spawn at the casino after the first shared world snapshot; preserve the individual-world player position on return and do not teleport on reconnect.
 - Verify migration, spending/earning in both directions, interrupted acknowledgements, reload, independent player balances and initial/reconnect positions.
 
-## Progress
+### Progress
 - Planned; automatic-door fix is implemented separately and undergoing browser verification.
 
 - Implemented durable wallet deltas, receipt reconciliation, local money subscriptions, pending-payment exit guard and first-snapshot casino spawn/home-position restoration. Five pure wallet tests pass; browser reconnect/reload verification is running.
@@ -26,7 +40,7 @@
 - Updated two-player end-to-end regression passed: land purchase, owner-only free building, reconnect/undo, player-to-player sale, common money, persistence and backup.
 - EC2 executable revision prepared and locally tested: a17fbd935fc59fb7571adfdcaec1681c2508a81c. Run the pinned update script on EC2; after health returns ok, verify CI, mark/merge PR #85 and verify Pages. Do not drop or reinitialize /var/lib/open-world/shared-world.json.
 
-## Release checkpoint (2026-10-17 JST)
+### Release checkpoint (2026-10-17 JST)
 - Done: PR #85 merged as a71e38d270cd36e366e96da2d22201ef4cb5cd90 after CI run 39005423585 succeeded in all three jobs.
 - User confirmed the EC2 update completed. Independent Chrome verification returned health=ok and a successful WSS connection.
 - The EC2 executable was pinned to a17fbd935fc59fb7571adfdcaec1681c2508a81c (same runtime code as the merged release). Earlier draft/deployment hold notes above are resolved.

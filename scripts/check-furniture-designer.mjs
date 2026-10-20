@@ -10,7 +10,7 @@ await page.goto('http://127.0.0.1:5173/' + (tag === 'phone' ? '?touch=1' : ''));
 await page.getByLabel('あなたの名前').fill('家具職人');
 await page.getByRole('button', { name: 'ひとりで遊ぶ', exact: false }).click();
 await page.waitForFunction(() => window.__ow);
-await page.evaluate(async () => { const { openDesigner, TEMPLATES } = await import('/src/catalog/designs.ts'); openDesigner(); });
+await page.evaluate(async () => { const { openDesigner } = await import('/src/ui/designer.ts'); openDesigner(); });
 await page.getByRole('button', { name: 'チェスト', exact: true }).click();
 await page.getByRole('button', { name: '1. 箱' }).click().catch(() => {});
 await page.getByRole('button', { name: '＋ 脚（丸）' }).click();

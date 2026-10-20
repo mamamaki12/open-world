@@ -38,6 +38,7 @@ import { reloadLatest } from './reload';
 import { FurnitureDesigner } from './FurnitureDesigner';
 import { leaveWorld, useSession } from '../session/session';
 import { downloadBackup } from '../session/saves';
+import { VersionStatus } from './VersionStatus';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
@@ -74,7 +75,7 @@ export function App() {
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
@@ -429,12 +430,7 @@ function SaveMenu() {
             <button className="btn" disabled={busy} onClick={() => void leaveWorld()}>保存して開始画面へ</button>
           </div>
           {sessionMessage && <p className="info" role="status">{sessionMessage}</p>}
-          <div className="row update">
-            <button className="btn" onClick={() => void reloadLatest()} title="セーブしてからページを読み込み直します">
-              🔄 最新版にする
-            </button>
-            <small>今の版：{new Date(__BUILD_TIME__).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>
-          </div>
+          <VersionStatus />
         </div>
       )}
     </div>

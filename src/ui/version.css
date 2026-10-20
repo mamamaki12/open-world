@@ -1,0 +1,18 @@
+.app-version { border-top: 1px solid #dedbd4; margin-top: 14px; padding-top: 12px; color: #5d625d; font-size: 12px; text-align: left; min-width: 0; }
+.version-current { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.version-current strong { color: #35463d; font-size: 13px; overflow-wrap: anywhere; }
+.version-current time { font-size: 11px; }
+.app-version .version-status, .app-version .version-latest, .app-version .version-error { margin: 6px 0; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.version-status.current { color: #216342; }
+.version-status.update { color: #8a4d07; font-weight: 700; }
+.version-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.app-version .version-button { width: auto; min-height: 40px; border: 1px solid #c9d0c8; border-radius: 8px; padding: 8px 10px; background: #fff; color: #34463b; font: inherit; cursor: pointer; }
+.app-version .version-update { background: #edf4ed; }
+.app-version .version-button:disabled { opacity: .55; cursor: default; }
+.app-version .version-error { color: #963b30; }
+.touch .app-version .version-button, .world-launch .app-version .version-button { min-height: 44px; }
+.world-launch .app-version { color: #cad5cc; border-color: #ffffff30; }
+.world-launch .version-current strong { color: #f4f1e5; }
+.world-launch .version-status.current { color: #a9e4bc; }
+.world-launch .version-status.update { color: #ffe0a3; }
+.world-launch .version-error { color: #ffcfb5; }

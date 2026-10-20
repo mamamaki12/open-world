@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { chromium } from 'playwright';
 import { WebSocket, WebSocketServer } from 'ws';
 import { createRelay } from '../server/dist/relay.mjs';
+import { waitForCondition } from './wait-condition.mjs';
 
 const relay=createRelay();await relay.ready;
 await new Promise(resolve=>relay.http.listen(0,'127.0.0.1',resolve));
@@ -36,18 +37,28 @@ try{
     const dialog=page.getByRole('dialog',{name:'あなたの見た目をつくる'});
     await dialog.waitFor();
     await dialog.getByRole('button',{name:'女性',exact:true}).click();
-    if(shared)await page.waitForFunction(async()=>!!(await import('/src/session/saves.ts')).savedBundle().wallet);
+    if(shared)await waitForCondition(page,async()=>!!(await import('/src/session/saves.ts')).savedBundle().wallet);
     else await page.waitForTimeout(2000);
     assert.ok(await dialog.isVisible(),'initialization must not dismiss appearance creation');
     assert.equal(await dialog.getByRole('button',{name:'女性',exact:true}).getAttribute('aria-pressed'),'true','draft must survive initialization');
     await page.screenshot({path:'browser-checks/shared-ui/appearance-'+(shared?'shared':'solo')+'-'+(touch?'phone':'pc')+'.png'});
+    // Hold completion callbacks so confirming cannot close before the queued durable save finishes.
+    await page.evaluate(()=>{
+      const complete=Object.getOwnPropertyDescriptor(IDBTransaction.prototype,'oncomplete');
+      Object.defineProperty(IDBTransaction.prototype,'oncomplete',{...complete,set(handler){
+        complete.set.call(this,this.mode==='readwrite'&&handler?function(event){setTimeout(()=>handler.call(this,event),500);}:handler);
+      }});
+    });
     await dialog.getByRole('button',{name:'この見た目ではじめる',exact:true}).click();
+    assert.ok(await dialog.isVisible(),'creation stays visible until saving completes');
+    assert.ok(await dialog.getByRole('button',{name:'保存中…',exact:true}).isDisabled());
     await dialog.waitFor({state:'hidden'});
+    assert.equal(await page.evaluate(async()=>(await (await import('/src/session/database.ts')).readSave()).appearance.created),true);
     const looks=await page.evaluate(()=>JSON.parse(localStorage.getItem('open-world:looks:v1')));
     assert.equal(looks.sex,'f');assert.equal(looks.hair,'bob');
     await page.reload();await page.getByLabel('あなたの名前').waitFor();
     await page.getByRole('button',{name:shared?'みんなのワールドで遊ぶ':'ひとりで遊ぶ',exact:false}).click();
-    if(shared)await page.waitForFunction(async()=>!!(await import('/src/session/saves.ts')).savedBundle().wallet);
+    if(shared)await waitForCondition(page,async()=>!!(await import('/src/session/saves.ts')).savedBundle().wallet);
     await page.locator('.app').waitFor();
     assert.equal(await dialog.count(),0,'completed creation must not reopen');
     assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('open-world:looks:v1'))),looks);

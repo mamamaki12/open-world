@@ -1,10 +1,24 @@
 # 証券取引所（実装方針と進捗）
 
+## 現在の状態
+
+- 状態: 完了
+- PR: [#71](https://github.com/mamamaki12/open-world/pull/71)（マージ済み）
+- 公開: [Pages成功・公開版確認](extended-gameplay-audit.md#公開完了2026-10-20)（2026-10-20、`7f68760`）。
+- 残作業: なし（このplanの依頼範囲）。
+- 将来の拡張・追加確認: 株価提供元がアクセスを拒否した場合の代替取得先。共有口座への株の保存は[共有ワールド](shared-public-world.md)で実装済み。
+- 確認根拠: #71: 20cc558。market-dataのmain実行も2026-10-20に成功確認。
+- 最終更新: 2026-10-20
+
+## 経過記録（過去の方針・進捗）
+
+> 現在の判断には上の「現在の状態」を使用する。以下の「次」「未完」「課題」は当時の記録であり、現在の残作業一覧ではない。
+
 - ブランチ: `claude/project-thread-1w5crm`（mamamaki12/open-world）
 - 依頼: しんご「証券取引所も追加して、実際の日経平均とかS&P500とか買えるようにして。値動きも実際の証券と同じにして」
 - PR: （出したら書く）
 
-## 方針
+### 方針
 - 実データ: ブラウザ(GitHub Pages)から Yahoo Finance / Stooq を直接読むと CORS で拒否される。
   そこで GitHub Actions の定期実行(`.github/workflows/market-data.yml`, 約15分ごと)で Yahoo Finance の chart API から取得し、
   `market-data` ブランチの `quotes.json` に1コミットだけ上書き push。ゲームは `raw.githubusercontent.com`(CORS可)から読む。
@@ -15,7 +29,7 @@
 - 建物: 既存の店と同じ歩いて入る方式（`src/world/VenueShell.tsx`）。`src/building/venues.ts` に `exchange` を追加し、外観・店内・電光掲示板を作る。入口で F → 取引パネル(overlay `exchange`)。
 - テスト: 価格換算/損益の単体テスト、型チェック、ビルド、スクリーンショット。
 
-## 進捗
+### 進捗
 - 済: 方針決定、計画をpush
 - 済: 取得ワークフロー動作確認（market-data ブランチに quotes.json、raw から CORS 可で 200）
 - 済: `src/economy/stocks.ts`(計算+テスト)、`src/state/stocks.ts`(口座)、`src/ui/ExchangePanel.tsx`(売買画面)、`src/building/exchange.ts`+`src/world/ExchangeBuilding.tsx`(建物・電光掲示・店内ボード)、venues/地図/当たり判定へ追加

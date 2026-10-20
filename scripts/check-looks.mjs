@@ -14,6 +14,7 @@ for(const [sex,hair] of [['女性','ロング'],['女性','ポニーテール'],
   await page.waitForTimeout(600);await page.locator('.looks-preview').screenshot({path:`${out}/create-${hair}.png`});
 }
 await page.getByRole('button',{name:/^金髪/}).click();await page.getByRole('button',{name:'この見た目ではじめる'}).click();
+await page.locator('.looks-modal').waitFor({state:'hidden'});
 const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('open-world:looks:v1')));
 assert.equal(saved.sex,'m');assert.equal(saved.hair,'twoblock');assert.equal(saved.hairColor,4);
 // 美容室：髪型と色を変えるとお金が減る
@@ -23,6 +24,7 @@ const money=await page.evaluate(()=>window.__ow.economy.getState().money);
 await page.getByRole('button',{name:/^ボブ/}).click();await page.getByRole('button',{name:/^ピンク/}).click();
 await page.waitForTimeout(600);await page.screenshot({path:`${out}/salon.png`});
 await page.getByRole('button',{name:'この髪型にする'}).click();
+await page.locator('.looks-modal').waitFor({state:'hidden'});
 const after=await page.evaluate(()=>({money:window.__ow.economy.getState().money,looks:JSON.parse(localStorage.getItem('open-world:looks:v1'))}));
 assert.equal(after.money,money-6500-9000);assert.equal(after.looks.hair,'bob');assert.equal(after.looks.hairColor,8);
 await page.close();

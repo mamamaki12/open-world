@@ -5,6 +5,7 @@ import { OrbitControls } from '@react-three/drei';
 import { useGame } from '../state/store';
 import { useEconomy } from '../state/economy';
 import { useLooks } from '../state/looks';
+import { persist } from '../session/saves';
 import { BUILDS, FACES, HAIR_COLORS, HAIR_STYLES, SEX_NAMES, SKIN_TONES, colorPrice, salonCost } from '../catalog/looks';
 import type { Looks, Sex } from '../catalog/looks';
 import { yen } from '../economy/money';
@@ -29,14 +30,25 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function LooksPanel({ mode }: { mode: Mode }) {
   const now = useLooks(s => s.looks), money = useEconomy(s => s.money);
-  const [draft, setDraft] = useState<Looks>(now), [error, setError] = useState('');
+  const [draft, setDraft] = useState<Looks>(now), [error, setError] = useState(''), [saving, setSaving] = useState(false);
   const put = (p: Partial<Looks>) => { setDraft({ ...draft, ...p }); setError(''); };
-  const close = () => { if (mode === 'create') useLooks.getState().set(useLooks.getState().looks); useGame.getState().setOverlay(null); };
+  const finish = async () => {
+    setSaving(true); setError('');
+    try { await persist(); useGame.getState().setOverlay(null); }
+    catch { setError('保存できませんでした。もう一度お試しください。'); }
+    finally { setSaving(false); }
+  };
+  const close = () => {
+    if (saving) return;
+    if (mode === 'create') { useLooks.getState().set(useLooks.getState().looks); void finish(); }
+    else useGame.getState().setOverlay(null);
+  };
   const salon = mode === 'salon', hairFree = mode === 'create', cost = salonCost(now, draft);
   const confirm = () => {
+    if (saving) return;
     if (salon) { const err = useLooks.getState().salon(draft.hair, draft.hairColor); if (err) { setError(err); return; } }
     else useLooks.getState().set(hairFree ? draft : { ...draft, hair: now.hair, hairColor: now.hairColor });
-    useGame.getState().setOverlay(null);
+    void finish();
   };
   const pick = <T,>(v: T, cur: T, on: () => void, label: React.ReactNode, extra = '') =>
     <button className={`looks-chip${extra}`} aria-pressed={v === cur} onClick={on}>{label}</button>;
@@ -57,8 +69,8 @@ export function LooksPanel({ mode }: { mode: Mode }) {
         {error && <p role="alert" className="warn">{error}</p>}
         <div className="looks-actions">
           {salon && <span className="looks-bill">お会計 <b>{yen(cost)}</b> <small>所持金 {yen(money)}</small></span>}
-          <button className="looks-primary" disabled={salon && (!cost || money < cost)} onClick={confirm}>
-            {salon ? (!cost ? '髪型・色を選んでください' : money < cost ? 'お金が足りません' : 'この髪型にする') : mode === 'create' ? 'この見た目ではじめる' : '決定'}
+          <button className="looks-primary" disabled={saving || salon && (!cost || money < cost)} onClick={confirm}>
+            {saving ? '保存中…' : salon ? (!cost ? '髪型・色を選んでください' : money < cost ? 'お金が足りません' : 'この髪型にする') : mode === 'create' ? 'この見た目ではじめる' : '決定'}
           </button>
         </div>
       </div>

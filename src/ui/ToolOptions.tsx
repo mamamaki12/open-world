@@ -1,6 +1,7 @@
 // 左のパネル：いま持っているツールで置くパーツの種類・素材・色を選ぶ
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, openingsOf } from '../catalog';
-import { openDesigner, useDesigns } from '../catalog/designs';
+import { useDesigns } from '../catalog/designs';
+import { openDesigner } from './designer';
 import { ROOF_TYPE_NAMES } from '../building/roof';
 import type { FloorKind, RoofType, StairRail, WallHeight } from '../building/types';
 import { useGame } from '../state/store';

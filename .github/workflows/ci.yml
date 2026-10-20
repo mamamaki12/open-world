@@ -17,6 +17,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - run: node --test scripts/wait-condition.test.mjs
       - run: npm run build
       - name: Install browser for interaction checks
         run: npx playwright install --with-deps chromium
@@ -168,10 +169,14 @@ jobs:
             if curl -fsS http://127.0.0.1:5173/ > /dev/null && curl -fsS http://127.0.0.1:8787/health > /dev/null; then break; fi
             sleep 1
           done
+          node scripts/check-app-version.mjs
           node scripts/check-offline-update.mjs
           node scripts/check-world-session.mjs
           node scripts/check-shared-doors.mjs
           node scripts/check-shared-wallet.mjs
+          node scripts/check-gameplay-regressions.mjs
+          node scripts/check-recovery-regressions.mjs
+          node scripts/check-shared-readiness.mjs
           node scripts/check-town-shops.mjs
           node scripts/check-world-offline.mjs
       - uses: actions/upload-artifact@v4
