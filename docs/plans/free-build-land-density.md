@@ -19,4 +19,4 @@ Branch: `claude/project-thread-05s2pt`（しんご 2026-10-16）
 - [x] neighborhood + tests（係数は町の区画で 0.9〜1.6）
 - [x] free construction + UI（共同建築も無料）
 - [x] start money, docs/economy.md
-- next: CI → merge
+- 済: マージ（PR #67）
