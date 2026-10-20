@@ -17,9 +17,14 @@ const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_C
   headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const base = process.env.WORLD_TEST_URL || 'http://127.0.0.1:5173/';
 const errors = [];
+const trace = [];
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage();
 page.setDefaultTimeout(90000); page.on('pageerror', e => errors.push(e.message));
-const wait = fn => page.waitForFunction(fn, null, { timeout: 90000 });
+page.on('websocket', ws => { ws.on('framereceived', ({ payload }) => { const m = JSON.parse(String(payload)); if (['welcome','world','account','error','closed'].includes(m.type)) trace.push({ type:m.type, cars:m.account?.cars?.length, message:m.message }); }); });
+async function wait(fn) {
+  for (const end = Date.now() + 90000; Date.now() < end; await page.waitForTimeout(100)) if (await page.evaluate(fn)) return;
+  throw Error('Gameplay condition timed out: ' + fn);
+}
 const ready = async () => {
   const { useSession } = await import('/src/session/session.ts'), { savedBundle } = await import('/src/session/saves.ts');
   return useSession.getState().status === 'connected' && savedBundle().wallet && !savedBundle().wallet.pending.length;
@@ -35,9 +40,15 @@ async function leave() {
 }
 async function join() {
   await page.getByRole('button', { name: 'みんなのワールドで遊ぶ', exact: false }).click(); await wait(ready);
+  // Car/account assertions mutate stores directly; keep the city renderer paused while they run.
+  await page.evaluate(async () => (await import('/src/state/store.ts')).useGame.getState().setOverlay('controls'));
 }
 try {
   await page.goto(base + '?touch=0&relay=' + encodeURIComponent(endpoint)); await page.getByLabel('あなたの名前').waitFor();
+  await page.evaluate(async () => {
+    window.__overlayTrace = [];
+    (await import('/src/state/store.ts')).useGame.subscribe((s, p) => { if(s.overlay !== p.overlay) window.__overlayTrace.push({ from:p.overlay,to:s.overlay,stack:new Error().stack }); });
+  });
   await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ money: 20000000, tick: () => {} }));
   await join();
   console.log('shared joined');
@@ -47,6 +58,7 @@ try {
   await page.getByText('所有者：ほかの人', { exact: true }).waitFor();
   await page.screenshot({ path: 'world-session-checks/ownership-desktop.png' });
   await page.keyboard.press('Escape');
+  await page.evaluate(async () => (await import('/src/state/store.ts')).useGame.getState().setOverlay('controls'));
   console.log('zero-owned map passed');
   await page.evaluate(async () => {
     const error = (await import('/src/state/vehicles.ts')).buyCar('moco', '#abcdef', true); if (error) throw Error(error);
@@ -137,5 +149,7 @@ try {
   // Print focused diagnostics without dumping user save contents.
   console.error('Gameplay regression failed:', error);
   console.log('screen', await page.locator('body').innerText().catch(() => 'unavailable'));
+  console.log('packets', JSON.stringify(trace.slice(-25)));
+  console.log('state', await page.evaluate(async () => ({overlay:(await import('/src/state/store.ts')).useGame.getState().overlay,trace:window.__overlayTrace})).catch(()=>null));
   throw error;
 } finally { await browser.close(); relay.close(); }

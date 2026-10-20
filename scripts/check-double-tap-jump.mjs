@@ -1,7 +1,8 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+import { waitForCondition } from './wait-condition.mjs';
 
-const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined, headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
@@ -38,7 +39,7 @@ try {
     await touch('touchStart', [center]);
     held = [{ ...center, y: center.y - deflection }];
     await touch('touchMove', held);
-    await page.waitForFunction(async name => {
+    await waitForCondition(page,async name => {
       const { touchMove } = await import('/src/state/touch.ts');
       return touchMove.y > 0 && window.__ow.motion.running === (name === 'run');
     }, name);

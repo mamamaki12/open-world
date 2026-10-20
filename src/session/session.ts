@@ -22,6 +22,7 @@ import type { WorldSave } from './saves';
 import type { Outfit } from '../catalog/clothes';
 import type { OwnedCar } from '../state/vehicles';
 import { cleanMods } from '../catalog/carMods';
+import { useDesigns } from '../catalog/designs';
 import { useStocks, homeHoldings } from '../state/stocks';
 import type { Holding } from '../economy/stocks';
 
@@ -241,6 +242,13 @@ function openConnection(generation: number, resume: boolean) {
   carsSending = null;
   actions.clear(); actionAcks.clear(); // Account/world snapshots resolve actions whose replies were interrupted.
   const p = savedBundle().profile, state = useSession.getState();
+  let receivedWorld = false, receivedAccount = false, joined = false;
+  const sharedReady = () => {
+    if (!state.shared || joined || !receivedWorld || !receivedAccount) return;
+    joined = true;
+    useSession.setState({ screen: 'game', status: 'connected', message: '' });
+    flushCars(); flushWallet();
+  };
   socket = new WebSocket(endpoint);
   socket.onopen = () => send({ type: state.shared ? 'shared' : resume ? 'resume' : state.role === 'host' ? 'create' : 'join', id: p.id, name: p.name, code: state.code, token });
   socket.onmessage = async event => {
@@ -249,7 +257,8 @@ function openConnection(generation: number, resume: boolean) {
       const m = JSON.parse(event.data);
       if (m.type === 'welcome') {
         token = m.token;
-        useSession.setState({ code: m.code, screen: 'game', status: 'connected' });
+        // 共有では初回の町・口座を受け取るまで操作を開始しない。
+        useSession.setState(state.shared ? { code: m.code } : { code: m.code, screen: 'game', status: 'connected' });
         sessionGate.edit = (a, b) => { void submit(a, b); };
         sessionGate.undo = () => { void undoOwnEdit(); };
         if (state.role === 'host') publishWorld();
@@ -266,6 +275,7 @@ function openConnection(generation: number, resume: boolean) {
           useGame.setState({ mode: 'walk', tool: 'select', overlay: null });
         }
         syncHistory();
+        receivedWorld = true; sharedReady();
         for (const escrow of savedBundle().pending ?? []) {
           const receipt = m.world.receipts?.[escrow.id];
           if (receipt?.sender === p.id) await finish(receipt.cancelled ? { id: escrow.id, ok: false, message: '未確定だった建築費を返しました' } : { id: escrow.id, ok: true, cost: receipt.cost });
@@ -298,7 +308,9 @@ function openConnection(generation: number, resume: boolean) {
         if (m.result.ok) actionAcks.add(m.result.id); else actions.delete(m.result.id);
         useGame.getState().notify(m.result.message || (m.result.ok ? '完了しました' : 'できませんでした'));
       }
-      else if (m.type === 'account' && m.account && Number.isSafeInteger(m.account.money)) receiveAccount(m.account);
+      else if (m.type === 'account' && m.account && Number.isSafeInteger(m.account.money)) {
+        receiveAccount(m.account); receivedAccount = true; sharedReady();
+      }
       else if (m.type === 'result') await finish(m.result);
       else if (m.type === 'denied') await finish({ id: m.id, ok: false, message: m.message });
       else if (m.type === 'pose' && validPose(m.pose)) useSession.setState(s => ({ poses: { ...s.poses, [m.sender]: m.pose } }));
@@ -337,6 +349,10 @@ export async function leaveWorld() {
 }
 /** Install once outside React effects; subscriptions never outlive the page. */
 export function startSessionTimers() {
+  const saveProfile = () => { if (!sessionGate.applying && !accountApplying) void persist().catch(() => useSession.setState({ message: '端末への保存に失敗しました。バックアップを保存してください' })); };
+  const looks = useLooks.subscribe((s, prev) => { if (s.looks !== prev.looks || s.created !== prev.created) saveProfile(); });
+  const wardrobe = useWardrobe.subscribe((s, prev) => { if (s.owned !== prev.owned || s.outfit !== prev.outfit) saveProfile(); });
+  const designs = useDesigns.subscribe((s, prev) => { if (s.designs !== prev.designs) saveProfile(); });
   const money = useEconomy.subscribe((s, prev) => {
     const w = savedBundle().wallet;
     if (!w || accountApplying || sessionGate.applying || s.money === prev.money) return;
@@ -369,9 +385,11 @@ export function startSessionTimers() {
   }, 2000);
   const cars = useVehicles.subscribe((s, prev) => {
     if (accountApplying || (s.cars === prev.cars && s.driving === prev.driving)) return;
+    saveProfile();
     flushCars();
   });
   const stocks = useStocks.subscribe((s, prev) => {
+    if (!sessionGate.shared && s.holdings !== prev.holdings) saveProfile();
     if (!sessionGate.shared || accountApplying || s.holdings === prev.holdings || useSession.getState().status !== 'connected') return;
     send({ type: 'command', command: { id: crypto.randomUUID(), lot: '', delta: [], reserved: 0, action: { type: 'stocks', holdings: s.holdings } } });
   });
@@ -383,5 +401,5 @@ export function startSessionTimers() {
     if (!sessionGate.applying && s.house !== prev.house && !s.dragBase) void persist().catch(() => undefined);
   });
   const hide = () => { if (document.hidden) void persist(); }; document.addEventListener('visibilitychange', hide);
-  return () => { money(); cars(); stocks(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
+  return () => { looks(); wardrobe(); designs(); money(); cars(); stocks(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
 }

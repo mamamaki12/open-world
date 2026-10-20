@@ -15,8 +15,10 @@ async function stats(page){return page.evaluate(async()=>{
 async function run(touch){
   const context=await browser.newContext({viewport:touch?{width:390,height:844}:{width:1280,height:800},hasTouch:touch,isMobile:touch});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(120000);
+  const taps=[]; page.on('console',m=>{if(m.text().startsWith('AIMTEST'))taps.push(m.text());});
   try{
     await page.goto(base+`?play=1&touch=${touch?1:0}&climateAt=1320000`);await page.waitForFunction(()=>!!window.__ow);
+    if(touch)await page.evaluate(()=>{for(const type of ['pointerdown','pointerup','click'])document.addEventListener(type,e=>{if(e.target.closest?.('.aim-place'))console.log('AIMTEST',type,e.target.closest('.aim-place').disabled);},true);});
     await page.evaluate(async()=>{
       const {emptyHouse}=await import('/src/building/types.ts'),g=window.__ow.game.getState(),h=emptyHouse();
       h.floors=[{id:'lamp-floor',level:0,x0:2,z0:2,x1:12,z1:10,finish:g.defaults.floor}];
@@ -54,7 +56,7 @@ async function run(touch){
       const p=await page.evaluate(()=>window.__ow.project(6,.5,7));await page.mouse.click(p.x,p.y);
     }else{
       await page.evaluate(()=>{const g=window.__ow.game.getState();g.setTool('furniture');g.setDefaults({furnitureType:'indirect-floor-light'});Object.assign(window.__ow.player,{x:6,y:.5,z:7,yaw:0,pitch:-.8});});
-      await until(page,async()=>{const p=(await import('/src/state/interaction.ts')).useInteraction.getState().preview;return p?.kind==='furniture';});
+      await until(page,async()=>{const p=(await import('/src/state/interaction.ts')).useInteraction.getState().preview;const {useAim}=await import('/src/state/controls.ts');return p?.kind==='furniture'&&useAim.getState().valid;});
       await page.locator('.aim-place').tap();
     }
     await until(page,()=>window.__ow.game.getState().house.furniture.length===2);
@@ -73,7 +75,7 @@ async function run(touch){
     await until(page,()=>window.__ow.game.getState().house.furniture.length===1);
     await page.waitForTimeout(500);assert.equal((await stats(page)).sources,1,'removing wall cleans up its light');
     assert.deepEqual(errors,[]);console.log(touch?'Phone lighting passed':'Desktop lighting passed');
-  }catch(e){console.error('Lighting failure',touch,e);try{console.log('Lighting stats',await stats(page));console.log(await page.evaluate(async()=>({house:window.__ow?.game.getState().house,preview:(await import('/src/state/interaction.ts')).useInteraction.getState().preview})));await page.screenshot({path:`browser-checks/furniture-lighting-${touch?'phone':'desktop'}-failure.png`});}catch{}throw e;}
+  }catch(e){console.error('Lighting failure',touch,e);console.error(taps);try{console.log('Lighting stats',await stats(page));console.log(await page.evaluate(async()=>({house:window.__ow?.game.getState().house,aim:(await import('/src/state/controls.ts')).useAim.getState(),preview:(await import('/src/state/interaction.ts')).useInteraction.getState().preview})));await page.screenshot({path:`browser-checks/furniture-lighting-${touch?'phone':'desktop'}-failure.png`});}catch{}throw e;}
   finally{await context.close();}
 }
-try{await run(false);await run(true);}finally{await browser.close();}
+try{if(process.env.LIGHTING_TEST_MODE!=='phone')await run(false);if(process.env.LIGHTING_TEST_MODE!=='desktop')await run(true);}finally{await browser.close();}

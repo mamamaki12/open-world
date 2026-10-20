@@ -35,7 +35,7 @@ try {
   const money = page => page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.getState().money);
   const homeMoney = await money(guest);
   for (const page of [host, guest]) await page.getByRole('button', { name: 'みんなのワールドで遊ぶ', exact: false }).click();
-  for (const page of [host, guest]) await page.waitForFunction(async () => (await import('/src/session/session.ts')).useSession.getState().members.length === 2 && !!window.__ow);
+  for (const page of [host, guest]) await until(page, async () => (await import('/src/session/session.ts')).useSession.getState().members.length === 2 && !!window.__ow);
   const code = 'SHARED';
   const S = '/src/session/session.ts';
   for (const page of [host, guest]) await until(page, async () => !(await import('/src/session/saves.ts')).savedBundle().wallet?.pending.length);
@@ -58,14 +58,14 @@ try {
   const add = (page, id, x) => page.evaluate(({ id, x, template }) => { const s = window.__ow?.game.getState(), h = structuredClone(s.house); h.furniture.push({ ...template, id, x }); s.commit(h); }, { id, x, template });
   await add(guest, 'guest-built', 4);
   await host.waitForFunction(() => window.__ow?.game.getState().house.furniture.some(f => f.id === 'guest-built'));
-  await guest.waitForFunction(async S => !(await import(S)).useSession.getState().busy, S);
+  await until(guest, async S => !(await import(S)).useSession.getState().busy, S);
   assert.equal(await money(guest), budget, 'building is free');
   assert.equal(await guest.evaluate(async () => JSON.stringify((await import('/src/session/saves.ts')).savedBundle().home)), original, 'visiting never overwrites home');
   await add(host, 'host-intrusion', 5);
   await host.waitForFunction(() => !window.__ow?.game.getState().house.furniture.some(f => f.id === 'host-intrusion'));
   interruptNextEdit = true;
   await add(guest, 'reconnected-build', 6);
-  await guest.waitForFunction(async S => { const m = await import(S); return m.useSession.getState().status === 'connected' && !m.useSession.getState().busy; }, S);
+  await until(guest, async S => { const m = await import(S); return m.useSession.getState().status === 'connected' && !m.useSession.getState().busy; }, S);
   await guest.waitForFunction(() => window.__ow?.game.getState().house.furniture.some(f => f.id === 'reconnected-build'));
   await guest.evaluate(() => window.__ow?.game.getState().undo());
   await host.waitForFunction(() => !window.__ow?.game.getState().house.furniture.some(f => f.id === 'reconnected-build'));
@@ -81,7 +81,7 @@ try {
   await guest.waitForFunction(() => window.__ow?.economy.getState().lots[0].ownerName === 'ホスト');
   const clock = await guest.evaluate(() => window.__ow?.economy.getState().clock);
   await guest.waitForFunction(c => window.__ow?.economy.getState().clock !== c, clock);
-  await host.waitForFunction(async S => Object.keys((await import(S)).useSession.getState().poses).length === 1, S);
+  await until(host, async S => Object.keys((await import(S)).useSession.getState().poses).length === 1, S);
   await host.screenshot({ path: out + '/host-and-guest.png' });
   await guest.evaluate(async S => (await import(S)).leaveWorld(), S);
   await guest.getByRole('button', { name: 'ひとりで遊ぶ', exact: false }).waitFor();
