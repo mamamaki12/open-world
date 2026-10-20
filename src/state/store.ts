@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { sessionGate } from '../session/gate';
 import { removePart, removeParts } from '../building/rules';
 import { emptyHouse } from '../building/types';
-import { materialGroup, moveBuildingGroup } from '../building/groups';
+import { selectionGroup, moveBuildingGroup } from '../building/groups';
 import type { Finish, House, FloorKind, PartRef, RoofType, StairRail, StairShape, WallHeight } from '../building/types';
 
 /** build：建築モード（俯瞰で建てる） / walk：歩きモード（プレイヤーを動かす） */
@@ -81,6 +81,8 @@ interface GameState {
   activeLevel: number;
   selection: PartRef | null;
   groupSelection: boolean;
+  boxSelect: boolean;
+  setBoxSelect: (enabled: boolean) => void;
   setGroupSelection: (enabled: boolean) => void;
   moveSelection: (dx: number, dz: number) => void;
   /** 削除ツールで「まとめて選んで消す」にしているか */
@@ -131,11 +133,13 @@ export const useGame = create<GameState>((set, get) => ({
   activeLevel: 0,
   selection: null,
   groupSelection: false,
-  setGroupSelection: (groupSelection) => set({ groupSelection }),
+  boxSelect: false,
+  setBoxSelect: (boxSelect) => set({ boxSelect }),
+  setGroupSelection: (groupSelection) => set({ groupSelection, marked: [] }),
   moveSelection: (dx, dz) => {
     const s = get();
     if (!s.selection) return;
-    const result = moveBuildingGroup(s.house, materialGroup(s.house, s.selection, s.groupSelection), dx, dz);
+    const result = moveBuildingGroup(s.house, selectionGroup(s.house, s.selection, s.groupSelection, s.marked), dx, dz);
     if (result.error) return s.notify(result.error);
     s.commit(result.house);
   },
@@ -189,31 +193,32 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   // 歩きモードに入るときは手ぶら（選択ツール）から始める
-  setMode: (mode) => set({ mode, selection: null, tool: mode === 'walk' ? 'select' : get().tool }),
+  setMode: (mode) => set({ mode, selection: null, marked: [], boxSelect: false, tool: mode === 'walk' ? 'select' : get().tool }),
   toggleView: () => set({ view: get().view === 'third' ? 'first' : 'third' }),
-  setTool: (tool) => set({ tool, selection: tool === 'select' ? get().selection : null, marked: [] }),
+  setTool: (tool) => { if (tool !== get().tool) set({ tool, selection: tool === 'select' ? get().selection : null, marked: [], boxSelect: false }); },
   setLevel: (level) => {
     if (get().activeLevel !== level) set({ activeLevel: level });
   },
-  select: (ref) => set({ selection: ref }),
+  select: (ref) => set({ selection: ref, ...(get().tool === 'select' ? { marked: ref && get().marked.some(r => r.kind === ref.kind && r.id === ref.id) ? get().marked : [] } : {}) }),
   deleteSelected: () => {
     const { selection, house, commit } = get();
     if (!selection) return;
     commit(removePart(house, selection));
     set({ selection: null });
   },
-  setEraseMulti: (on) => set({ eraseMulti: on, marked: [] }),
+  setEraseMulti: (on) => { if (on !== get().eraseMulti) set({ eraseMulti: on, marked: [] }); },
   toggleMark: (ref) => {
     const { marked } = get();
     const has = marked.some((m) => m.kind === ref.kind && m.id === ref.id);
-    set({ marked: has ? marked.filter((m) => !(m.kind === ref.kind && m.id === ref.id)) : [...marked, ref] });
+    const next = has ? marked.filter((m) => !(m.kind === ref.kind && m.id === ref.id)) : [...marked, ref];
+    set({ marked: next, ...(get().tool === 'select' ? { selection: next[0] ?? null } : {}) });
   },
   addMarks: (refs) => {
     const { marked } = get();
     const fresh = refs.filter((r) => !marked.some((m) => m.kind === r.kind && m.id === r.id));
     if (fresh.length) set({ marked: [...marked, ...fresh] });
   },
-  clearMarks: () => set({ marked: [] }),
+  clearMarks: () => set({ marked: [], selection: null }),
   deleteMarked: () => {
     const { marked, house, commit } = get();
     if (!marked.length) return;

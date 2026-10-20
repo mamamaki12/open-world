@@ -41,11 +41,15 @@ export function ToolOptions() {
   const d = useGame((s) => s.defaults);
   const set = useGame((s) => s.setDefaults);
   const eraseMulti = useGame(s => s.eraseMulti);
+  const groupedSelection = useGame(s => s.groupSelection || s.boxSelect || s.marked.length > 0);
   const designs = useDesigns((s) => s.designs);
   const stairRot = useInteraction((s) => s.stairRot);
 
   let body = null;
   switch (tool) {
+    case 'select':
+      body = <SelectSelectionActions />;
+      break;
     case 'floor':
       body = (
         <>
@@ -176,7 +180,7 @@ export function ToolOptions() {
     <div className="panel tool-options">
       <p className="help">{touch && tool === 'erase' && !eraseMulti ? 'タップして消します。1本指でなぞると視点を回せます。範囲で消すときは「まとめて選ぶ」に切り替えてください。' : (touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
       {touch && (tool === 'wall' || tool === 'floor') && <p className="info">真上から指の位置に合わせて配置します。2本指で移動・ズームできます。</p>}
-      {tool === 'select' && <p className="info">{touch ? 'タップ' : 'クリック'}で1ブロックだけ選び、長押しでその1ブロックを削除します。同じ素材・色でまとめて動かすときは、選択後にチェックを入れてください。</p>}
+      {tool === 'select' && <p className="info">{groupedSelection ? '一括選択中は長押しでは消えません。範囲で選んだものは「選択を削除」でまとめて消せます。' : `${touch ? 'タップ' : 'クリック'}で1ブロックだけ選び、長押しでその1ブロックを削除します。同じ素材・色でまとめて動かすときは、選択後にチェックを入れてください。`}</p>}
       {tool === 'furniture' && d.furnitureType === 'nameplate' && <p className="info">表示する文字を入力し、取り付けたい壁面をタップしてください。壁の手前側に固定します。</p>}
       {tool === 'furniture' && getFurniture(d.furnitureType).light && <p className="info">{getFurniture(d.furnitureType).mount ? '取り付けたい壁面をタップしてください。窓・ドアを避けて壁に固定し、配置後に高さを調整できます。' : '地面や床をタップして置けます。夜や室内を暖かい光で照らします。'}</p>}
       {tool === 'furniture' && getFurniture(d.furnitureType).grounded && <p className="info">地面基準のガレージ建材です。Rまたは向き変更で回転。車庫の入口は+Z側です。柱・壁・屋根・舗装を組み合わせて広げられます。</p>}
@@ -198,9 +202,7 @@ export function NameplateInput({ value = '', onChange }: { value?: string; onCha
 
 function EraseOptions() {
   const multi = useGame((s) => s.eraseMulti);
-  const count = useGame((s) => s.marked.length);
   const g = useGame.getState();
-  const touch = useTouchDevice();
   return (
     <>
       <div className="field">
@@ -214,22 +216,50 @@ function EraseOptions() {
           </button>
         </div>
       </div>
-      {multi && (
-        <>
-          <p className="info">
-            {touch ? 'タップで選ぶ・外す、なぞると範囲で選べます。' : 'クリックで選ぶ・外す、ドラッグすると範囲で選べます。'}
-            選んだもの：<b>{count}</b> 個
-          </p>
-          <button className="btn danger" disabled={!count} onClick={() => useGame.getState().deleteMarked()}>
-            まとめて削除{!touch && <span className="kbd-hint">（Delete）</span>}
-          </button>
-          <button className="btn" disabled={!count} onClick={() => useGame.getState().clearMarks()}>
-            選び直す
-          </button>
-        </>
-      )}
+      {multi && <EraseSelectionActions />}
     </>
   );
+}
+
+/** 選んだ後も画面に残し、建築メニューを開き直さず確定できる。 */
+export function EraseSelectionActions() {
+  const count = useGame((s) => s.marked.length);
+  const walking = useGame((s) => s.mode === 'walk');
+  const touch = useTouchDevice();
+  return <section aria-label="まとめて削除の選択" className="erase-selection-actions">
+    <p className="info">{walking ? '狙ったパーツを選ぶ・外す。' : touch ? 'タップで選ぶ・外す。なぞって範囲で選ぶ（全階）。' : 'クリックで選ぶ・外す。ドラッグで範囲選択（全階）。'}</p>
+    <p className="info" role="status">選んだもの：<b>{count}</b> 個</p>
+    <div className="row">
+      <button className="btn danger" disabled={!count} onClick={() => useGame.getState().deleteMarked()}>まとめて削除{!touch && !walking && <span className="kbd-hint">（Delete）</span>}</button>
+      <button className="btn" disabled={!count} onClick={() => useGame.getState().clearMarks()}>選び直す</button>
+    </div>
+  </section>;
+}
+
+export function SelectSelectionActions() {
+  const box = useGame(s => s.boxSelect);
+  const count = useGame(s => s.marked.length || (s.selection ? 1 : 0));
+  const touch = useTouchDevice();
+  const game = useGame.getState();
+  const compact = touch && count === 1 && !box;
+  return <section aria-label="選択と一括操作" className={`selection-actions${compact ? ' compact' : ''}`}>
+    <div className="seg">
+      <button className={!box ? 'on' : ''} aria-pressed={!box} onClick={() => game.setBoxSelect(false)}>移動・編集</button>
+      <button className={box ? 'on' : ''} aria-pressed={box} onClick={() => game.setBoxSelect(true)}>範囲選択</button>
+    </div>
+    {!compact && <><p className="info">{box ? 'なぞって範囲を選ぶ（全階）。移動するときは「移動・編集」へ。' : touch ? 'パーツをつかんで移動。範囲を選ぶときは「範囲選択」へ。' : '背景ドラッグ／Shift＋ドラッグで範囲選択。右ドラッグで視点回転。'}</p>
+    <p className="info" role="status">選んだもの：<b>{count}</b> 個</p>
+    <div className="row">
+      <button className="btn danger" disabled={!count} onClick={() => game.marked.length ? game.deleteMarked() : game.deleteSelected()}>選択を削除</button>
+      <button className="btn" disabled={!count} onClick={() => game.clearMarks()}>選び直す</button>
+    </div>
+    {count > 1 && <div className="row" aria-label="選択全体を移動">
+      <button className="btn" onClick={() => game.moveSelection(-1, 0)}>← 1マス</button>
+      <button className="btn" onClick={() => game.moveSelection(1, 0)}>→ 1マス</button>
+      <button className="btn" onClick={() => game.moveSelection(0, -1)}>↑ 1マス</button>
+      <button className="btn" onClick={() => game.moveSelection(0, 1)}>↓ 1マス</button>
+    </div>}</>}
+  </section>;
 }
 
 const FLOOR_KIND_NAMES: Record<FloorKind, string> = { room: '部屋の床', terrace: 'テラス' };

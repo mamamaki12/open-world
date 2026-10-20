@@ -1,6 +1,8 @@
 // 歩きモードのプレイヤー：キー入力で動かし、三人称・一人称のカメラで追う。
 // 開いた窓は Space で乗り越えられる（2階以上なら枠によじ登ってから飛び降りる）
 import { useEffect, useRef } from 'react';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+import { buildCameraPose } from './buildCameraPose';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W, lotSize } from '../building/dimensions';
@@ -215,7 +217,7 @@ function makeDust() {
 }
 
 export function Player() {
-  const { camera, gl, scene } = useThree();
+  const { camera, gl, scene, controls } = useThree();
   const view = useGame((s) => s.view);
   const rig = useRig();
   const smooth = useSmooth();
@@ -229,15 +231,19 @@ export function Player() {
   const dustRing = useRef<THREE.Mesh>(null);
   const dustPuffs = useRef<THREE.InstancedMesh>(null);
 
-  // 建築モードのカメラを覚えておき、戻るときに元に戻す
+  // 現在の歩行位置から建築を始める。土地・プレイヤー位置は変更しない。
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
-    const saved = { pos: cam.position.clone(), quat: cam.quaternion.clone(), fov: cam.fov };
+    const fov = cam.fov;
     return () => {
       useVenue.setState({inside:null});
-      cam.position.copy(saved.pos);
-      cam.quaternion.copy(saved.quat);
-      cam.fov = saved.fov;
+      const pose = buildCameraPose(playerMemory);
+      const orbit = controls as unknown as OrbitControlsImpl | undefined;
+      cam.position.set(...pose.position);
+      orbit?.target.set(...pose.target);
+      cam.lookAt(...pose.target);
+      orbit?.update();
+      cam.fov = fov;
       cam.updateProjectionMatrix();
       if (document.pointerLockElement) document.exitPointerLock();
       const seating = useSeating.getState();
@@ -248,7 +254,7 @@ export function Player() {
       useDoors.getState().setAtCasino(false);
       useDoors.getState().setAtEstate(false);
     };
-  }, [camera]);
+  }, [camera, controls]);
 
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
