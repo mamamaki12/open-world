@@ -4,7 +4,7 @@
 
 ## 未完了の作業
 
-このブランチの55planは、完了54件・移行済み1件。加えて、別ブランチのPR #98に作業中のplanが2件ある。以下にすべて掲載する。
+このブランチの56planは、完了55件・移行済み1件。加えて、別ブランチのPR #98に作業中のplanが2件ある。以下にすべて掲載する。
 
 | plan | 状態 | 次に行うこと |
 | --- | --- | --- |
@@ -44,8 +44,9 @@ PR #98の2件はこのmain由来のブランチには存在しない。リンク
 | plan | 状態 | PR |
 | --- | --- | --- |
 | [plansの状態表示と一覧](plan-status-index.md) | 完了 | [#100](https://github.com/mamamaki12/open-world/pull/100)（文書のみ） |
-| [ユーザーが自分で考えたお店を開く（第1段階・実装方針と進捗）](player-shops.md) | 完了 | `feat/coin-ride-and-ui-qa`ブランチ |
-| [公開版のUI総点検と修正（実装方針と進捗）](ui-qa.md) | 完了 | `feat/coin-ride-and-ui-qa`ブランチ |
+| [ユーザーが自分で考えたお店を開く（第1段階・実装方針と進捗）](player-shops.md) | 完了 | [#101](https://github.com/mamamaki12/open-world/pull/101) |
+| [公開版のUI総点検と修正（実装方針と進捗）](ui-qa.md) | 完了 | [#101](https://github.com/mamamaki12/open-world/pull/101) |
+| [ゲーム内時間の流れを遅くする](slower-climate.md) | 完了 | [#103](https://github.com/mamamaki12/open-world/pull/103)（マージ済み） |
 | [描画更新直後の照準が別建物を誤検出する不具合](aim-world-matrix-refresh.md) | 完了 | [#87](https://github.com/mamamaki12/open-world/pull/87)（マージ済み） |
 | [Web版のバージョン表示と最新版確認](app-version-status.md) | 完了 | [#97](https://github.com/mamamaki12/open-world/pull/97)（マージ済み） |
 | [新規開始時の見た目作成画面を維持する](appearance-onboarding.md) | 完了 | [#96](https://github.com/mamamaki12/open-world/pull/96)（マージ済み） |
