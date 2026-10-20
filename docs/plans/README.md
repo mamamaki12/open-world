@@ -4,10 +4,11 @@
 
 ## 未完了の作業
 
-このブランチの55planは、完了52件・移行済み1件・未着手2件。加えて、別ブランチのPR #98に作業中のplanが2件ある。以下にすべて掲載する。
+このブランチの56planは、完了52件・移行済み1件・未着手2件・作業中1件。加えて、別ブランチのPR #98に作業中のplanが2件ある。以下にすべて掲載する。
 
 | plan | 状態 | 次に行うこと |
 | --- | --- | --- |
+| [ゲーム内時間の流れを遅くする](slower-climate.md) | 作業中 | `DAY_MS` を変更し、テスト・ビルドを確認後に main へマージ。 |
 | [複数選択・一括移動](https://github.com/mamamaki12/open-world/blob/codex/fix-bulk-selection/docs/plans/bulk-selection.md) | 作業中 | [PR #98](https://github.com/mamamaki12/open-world/pull/98)の未push差分を回収し、操作終了時の状態クリア、PC/スマホ検証、CI・公開。 |
 | [現在地から建築カメラへ切替](https://github.com/mamamaki12/open-world/blob/codex/fix-bulk-selection/docs/plans/build-camera-entry.md) | 作業中 | PR #98のローカル実装を回収し、実ブラウザ検証、push・公開。 |
 | [ユーザーが自分で考えたお店を開く（第1段階・実装方針と進捗）](player-shops.md) | 未着手 | コイン式の乗り物を、ゲーム機と同じ料金精算の仕組みで追加する（未着手）。第1〜5段階と第6段階のゲーム機は公開済み。 |
