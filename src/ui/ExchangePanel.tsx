@@ -37,7 +37,7 @@ export function ExchangePanel() {
   const owned = INSTRUMENTS.filter(i => holdings[i.symbol]);
   const total = owned.reduce((s, i) => { const u = unitYen(i.symbol, quotes); return u ? { value: s.value + holdings[i.symbol].units * u, cost: s.cost + holdings[i.symbol].cost } : s; }, { value: 0, cost: 0 });
   const act = (err: string | null, ok: string) => setMsg(err ?? ok);
-  return <Modal title="まち証券取引所" onClose={() => close(null)} tabs={[{ id: 'market', label: '銘柄' }, { id: 'portfolio', label: `保有（${owned.length}）` }]} tab={tab} onTab={setTab} className="exchange-modal">
+  return <Modal title="📈 まち証券取引所" onClose={() => close(null)} tabs={[{ id: 'market', label: '銘柄' }, { id: 'portfolio', label: `保有（${owned.length}）` }]} tab={tab} onTab={setTab} className="exchange-modal">
     <p className="ex-status">所持金 <b>{yen(money)}</b> ／ 株の評価額 <b>{yen(total.value)}</b>
       <small>{quotes ? `実際の相場 ${when(quotes.updated)} 更新（15〜30分遅れ）` : '相場を読み込み中…'}{status === 'offline' && ' · 通信できないので前回の値で取引します'}</small></p>
     {tab === 'market' ? <div className="ex-layout">

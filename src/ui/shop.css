@@ -14,3 +14,12 @@
 .arcade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 360px; margin: 8px 0 12px; }
 .arcade-hole { aspect-ratio: 1; border-radius: 50%; border: 0; background: radial-gradient(#3b2a1e 55%, #6b4f37); font-size: 40px; cursor: pointer; }
 .arcade-hole.up { background: radial-gradient(#7a5a3c 55%, #a0794f); }
+.ride-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 12px 0; padding: 16px; border-radius: 12px; background: #f6f6f6; }
+.ride-car { font-size: 64px; transition: transform .1s; }
+.ride-car.playing { animation: ride-rock 1s ease-in-out infinite; }
+@keyframes ride-rock {
+  0%, 100% { transform: rotate(-6deg) translateY(0); }
+  50% { transform: rotate(6deg) translateY(-6px); }
+}
+.ride-timer { font-size: 18px; font-weight: bold; color: #444; }
+

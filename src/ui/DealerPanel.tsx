@@ -24,7 +24,7 @@ export function DealerPanel(){
   const money=useEconomy(s=>s.money),cars=useVehicles(s=>s.cars),close=useGame(s=>s.setOverlay);
   const ev=model.id==='volt',full=cars.length>=10,short=money<model.price;
   const buy=()=>{const err=buyCar(model.id,color,useGame.getState().mode==='walk'&&atCarDealer(playerMemory));if(err)setError(err);else{setConfirm(false);close(null);}};
-  return <Modal title="AVENUE MOTORS · 車のカタログ" onClose={()=>close(null)} tabs={[]} tab="" onTab={()=>undefined} className="dealer-modal">
+  return <Modal title="🚗 AVENUE MOTORS · 車のカタログ" onClose={()=>close(null)} tabs={[]} tab="" onTab={()=>undefined} className="dealer-modal">
     <div className="cat-top"><span>所持金 <b>{yen(money)}</b></span><span>所有車 <b>{cars.length}</b> / 10台</span></div>
     <div className="cat-layout">
       <nav className="cat-list" aria-label="車種">{CARS.map(c=><button key={c.id} className={'cat-card'+(model.id===c.id?' on':'')} aria-pressed={model.id===c.id} onClick={()=>{setModel(c);setConfirm(false);setError('');}}>

@@ -53,6 +53,8 @@ export interface Shop {
   event?: ShopEvent;
   /** 店に置いたゲーム機の1回の料金（なければ無料） */
   arcadeFee?: number;
+  /** 店に置いたコイン式の乗り物の1回の料金（なければ無料） */
+  rideFee?: number;
 }
 
 export interface ShopEvent { title: string; day: number; note: string }
@@ -97,7 +99,8 @@ export function cleanShop(v: unknown): Shop | null {
       : [],
   );
   return { name: str(s.name, SHOP_LIMITS.name) || 'お店', items, sales, revenue: Number.isSafeInteger(s.revenue) ? s.revenue! : 0, ...cleanPromo(s),
-    ...(!priceError(s.arcadeFee as number) ? { arcadeFee: s.arcadeFee } : {}) };
+    ...(!priceError(s.arcadeFee as number) ? { arcadeFee: s.arcadeFee } : {}),
+    ...(!priceError(s.rideFee as number) ? { rideFee: s.rideFee } : {}) };
 }
 
 /** 看板・チラシ・ピン・イベントを正しい形にそろえる（空のものは付けない） */
@@ -160,11 +163,13 @@ export function passesOf(shop: Shop, buyerId: string, today: number): ShopSale[]
 }
 
 export const ARCADE_PLAY = 'ゲーム機で1回遊ぶ';
+export const RIDE_PLAY = 'コイン式の乗り物で1回遊ぶ';
 
-/** ゲーム機の料金を店の売上に記録する。料金が変わっていたら理由を返す（お金の移動は呼び出し側） */
-export function recordPlay(shop: Shop, play: { id: string; day: number; buyer: string; buyerId?: string; fee: number }): Shop | string {
-  if (!shop.arcadeFee) return 'このお店のゲーム機は無料です';
-  if (shop.arcadeFee !== play.fee) return '料金が変わりました。もう一度確認してください';
-  const entry: ShopSale = { id: play.id, day: play.day, buyer: str(play.buyer, 24) || 'お客さん', item: ARCADE_PLAY, price: play.fee, ...(play.buyerId ? { buyerId: play.buyerId } : {}) };
+/** ゲーム機・乗り物の料金を店の売上に記録する。料金が変わっていたら理由を返す（お金の移動は呼び出し側） */
+export function recordPlay(shop: Shop, play: { id: string; day: number; buyer: string; buyerId?: string; fee: number }, item = ARCADE_PLAY): Shop | string {
+  const fee = item === RIDE_PLAY ? shop.rideFee : shop.arcadeFee;
+  if (!fee) return `このお店の${item === RIDE_PLAY ? '乗り物' : 'ゲーム機'}は無料です`;
+  if (fee !== play.fee) return '料金が変わりました。もう一度確認してください';
+  const entry: ShopSale = { id: play.id, day: play.day, buyer: str(play.buyer, 24) || 'お客さん', item, price: play.fee, ...(play.buyerId ? { buyerId: play.buyerId } : {}) };
   return { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + play.fee };
 }
