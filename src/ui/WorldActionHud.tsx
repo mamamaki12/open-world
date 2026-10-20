@@ -42,7 +42,7 @@ export function WorldActionHud(){
     </div>
   </div>;
   const venueLabel=inside&&target.startsWith('venue:')?VENUE_ACTIONS[inside].find(a=>target==='venue:'+a.id)?.label:undefined;
-  const label=venueLabel??(target.startsWith('land:')?'この土地を買う':target.startsWith('register:')?'お店のレジ':target.startsWith('arcade:')?'ゲーム機で遊ぶ':target.startsWith('shutter:')?'ガレージシャッターを開閉する':target.startsWith('furn:')?'引き出し・扉を開け閉めする':car?'運転席に乗る':target.startsWith('ride:')?'乗る':'');
+  const label=venueLabel??(target.startsWith('land:')?'この土地を買う':target.startsWith('register:')?'お店のレジ':target.startsWith('arcade:')?'ゲーム機で遊ぶ':target.startsWith('ride:')?'コイン式の乗り物で遊ぶ':target.startsWith('shutter:')?'ガレージシャッターを開閉する':target.startsWith('furn:')?'引き出し・扉を開け閉めする':car?'運転席に乗る':target.startsWith('ride:')?'乗る':'');
   const site=civicOffset(),action=inside==='dealer'?venueAction('dealer',playerMemory.x-site.x,playerMemory.z-site.z):null;
   return label?<div className="door-prompts"><button className="door-prompt" onClick={()=>interact()}><kbd>F</kbd>{label}</button>{action?.model&&<button className="door-prompt" onClick={()=>{useVenue.setState({model:action.model!,dealerIntent:'specs'});useGame.getState().setOverlay('dealer');}}>スペックを見る</button>}</div>:null;
 }
@@ -51,7 +51,7 @@ export function LandPurchasePanel(){
   const [error,setError]=useState(''),[join,setJoin]=useState(true),close=useGame(s=>s.setOverlay);
   const offer=offers.find(o=>target==='land:'+o.id);
   const price=offer?offerPrice(offer,market):0;
-  return <Modal title="この土地を買う" onClose={()=>close(null)} tabs={[]} tab="" onTab={()=>undefined}>
+  return <Modal title="🏞 この土地を買う" onClose={()=>close(null)} tabs={[]} tab="" onTab={()=>undefined}>
     {offer?<><h2>{offer.name}</h2><p>{getLocation(offer.location).name} · 区画面積 約397㎡</p><div className="card"><p>土地価格 <b className="big">{yen(price)}</b></p><p>所持金 {yen(money)}</p><p>購入後の残高 {yen(money-price)}</p></div><p>この区画を購入します。家の着工は無料です。</p><JoinOption plot={offer.plot} checked={join} onChange={setJoin} />
       {error&&<p className="warn" role="alert">{error}</p>}<button className="btn primary big-btn" disabled={money<price} onClick={()=>{
         const origin=currentPlotOf(useEconomy.getState());

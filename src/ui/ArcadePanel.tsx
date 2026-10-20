@@ -45,7 +45,7 @@ export function ArcadePanel() {
 
   const start = () => {
     if (fee) {
-      const err = sessionGate.act ? sessionGate.act(lot!.id, { type: 'play', fee }, fee) : '接続していません';
+      const err = sessionGate.act ? sessionGate.act(lot!.id, { type: 'play', fee, kind: 'arcade' }, fee) : '接続していません';
       if (err) { setError(err); return; }
     }
     setError(''); setScore(0); setLeft(SECONDS); setEndAt(performance.now() + SECONDS * 1000);

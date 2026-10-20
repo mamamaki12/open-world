@@ -22,6 +22,7 @@ import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
 import { ShopPanel } from './ShopPanel';
 import { RequestsPanel } from './RequestsPanel';
 import { ArcadePanel } from './ArcadePanel';
+import { RidePanel } from './RidePanel';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
 import { MapPanel } from './MapPanel';
@@ -112,6 +113,7 @@ export function App() {
       {overlay === 'shop' && <ShopPanel />}
       {overlay === 'requests' && <RequestsPanel />}
       {overlay === 'arcade' && <ArcadePanel />}
+      {overlay === 'ride' && <RidePanel />}
       {overlay === 'estate' && <EstatePanel />}
       {overlay === 'casino' && <CasinoPanel />}
       {overlay === 'map' && <MapPanel />}

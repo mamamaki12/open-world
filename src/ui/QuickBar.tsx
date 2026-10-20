@@ -51,14 +51,14 @@ export function QuickBar(){
 
 export function InventoryPanel(){
   const g=useGame(),tool=g.tool;
-  return <Modal title="道具・素材" onClose={()=>g.setOverlay(null)} tabs={[]} tab="" onTab={()=>{}}>
+  return <Modal title="🧰 道具・素材" onClose={()=>g.setOverlay(null)} tabs={[]} tab="" onTab={()=>{}}>
     <div className="inventory-tools">{QUICK_TOOLS.map(t=><button className={`tool${tool===t?' on':''}`} key={t} onClick={()=>g.setTool(t)}>{toolIcon(t)} {NAMES[t]}</button>)}</div>
     <ToolOptions/><button className="btn primary big-btn" onClick={()=>g.setOverlay(null)}>この道具で戻る</button>
   </Modal>;
 }
 export function ControlsPanel(){
   const {sensitivity,invertY,aimBuild,update}=useControls(),view=useGame(s=>s.view);
-  return <Modal title="操作設定" onClose={()=>useGame.getState().setOverlay(null)} tabs={[]} tab="" onTab={()=>{}}>
+  return <Modal title="⚙ 操作設定" onClose={()=>useGame.getState().setOverlay(null)} tabs={[]} tab="" onTab={()=>{}}>
     <h3>見回す操作</h3>
     <label className="field">視点感度：{sensitivity.toFixed(1)}倍<input aria-label="視点感度" type="range" min="0.3" max="2" step="0.1" value={sensitivity} onChange={e=>update({sensitivity:+e.target.value})}/></label>
     <label className="check"><input type="checkbox" checked={invertY} onChange={e=>update({invertY:e.target.checked})}/>上下の視点操作を反転</label>

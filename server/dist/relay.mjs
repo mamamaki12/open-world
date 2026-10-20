@@ -10635,6 +10635,144 @@ var furniture_default = {
           paint: "black"
         }
       ]
+    },
+    {
+      id: "ride",
+      name: "\u30B3\u30A4\u30F3\u5F0F\u306E\u4E57\u308A\u7269",
+      colors: [
+        "#e8463a",
+        "#2b9f58",
+        "#f2c84b",
+        "#3b82f6"
+      ],
+      parts: [
+        {
+          shape: "cylinder",
+          size: [
+            0.7,
+            0.12,
+            0.7
+          ],
+          pos: [
+            0,
+            0.06,
+            0
+          ],
+          paint: "dark"
+        },
+        {
+          shape: "box",
+          size: [
+            0.16,
+            0.28,
+            0.16
+          ],
+          pos: [
+            0,
+            0.26,
+            0
+          ],
+          paint: "steel"
+        },
+        {
+          shape: "box",
+          size: [
+            0.72,
+            0.28,
+            1.18
+          ],
+          pos: [
+            0,
+            0.54,
+            0.02
+          ],
+          paint: "main"
+        },
+        {
+          shape: "box",
+          size: [
+            0.5,
+            0.35,
+            0.25
+          ],
+          pos: [
+            0,
+            0.8,
+            -0.42
+          ],
+          paint: "main"
+        },
+        {
+          shape: "cylinder",
+          size: [
+            0.08,
+            0.24,
+            0.08
+          ],
+          pos: [
+            -0.24,
+            0.36,
+            0.42
+          ],
+          paint: "black"
+        },
+        {
+          shape: "cylinder",
+          size: [
+            0.08,
+            0.24,
+            0.08
+          ],
+          pos: [
+            0.24,
+            0.36,
+            0.42
+          ],
+          paint: "black"
+        },
+        {
+          shape: "box",
+          size: [
+            0.14,
+            0.12,
+            0.06
+          ],
+          pos: [
+            0,
+            0.76,
+            0.46
+          ],
+          paint: "white"
+        },
+        {
+          shape: "box",
+          size: [
+            0.06,
+            0.08,
+            0.06
+          ],
+          pos: [
+            -0.1,
+            0.74,
+            0.5
+          ],
+          paint: "black"
+        },
+        {
+          shape: "box",
+          size: [
+            0.06,
+            0.08,
+            0.06
+          ],
+          pos: [
+            0.1,
+            0.74,
+            0.5
+          ],
+          paint: "black"
+        }
+      ]
     }
   ]
 };
@@ -11707,7 +11845,8 @@ function cleanShop(v) {
     sales,
     revenue: Number.isSafeInteger(s.revenue) ? s.revenue : 0,
     ...cleanPromo(s),
-    ...!priceError(s.arcadeFee) ? { arcadeFee: s.arcadeFee } : {}
+    ...!priceError(s.arcadeFee) ? { arcadeFee: s.arcadeFee } : {},
+    ...!priceError(s.rideFee) ? { rideFee: s.rideFee } : {}
   };
 }
 function cleanPromo(s) {
@@ -11741,10 +11880,12 @@ function recordSale(shop, sale) {
   return { item, shop: { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + item.price } };
 }
 var ARCADE_PLAY = "\u30B2\u30FC\u30E0\u6A5F\u30671\u56DE\u904A\u3076";
-function recordPlay(shop, play) {
-  if (!shop.arcadeFee) return "\u3053\u306E\u304A\u5E97\u306E\u30B2\u30FC\u30E0\u6A5F\u306F\u7121\u6599\u3067\u3059";
-  if (shop.arcadeFee !== play.fee) return "\u6599\u91D1\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044";
-  const entry = { id: play.id, day: play.day, buyer: str(play.buyer, 24) || "\u304A\u5BA2\u3055\u3093", item: ARCADE_PLAY, price: play.fee, ...play.buyerId ? { buyerId: play.buyerId } : {} };
+var RIDE_PLAY = "\u30B3\u30A4\u30F3\u5F0F\u306E\u4E57\u308A\u7269\u30671\u56DE\u904A\u3076";
+function recordPlay(shop, play, item = ARCADE_PLAY) {
+  const fee = item === RIDE_PLAY ? shop.rideFee : shop.arcadeFee;
+  if (!fee) return `\u3053\u306E\u304A\u5E97\u306E${item === RIDE_PLAY ? "\u4E57\u308A\u7269" : "\u30B2\u30FC\u30E0\u6A5F"}\u306F\u7121\u6599\u3067\u3059`;
+  if (fee !== play.fee) return "\u6599\u91D1\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044";
+  const entry = { id: play.id, day: play.day, buyer: str(play.buyer, 24) || "\u304A\u5BA2\u3055\u3093", item, price: play.fee, ...play.buyerId ? { buyerId: play.buyerId } : {} };
   return { ...shop, sales: [...shop.sales, entry].slice(-SHOP_LIMITS.sales), revenue: shop.revenue + play.fee };
 }
 
@@ -11979,13 +12120,15 @@ function applyAction(w, sender, name, c, a) {
   if (a.type === "play") {
     const shop = cleanShop(lot.shop);
     if (!shop || !lot.owner) return "\u3053\u306E\u304A\u5E97\u306F\u9589\u307E\u3063\u3066\u3044\u307E\u3059";
-    if (lot.owner === sender) return "\u81EA\u5206\u306E\u304A\u5E97\u306E\u30B2\u30FC\u30E0\u6A5F\u306F\u7121\u6599\u3067\u904A\u3079\u307E\u3059";
+    if (lot.owner === sender) return "\u81EA\u5206\u306E\u304A\u5E97\u306E\u904A\u5177\u306F\u7121\u6599\u3067\u904A\u3079\u307E\u3059";
+    const kind = a.kind === "ride" ? "ride" : "arcade";
+    const label = kind === "ride" ? "\u30B3\u30A4\u30F3\u5F0F\u306E\u4E57\u308A\u7269" : "\u30B2\u30FC\u30E0\u6A5F";
     if (!Number.isSafeInteger(c.reserved) || c.reserved < a.fee) return "\u6599\u91D1\u304C\u5909\u308F\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044";
-    const played = recordPlay(shop, { id: c.id, day: w.economy.day, buyer: name, buyerId: sender, fee: a.fee });
+    const played = recordPlay(shop, { id: c.id, day: w.economy.day, buyer: name, buyerId: sender, fee: a.fee }, kind === "ride" ? RIDE_PLAY : ARCADE_PLAY);
     if (typeof played === "string") return played;
-    const paid2 = charge(w, sender, a.fee, `\u30B2\u30FC\u30E0\u6A5F\uFF08${shop.name}\uFF09`);
+    const paid2 = charge(w, sender, a.fee, `${label}\uFF08${shop.name}\uFF09`);
     if (typeof paid2 === "string") return paid2;
-    const received2 = paid2.accounts?.[lot.owner] ? charge(paid2, lot.owner, -a.fee, `\u30B2\u30FC\u30E0\u6A5F\u306E\u58F2\u4E0A\uFF08${name}\u3055\u3093\uFF09`) : paid2;
+    const received2 = paid2.accounts?.[lot.owner] ? charge(paid2, lot.owner, -a.fee, `${label}\u306E\u58F2\u4E0A\uFF08${name}\u3055\u3093\uFF09`) : paid2;
     if (typeof received2 === "string") return received2;
     const next2 = received2.economy.lots.map((l) => l.id === lot.id ? { ...l, shop: played } : l);
     return { world: { ...received2, economy: { ...received2.economy, lots: next2 } }, cost: a.fee, message: "" };
