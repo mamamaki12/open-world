@@ -34,6 +34,11 @@ export function unitYen(symbol: string, data: Quotes | null): number | null {
 export function changePct(q: Quote): number { return q.prevClose ? (q.price / q.prevClose - 1) * 100 : 0; }
 
 export interface Holding { units: number; cost: number }
+export function validHoldings(v: unknown): v is Record<string, Holding> {
+  return !!v && typeof v === 'object' && !Array.isArray(v) && Object.entries(v).every(([symbol, h]) =>
+    symbol.length > 0 && symbol.length <= 100 && h && typeof h === 'object' &&
+    Number.isFinite(h.units) && h.units >= 0 && Number.isFinite(h.cost) && h.cost >= 0);
+}
 /** 円の金額で買ったときの口数（小数第4位まで） */
 export function unitsFor(amount: number, unit: number): number { return Math.floor((amount / unit) * 1e4) / 1e4; }
 /** 保有の評価額と損益 */

@@ -91,6 +91,7 @@ export function BuildCamera() {
   const walking = useGame((s) => s.mode === 'walk');
 
   useFrame((_, rawDt) => {
+    if (useGame.getState().overlay) { keys.current.clear(); return; }
     if (!controls || walking || useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag) return;
     const dt = Math.min(rawDt, 0.1);
     const k = keys.current;

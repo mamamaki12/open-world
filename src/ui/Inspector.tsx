@@ -1,6 +1,7 @@
 // 右のパネル：選んだパーツの種類・素材・色・寸法を変える
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, furnitureDef, getFurniture, getOpening, openingsOf } from '../catalog';
-import { designOf, openDesigner, useDesigns } from '../catalog/designs';
+import { designOf, useDesigns } from '../catalog/designs';
+import { openDesigner } from './designer';
 import { GRID, floorY, levelName } from '../building/dimensions';
 import { canChangeWallHeight, canPlaceOpening, canPlaceStair, snapFurniture, snapOpeningOffset, wallLength, wallOutsideSide } from '../building/rules';
 import type { FurniturePart, OpeningPart, RoofPart, StairPart } from '../building/types';

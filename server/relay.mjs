@@ -22,7 +22,7 @@ async function loadWorld(file) {
   return world;
 }
 
-export function createRelay({ origins = [], graceMs = 30000, worldFile = null, tickMs = 1000 } = {}) {
+export function createRelay({ origins = [], graceMs = 30000, worldFile = null, tickMs = 1000, persistWorld = saveWorld } = {}) {
   const rooms = new Map();
   const identities = new Map();
   const shared = { members: new Map(), world: null, queue: Promise.resolve(), beat: 0 };
@@ -34,9 +34,14 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
   const enqueue = job => (shared.queue = shared.queue.then(job, job));
   const ticker = setInterval(() => {
     if (!shared.world) return;
-    const t = tickWorld(shared.world, tickMs / 1000, Math.random); shared.world = t.world;
-    if (t.newDay) { enqueue(() => saveWorld(worldFile, shared.world).catch(e => console.error('save failed', e))); sharedSend({ type: 'world', world: publicWorld(shared.world) }); accounts(); }
-    if (++shared.beat % 2 === 0) sharedSend({ type: 'clock', clock: clockOf(shared.world) });
+    // 日替わり・参加・取引は同じ列で確定する。保存待ち中の更新を上書きしない。
+    enqueue(async () => {
+      const t = tickWorld(shared.world, tickMs / 1000, Math.random);
+      if (t.newDay) await persistWorld(worldFile, t.world);
+      shared.world = t.world;
+      if (t.newDay) { sharedSend({ type: 'world', world: publicWorld(shared.world) }); accounts(); }
+      if (++shared.beat % 2 === 0) sharedSend({ type: 'clock', clock: clockOf(shared.world) });
+    }).catch(e => console.error('save failed', e));
   }, tickMs); ticker.unref();
   const http = createServer((req, res) => { res.writeHead(req.url === '/health' ? 200 : 404); res.end(req.url === '/health' ? 'ok' : 'not found'); });
   const wss = new WebSocketServer({ server: http, maxPayload: 2 * 1024 * 1024,
@@ -73,10 +78,12 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
               previousSocket.close(1000, 'replaced');
             }
             clearTimeout(handshake);
-            const joined = withAccount(shared.world, id, name);
-            if (joined !== shared.world) { shared.world = joined; enqueue(() => saveWorld(worldFile, shared.world).catch(e => console.error('save failed', e))); }
-            send(socket, { type: 'welcome', code: 'SHARED', token: randomUUID(), host: '', canBuild: true, shared: true });
-            send(socket, { type: 'world', world: publicWorld(shared.world) }); send(socket, { type: 'account', account: shared.world.accounts[id] }); sharedRoster();
+            enqueue(async () => {
+              const joined = withAccount(shared.world, id, name);
+              if (joined !== shared.world) { await persistWorld(worldFile, joined); shared.world = joined; }
+              send(socket, { type: 'welcome', code: 'SHARED', token: randomUUID(), host: '', canBuild: true, shared: true });
+              send(socket, { type: 'world', world: publicWorld(shared.world) }); send(socket, { type: 'account', account: shared.world.accounts[id] }); sharedRoster();
+            }).catch(() => { send(socket, { type: 'error', message: 'サーバーに保存できませんでした' }); socket.close(1011); });
             return;
           }
           if (data.type === 'create') {
@@ -116,8 +123,8 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
             enqueue(async () => {
               const r = applyCommand(shared.world, who.id, command, who.name);
               if (r.changed) {
-                await saveWorld(worldFile, r.world); // 保存が終わってから確定を知らせる
-                shared.world = { ...r.world, economy: { ...r.world.economy, ...clockOf(shared.world) } };
+                await persistWorld(worldFile, r.world); // 保存が終わってから確定を知らせる
+                shared.world = r.world;
               }
               send(who.socket, { type: 'result', result: r.result });
               if (r.changed) {
