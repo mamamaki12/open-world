@@ -20,7 +20,7 @@ const errors = [];
 const trace = [];
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage();
 page.setDefaultTimeout(90000); page.on('pageerror', e => errors.push(e.message));
-page.on('websocket', ws => { ws.on('framereceived', ({ payload }) => { const m = JSON.parse(String(payload)); if (['welcome','world','account','error','closed'].includes(m.type)) trace.push({ type:m.type, cars:m.account?.cars?.length, message:m.message }); }); });
+page.on('websocket', ws => { ws.on('framereceived', ({ payload }) => { const m = JSON.parse(String(payload)); if (['welcome','world','account','error','closed','result'].includes(m.type)) trace.push({ type:m.type, cars:m.account?.cars?.length, message:m.message, result:m.result }); }); });
 async function wait(fn) {
   for (const end = Date.now() + 90000; Date.now() < end; await page.waitForTimeout(100)) if (await page.evaluate(fn)) return;
   throw Error('Gameplay condition timed out: ' + fn);
@@ -49,7 +49,9 @@ try {
     window.__overlayTrace = [];
     (await import('/src/state/store.ts')).useGame.subscribe((s, p) => { if(s.overlay !== p.overlay) window.__overlayTrace.push({ from:p.overlay,to:s.overlay,stack:new Error().stack }); });
   });
-  await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ money: 20000000, tick: () => {} }));
+  // The cheapest offer may already belong to the foreign fixture; fund any remaining district.
+  // This scenario verifies ownership and persistence, not affordability (covered by unit tests).
+  await page.evaluate(async () => (await import('/src/state/economy.ts')).useEconomy.setState({ money: 1000000000, tick: () => {} }));
   await join();
   console.log('shared joined');
   await page.evaluate(async () => (await import('/src/state/store.ts')).useGame.getState().setOverlay('map'));
