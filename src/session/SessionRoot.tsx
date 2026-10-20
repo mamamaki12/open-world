@@ -37,7 +37,7 @@ function Launcher() {
       <p className="world-subtitle">今日は、どの町で過ごす？</p>
       <label className="world-field">
         プレイヤー名
-        <input maxLength={24} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" placeholder="名前を入力" />
+        <input aria-label="あなたの名前" maxLength={24} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" placeholder="名前を入力" />
       </label>
       <div className="world-choices">
         <button className="world-choice world-primary" disabled={working} onClick={() => void run(enterOffline)}>
