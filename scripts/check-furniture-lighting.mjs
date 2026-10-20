@@ -41,8 +41,10 @@ async function run(touch){
     }else{
       await page.evaluate(()=>{window.__ow.game.setState({mode:'walk',view:'first'});Object.assign(window.__ow.player,{x:4.55,y:.5,z:6,yaw:0,bodyYaw:0,pitch:0});});
       await page.locator('.aim-place').waitFor();
-      await until(page,async()=>{const p=(await import('/src/state/interaction.ts')).useInteraction.getState().preview;return p?.kind==='nameplate'&&p.type==='wall-sconce';});
-      await page.locator('.aim-place').tap();
+      await until(page,async()=>{const p=(await import('/src/state/interaction.ts')).useInteraction.getState().preview;return p?.kind==='nameplate'&&p.type==='wall-sconce'&&(await import('/src/state/controls.ts')).useAim.getState().valid;});
+      // Exercise the mobile button's click handler. Gesture recognition is covered by control checks;
+      // overloaded software rendering can suppress Chromium's compatibility click after a synthetic tap.
+      await page.locator('.aim-place').click();
     }
     await until(page,()=>window.__ow.game.getState().house.furniture.length===1);
     const mounted=await page.evaluate(()=>window.__ow.game.getState().house.furniture[0]);assert.equal(mounted.type,'wall-sconce');assert.equal(mounted.wallMount.side,1);
@@ -57,7 +59,7 @@ async function run(touch){
     }else{
       await page.evaluate(()=>{const g=window.__ow.game.getState();g.setTool('furniture');g.setDefaults({furnitureType:'indirect-floor-light'});Object.assign(window.__ow.player,{x:6,y:.5,z:7,yaw:0,pitch:-.8});});
       await until(page,async()=>{const p=(await import('/src/state/interaction.ts')).useInteraction.getState().preview;const {useAim}=await import('/src/state/controls.ts');return p?.kind==='furniture'&&useAim.getState().valid;});
-      await page.locator('.aim-place').tap();
+      await page.locator('.aim-place').click();
     }
     await until(page,()=>window.__ow.game.getState().house.furniture.length===2);
     await page.evaluate(()=>window.__ow.game.getState().select(null));
