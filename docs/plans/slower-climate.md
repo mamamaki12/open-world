@@ -2,12 +2,12 @@
 
 ## 現在の状態
 
-- 状態: 作業中
-- PR: 未作成
-- 公開: 未公開
-- 残作業: `DAY_MS` を変更し、テスト・ビルドを確認後に main へマージ。
+- 状態: 完了
+- PR: [#103](https://github.com/mamamaki12/open-world/pull/103)（マージ済み）
+- 公開: main 反映待ち
+- 残作業: なし。
 - 将来の拡張・追加確認: ユーザーが「ちょうどいい速さ」を感じるよう、必要に応じて微調整。
-- 確認根拠: 未実施
+- 確認根拠: `npm run typecheck`・`npm test`（667件）・`npm run build` 成功。
 - 最終更新: 2026-10-20
 
 - ブランチ: `feat/slower-climate`
@@ -22,4 +22,4 @@
 
 ## 経過記録
 
-- 2026-10-20: 改修計画を作成。
+- 2026-10-20: 改修計画を作成。`src/world/climate.ts` の `DAY_MS` を `24 * 60_000` から `24 * 180_000` に変更。`npm run typecheck`・`npm test`（667件）・`npm run build` 成功。PR #103 を作成し main へマージ。
