@@ -1,0 +1,51 @@
+// スマホの運転画面・運転席/助手席に乗る・ほかのプレイヤーの車への相乗り
+import { chromium } from 'playwright';
+const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const out=process.argv[2]??'browser-checks';
+const page=await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:1,hasTouch:true});page.setDefaultTimeout(90000);
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://127.0.0.1:5173/?play=1&touch=1');await page.waitForFunction(()=>window.__ow);
+const at=async(side,along=0)=>{await page.evaluate(async([side,along])=>{const {useVehicles}=await import('/src/state/vehicles.ts');const {currentPlotOf,useEconomy}=await import('/src/state/economy.ts');const {plotX,plotZ}=await import('/src/economy/town.ts');
+  const c=useVehicles.getState().cars[0],p=currentPlotOf(useEconomy.getState()),r=side*1.4;
+  Object.assign(window.__ow.player,{x:c.x-plotX(p)+Math.cos(c.yaw)*r+Math.sin(c.yaw)*along,z:c.z-plotZ(p)-Math.sin(c.yaw)*r+Math.cos(c.yaw)*along,y:0});},[side,along]);await page.waitForTimeout(400);
+  return page.evaluate(async()=>{const {useVehicles}=await import('/src/state/vehicles.ts');return useVehicles.getState().target+' '+[...document.querySelectorAll('.door-prompt')].map(e=>e.textContent).join('/');});};
+await page.evaluate(async()=>{const {buyCar,useVehicles}=await import('/src/state/vehicles.ts');window.__ow.economy.setState({money:30000000});useVehicles.setState({cars:[]});buyCar('aria','#204f7b',true);
+  window.__ow.game.getState().setOverlay(null);window.__ow.game.getState().setMode('walk');});
+const driver=await at(-1),passenger=await at(1);
+console.log('driver door:',driver,'| other side:',passenger);
+console.log('driver side front:',await at(-1,-.9),'| driver side back:',await at(-1,.9),'| rear corner:',await at(-1,2.4));
+await at(1);
+await page.click('.door-prompt');await page.waitForTimeout(800);
+const riding=await page.evaluate(async()=>{const {useVehicles}=await import('/src/state/vehicles.ts');return useVehicles.getState().riding;});
+console.log('riding own car:',JSON.stringify(riding));
+await page.screenshot({path:`${out}/ride-own.png`});
+await page.click('.drive-exit');await page.waitForTimeout(400);
+await at(-1);await page.click('.door-prompt');await page.waitForTimeout(1200);
+await page.screenshot({path:`${out}/drive-third.png`});
+await page.click('.drive-view');await page.waitForTimeout(800);
+await page.screenshot({path:`${out}/drive-first.png`});
+console.log('view after tap:',await page.evaluate(()=>window.__ow.game.getState().view));
+await page.click('.drive-view');await page.waitForTimeout(300);
+// 公道に出してから加速し、サイドブレーキ＋ハンドルでドリフト
+const drift=await page.evaluate(async()=>{const {useVehicles}=await import('/src/state/vehicles.ts');const {driveButtons}=await import('/src/world/vehicleLogic.ts');
+  const c=useVehicles.getState().cars[0];c.speed=15;const sleep=t=>new Promise(r=>setTimeout(r,t));
+  driveButtons.handbrake=true;driveButtons.right=true;let drifting=false;for(let i=0;i<20;i++){await sleep(50);drifting||=!!c.drifting;}
+  driveButtons.handbrake=false;driveButtons.right=false;c.speed=0;return {drifting,slip:c.slipAngle};});
+console.log('drift:',JSON.stringify(drift));
+await page.screenshot({path:`${out}/drive-handbrake.png`});
+await page.click('.drive-exit');await page.waitForTimeout(400);
+// ほかのプレイヤーの車（走っている）に相乗り
+await page.evaluate(async()=>{const {useVehicles}=await import('/src/state/vehicles.ts');const {sessionGate}=await import('/src/session/gate.ts');const {useSession}=await import('/src/session/session.ts');
+  const mine=useVehicles.getState().cars[0],car={...mine,id:'friend-car',color:'#c03030',x:mine.x+6};
+  const pose={x:car.x,y:0,z:car.z,yaw:0,outfit:window.__ow.wardrobe?.getState?.().outfit??{},cars:[car],driving:'friend-car'};
+  window.__friend=car;useSession.setState({poses:{p2:pose}});sessionGate.remoteCars=()=>Object.entries(useSession.getState().poses).flatMap(([owner,q])=>q.cars.map(car=>({owner,car})));});
+const remote=await page.evaluate(async()=>{const {currentPlotOf,useEconomy}=await import('/src/state/economy.ts');const {plotX,plotZ}=await import('/src/economy/town.ts');const p=currentPlotOf(useEconomy.getState()),c=window.__friend;
+  Object.assign(window.__ow.player,{x:c.x-plotX(p)+Math.cos(c.yaw)*1.4,z:c.z-plotZ(p)-Math.sin(c.yaw)*1.4,y:0});await new Promise(r=>setTimeout(r,400));return document.querySelector('.door-prompt')?.textContent??'';});
+console.log('friend car prompt:',remote);
+await page.click('.door-prompt');
+await page.evaluate(()=>{let t=0;const c=window.__friend;setInterval(()=>{t+=.1;c.z-=1;c.speed=10;},100);});
+await page.waitForTimeout(2000);
+const follow=await page.evaluate(async()=>{const {useVehicles}=await import('/src/state/vehicles.ts');const {currentPlotOf,useEconomy}=await import('/src/state/economy.ts');const {plotZ}=await import('/src/economy/town.ts');return {riding:useVehicles.getState().riding,gap:Math.abs(window.__ow.player.z+plotZ(currentPlotOf(useEconomy.getState()))-window.__friend.z)};});
+console.log('riding friend car:',JSON.stringify(follow));
+await page.screenshot({path:`${out}/ride-friend.png`});
+console.log('errors',errors.slice(0,3));await browser.close();

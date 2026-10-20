@@ -300,19 +300,15 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .drive-keyboard-help, .touch .drive-key { display: none; }
 .touch .drive-actions {
   position: absolute; top: calc(8px + env(safe-area-inset-top, 0px));
-  right: calc(8px + var(--safe-r)); display: flex; gap: 6px;
+  right: calc(8px + var(--safe-r)); display: flex; gap: 8px; align-items: center;
 }
-.touch .drive-actions button {
-  min-height: 44px; margin: 0; padding: 8px 10px; font-size: 12px;
-  border: 1px solid #d4bd82; box-shadow: 0 2px 8px #0004;
+.touch .drive-hud button {
+  margin: 0; border: 1px solid #ffffff55; background: #101f2bb0; color: #fff;
+  box-shadow: 0 2px 8px #0004;
 }
-.touch .drive-actions button[aria-pressed=true] { background: #ffcf66; }
-.touch .drive-actions .drive-touch-only { display: block !important; }
+.touch .drive-hud .drive-exit { min-height: 40px; padding: 8px 14px; border-radius: 20px; font-size: 13px; }
+.touch .drive-hud .drive-view { width: 52px; height: 52px; margin: 0; }
 .touch .drive-hud.first { left: 0; bottom: 0; padding: 0; }
-.touch .drive-hud.first .drive-actions { flex-direction: row; }
-@media (orientation: portrait) {
-  .touch .drive-actions, .touch .drive-hud.first .drive-actions { display: grid; grid-template-columns: repeat(2, auto); }
-}
 
 /* 歩いているときのメニュー（左上の ☰ から開く） */
 .touch-cash.plain { box-shadow: none; background: rgba(250, 249, 246, 0.8); font-size: 13px; padding: 5px 9px; }
@@ -373,7 +369,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* 運転は左右と2つのペダル。両手の同時押しで曲がりながら加速できる。 */
 /* ハンドルの矢印は親指が届きやすいよう下端から持ち上げる。ペダルは床に近い下端に置く。 */
 .drive-steering,.drive-pedals{position:absolute;display:flex;pointer-events:auto;}
-.drive-steering{left:calc(14px + var(--safe-l));bottom:calc(92px + var(--safe-b));gap:10px;}
+.drive-steering{left:calc(14px + var(--safe-l));bottom:calc(40px + var(--safe-b));gap:10px;}
 .drive-pedals{right:calc(14px + var(--safe-r));bottom:calc(14px + var(--safe-b));gap:14px;align-items:flex-end;}
 .drive-steering .touch-btn{width:64px;height:64px;border-radius:50%;border:2px solid #fff9;font-size:30px;background:#20364dcc;color:#fff;}
 .drive-steering .touch-btn[aria-pressed=true]{background:#ffcf66;color:#17212b;transform:translateY(2px);}
@@ -390,13 +386,14 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch.driving .touch-actions{bottom:calc(104px + var(--safe-b));display:flex;gap:8px;}
 .touch .tool.history-label{width:auto;min-width:76px;padding:0 8px;font-size:12px;}
 @media(max-width:359px){.drive-steering,.drive-pedals{gap:8px;}.drive-steering .touch-btn{width:58px;height:58px;}}
-@media(orientation:landscape) and (max-height:500px){.drive-steering{bottom:calc(64px + var(--safe-b));}.drive-pedals{bottom:calc(8px + var(--safe-b));}.drive-brake.touch-btn{height:66px;}.drive-accelerator.touch-btn{height:92px;}}
+@media(orientation:landscape) and (max-height:500px){.drive-steering{bottom:calc(24px + var(--safe-b));}.drive-pedals{bottom:calc(8px + var(--safe-b));}.drive-brake.touch-btn{height:66px;}.drive-accelerator.touch-btn{height:92px;}}
 
 /* 左親指で旋回し、右親指でペダルかサイドブレーキを操作できる位置。 */
-.drive-handbrake.touch-btn{position:absolute;left:calc(14px + var(--safe-l));bottom:calc(14px + var(--safe-b));width:138px;height:54px;border:1px solid #f5bf73;border-radius:14px;background:#533a28e8;color:#fff3da;font-size:12px;font-weight:700;pointer-events:auto;}
+.drive-brakes{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.drive-handbrake.touch-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:56px;padding:0;border:2px solid #f5bf73;border-radius:50%;background:#533a28d8;color:#fff3da;font-weight:700;pointer-events:auto;box-shadow:0 2px 8px #0005;}
+.drive-handbrake small{font-size:9px;line-height:1;margin-top:1px;}
 .drive-handbrake.touch-btn[aria-pressed=true]{background:#ffcf66;color:#292019;}
 .drive-drift{display:block;color:#ffcf66;font-size:12px;letter-spacing:.08em;}
-@media(max-width:359px){.drive-handbrake.touch-btn{width:124px;}}
-@media(orientation:landscape) and (max-height:500px){.drive-handbrake.touch-btn{bottom:calc(8px + var(--safe-b));height:44px;}}
+@media(orientation:landscape) and (max-height:500px){.drive-handbrake.touch-btn{width:48px;height:48px;}.drive-brakes{gap:4px;}}
 .drive-brake .pedal-pad{bottom:28px;}
 .drive-brake .pedal-name small{display:block;font-size:9px;line-height:1.2;}

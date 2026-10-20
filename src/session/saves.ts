@@ -80,7 +80,7 @@ export function applyProfile(p: GuestProfile) {
   try {
   useEconomy.setState({ money: p.money, ledger: copy(p.ledger), gamble: p.gamble });
   useWardrobe.setState(sanitizeWardrobe(p.wardrobe));
-  useVehicles.setState({ cars: copy(p.cars).map(c => ({ ...c, mods: cleanMods(c.mods) })), driving: null, target: null });
+  useVehicles.setState({ cars: copy(p.cars).map(c => ({ ...c, mods: cleanMods(c.mods) })), driving: null, target: null, riding: null });
   } finally { sessionGate.applying = previous; }
 }
 let bundle: SaveBundle;
@@ -96,10 +96,11 @@ export function snapshot(): SaveBundle {
   return copy(bundle);
 }
 export function persist(): Promise<void> {
+  if (sessionGate.superseded) return Promise.resolve();
   // 復元前の状態を予約して、復元後に上書きすることを防ぐ。
   if (importing) return saving.catch(() => undefined).then(() => persist());
   const data = snapshot();
-  saving = saving.catch(() => undefined).then(() => writeSave(data));
+  saving = saving.catch(() => undefined).then(() => sessionGate.superseded ? undefined : writeSave(data));
   return saving;
 }
 export async function initializeSave() {

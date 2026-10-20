@@ -258,8 +258,8 @@ export function CarModel({def:d,color,pose,mods=STOCK_MODS}:{def:CarDef;color:st
     if(!pose)return;
     front.current.forEach(g=>{if(g)g.rotation.y=-pose.steer;});
     rolling.current.forEach(g=>{if(g)g.rotation.x=pose.wheelSpin;});
-    tail.current.forEach(m=>{if(m)m.emissiveIntensity=pose.braking?2.2:pose.lights ? .7:.15;});
-    head.current.forEach(m=>{if(m)m.emissiveIntensity=pose.lights?2.8:.35;});
+    tail.current.forEach(m=>{if(m)m.emissiveIntensity=pose.braking?2.2:.7;});
+    head.current.forEach(m=>{if(m)m.emissiveIntensity=2.8;});
   });
   const paint=<meshPhysicalMaterial color={color} {...paintMaterial(f)} side={THREE.DoubleSide}/>;
   const faceH=s.noseH-.08-(b0+.14),tailTop=s.tailH,ftop=s.noseH;

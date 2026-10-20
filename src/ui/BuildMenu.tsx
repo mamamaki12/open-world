@@ -6,6 +6,7 @@ import type { Tool } from '../state/store';
 import { ToolOptions } from './ToolOptions';
 import { PREFABS, placePrefab } from '../building/prefabs';
 import { lotSize } from '../building/dimensions';
+import { sessionGate } from '../session/gate';
 
 const PREFAB_ICONS: Record<string, string> = { 'prefab-shop': '🏪', stall: '🏮', tent: '⛺' };
 
@@ -15,7 +16,8 @@ function placeShop(id: string, done: () => void) {
   const next = placePrefab(g.house, id, lotSize, crypto.randomUUID().slice(0, 8));
   if (typeof next === 'string') { g.notify(next); return; }
   g.commit(next);
-  g.notify('🏪 建てました。中のレジの前で F を押すとお店を開けます');
+  // 共有中はサーバーの確定を待つ。拒否や土地なしの通知を成功表示で上書きしない。
+  if (!sessionGate.edit) g.notify('🏪 建てました。中のレジの前で F を押すとお店を開けます');
   done();
 }
 

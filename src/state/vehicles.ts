@@ -20,11 +20,13 @@ export function validCar(v: unknown): v is OwnedCar {
 function loadCars(): OwnedCar[] {
   try {
     const data: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(data) ? data.filter(validCar).slice(0, 10).map(c => ({...c, speed:0, steer:0, wheelSpin:0, braking:false, slipAngle:0, reverseHold:0, drifting:false, handbraking:false, lights:!!c.lights, mods:cleanMods(c.mods)})) : [];
+    return Array.isArray(data) ? data.filter(validCar).slice(0, 10).map(c => ({...c, speed:0, steer:0, wheelSpin:0, braking:false, slipAngle:0, reverseHold:0, drifting:false, handbraking:false, lights:true, mods:cleanMods(c.mods)})) : [];
   } catch { return []; }
 }
-export const useVehicles = create<{ cars: OwnedCar[]; driving: string | null; target: string | null }>(() => ({
-  cars: loadCars(), driving: null, target: null,
+/** 助手席に乗っている車。owner は持ち主のプレイヤーID（自分の車は ''）。 */
+export interface Riding { owner: string; car: string }
+export const useVehicles = create<{ cars: OwnedCar[]; driving: string | null; target: string | null; riding: Riding | null }>(() => ({
+  cars: loadCars(), driving: null, target: null, riding: null,
 }));
 export function saveVehicles() {
   try { localStorage.setItem(KEY, JSON.stringify(useVehicles.getState().cars)); } catch { /* 続けて遊べる */ }
@@ -46,7 +48,7 @@ export function buyCar(model: string, color: string, atStore: boolean): string |
   const bay = deliveryBay(state.cars);
   if (!bay) return '納車スペースが埋まっています。車を移動してください';
   if (!useEconomy.getState().pay(def.price, '車両購入：'+def.name)) return 'お金が足りません';
-  useVehicles.setState({cars:[...state.cars,{id:newId('car'),model,color,...bay,speed:0,steer:0,wheelSpin:0,braking:false,lights:false,mods:{...STOCK_MODS}}]});
+  useVehicles.setState({cars:[...state.cars,{id:newId('car'),model,color,...bay,speed:0,steer:0,wheelSpin:0,braking:false,lights:true,mods:{...STOCK_MODS}}]});
   saveVehicles(); saveEconomy();
   useGame.getState().notify(def.name+'を購入しました。店の横の駐車場でFを押すと乗れます');
   return null;

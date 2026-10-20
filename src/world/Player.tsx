@@ -266,7 +266,7 @@ export function Player() {
     // 動作はキーと画面のボタン（スマホ）の両方から呼ぶ
     const jump = (allowClimb = true) => {
       const st = state.current;
-      if (useVehicles.getState().driving) return;
+      if (useVehicles.getState().driving || useVehicles.getState().riding) return;
       if (!st.grounded || action.current || useSeating.getState().seated) return;
       // 開いた窓の前なら乗り越える。そうでなければジャンプ
       const pass = allowClimb ? climbablePassage() : null;
@@ -299,7 +299,6 @@ export function Player() {
       if (e.repeat) return;
       keys.current.add(e.code);
       if (WALK_KEYS.forward.includes(e.code)) { const now=e.timeStamp; if(now-lastForward<350)keys.current.add('DoubleSprint');lastForward=now; }
-      if (e.code === 'KeyL') { const s=useVehicles.getState(); const car=s.cars.find(c=>c.id===s.driving); if(car)car.lights=!car.lights; }
       if (WALK_KEYS.jump.includes(e.code)) jump();
       if (WALK_KEYS.view.includes(e.code)) toggleView();
       if (WALK_KEYS.interact.includes(e.code)) interact();
@@ -359,7 +358,7 @@ export function Player() {
       const g = useGame.getState(), st = state.current, interaction = useInteraction.getState();
       return g.mode === 'walk' && g.tool === 'select' && !g.overlay && !buildMenuOpen.current &&
         !touchGesture.reserved && !interaction.furnitureDrag && !interaction.buildingDrag &&
-        !useVehicles.getState().driving && !useSeating.getState().seated && !action.current && st.grounded &&
+        !useVehicles.getState().driving && !useVehicles.getState().riding && !useSeating.getState().seated && !action.current && st.grounded &&
         (Math.hypot(touchMove.x, touchMove.y) > 0.1 || Math.hypot(st.vx, st.vz) > 0.1);
     };
     const resetTapOnUI = (e: PointerEvent) => { if (e.target !== el) doubleTap.reset(); };

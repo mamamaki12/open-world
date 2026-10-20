@@ -10969,8 +10969,8 @@ var SHOPPING_NORTH = TOWN_BOUNDS.z0 - 20;
 var SHOPPING_WEST = TOWN_BOUNDS.x0 + 5;
 var SHOPPING_AREAS = [
   { name: "\u897F\u306E\u5546\u5E97\u8857", x: SHOPPING_WEST + 24, z: SHOPPING_SOUTH + 16 },
-  { name: "\u5317\u306E\u30D6\u30C6\u30A3\u30C3\u30AF\u901A\u308A", x: TOWN_BOUNDS.x0 + 45, z: SHOPPING_NORTH - 3.5 },
-  { name: "\u5317\u6771\u306E\u30B9\u30C8\u30EA\u30FC\u30C8\u30B7\u30E7\u30C3\u30D7", x: TOWN_BOUNDS.x1 - 35, z: SHOPPING_NORTH - 3.5 }
+  { name: "\u5317\u306E\u30D6\u30C6\u30A3\u30C3\u30AF\u901A\u308A", x: TOWN_BOUNDS.x0 + 45, z: TOWN_BOUNDS.z0 - 9.5 },
+  { name: "\u5317\u6771\u306E\u30B9\u30C8\u30EA\u30FC\u30C8\u30B7\u30E7\u30C3\u30D7", x: TOWN_BOUNDS.x1 - 35, z: TOWN_BOUNDS.z0 - 9.5 }
 ];
 
 // src/building/boutiques.ts
@@ -11888,6 +11888,19 @@ function applyAction(w, sender, name, c, a) {
     return { world: { ...paid2, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter((o) => o.id !== offer.id) } }, cost: price2, message: bought.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
   }
   if (!lot) return "\u305D\u306E\u571F\u5730\u306F\u3042\u308A\u307E\u305B\u3093";
+  if (a.type === "builders") {
+    if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u3060\u3051\u5EFA\u3066\u308B\u4EBA\u3092\u6C7A\u3081\u3089\u308C\u307E\u3059";
+    const id2 = typeof a.id === "string" ? a.id.slice(0, 100) : "";
+    if (!id2 || id2 === sender) return "\u305D\u306E\u4EBA\u306F\u9078\u3079\u307E\u305B\u3093";
+    const list = (lot.builders ?? []).filter((b) => b.id !== id2);
+    if (a.allow && list.length >= BUILDER_LIMIT) return `\u4E00\u7DD2\u306B\u5EFA\u3066\u3089\u308C\u308B\u306E\u306F${BUILDER_LIMIT}\u4EBA\u307E\u3067\u3067\u3059`;
+    const next2 = a.allow ? [...list, { id: id2, name: (typeof a.name === "string" ? a.name.trim().slice(0, 24) : "") || "\u3060\u308C\u304B" }] : list;
+    return {
+      world: withLots(lots.map((l) => l.id === lot.id ? { ...l, builders: next2.length ? next2 : void 0 } : l)),
+      cost: 0,
+      message: a.allow ? `${next2[next2.length - 1].name}\u3055\u3093\u304C\u3053\u306E\u571F\u5730\u3067\u5EFA\u3066\u3089\u308C\u308B\u3088\u3046\u306B\u3057\u307E\u3057\u305F` : "\u5EFA\u3066\u308B\u4EBA\u304B\u3089\u5916\u3057\u307E\u3057\u305F"
+    };
+  }
   if (a.type === "list") {
     if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u3060\u3051\u58F2\u308A\u306B\u51FA\u305B\u307E\u3059";
     if (lot.construction) return "\u5DE5\u4E8B\u4E2D\u306F\u58F2\u308A\u306B\u51FA\u305B\u307E\u305B\u3093";
@@ -11990,11 +12003,12 @@ function applyAction(w, sender, name, c, a) {
   if (typeof paid === "string") return paid;
   const received = paid.accounts?.[seller] ? charge(paid, seller, -price, `${lot.name}\u304C${name}\u3055\u3093\u306B\u58F2\u308C\u307E\u3057\u305F`) : paid;
   if (typeof received === "string") return received;
-  const next = lots.map((l) => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: void 0, invested: price, rented: false } : l);
+  const next = lots.map((l) => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: void 0, invested: price, rented: false, builders: void 0 } : l);
   return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: price, message: lot.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
 }
+var BUILDER_LIMIT = 8;
 function canBuildOn(lot, member) {
-  return !lot.owner || lot.owner === member;
+  return !lot.owner || lot.owner === member || (lot.builders ?? []).some((b) => b.id === member);
 }
 function houseOf(w, id2) {
   const l = w.economy.lots.find((l2) => l2.id === id2);
@@ -12185,12 +12199,21 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
           if (data.type === "shared") {
             if (!shared.world) throw Error("\u30EF\u30FC\u30EB\u30C9\u3092\u6E96\u5099\u3057\u3066\u3044\u307E\u3059\u3002\u5C11\u3057\u5F85\u3063\u3066\u304B\u3089\u3084\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044");
             const prev = shared.members.get(id2);
-            if (prev?.socket) throw Error("\u3053\u306E\u30B2\u30B9\u30C8\u306F\u3059\u3067\u306B\u5225\u306E\u30BF\u30D6\u3067\u53C2\u52A0\u3057\u3066\u3044\u307E\u3059");
+            const previousSocket = prev?.socket;
+            if (previousSocket && data.takeover !== true) {
+              send(socket, { type: "error", reason: "replaced", message: "\u5225\u306E\u753B\u9762\u3067\u53C2\u52A0\u4E2D\u3067\u3059\u3002\u958B\u59CB\u753B\u9762\u304B\u3089\u5165\u308A\u76F4\u3057\u3066\u304F\u3060\u3055\u3044" });
+              socket.close(1008, "replaced");
+              return;
+            }
             if (!prev && [...shared.members.values()].filter((m) => m.socket).length >= SHARED_LIMIT) throw Error(`\u307F\u3093\u306A\u306E\u30EF\u30FC\u30EB\u30C9\u306F${SHARED_LIMIT}\u4EBA\u307E\u3067\u3067\u3059`);
             member = prev ?? { id: id2, shared: true };
             member.name = name;
             member.socket = socket;
             shared.members.set(id2, member);
+            if (previousSocket) {
+              send(previousSocket, { type: "closed", reason: "replaced", message: "\u5225\u306E\u753B\u9762\u3067\u30EF\u30FC\u30EB\u30C9\u306B\u5165\u308A\u307E\u3057\u305F\u3002\u3053\u306E\u753B\u9762\u306E\u63A5\u7D9A\u3092\u7D42\u4E86\u3057\u307E\u3057\u305F" });
+              previousSocket.close(1e3, "replaced");
+            }
             clearTimeout(handshake);
             enqueue(async () => {
               const joined = withAccount(shared.world, id2, name);
@@ -12246,6 +12269,10 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
           return;
         }
         if (member.shared) {
+          if (member.socket !== socket) {
+            socket.close(1e3, "replaced");
+            return;
+          }
           if (data.type === "leave") {
             shared.members.delete(member.id);
             socket.close();

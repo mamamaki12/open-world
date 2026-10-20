@@ -38,6 +38,7 @@ import { reloadLatest } from './reload';
 import { FurnitureDesigner } from './FurnitureDesigner';
 import { leaveWorld, useSession } from '../session/session';
 import { downloadBackup } from '../session/saves';
+import { VersionStatus } from './VersionStatus';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
@@ -59,7 +60,7 @@ export function App() {
   useKeyboard();
   useAutosave();
   useEconomyClock();
-  const driving = useVehicles(s => s.driving !== null);
+  const driving = useVehicles(s => s.driving !== null || s.riding !== null);
   const overlay = useGame((s) => s.overlay);
   const touch = useTouchDevice();
   const walking = useGame((s) => s.mode === 'walk');
@@ -73,7 +74,7 @@ export function App() {
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
@@ -348,8 +349,9 @@ function SaveMenu() {
   const house = useGame((s) => s.house);
   const replaceHouse = useGame((s) => s.replaceHouse);
   const notify = useGame((s) => s.notify);
-  // ひとりで遊ぶときは右下のワールド表示を出さないので、開始画面へ戻る操作はここに置く
-  const solo = useSession((s) => s.role === 'home');
+  // スマホの共有建築中も、ここから開始画面へ戻れるようにする。
+  const busy = useSession((s) => s.busy);
+  const sessionMessage = useSession((s) => s.message);
   return (
     <div className="save">
       <button
@@ -421,14 +423,10 @@ function SaveMenu() {
           </div>
           <div className="row">
             <button className="btn" onClick={downloadBackup}>バックアップ</button>
-            {solo && <button className="btn" onClick={() => void leaveWorld()}>保存して開始画面へ</button>}
+            <button className="btn" disabled={busy} onClick={() => void leaveWorld()}>保存して開始画面へ</button>
           </div>
-          <div className="row update">
-            <button className="btn" onClick={() => void reloadLatest()} title="セーブしてからページを読み込み直します">
-              🔄 最新版にする
-            </button>
-            <small>今の版：{new Date(__BUILD_TIME__).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>
-          </div>
+          {sessionMessage && <p className="info" role="status">{sessionMessage}</p>}
+          <VersionStatus />
         </div>
       )}
     </div>

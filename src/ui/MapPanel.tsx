@@ -38,7 +38,7 @@ export function MapPanel() {
   const currentId = useEconomy(s => s.currentLotId), here = useCurrentPlot(), today = useEconomy(s => s.day);
   const shops = listedShops(lots, today);
   const shared = useSession(s => s.shared);
-  const mine = (lot: (typeof lots)[number]) => !shared || lot.owner === savedBundle().profile.id;
+  const mine = (lot: (typeof lots)[number]) => !shared || lot.owner === savedBundle().profile.id || !!lot.builders?.some(b => b.id === savedBundle().profile.id);
   const myLots = lots.filter(mine);
   const map = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);

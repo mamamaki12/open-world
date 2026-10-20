@@ -135,9 +135,45 @@ const BOX = 40;
 /** 雨粒の長さ（m） */
 const STREAK = 0.45;
 
-/** カメラの周りに雨・雪を降らせる。雨は細い線、雪は丸い粒 */
+/** 上から見た「覆い（屋根・車など）」の高さを測る範囲と解像度 */
+const COVER_RES = 128;
+const COVER_UP = 30;
+const COVER_FAR = 80;
+
+/** 屋根や車の下では雨・雪の粒を描かない（上から見た深度で判定する）。 */
+function shelterShader(mat: THREE.Material, cover: { tex: THREE.Texture; cam: THREE.OrthographicCamera }) {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.coverTex = { value: cover.tex };
+    sh.uniforms.coverCam = { value: cover.cam.position };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vCoverWorld;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvCoverWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+varying vec3 vCoverWorld;
+uniform sampler2D coverTex;
+uniform vec3 coverCam;`,
+      )
+      .replace(
+        'void main() {',
+        `void main() {
+  vec2 cuv = (vCoverWorld.xz - coverCam.xz) / ${BOX.toFixed(1)} + 0.5;
+  cuv.y = 1.0 - cuv.y;
+  if (cuv.x > 0.0 && cuv.x < 1.0 && cuv.y > 0.0 && cuv.y < 1.0) {
+    float coverY = coverCam.y - texture2D(coverTex, cuv).r * ${COVER_FAR.toFixed(1)};
+    if (vCoverWorld.y < coverY - 0.05) discard;
+  }`,
+      );
+  };
+}
+
+/** カメラの周りに雨・雪を降らせる。雨は細い線、雪は丸い粒。屋根・車の下には降らない */
 function Precipitation({ snow }: { snow: boolean }) {
   const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
   const per = snow ? 1 : 2;
   const geo = useMemo(() => {
     const p = new Float32Array(DROPS * per * 3);
@@ -149,11 +185,47 @@ function Precipitation({ snow }: { snow: boolean }) {
     g.setAttribute('position', new THREE.BufferAttribute(p, 3));
     return g;
   }, [per]);
+  // 真上から見下ろすカメラで、いちばん上にある物（屋根・車の屋根・木など）の高さを測る
+  const cover = useMemo(() => {
+    const target = new THREE.WebGLRenderTarget(COVER_RES, COVER_RES, { depthBuffer: true });
+    target.depthTexture = new THREE.DepthTexture(COVER_RES, COVER_RES);
+    const h = BOX / 2;
+    const cam = new THREE.OrthographicCamera(-h, h, h, -h, 0, COVER_FAR);
+    cam.rotation.x = -Math.PI / 2;
+    return { target, cam, tex: target.depthTexture as THREE.Texture, blank: new THREE.MeshBasicMaterial({ colorWrite: false }) };
+  }, []);
+  useEffect(() => () => { cover.target.dispose(); cover.blank.dispose(); }, [cover]);
+  const mat = useMemo(() => {
+    const m = snow
+      ? new THREE.PointsMaterial({ color: '#ffffff', map: flake(), alphaTest: 0.3, size: 0.14, transparent: true, opacity: 0.95, depthWrite: false })
+      : new THREE.LineBasicMaterial({ color: '#c4d2e0', transparent: true, opacity: 0.35, depthWrite: false });
+    shelterShader(m, cover);
+    return m;
+  }, [snow, cover]);
+  useEffect(() => () => mat.dispose(), [mat]);
   const ref = useRef<THREE.Group>(null);
+  const frame = useRef(0);
   useFrame((state, dt) => {
     const obj = ref.current;
     if (!obj) return;
     obj.position.copy(camera.position);
+    // 覆いの高さは数フレームごとに測り直す（車が動くので）
+    if (frame.current++ % 3 === 0) {
+      cover.cam.position.set(camera.position.x, camera.position.y + COVER_UP, camera.position.z);
+      cover.cam.updateMatrixWorld();
+      const prevTarget = gl.getRenderTarget(), prevOverride = scene.overrideMaterial, prevShadow = gl.shadowMap.autoUpdate, prevFog = scene.fog;
+      obj.visible = false;
+      scene.overrideMaterial = cover.blank;
+      gl.shadowMap.autoUpdate = false;
+      gl.setRenderTarget(cover.target);
+      gl.clear();
+      gl.render(scene, cover.cam);
+      gl.setRenderTarget(prevTarget);
+      gl.shadowMap.autoUpdate = prevShadow;
+      scene.overrideMaterial = prevOverride;
+      scene.fog = prevFog;
+      obj.visible = true;
+    }
     const a = geo.attributes.position as THREE.BufferAttribute;
     const arr = a.array as Float32Array;
     const fall = (snow ? 2 : 18) * Math.min(dt, 0.1);
@@ -168,20 +240,13 @@ function Precipitation({ snow }: { snow: boolean }) {
     }
     a.needsUpdate = true;
   });
-  if (!snow) {
-    return (
-      <group ref={ref}>
-        <lineSegments geometry={geo} frustumCulled={false}>
-          <lineBasicMaterial color="#c4d2e0" transparent opacity={0.35} depthWrite={false} />
-        </lineSegments>
-      </group>
-    );
-  }
   return (
     <group ref={ref}>
-      <points geometry={geo} frustumCulled={false}>
-        <pointsMaterial color="#ffffff" map={flake()} alphaTest={0.3} size={0.14} transparent opacity={0.95} depthWrite={false} />
-      </points>
+      {snow ? (
+        <points geometry={geo} material={mat} frustumCulled={false} />
+      ) : (
+        <lineSegments geometry={geo} material={mat} frustumCulled={false} />
+      )}
     </group>
   );
 }
