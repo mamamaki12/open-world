@@ -4,15 +4,13 @@
 
 ## 未完了の作業
 
-このブランチの56planは、完了52件・移行済み1件・未着手2件・作業中1件。加えて、別ブランチのPR #98に作業中のplanが2件ある。以下にすべて掲載する。
+このブランチの56planは、完了55件・移行済み1件・作業中1件。加えて、別ブランチのPR #98に作業中のplanが2件ある。以下にすべて掲載する。
 
 | plan | 状態 | 次に行うこと |
 | --- | --- | --- |
 | [ゲームっぽいUIに改修](game-ui-redesign.md) | 作業中 | [PR #102](https://github.com/mamamaki12/open-world/pull/102)に追加コミット。トップバー・モーダル・セーブメニュー・所持金バーなどをゲームっぽく改修し、改修前後の画面を追加。 |
 | [複数選択・一括移動](https://github.com/mamamaki12/open-world/blob/codex/fix-bulk-selection/docs/plans/bulk-selection.md) | 作業中 | [PR #98](https://github.com/mamamaki12/open-world/pull/98)の未push差分を回収し、操作終了時の状態クリア、PC/スマホ検証、CI・公開。 |
 | [現在地から建築カメラへ切替](https://github.com/mamamaki12/open-world/blob/codex/fix-bulk-selection/docs/plans/build-camera-entry.md) | 作業中 | PR #98のローカル実装を回収し、実ブラウザ検証、push・公開。 |
-| [ユーザーが自分で考えたお店を開く（第1段階・実装方針と進捗）](player-shops.md) | 未着手 | コイン式の乗り物を、ゲーム機と同じ料金精算の仕組みで追加する（未着手）。第1〜5段階と第6段階のゲーム機は公開済み。 |
-| [公開版のUI総点検と修正（実装方針と進捗）](ui-qa.md) | 未着手 | モーダル見出しの絵文字など細かな表示統一（未着手）。列挙した不具合修正と人数表示は公開済み。 |
 
 PR #98の2件はこのmain由来のブランチには存在しない。リンク先のブランチが正本。未pushの実装は引き継ぎ記録上の情報であり、コード回収・動作確認が済んだとは扱わない。PR本文とplanの記録は2026-10-20に確認。
 
@@ -47,6 +45,9 @@ PR #98の2件はこのmain由来のブランチには存在しない。リンク
 | plan | 状態 | PR |
 | --- | --- | --- |
 | [plansの状態表示と一覧](plan-status-index.md) | 完了 | [#100](https://github.com/mamamaki12/open-world/pull/100)（文書のみ） |
+| [ユーザーが自分で考えたお店を開く（第1段階・実装方針と進捗）](player-shops.md) | 完了 | [#101](https://github.com/mamamaki12/open-world/pull/101) |
+| [公開版のUI総点検と修正（実装方針と進捗）](ui-qa.md) | 完了 | [#101](https://github.com/mamamaki12/open-world/pull/101) |
+| [ゲーム内時間の流れを遅くする](slower-climate.md) | 完了 | [#103](https://github.com/mamamaki12/open-world/pull/103)（マージ済み） |
 | [描画更新直後の照準が別建物を誤検出する不具合](aim-world-matrix-refresh.md) | 完了 | [#87](https://github.com/mamamaki12/open-world/pull/87)（マージ済み） |
 | [Web版のバージョン表示と最新版確認](app-version-status.md) | 完了 | [#97](https://github.com/mamamaki12/open-world/pull/97)（マージ済み） |
 | [新規開始時の見た目作成画面を維持する](appearance-onboarding.md) | 完了 | [#96](https://github.com/mamamaki12/open-world/pull/96)（マージ済み） |

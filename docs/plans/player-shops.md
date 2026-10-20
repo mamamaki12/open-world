@@ -2,17 +2,19 @@
 
 ## 現在の状態
 
-- 状態: 未着手
-- PR: [#72](https://github.com/mamamaki12/open-world/pull/72)、[#76](https://github.com/mamamaki12/open-world/pull/76)、[#78](https://github.com/mamamaki12/open-world/pull/78)、[#79](https://github.com/mamamaki12/open-world/pull/79)、[#80](https://github.com/mamamaki12/open-world/pull/80)、[#81](https://github.com/mamamaki12/open-world/pull/81)（マージ済み）
-- 公開: [Pages成功・公開版確認](extended-gameplay-audit.md#公開完了2026-10-20)（2026-10-20、`7f68760`）。
-- 残作業: コイン式の乗り物を、ゲーム機と同じ料金精算の仕組みで追加する（未着手）。第1〜5段階と第6段階のゲーム機は公開済み。
+- 状態: 完了
+- PR: 未作成（`feat/coin-ride-and-ui-qa` ブランチ）
+- 公開: main 反映待ち
+- 残作業: なし。
 - 将来の拡張・追加確認: 自作家具の販売、月額課金・権限貸し・レビュー。仕事の依頼と単発の報酬支払いは実装済み。
-- 確認根拠: #72: 3f79203、#76: a601097、#78: 34458dd、#79: bb26c09、#80: c4d314e、#81: d6bf5f7。
+- 確認根拠: `src/economy/shop.ts` の `rideFee`・`recordPlay`、サーバーの `play` action に `kind`、新家具 `ride`、`src/ui/RidePanel.tsx`、テスト追加。`npm run typecheck` と `npm test` 全緑、`npm run build` 成功。
 - 最終更新: 2026-10-20
 
 ## 経過記録（過去の方針・進捗）
 
 > 現在の判断には上の「現在の状態」を使用する。以下の「次」「未完」「課題」は当時の記録であり、現在の残作業一覧ではない。
+
+- 2026-10-20: コイン式の乗り物を追加。家具 `ride`、店の `rideFee`、サーバー `play` action に `kind`、クライアント `RidePanel`、`WorldActionHud` のラベル、`ShopPanel` の宣伝タブを更新。ゲーム機と同じく `recordPlay` で売上計上し、所有者へ料金を移す。`sharedWorld.test.ts` に乗り物のテストを追加。全テスト・ビルド成功。
 
 - ブランチ: `claude/project-thread-lojfxx`（mamamaki12/open-world）
 - 依頼: しんご「業種を選ぶのではなく、ユーザーが頭で考えたビジネスをできる仕組み」→ 第1段階「店舗指定＋レジ＋自由な商品登録＋一回払い」でOK（2026-10-16）

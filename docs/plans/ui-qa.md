@@ -2,17 +2,19 @@
 
 ## 現在の状態
 
-- 状態: 未着手
-- PR: [#65](https://github.com/mamamaki12/open-world/pull/65)、[#66](https://github.com/mamamaki12/open-world/pull/66)、[#84](https://github.com/mamamaki12/open-world/pull/84)（マージ済み）
-- 公開: [Pages成功・公開版確認](extended-gameplay-audit.md#公開完了2026-10-20)（2026-10-20、`7f68760`）。
-- 残作業: モーダル見出しの絵文字など細かな表示統一（未着手）。列挙した不具合修正と人数表示は公開済み。
+- 状態: 完了
+- PR: 未作成（`feat/coin-ride-and-ui-qa` ブランチ）
+- 公開: main 反映待ち
+- 残作業: なし。
 - 将来の拡張・追加確認: 新たな画面改善は別planで管理。共有画面の修正は[共有UI点検](shared-ui-qa.md)を参照。
-- 確認根拠: #65: aa5521a、#66: 91b415b、#84: 4828fd9。
+- 確認根拠: `EstatePanel`・`MapPanel`・`JobsPanel`・`RequestsPanel`・`ArcadePanel` は既存の絵文字を維持。`ExchangePanel`・`WorldActionHud`・`QuickBar`・`BoutiquePanel`・`LooksPanel`・`DealerPanel`・`TunerPanel`・`CasinoPanel`・`ShopPanel` のモーダル見出しに統一した絵文字を追加。`npm run typecheck` と `npm test` 全緑、`npm run build` 成功。
 - 最終更新: 2026-10-20
 
 ## 経過記録（過去の方針・進捗）
 
 > 現在の判断には上の「現在の状態」を使用する。以下の「次」「未完」「課題」は当時の記録であり、現在の残作業一覧ではない。
+
+- 2026-10-20: モーダル見出しの絵文字を統一。`ExchangePanel`（📈）、`WorldActionHud` 土地購入（🏞）、`QuickBar` 道具・素材（🧰）と操作設定（⚙）、`BoutiquePanel`（👕）、`LooksPanel`（🙂/💇）、`DealerPanel`（🚗）、`TunerPanel`（🔧）、`CasinoPanel`（🎰）、`ShopPanel`（🏪）を更新。全テスト・ビルド成功。
 
 - ブランチ: `claude/project-thread-vge7qv`（mamamaki12/open-world）
 - 依頼: しんご「公開版をチェックしながらUIおかしいところとかいろいろ調べて修正して」

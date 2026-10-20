@@ -149,4 +149,17 @@ describe('shared world rentals', () => {
     expect(done.accounts!.a.money).toBe(opened.accounts!.a.money + 200);
     expect(done.economy.lots[0].shop).toMatchObject({ revenue: 200, sales: [{ buyer: 'b', price: 200 }] });
   });
+  it('charges the coin ride fee from the player to the shop owner', () => {
+    const { w, lot } = town();
+    const opened = ok(w, 'a', { id: 's1', lot: lot.id, delta: [], reserved: 0, action: { type: 'shop', shop: { name: '遊園地', items: [], sales: [], revenue: 0, rideFee: 300 } } });
+    const play = (wo: typeof w, who: string, id: string, fee: number) => applyCommand(wo, who, { id, lot: lot.id, delta: [], reserved: fee, action: { type: 'play', fee, kind: 'ride' } }, who);
+    expect(play(opened, 'a', 'r0', 300).result.ok).toBe(false);
+    expect(play(opened, 'b', 'r1', 100).result.message).toContain('料金が変わりました');
+    const arcade = applyCommand(opened, 'b', { id: 'r2', lot: lot.id, delta: [], reserved: 300, action: { type: 'play', fee: 300 } }, 'b');
+    expect(arcade.result.message).toContain('無料');
+    const done = play(opened, 'b', 'r3', 300).world;
+    expect(done.accounts!.b.money).toBe(opened.accounts!.b.money - 300);
+    expect(done.accounts!.a.money).toBe(opened.accounts!.a.money + 300);
+    expect(done.economy.lots[0].shop).toMatchObject({ revenue: 300, sales: [{ buyer: 'b', price: 300, item: 'コイン式の乗り物で1回遊ぶ' }] });
+  });
 });

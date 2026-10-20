@@ -105,7 +105,7 @@ export function CasinoPanel() {
   const close = useGame((s) => s.setOverlay);
   const race = tab === 'horse' || tab === 'keirin' || tab === 'boat';
   return (
-    <Modal title={tab ? TABS.find(t => t.id === tab)!.label : 'GRAND STRIP CASINO'} className={`casino-modal ${tab ? 'casino-playing' : 'casino-lobby-modal'}`} onClose={() => close(null)} tabs={[]} tab={tab ?? ''} onTab={() => undefined}>
+    <Modal title={tab ? TABS.find(t => t.id === tab)!.label : '🎰 GRAND STRIP CASINO'} className={`casino-modal ${tab ? 'casino-playing' : 'casino-lobby-modal'}`} onClose={() => close(null)} tabs={[]} tab={tab ?? ''} onTab={() => undefined}>
       <div className="casino-bar">
         <Wallet />
         <MuteButton />

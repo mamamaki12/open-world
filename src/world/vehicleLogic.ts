@@ -133,7 +133,7 @@ function registerTarget(p:Memory):string|null{
     if(!current&&(!l.shop||typeof l.plot!=='number'))continue;
     const house=current?useGame.getState().house:lotHouse(l);
     const ox=current?0:plotOffset(l.plot!,e),oz=current?0:plotOffsetZ(l.plot!,e);
-    const near=house?.furniture.find(f=>(f.type==='register'||f.type==='arcade')&&f.level===0&&Math.hypot(f.x+ox-p.x,f.z+oz-p.z)<1.8);
+    const near=house?.furniture.find(f=>(f.type==='register'||f.type==='arcade'||f.type==='ride')&&f.level===0&&Math.hypot(f.x+ox-p.x,f.z+oz-p.z)<1.8);
     if(near)return near.type+':'+l.id;
   }
   return null;
@@ -189,6 +189,7 @@ export function vehicleInteract(p:Memory) {
   if(s.target?.startsWith('land:')){useGame.getState().setOverlay('land');return true;}
   if(s.target?.startsWith('register:')){useGame.getState().setOverlay('shop');return true;}
   if(s.target?.startsWith('arcade:')){useGame.getState().setOverlay('arcade');return true;}
+  if(s.target?.startsWith('ride:')){useGame.getState().setOverlay('ride');return true;}
   if(s.target?.startsWith('shutter:')){useDoors.getState().toggle(s.target.slice(8),1);return true;}
   if(s.target?.startsWith('furn:')){const opened=useDoors.getState().toggle(s.target.slice(5),1);playDoorSound(opened,true);return true;}
   const c=s.cars.find(c=>c.id===s.target);

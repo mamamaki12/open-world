@@ -59,9 +59,9 @@ export function ShopPanel() {
   };
   const onClose = () => close(null);
 
-  if (!lot) return <Modal title="お店" onClose={onClose} tabs={[]} tab="" onTab={() => undefined}><p>レジの前で開いてください。</p></Modal>;
+  if (!lot) return <Modal title="🏪 お店" onClose={onClose} tabs={[]} tab="" onTab={() => undefined}><p>レジの前で開いてください。</p></Modal>;
 
-  if (!shop) return <Modal title="お店を開く" onClose={onClose} tabs={[]} tab="" onTab={() => undefined}>
+  if (!shop) return <Modal title="🏪 お店を開く" onClose={onClose} tabs={[]} tab="" onTab={() => undefined}>
     {owner ? <>
       <p>この建物をお店にします。業種は決まっていません。売りたい物やサービスを自由に登録してください（家・車・服・手作り家具・入場券・設計代行など何でも）。</p>
       <div className="field"><div className="field-label">お店の名前</div><input type="text" maxLength={SHOP_LIMITS.name} value={name} onChange={(e) => setName(e.target.value)} placeholder="例：しんご設計事務所" /></div>
@@ -75,7 +75,7 @@ export function ShopPanel() {
     save(next); setDraft(null); setError('');
   };
 
-  return <Modal className="shop-panel" title={shop.name} onClose={onClose} tabs={[{ id: 'items', label: '商品' }, { id: 'sales', label: '売上' }, ...(owner ? [{ id: 'promo' as const, label: '宣伝' }] : [])]} tab={tab} onTab={setTab}>
+  return <Modal className="shop-panel" title={`🏪 ${shop.name}`} onClose={onClose} tabs={[{ id: 'items', label: '商品' }, { id: 'sales', label: '売上' }, ...(owner ? [{ id: 'promo' as const, label: '宣伝' }] : [])]} tab={tab} onTab={setTab}>
     {tab === 'promo' && owner ? <Promo shop={shop} today={today} onSave={(next) => { save(next); setError(''); useGame.getState().notify('📣 宣伝を更新しました'); }} />
     : tab === 'sales' ? <>
       <p>売上合計 <b className="big">{yen(shop.revenue)}</b>（{shop.sales.length}件・誰でも見られます）</p>
@@ -126,7 +126,7 @@ export function ShopPanel() {
 
 /** 持ち主の宣伝：看板の文字・チラシ・地図のピン・イベント告知 */
 function Promo({ shop, today, onSave }: { shop: Shop; today: number; onSave: (s: Shop) => void }) {
-  const [p, setP] = useState(() => ({ sign: shop.sign ?? '', flyer: shop.flyer ?? '', pin: !!shop.pin, title: shop.event?.title ?? '', day: shop.event?.day ?? today, note: shop.event?.note ?? '', arcadeFee: shop.arcadeFee ?? 0 }));
+  const [p, setP] = useState(() => ({ sign: shop.sign ?? '', flyer: shop.flyer ?? '', pin: !!shop.pin, title: shop.event?.title ?? '', day: shop.event?.day ?? today, note: shop.event?.note ?? '', arcadeFee: shop.arcadeFee ?? 0, rideFee: shop.rideFee ?? 0 }));
   const promo = cleanPromo({ sign: p.sign, flyer: p.flyer, pin: p.pin, event: { title: p.title, day: p.day, note: p.note } });
   return <div className="shop-form">
     <div className="field"><div className="field-label">看板の文字（土地の前の看板）</div><input type="text" maxLength={SHOP_LIMITS.sign} value={p.sign} placeholder={shop.name} onChange={(e) => setP({ ...p, sign: e.target.value })} /></div>
@@ -141,6 +141,8 @@ function Promo({ shop, today, onSave }: { shop: Shop; today: number; onSave: (s:
     </div>
     <div className="field"><div className="field-label">ゲーム機の料金（1回・0円なら無料）</div><input type="text" inputMode="numeric" value={p.arcadeFee} onChange={(e) => setP({ ...p, arcadeFee: Number(e.target.value.replace(/[^0-9]/g, '')) })} />
       <p className="shop-note">家具の「ゲーム機（アーケード）」を1階に置くと、お客さんがモグラたたきで遊べます。料金はあなたの所持金に入ります。</p></div>
-    <button className="btn primary" onClick={() => onSave({ ...shop, sign: undefined, flyer: undefined, pin: undefined, event: undefined, ...promo, arcadeFee: p.arcadeFee > 0 ? p.arcadeFee : undefined })}>宣伝を保存</button>
+    <div className="field"><div className="field-label">コイン式の乗り物の料金（1回・0円なら無料）</div><input type="text" inputMode="numeric" value={p.rideFee} onChange={(e) => setP({ ...p, rideFee: Number(e.target.value.replace(/[^0-9]/g, '')) })} />
+      <p className="shop-note">家具の「コイン式の乗り物」を1階に置くと、お客さんが乗って遊べます。料金はあなたの所持金に入ります。</p></div>
+    <button className="btn primary" onClick={() => onSave({ ...shop, sign: undefined, flyer: undefined, pin: undefined, event: undefined, ...promo, arcadeFee: p.arcadeFee > 0 ? p.arcadeFee : undefined, rideFee: p.rideFee > 0 ? p.rideFee : undefined })}>宣伝を保存</button>
   </div>;
 }

@@ -52,7 +52,7 @@ export function LooksPanel({ mode }: { mode: Mode }) {
   };
   const pick = <T,>(v: T, cur: T, on: () => void, label: React.ReactNode, extra = '') =>
     <button className={`looks-chip${extra}`} aria-pressed={v === cur} onClick={on}>{label}</button>;
-  return <Modal title={salon ? 'HAIR SALON LUCE' : mode === 'create' ? 'あなたの見た目をつくる' : '見た目を変える'} onClose={close} tabs={[]} tab="" onTab={() => {}} className="looks-modal">
+  return <Modal title={salon ? '💇 HAIR SALON LUCE' : mode === 'create' ? '🙂 あなたの見た目をつくる' : '🙂 見た目を変える'} onClose={close} tabs={[]} tab="" onTab={() => {}} className="looks-modal">
     <div className="looks-layout">
       <Preview looks={draft} close={salon} />
       <div className="looks-options">
