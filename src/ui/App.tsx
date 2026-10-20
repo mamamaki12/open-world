@@ -36,6 +36,7 @@ import { walkActions } from '../state/touch';
 import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
 import { reloadLatest } from './reload';
 import { FurnitureDesigner } from './FurnitureDesigner';
+import './game-ui.css';
 import { leaveWorld, useSession } from '../session/session';
 import { downloadBackup } from '../session/saves';
 import { VersionStatus } from './VersionStatus';
