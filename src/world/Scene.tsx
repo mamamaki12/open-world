@@ -35,7 +35,7 @@ export function Scene() {
   const walking = mode === 'walk';
   /** 置くツールか削除ツールを持っている（歩きモードでも建てられる）。削除ツールの左ドラッグは範囲選択に使う */
   const placing = tool !== 'select';
-  const building = !walking && placing;
+  const building = !walking;
 
   return (
     <Canvas

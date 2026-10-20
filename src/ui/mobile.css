@@ -104,6 +104,13 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; z-index: 2;
 }
 .touch-dock > * { pointer-events: auto; }
+.touch-dock:has(.selection-actions.compact) > .panel { padding: 6px 10px; width: 100%; }
+.touch-dock .selection-actions.compact .seg button { padding: 6px 0; }
+.touch .selection-actions .row[aria-label="選択全体を移動"] { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.touch .selection-actions .row[aria-label="選択全体を移動"] .btn { padding: 8px 2px; font-size: 12px; white-space: nowrap; }
+.bulk-erase-dock .panel { width: 100%; max-width: 420px; padding: 10px 12px; }
+.bulk-erase-dock .info { margin: 0 0 5px; }
+.bulk-erase-dock.walking { top: calc(var(--hud-top) + 8px); bottom: auto; left: 60px; right: 60px; }
 .sheet { width: 100%; max-width: 560px; background: var(--panel); border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.18); overflow: hidden; }
 .sheet-head {
   display: flex; justify-content: space-between; align-items: center; width: 100%;

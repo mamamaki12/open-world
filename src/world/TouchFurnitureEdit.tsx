@@ -34,7 +34,7 @@ export function TouchFurnitureEdit(){
       if(e.pointerType!=='touch')return;
       if(drag){finish(true);return;}
       const g=useGame.getState();
-      if(g.tool!=='select'||g.overlay||buildMenuOpen.current||useVehicles.getState().driving||g.selection?.kind!=='furniture')return;
+      if(g.tool!=='select'||g.boxSelect||g.marked.length||g.overlay||buildMenuOpen.current||useVehicles.getState().driving||g.selection?.kind!=='furniture')return;
       const item=g.house.furniture.find(f=>f.id===g.selection!.id);
       if(!item)return;
       cast(e);

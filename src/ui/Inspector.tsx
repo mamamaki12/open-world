@@ -9,7 +9,7 @@ import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
 import { FloorKindButtons, NameplateInput, RoofTypeButtons, Slider, StairRailButtons, StairShapeButtons, WallHeightButtons } from './ToolOptions';
 import { patchPart } from './edit';
-import { materialGroup, movableBuilding } from '../building/groups';
+import { selectionGroup, movableBuilding } from '../building/groups';
 import { mountedTransform, nameplateMount } from '../building/mounts';
 
 const mm = (m: number) => `${Math.round(m * 1000).toLocaleString()}mm`;
@@ -111,10 +111,11 @@ function GroupMove() {
   const house = useGame((s) => s.house);
   const selection = useGame((s) => s.selection);
   const enabled = useGame((s) => s.groupSelection);
+  const marked = useGame(s => s.marked);
   const setEnabled = useGame((s) => s.setGroupSelection);
   const move = useGame((s) => s.moveSelection);
   if (!selection) return null;
-  const count = materialGroup(house, selection, enabled).length;
+  const count = selectionGroup(house, selection, enabled, marked).length;
   return (
     <div className="field">
       <label><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> 同じ素材・色をまとめて移動</label>
@@ -125,7 +126,7 @@ function GroupMove() {
         <button className="btn" onClick={() => move(0, -1)}>↑ 1マス</button>
         <button className="btn" onClick={() => move(0, 1)}>↓ 1マス</button>
       </div>
-      <p className="info">選択したパーツをドラッグしても移動できます。素材・色の変更と削除は、最初に選んだ1個に適用します。</p>
+      <p className="info">選択したパーツをドラッグしても移動できます。{enabled && '一括移動中は長押しで消えません。'}素材・色の変更と削除は、最初に選んだ1個に適用します。</p>
     </div>
   );
 }
