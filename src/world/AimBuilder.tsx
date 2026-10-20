@@ -10,15 +10,15 @@ import { useInteraction } from '../state/interaction';
 import { useVenue } from '../state/venue';
 import { aimBuilding } from './aimMode';
 import { aimFurnitureTarget } from './aimFurnitureTarget';
+import { centerIntersections } from './placementRay';
 
 export function AimBuilder() {
   const { camera, gl, scene } = useThree();
   const anchor=useRef<Anchor|null>(null),point=useRef<AimPoint|null>(null),clock=useRef(0);
   const ray=useRef(new THREE.Raycaster());
   const pick=()=>{
-    ray.current.setFromCamera(new THREE.Vector2(0,0),camera);ray.current.far=AIM_REACH;
     const objects=['house','ground','casino','estate','dealer','tuner','exchange','salon','boutiques','venue-interior','neighbors','vehicles'].map(n=>scene.getObjectByName(n)).filter((o):o is THREE.Object3D=>!!o);
-    let hit:THREE.Intersection|undefined=ray.current.intersectObjects(objects,true).find(h=>{
+    let hit:THREE.Intersection|undefined=centerIntersections(ray.current,camera,objects,AIM_REACH).find(h=>{
       const mat=(h.object as THREE.Mesh).material,m=Array.isArray(mat)?mat[h.face?.materialIndex??0]:mat;
       let o:THREE.Object3D|null=h.object;while(o){if(!o.visible)return false;o=o.parent;}
       return m&&m.visible&&(!m.transparent||m.opacity>=.99);
