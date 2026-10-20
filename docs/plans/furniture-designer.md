@@ -22,6 +22,7 @@
 - [x] 開閉・座る（Furniture.tsx の Piece、vehicleLogic の furn: ターゲット、seating.ts）
 - [x] デザイン画面（src/ui/FurnitureDesigner.tsx、家具ツールの「＋ 家具をデザインする」、インスペクタの「このデザインを編集」）
 - [x] テスト（src/catalog/designs.test.ts、scripts/check-furniture-designer.mjs）・PR
+- 済: マージ（PR #73）
 
 ## 次にやれること
 - お店の商品登録でライブラリのデザインを売る（`useDesigns` の FurnitureDef をそのまま渡す）
