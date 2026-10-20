@@ -48,7 +48,7 @@ export function TunerPanel() {
   const [error, setError] = useState('');
   const pickCar = (id: string) => { const c = cars.find(x => x.id === id)!; setCarId(id); setColor(c.color); setMods({ ...(c.mods ?? STOCK_MODS) }); setError(''); };
   const set = <K extends keyof CarMods>(k: K, v: CarMods[K]) => { setMods(m => ({ ...m, [k]: v })); setError(''); };
-  const title = 'STANCE GARAGE · カーカスタム';
+  const title = '🔧 STANCE GARAGE · カーカスタム';
   if (!car) return <Modal title={title} onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="dealer-modal">
     <p className="dealer-intro">あなたの一台を、あなただけの一台に。</p>
     <p>まだ車を持っていません。隣の AVENUE MOTORS で車を買ってから来てください。</p>
