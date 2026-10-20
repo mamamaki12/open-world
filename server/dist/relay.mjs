@@ -10928,10 +10928,27 @@ function wallsUnder(house, level, r) {
     return x0 <= r.x1 && x1 >= r.x0 && z0 <= r.z1 && z1 >= r.z0 && (x1 > r.x0 && x0 < r.x1 || z1 > r.z0 && z0 < r.z1);
   });
 }
+function floorEdgesTouch(a, b) {
+  return (a.x1 === b.x0 || b.x1 === a.x0) && Math.min(a.z1, b.z1) > Math.max(a.z0, b.z0) || (a.z1 === b.z0 || b.z1 === a.z0) && Math.min(a.x1, b.x1) > Math.max(a.x0, b.x0);
+}
+function floorSupported(house, level, r) {
+  const pending = [r];
+  const remaining = new Set(house.floors.filter((f) => f.level === level));
+  for (let i = 0; i < pending.length; i++) {
+    const current = pending[i];
+    if (wallsUnder(house, level - 1, current)) return true;
+    for (const floor of remaining) {
+      if (!floorEdgesTouch(current, floor)) continue;
+      remaining.delete(floor);
+      pending.push(floor);
+    }
+  }
+  return false;
+}
 function canPlaceFloor(house, level, r) {
   if (!rectInsideLot(r)) return "\u571F\u5730\u306E\u5916\u306B\u306F\u7F6E\u3051\u307E\u305B\u3093";
   if (house.floors.some((f) => f.level === level && rectsOverlap(f, r))) return "\u3059\u3067\u306B\u5E8A\u304C\u3042\u308A\u307E\u3059";
-  if (level > 0 && !wallsUnder(house, level - 1, r)) return "\u5E8A\u306F\u5730\u9762\u306E\u4E0A\u304B\u3001\u58C1\u306E\u4E0A\u306B\u5F35\u308C\u307E\u3059";
+  if (level > 0 && !floorSupported(house, level, r)) return "\u5E8A\u306F\u5730\u9762\u30FB\u58C1\u306E\u4E0A\u304B\u3001\u58C1\u306B\u652F\u3048\u3089\u308C\u305F\u540C\u3058\u968E\u306E\u5E8A\u306B\u3064\u306A\u3052\u3066\u5F35\u308C\u307E\u3059";
   return null;
 }
 function canPlaceRoof(house, level, r) {

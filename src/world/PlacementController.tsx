@@ -27,6 +27,7 @@ import { snapFurniturePlacement } from '../building/furnitureSnap';
 import { moveBuildingGroup } from '../building/groups';
 import { aimBuilding } from './aimMode';
 import { placementPoint } from './placementRay';
+import { floorExtensionLevel } from '../building/floorPlacement';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
@@ -156,6 +157,13 @@ export function PlacementController() {
       if (g.tool === 'roof') return roofSurface(e);
       const surface = pickSurface(e);
       if (g.tool !== 'floor') return surface;
+      const extension = floorExtensionLevel(g.house, surface, level => {
+        const p = groundPoint(e, level);
+        if (!p) return null;
+        const cell = cellAt(p);
+        return cellRect(cell, cell);
+      });
+      if (extension !== null) return extension;
       const p = groundPoint(e, surface);
       if (!p) return surface;
       const cell = cellAt(p);

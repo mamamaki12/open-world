@@ -68,7 +68,7 @@ export function moveBuildingGroup(house: House, refs: PartRef[], dx: number, dz:
   // 支えの壁は移動後の位置で調べる。窓・ドアはwallIdとoffsetを保つだけで壁に追従する。
   for (const r of refs) {
     let error: string | null = null;
-    if (r.kind === 'floor') { const p = next.floors.find(p => p.id === r.id)!; error = canPlaceFloor({ ...remaining, walls: next.walls }, p.level, p); }
+    if (r.kind === 'floor') { const p = next.floors.find(p => p.id === r.id)!; error = canPlaceFloor({ ...next, floors: next.floors.filter(f => f.id !== p.id) }, p.level, p); }
     if (r.kind === 'wall') { const p = next.walls.find(p => p.id === r.id)!; error = canPlaceWall(remaining, p); }
     if (r.kind === 'roof') { const p = next.roofs.find(p => p.id === r.id)!; error = canPlaceRoof(remaining, p.level, p); }
     if (r.kind === 'stair') { const p = next.stairs.find(p => p.id === r.id)!; error = canPlaceStair(remaining, p); }
