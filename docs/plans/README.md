@@ -4,16 +4,16 @@
 
 ## 未完了の作業
 
-このブランチの55planは、完了52件・移行済み1件・未着手2件。加えて、別ブランチのPR #98に作業中のplanが2件ある。以下にすべて掲載する。
+このブランチの57planは、完了52件・移行済み1件・未着手2件・作業中2件。以下に未完了の4件を掲載する。
 
 | plan | 状態 | 次に行うこと |
 | --- | --- | --- |
-| [複数選択・一括移動](https://github.com/mamamaki12/open-world/blob/codex/fix-bulk-selection/docs/plans/bulk-selection.md) | 作業中 | [PR #98](https://github.com/mamamaki12/open-world/pull/98)の未push差分を回収し、操作終了時の状態クリア、PC/スマホ検証、CI・公開。 |
-| [現在地から建築カメラへ切替](https://github.com/mamamaki12/open-world/blob/codex/fix-bulk-selection/docs/plans/build-camera-entry.md) | 作業中 | PR #98のローカル実装を回収し、実ブラウザ検証、push・公開。 |
+| [複数選択・一括移動](bulk-selection.md) | 作業中 | [PR #98](https://github.com/mamamaki12/open-world/pull/98)の未push差分を回収し、操作終了時の状態クリア、PC/スマホ検証、CI・公開。 |
+| [現在地から建築カメラへ切替](build-camera-entry.md) | 作業中 | PR #98のローカル実装を回収し、実ブラウザ検証、push・公開。 |
 | [ユーザーが自分で考えたお店を開く（第1段階・実装方針と進捗）](player-shops.md) | 未着手 | コイン式の乗り物を、ゲーム機と同じ料金精算の仕組みで追加する（未着手）。第1〜5段階と第6段階のゲーム機は公開済み。 |
 | [公開版のUI総点検と修正（実装方針と進捗）](ui-qa.md) | 未着手 | モーダル見出しの絵文字など細かな表示統一（未着手）。列挙した不具合修正と人数表示は公開済み。 |
 
-PR #98の2件はこのmain由来のブランチには存在しない。リンク先のブランチが正本。未pushの実装は引き継ぎ記録上の情報であり、コード回収・動作確認が済んだとは扱わない。PR本文とplanの記録は2026-10-20に確認。
+PR #98の2planはこのブランチへ取り込み済み。以前の未push実装はこのPCでは見つからず、引き継ぎ記録に沿って再実装・検証する。
 
 ## 将来の拡張・追加確認（上の必須残作業とは別）
 
