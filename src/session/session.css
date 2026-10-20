@@ -1,7 +1,520 @@
-.world-launch{position:fixed;inset:0;overflow:auto;background:radial-gradient(ellipse at 15% 0%,#345b4a 0%,#152d28 45%,#0e1c1b 100%);color:#f7f2e6;display:grid;place-items:center;padding:32px 20px;font-family:system-ui,sans-serif;box-sizing:border-box}.world-card{width:min(100%,520px);box-sizing:border-box;padding:36px;border:1px solid #ffffff25;background:#ffffff09;border-radius:24px;box-shadow:0 20px 80px #0003}.world-card h1{letter-spacing:.13em;font-size:clamp(27px,7vw,42px);margin:8px 0}.world-eyebrow{font-size:10px;letter-spacing:.22em;color:#c0cfbd}.world-subtitle{color:#cad5cc;margin-bottom:28px}.world-field{display:grid;gap:8px;font-size:12px;margin:16px 0;color:inherit}.world-field input{box-sizing:border-box;width:100%;min-width:0;background:#ffffff0d;border:1px solid #ffffff36;color:inherit;border-radius:10px;padding:12px;font:inherit;font-size:16px}.world-launch button,.world-session button,.world-import{font:inherit;border:1px solid #ffffff40;border-radius:10px;padding:12px 14px;color:inherit;background:#ffffff0e;cursor:pointer}.world-launch button:disabled,.world-session button:disabled{opacity:.45;cursor:default}.world-launch .world-choice{display:grid;gap:7px;text-align:left;width:100%;margin:12px 0;padding:19px}.world-choice strong{font-size:16px}.world-choice span,.world-note{font-size:12px;line-height:1.7;opacity:.72}.world-launch .world-primary{background:#e7e4cb;color:#203b30;border-color:#e7e4cb}.world-join{border-top:1px solid #ffffff20;margin-top:24px;padding-bottom:20px}.world-join>button{width:100%}.world-card details{border-top:1px solid #ffffff20;padding-top:18px;font-size:13px}.world-card summary{cursor:pointer}.world-actions{display:flex;flex-wrap:wrap;gap:8px}.world-import{display:block}.world-import input{display:none}.world-error{color:#ffcfb5;font-size:13px;line-height:1.7}.world-session{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:120;color:#f3f3eb;font-family:system-ui,sans-serif}.world-session .world-session-toggle{background:#173b32ed;box-shadow:0 2px 12px #0003;font-size:12px}.world-session-panel{position:absolute;right:0;bottom:50px;background:#15352ff7;border:1px solid #ffffff25;border-radius:16px;width:min(340px,calc(100vw - 24px));max-height:65vh;overflow:auto;box-sizing:border-box;padding:20px;box-shadow:0 8px 40px #0005;font-size:13px}.world-session-panel h2{font-size:17px}.world-session-panel>button{display:block;width:100%;margin-top:10px}.world-member{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #fff2}.world-network-warning{max-width:290px;background:#784a16;padding:10px;border-radius:8px;font-size:12px}.world-disconnected{position:fixed;inset:0;background:#102820dd;display:grid;place-items:center;padding:20px;z-index:150}.world-disconnected .world-card{background:#183b32}@media(max-width:500px){.world-card{padding:24px}.world-launch{align-items:start;padding-top:max(24px,env(safe-area-inset-top))}.world-session-panel{max-height:55vh}}
+:root {
+  --game-bg-0: #0a1517;
+  --game-bg-1: #112226;
+  --game-bg-2: #0b191b;
+  --game-accent: #ffb347;
+  --game-accent-2: #2aefcb;
+  --game-panel: rgba(16, 33, 35, 0.78);
+  --game-panel-border: rgba(255, 255, 255, 0.13);
+  --game-text: #f3f3eb;
+  --game-muted: #9db0ab;
+  --game-danger: #ff7a6b;
+}
+
+.world-launch {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(42, 239, 203, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 20% 100%, rgba(255, 179, 71, 0.10) 0%, transparent 50%),
+    linear-gradient(180deg, var(--game-bg-0) 0%, var(--game-bg-1) 60%, var(--game-bg-2) 100%);
+  color: var(--game-text);
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+.world-launch::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 55%, black 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 55%, black 0%, transparent 75%);
+  pointer-events: none;
+}
+
+.world-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(42, 239, 203, 0.14) 0%, transparent 35%),
+    radial-gradient(circle at 80% 20%, rgba(255, 179, 71, 0.12) 0%, transparent 28%);
+}
+
+.world-card {
+  position: relative;
+  width: min(100%, 540px);
+  box-sizing: border-box;
+  padding: 40px;
+  background: var(--game-panel);
+  border: 1px solid var(--game-panel-border);
+  border-radius: 26px;
+  box-shadow:
+    0 24px 90px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.world-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 26px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255, 179, 71, 0.45), rgba(42, 239, 203, 0.25) 50%, transparent 70%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.world-card h1 {
+  margin: 0;
+  font-size: clamp(22px, 9vw, 46px);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #fff 35%, #a8c9c2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 26px rgba(42, 239, 203, 0.25));
+}
+
+.world-eyebrow {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: var(--game-accent);
+  margin: 0 0 8px;
+}
+
+.world-subtitle {
+  text-align: center;
+  font-size: 15px;
+  color: var(--game-muted);
+  margin: 8px 0 34px;
+}
+
+.world-field {
+  display: grid;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--game-muted);
+  margin: 20px 0;
+}
+
+.world-field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #fff;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.world-field input:focus {
+  border-color: var(--game-accent-2);
+  box-shadow: 0 0 0 3px rgba(42, 239, 203, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.world-choices {
+  display: grid;
+  gap: 14px;
+  margin: 30px 0;
+}
+
+.world-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  width: 100%;
+  margin: 0;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  color: var(--game-text);
+  overflow: hidden;
+  transition: transform .12s, border-color .15s, background .15s, box-shadow .15s;
+}
+
+.world-choice::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--game-accent-2);
+  opacity: 0.7;
+}
+
+.world-choice:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.world-choice .choice-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  flex: none;
+}
+
+.world-choice strong {
+  display: block;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+}
+
+.world-choice span span {
+  display: block;
+  font-size: 12px;
+  color: var(--game-muted);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+.world-launch .world-primary {
+  background: linear-gradient(135deg, rgba(255, 179, 71, 0.18), rgba(255, 179, 71, 0.05));
+  border-color: rgba(255, 179, 71, 0.45);
+}
+
+.world-launch .world-primary::before {
+  background: var(--game-accent);
+  opacity: 1;
+}
+
+.world-launch .world-primary .choice-icon {
+  background: rgba(255, 179, 71, 0.18);
+}
+
+.world-launch button:disabled,
+.world-session button:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+.world-note {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--game-muted);
+  text-align: center;
+  margin: 10px 0;
+}
+
+.world-card details {
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+
+.world-card summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--game-muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.world-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.world-card summary::before {
+  content: '⚙';
+  font-size: 14px;
+}
+
+.world-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.world-launch .world-actions button,
+.world-import {
+  flex: 1 1 140px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--game-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.world-launch .world-actions button:hover:not(:disabled),
+.world-import:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.world-import {
+  display: block;
+  text-align: center;
+}
+
+.world-import input {
+  display: none;
+}
+
+.world-error {
+  color: var(--game-danger);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.world-launch .app-version {
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  margin-top: 18px;
+  padding-top: 14px;
+}
+
+.world-launch .version-actions {
+  gap: 8px;
+}
+
+.world-launch .app-version .version-button {
+  min-height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--game-text);
+}
+
+.world-launch .app-version .version-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.world-launch .app-version .version-update {
+  background: rgba(42, 239, 203, 0.12);
+  border-color: rgba(42, 239, 203, 0.35);
+}
+
+.world-launch .app-version .version-update:hover:not(:disabled) {
+  background: rgba(42, 239, 203, 0.18);
+}
+
+.world-session {
+  position: fixed;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 120;
+  color: var(--game-text);
+  font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+}
+
+.world-session .world-session-toggle {
+  background: rgba(18, 43, 38, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 9px 14px;
+  color: var(--game-text);
+}
+
+.world-session-panel {
+  position: absolute;
+  right: 0;
+  bottom: 50px;
+  background: rgba(14, 34, 31, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 18px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: 65vh;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 22px;
+  box-shadow: 0 10px 44px rgba(0, 0, 0, 0.55);
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+}
+
+.world-session-panel h2 {
+  font-size: 17px;
+  margin: 0 0 12px;
+  letter-spacing: 0.04em;
+}
+
+.world-session-panel>button {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 11px;
+  color: var(--game-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.world-session-panel>button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.world-member {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.world-member label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.world-network-warning {
+  max-width: 290px;
+  background: rgba(255, 179, 71, 0.16);
+  border: 1px solid rgba(255, 179, 71, 0.35);
+  color: var(--game-text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.world-disconnected {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 24, 23, 0.92);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 150;
+  color: var(--game-text);
+  font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+}
+
+.world-disconnected .world-card {
+  background: rgba(18, 43, 38, 0.92);
+}
+
+.world-disconnected button {
+  font: inherit;
+  min-height: 44px;
+  border: 1px solid var(--game-accent);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #1a2e29;
+  background: var(--game-accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+@media (max-width: 500px) {
+  .world-card {
+    padding: 26px 20px;
+    border-radius: 22px;
+  }
+
+  .world-card::before {
+    border-radius: 22px;
+  }
+
+  .world-launch {
+    align-items: start;
+    padding-top: max(24px, env(safe-area-inset-top));
+  }
+
+  .world-choice {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .world-choice .choice-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 22px;
+  }
+
+  .world-choice strong {
+    font-size: 15px;
+  }
+
+  .world-session-panel {
+    max-height: 55vh;
+  }
+}
 
 /* スマホでは四隅のボタン（メニュー・地図・スティック・建てる）に重ならないよう、上の中央に置く */
-.modal-network-warning{margin:0 0 12px;padding:10px;border-radius:8px;background:#784a16;color:#fff;font-size:12px;line-height:1.6}
-.world-disconnected{color:#f3f3eb;font-family:system-ui,sans-serif;box-sizing:border-box}
-.world-disconnected button{font:inherit;min-height:44px;border:1px solid #e7e4cb;border-radius:10px;padding:12px 16px;color:#203b30;background:#e7e4cb;cursor:pointer}
-.app.touch~.world-session{right:auto;left:50%;transform:translateX(-50%);bottom:auto;top:calc(8px + env(safe-area-inset-top))}.app.touch~.world-session .world-session-toggle{padding:9px 12px}.app.touch~.world-session .world-session-panel{right:auto;left:50%;transform:translateX(-50%);bottom:auto;top:46px}
+.app.touch~.world-session {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: auto;
+  top: calc(8px + env(safe-area-inset-top));
+}
+
+.app.touch~.world-session .world-session-toggle {
+  padding: 9px 12px;
+}
+
+.app.touch~.world-session .world-session-panel {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: auto;
+  top: 46px;
+}
+
+.modal-network-warning {
+  margin: 0 0 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 179, 71, 0.16);
+  border: 1px solid rgba(255, 179, 71, 0.35);
+  color: var(--game-text);
+  font-size: 12px;
+  line-height: 1.6;
+}

@@ -29,19 +29,41 @@ function Launcher() {
   const [error, setError] = useState(''), [working, setWorking] = useState(false);
   const state = useSession();
   const run = async (action: () => Promise<void>) => { setWorking(true); setError(''); try { await renameGuest(name); localStorage.setItem('open-world:relay', relay); await action(); } catch (e) { setError(e instanceof Error ? e.message : '開始できませんでした'); } finally { setWorking(false); } };
-  return <main className="world-launch"><section className="world-card">
-    <p className="world-eyebrow">BUILD A PLACE TOGETHER</p><h1>OPEN WORLD</h1><p className="world-subtitle">今日は、どの町で過ごす？</p>
-    <label className="world-field">あなたの名前<input maxLength={24} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname"/></label>
-    <button className="world-choice world-primary" disabled={working} onClick={() => void run(enterOffline)}><strong>ひとりで遊ぶ</strong><span>自分の町を続ける · オフライン対応</span></button>
-    <button className="world-choice" disabled={working || !relay || state.status === 'connecting'} onClick={() => void run(() => joinShared(relay))}><strong>みんなのワールドで遊ぶ</strong><span>みんなで1つの町に住む · 最大10人</span></button>
-    {!relay && <p className="world-note">友達とのプレイは、オンライン接続先の設定後に利用できます。</p>}
-    <details><summary>接続・バックアップ</summary><label className="world-field">オンライン接続先<input value={relay} onChange={e => setRelay(e.target.value)} placeholder="wss://…" type="url"/></label>
-      <div className="world-actions"><button onClick={downloadBackup}>バックアップを書き出す</button><label className="world-import">バックアップを読み込む<input type="file" accept="application/json,.json" onChange={e => { const f = e.target.files?.[0]; if (!f) return; if (f.size > 10e6) return setError('バックアップは10MBまでです'); void run(async () => { await importSave(await f.text()); setName(savedBundle().profile.name); }); }}/></label></div>
-    </details><p className="world-note">ログイン不要。データはこのブラウザに保存されます。</p>
-    {!!savedBundle().pending?.length && <p className="world-note">精算待ちの建築が{savedBundle().pending!.length}件あります。同じ町へ再参加するとホストの記録と照合して精算します。</p>}
-    {(error || state.message || state.status === 'connecting') && <p className="world-error" role="status">{error || state.message || 'ワールドに接続しています…'}</p>}
-    <VersionStatus />
-  </section></main>;
+  return <main className="world-launch">
+    <div className="world-glow" aria-hidden="true" />
+    <section className="world-card">
+      <p className="world-eyebrow">BUILD A PLACE TOGETHER</p>
+      <h1>OPEN WORLD</h1>
+      <p className="world-subtitle">今日は、どの町で過ごす？</p>
+      <label className="world-field">
+        プレイヤー名
+        <input maxLength={24} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" placeholder="名前を入力" />
+      </label>
+      <div className="world-choices">
+        <button className="world-choice world-primary" disabled={working} onClick={() => void run(enterOffline)}>
+          <span className="choice-icon">🏠</span>
+          <span><strong>ひとりで遊ぶ</strong><span>自分の町を続ける · オフライン対応</span></span>
+        </button>
+        <button className="world-choice" disabled={working || !relay || state.status === 'connecting'} onClick={() => void run(() => joinShared(relay))}>
+          <span className="choice-icon">🌐</span>
+          <span><strong>みんなのワールドで遊ぶ</strong><span>みんなで1つの町に住む · 最大10人</span></span>
+        </button>
+      </div>
+      {!relay && <p className="world-note">友達とのプレイは、接続先を設定後に利用できます。</p>}
+      <details>
+        <summary>接続・バックアップ設定</summary>
+        <label className="world-field">オンライン接続先<input value={relay} onChange={e => setRelay(e.target.value)} placeholder="wss://…" type="url"/></label>
+        <div className="world-actions">
+          <button onClick={downloadBackup}>バックアップを書き出す</button>
+          <label className="world-import">バックアップを読み込む<input type="file" accept="application/json,.json" onChange={e => { const f = e.target.files?.[0]; if (!f) return; if (f.size > 10e6) return setError('バックアップは10MBまでです'); void run(async () => { await importSave(await f.text()); setName(savedBundle().profile.name); }); }}/></label>
+        </div>
+      </details>
+      <p className="world-note">ログイン不要。データはこのブラウザに保存されます。</p>
+      {!!savedBundle().pending?.length && <p className="world-note">精算待ちの建築が{savedBundle().pending!.length}件あります。同じ町へ再参加するとホストの記録と照合して精算します。</p>}
+      {(error || state.message || state.status === 'connecting') && <p className="world-error" role="status">{error || state.message || 'ワールドに接続しています…'}</p>}
+      <VersionStatus />
+    </section>
+  </main>;
 }
 function SessionHud() {
   const state = useSession(), [open, setOpen] = useState(false), [notice, setNotice] = useState('');
