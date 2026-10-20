@@ -9,7 +9,7 @@ import { useGame } from '../state/store';
 import { FinishPicker, NamedSwatches, SashPicker, Swatches } from './FinishPicker';
 import { FloorKindButtons, NameplateInput, RoofTypeButtons, Slider, StairRailButtons, StairShapeButtons, WallHeightButtons } from './ToolOptions';
 import { patchPart } from './edit';
-import { materialGroup, movableBuilding } from '../building/groups';
+import { selectionGroup, movableBuilding } from '../building/groups';
 import { mountedTransform, nameplateMount } from '../building/mounts';
 
 const mm = (m: number) => `${Math.round(m * 1000).toLocaleString()}mm`;
@@ -111,10 +111,11 @@ function GroupMove() {
   const house = useGame((s) => s.house);
   const selection = useGame((s) => s.selection);
   const enabled = useGame((s) => s.groupSelection);
+  const marked = useGame(s => s.marked);
   const setEnabled = useGame((s) => s.setGroupSelection);
   const move = useGame((s) => s.moveSelection);
   if (!selection) return null;
-  const count = materialGroup(house, selection, enabled).length;
+  const count = selectionGroup(house, selection, enabled, marked).length;
   return (
     <div className="field">
       <label><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> 同じ素材・色をまとめて移動</label>

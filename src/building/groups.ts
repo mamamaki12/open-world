@@ -1,5 +1,5 @@
 import type { Finish, House, PartRef } from './types';
-import { GRID } from './dimensions';
+import { GRID, lotSize } from './dimensions';
 import { canPlaceFloor, canPlaceRoof, canPlaceStair, canPlaceWall, partExists } from './rules';
 
 export const movableBuilding = (ref: PartRef) => ['floor', 'wall', 'roof', 'stair'].includes(ref.kind);
@@ -31,20 +31,34 @@ export function materialGroup(house: House, ref: PartRef, enabled = true): PartR
   return refs;
 }
 
+/** A drawn selection takes precedence over the optional same-material group. */
+export function selectionGroup(house: House, ref: PartRef, enabled: boolean, marked: PartRef[]): PartRef[] {
+  return marked.some(r => r.kind === ref.kind && r.id === ref.id)
+    ? marked.filter(r => partExists(house, r)) : materialGroup(house, ref, enabled);
+}
+
 /** グリッド単位で一括移動。失敗したら元の家を維持し、履歴は呼び出し側で1回にまとめる。 */
 export function moveBuildingGroup(house: House, refs: PartRef[], dx: number, dz: number): { house: House; error: string | null } {
   if (!Number.isInteger(dx) || !Number.isInteger(dz)) return { house, error: '移動は1マス単位です' };
   if (!dx && !dz) return { house, error: null };
-  if (!refs.length || refs.some(r => !movableBuilding(r) || !partExists(house, r))) return { house, error: '移動する建築パーツが見つかりません' };
+  if (!refs.length || refs.some(r => !partExists(house, r))) return { house, error: '移動するパーツが見つかりません' };
   const has = (kind: PartRef['kind'], id: string) => refs.some(r => r.kind === kind && r.id === id);
+  for (const ref of refs) {
+    const wallId = ref.kind === 'opening' ? house.openings.find(p => p.id === ref.id)?.wallId
+      : ref.kind === 'furniture' ? house.furniture.find(p => p.id === ref.id)?.wallMount?.wallId : undefined;
+    if (wallId && !has('wall', wallId)) return { house, error: '窓・ドア・壁付け家具は、取り付けた壁と一緒に選んでください' };
+  }
   const rect = <T extends { x0: number; x1: number; z0: number; z1: number }>(p: T) => ({ ...p, x0: p.x0 + dx, x1: p.x1 + dx, z0: p.z0 + dz, z1: p.z1 + dz });
   const next: House = { ...house,
-    furniture: house.furniture.map(p => p.wallMount && has('wall', p.wallMount.wallId) ? { ...p, x: p.x + dx * GRID, z: p.z + dz * GRID } : p),
+    furniture: house.furniture.map(p => has('furniture', p.id) || p.wallMount && has('wall', p.wallMount.wallId) ? { ...p, x: p.x + dx * GRID, z: p.z + dz * GRID } : p),
     floors: house.floors.map(p => has('floor', p.id) ? rect(p) : p),
     walls: house.walls.map(p => has('wall', p.id) ? rect(p) : p),
     roofs: house.roofs.map(p => has('roof', p.id) ? rect(p) : p),
     stairs: house.stairs.map(p => has('stair', p.id) ? { ...p, x: p.x + dx, z: p.z + dz } : p),
   };
+  if (next.furniture.some(p => has('furniture', p.id) && !p.wallMount && (p.x < 0 || p.z < 0 || p.x > lotSize.w * GRID || p.z > lotSize.d * GRID))) {
+    return { house, error: '家具を自分の土地の中に移動してください' };
+  }
   const remaining: House = { ...next,
     floors: next.floors.filter(p => !has('floor', p.id)),
     walls: next.walls.filter(p => !has('wall', p.id)),

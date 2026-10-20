@@ -46,6 +46,9 @@ export function ToolOptions() {
 
   let body = null;
   switch (tool) {
+    case 'select':
+      body = <SelectSelectionActions />;
+      break;
     case 'floor':
       body = (
         <>
@@ -229,6 +232,32 @@ export function EraseSelectionActions() {
       <button className="btn danger" disabled={!count} onClick={() => useGame.getState().deleteMarked()}>まとめて削除{!touch && !walking && <span className="kbd-hint">（Delete）</span>}</button>
       <button className="btn" disabled={!count} onClick={() => useGame.getState().clearMarks()}>選び直す</button>
     </div>
+  </section>;
+}
+
+export function SelectSelectionActions() {
+  const box = useGame(s => s.boxSelect);
+  const count = useGame(s => s.marked.length || (s.selection ? 1 : 0));
+  const touch = useTouchDevice();
+  const game = useGame.getState();
+  const compact = touch && count === 1 && !box;
+  return <section aria-label="選択と一括操作" className={`selection-actions${compact ? ' compact' : ''}`}>
+    <div className="seg">
+      <button className={!box ? 'on' : ''} aria-pressed={!box} onClick={() => game.setBoxSelect(false)}>移動・編集</button>
+      <button className={box ? 'on' : ''} aria-pressed={box} onClick={() => game.setBoxSelect(true)}>範囲選択</button>
+    </div>
+    {!compact && <><p className="info">{box ? 'なぞって範囲を選ぶ（全階）。移動するときは「移動・編集」へ。' : touch ? 'パーツをつかんで移動。範囲を選ぶときは「範囲選択」へ。' : '背景ドラッグ／Shift＋ドラッグで範囲選択。右ドラッグで視点回転。'}</p>
+    <p className="info" role="status">選んだもの：<b>{count}</b> 個</p>
+    <div className="row">
+      <button className="btn danger" disabled={!count} onClick={() => game.marked.length ? game.deleteMarked() : game.deleteSelected()}>選択を削除</button>
+      <button className="btn" disabled={!count} onClick={() => game.clearMarks()}>選び直す</button>
+    </div>
+    {count > 1 && <div className="row" aria-label="選択全体を移動">
+      <button className="btn" onClick={() => game.moveSelection(-1, 0)}>← 1マス</button>
+      <button className="btn" onClick={() => game.moveSelection(1, 0)}>→ 1マス</button>
+      <button className="btn" onClick={() => game.moveSelection(0, -1)}>↑ 1マス</button>
+      <button className="btn" onClick={() => game.moveSelection(0, 1)}>↓ 1マス</button>
+    </div>}</>}
   </section>;
 }
 

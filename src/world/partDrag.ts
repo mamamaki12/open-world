@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { floorY } from '../building/dimensions';
-import { materialGroup, movableBuilding } from '../building/groups';
+import { selectionGroup, movableBuilding } from '../building/groups';
 import type { PartRef } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
@@ -9,9 +9,23 @@ import { startPartLongPress } from './partLongPress';
 export function beginPartDrag(ref: PartRef, ray: THREE.Ray, clientX: number, clientY: number) {
   const game = useGame.getState();
   if (game.mode !== 'build' || game.tool !== 'select') return;
+  if (game.boxSelect) return;
+  const refs = selectionGroup(game.house, ref, game.groupSelection, game.marked);
+  const drawn = game.marked.some(r => r.kind === ref.kind && r.id === ref.id);
   game.select(ref);
   // 一括移動でつかむ時間を、1個だけの削除と取り違えない。
-  if (!game.groupSelection || !movableBuilding(ref)) startPartLongPress(ref, clientX, clientY);
+  if (!drawn && (!game.groupSelection || !movableBuilding(ref))) startPartLongPress(ref, clientX, clientY);
+  if (drawn) {
+    const level = ref.kind === 'opening' ? game.house.walls.find(w => w.id === game.house.openings.find(o => o.id === ref.id)?.wallId)?.level
+      : ({ floor: game.house.floors, wall: game.house.walls, roof: game.house.roofs, stair: game.house.stairs, furniture: game.house.furniture }[ref.kind]).find(p => p.id === ref.id)?.level;
+    if (level === undefined) return;
+    const planeLevel = level + (ref.kind === 'roof' ? 1 : 0);
+    const point = ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -floorY(planeLevel)), new THREE.Vector3());
+    if (!point) return;
+    game.beginDrag();
+    useInteraction.setState({ buildingDrag: { refs, level: planeLevel, x: point.x, z: point.z, startX: clientX, startY: clientY, dx: 0, dz: 0, error: null } });
+    return;
+  }
   if (ref.kind === 'furniture') {
     const item = game.house.furniture.find(p => p.id === ref.id);
     if (!item || item.wallMount) return;
@@ -29,6 +43,6 @@ export function beginPartDrag(ref: PartRef, ray: THREE.Ray, clientX: number, cli
   const point = ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -floorY(level)), new THREE.Vector3());
   if (!point) return;
   game.beginDrag();
-  useInteraction.setState({ buildingDrag: { refs: materialGroup(game.house, ref, game.groupSelection), level, x: point.x, z: point.z,
+  useInteraction.setState({ buildingDrag: { refs, level, x: point.x, z: point.z,
     startX: clientX, startY: clientY, dx: 0, dz: 0, error: null } });
 }

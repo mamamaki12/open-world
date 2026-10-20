@@ -35,4 +35,12 @@ describe('starting a grouped drag', () => {
     expect(useGame.getState().house.floors.map(f => f.id)).toEqual(['b']);
     expect(useGame.getState().past).toHaveLength(1);
   });
+  it('holds an explicit mixed selection without losing marks or deleting a member', () => {
+    useGame.setState({ groupSelection: false, marked: [{ kind: 'floor', id: 'a' }, { kind: 'floor', id: 'b' }] });
+    beginPartDrag(ref, new Ray(new Vector3(1, 10, 1), new Vector3(0, -1, 0)), 100, 100);
+    vi.advanceTimersByTime(800);
+    expect(useGame.getState().marked).toHaveLength(2);
+    expect(useInteraction.getState().buildingDrag?.refs).toHaveLength(2);
+    expect(useGame.getState().house.floors).toHaveLength(2);
+  });
 });

@@ -9,7 +9,7 @@ import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { Scene } from '../world/Scene';
 import { Inspector } from './Inspector';
-import { EraseSelectionActions, ToolOptions } from './ToolOptions';
+import { EraseSelectionActions, SelectSelectionActions, ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
 import { DealerPanel } from './DealerPanel';
@@ -128,6 +128,8 @@ function TouchLayout({ walking }: { walking: boolean }) {
   const tool = useGame((s) => s.tool);
   const setTool = useGame((s) => s.setTool);
   const selected = useGame((s) => s.selection !== null);
+  const selectionCount = useGame(s => s.marked.length);
+  const boxSelect = useGame(s => s.boxSelect);
   const bulkErase = useGame((s) => s.tool === 'erase' && s.eraseMulti);
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
   const [menu, setMenu] = useState(false);
@@ -152,7 +154,8 @@ function TouchLayout({ walking }: { walking: boolean }) {
         </>
       ) : (
         <div className="touch-dock">
-          {selected && (
+          {tool === 'select' && <div className="panel"><SelectSelectionActions /></div>}
+          {selected && selectionCount <= 1 && !boxSelect && (
             <Sheet key="inspector" title="選んだパーツ" defaultOpen>
               <Inspector />
             </Sheet>

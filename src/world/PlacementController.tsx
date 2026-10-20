@@ -95,7 +95,7 @@ export function PlacementController() {
 
     const groundPoint = (e: PointerEvent, level: number) => {
       const g=useGame.getState();
-      const grounded = g.tool === 'erase' || (g.tool==='wall' && (g.defaults.wallHeight==='fence'||g.defaults.wallHeight==='privacyFence')) ||
+      const grounded = g.tool === 'erase' || g.tool === 'select' && !useInteraction.getState().buildingDrag && !useInteraction.getState().furnitureDrag || (g.tool==='wall' && (g.defaults.wallHeight==='fence'||g.defaults.wallHeight==='privacyFence')) ||
         (g.tool==='furniture' && getFurniture(g.defaults.furnitureType).grounded);
       return placementPoint(camera, el.getBoundingClientRect(), e.clientX, e.clientY, level, grounded?0:undefined);
     };
@@ -150,7 +150,7 @@ export function PlacementController() {
     const surfaceAt = (e: PointerEvent) => {
       if (dragStart) return dragSurface;
       const g = useGame.getState();
-      if (g.tool === 'erase') return 0;
+      if (g.tool === 'erase' || g.tool === 'select') return 0;
       if (g.tool === 'wall' && (g.defaults.wallHeight === 'fence' || g.defaults.wallHeight === 'privacyFence')) return 0;
       if (g.tool === 'furniture' && getFurniture(g.defaults.furnitureType).grounded) return 0;
       if (g.tool === 'roof') return roofSurface(e);
@@ -175,6 +175,7 @@ export function PlacementController() {
       const p = groundPoint(e, surface);
       if (!p) return;
       switch (g.tool) {
+        case 'select':
         case 'erase': {
           if (dragStart && eraseFrom) ui.setPreview({ kind: 'rect', rect: cellRect(dragStart, cellAt(p)), valid: true, tool: 'erase' });
           break;
@@ -224,6 +225,8 @@ export function PlacementController() {
         activeTouch = e.pointerId;
       }
       const g = useGame.getState();
+      if (g.overlay || g.mode !== 'build' && g.tool === 'select') return;
+      if (g.tool === 'select' && (useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag)) return;
       const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
@@ -240,9 +243,10 @@ export function PlacementController() {
       const g = useGame.getState();
       const ui = useInteraction.getState();
       switch (g.tool) {
+        case 'select':
         case 'erase':
           // ドラッグすると、その範囲のパーツをまとめて選ぶ（パーツのクリックは usePart が受ける）
-          if (g.mode === 'walk' || (e.pointerType==='touch' && !g.eraseMulti)) break;
+          if (g.mode === 'walk' || (e.pointerType === 'touch' && !(g.tool === 'select' ? g.boxSelect : g.eraseMulti))) break;
           dragStart = cellAt(p);
           dragSurface = surface;
           eraseFrom = { x: e.clientX, y: e.clientY };
@@ -341,6 +345,10 @@ export function PlacementController() {
       if (building) {
         touches.delete(e.pointerId);
         activeTouch = null;
+        dragStart = null;
+        eraseFrom = null;
+        tap = null;
+        useInteraction.getState().setPreview(null);
         useInteraction.setState({ buildingDrag: null, ignorePartClickUntil: Date.now() + 100 });
         useGame.getState().endDrag();
         if (building.error) useGame.getState().notify(building.error);
@@ -370,6 +378,10 @@ export function PlacementController() {
         }
       }
       if (useInteraction.getState().furnitureDrag) {
+        dragStart = null;
+        eraseFrom = null;
+        tap = null;
+        useInteraction.getState().setPreview(null);
         useInteraction.getState().setFurnitureDrag(null);
         useGame.getState().endDrag();
         return;
@@ -380,14 +392,16 @@ export function PlacementController() {
       const p = groundPoint(e, surface);
       const start = dragStart;
       dragStart = null;
-      if (g.tool === 'erase') {
+      if (g.tool === 'erase' || g.tool === 'select') {
         const from = eraseFrom;
         eraseFrom = null;
         useInteraction.getState().setPreview(null);
         if (p && from && Math.hypot(e.clientX - from.x, e.clientY - from.y) > 8) {
           // 「1つずつ」のときに範囲で選んだら、「まとめて選ぶ」に切り替えて選んだものを見せる
-          if (!g.eraseMulti) g.setEraseMulti(true);
-          useGame.getState().addMarks(partsInRect(g.house, cellRect(start, cellAt(p))));
+          const refs = partsInRect(g.house, cellRect(start, cellAt(p)));
+          if (g.tool === 'erase' && !g.eraseMulti) g.setEraseMulti(true);
+          g.addMarks(refs);
+          if (g.tool === 'select') useGame.getState().select(useGame.getState().marked[0] ?? null);
           useInteraction.setState({ ignorePartClickUntil: Date.now() + 150 });
         }
         return;
@@ -457,7 +471,7 @@ export function PlacementController() {
 
     const cancel = () => { touches.clear(); cancelTouch(); useInteraction.setState({ pendingErase: null }); };
     const unsubscribe = useGame.subscribe((s, prev) => {
-      if (s.tool !== prev.tool || s.mode !== prev.mode || s.overlay !== prev.overlay || s.eraseMulti !== prev.eraseMulti) cancel();
+      if (s.tool !== prev.tool || s.mode !== prev.mode || s.overlay !== prev.overlay || s.eraseMulti !== prev.eraseMulti || s.boxSelect !== prev.boxSelect) cancel();
     });
 
     el.addEventListener('pointerdown', onDown);

@@ -48,6 +48,34 @@ jobs:
             job-checks/
           if-no-files-found: ignore
 
+  bulk-selection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Check desktop and phone selection, movement, deletion and build camera
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/bulk-selection-vite.log 2>&1 &
+          web=$!
+          trap 'kill "$web"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-bulk-selection.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bulk-selection-checks
+          path: browser-checks/bulk-selection/
+          if-no-files-found: ignore
+
   shared-ui:
     runs-on: ubuntu-latest
     timeout-minutes: 25

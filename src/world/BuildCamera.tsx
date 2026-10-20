@@ -36,7 +36,8 @@ export function BuildCamera() {
   const tool = useGame((s) => s.tool);
   const mode = useGame((s) => s.mode);
   const eraseMulti = useGame((s) => s.eraseMulti);
-  const preciseTouch = touch && mode === 'build' && (tool === 'floor' || tool === 'wall' || tool === 'erase' && eraseMulti);
+  const boxSelect = useGame((s) => s.boxSelect);
+  const preciseTouch = touch && mode === 'build' && (tool === 'floor' || tool === 'wall' || tool === 'erase' && eraseMulti || tool === 'select' && boxSelect);
   // 真上からなら床・壁の高さで画面上の位置がずれず、指の真下に配置できる。
   useEffect(() => {
     if (!preciseTouch || !controls) return;
@@ -82,7 +83,7 @@ export function BuildCamera() {
       const g=useGame.getState(),r=gl.domElement.getBoundingClientRect(),ray=new THREE.Raycaster();
       ray.setFromCamera(new THREE.Vector2((event.clientX-r.left)/r.width*2-1,-(event.clientY-r.top)/r.height*2+1),camera);
       const p=ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-floorY(g.activeLevel)),new THREE.Vector3());
-      touchGesture.reserved=!aimBuilding()&&reservesTouch(g.tool,g.mode,g.eraseMulti,!!p&&p.x>=0&&p.x<=lotSize.w*GRID&&p.z>=0&&p.z<=lotSize.d*GRID);
+      touchGesture.reserved=!aimBuilding()&&reservesTouch(g.tool,g.mode,g.eraseMulti,!!p&&p.x>=0&&p.x<=lotSize.w*GRID&&p.z>=0&&p.z<=lotSize.d*GRID,g.boxSelect);
       controls.touches.ONE=touchGesture.reserved?(-1 as THREE.TOUCH):THREE.TOUCH.ROTATE;
     };
     gl.domElement.addEventListener('pointerdown',down,true);
