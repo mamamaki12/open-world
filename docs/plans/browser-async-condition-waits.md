@@ -1,7 +1,7 @@
 # 非同期条件を待たないブラウザーテストの修正
 
 - ブランチ: `codex/fix-verified-gameplay-bugs`
-- PR: #87（draft）
+- PR: #87（マージ済み）
 ## 方針
 - PlaywrightのwaitForFunctionにasync関数を渡した箇所を、await page.evaluateで結果がtrueになるまで待つ実装に置き換える。製品の再現済み不具合数とは分ける。
 - 今回追加した検証と、CIで実行する共有セッション/照準/ダブルタップ検証を対象にし、falseのPromiseで待機を抜けないことをテストする。
@@ -11,4 +11,10 @@
 - 2026-10-20: 最新mainのonboarding検証にもasync waitForFunctionがあるためhelperへ統一。照明のphone検査でpointerup後clickなしを記録。実際の入力イベントと有効previewを確認し、描画完了とクリック到達を待って検証する。
 - 済: Playwright同梱のframes.jsで、Promiseをawaitせずtruthy判定していることを確認。追加テストが早く進み、初期受信前に地図を開く原因にもなっていた。
 - 済: 追加のgameplay/recovery検証を明示的awaitループに変更。
-- 次: この計画をpush後、既存CIのasync待機も修正する。
+
+## 公開完了（2026-10-20）
+- 済: マージ（PR #87、`7f6876056b678ecdbf0371b5948549619d97d458`）。最終CI `39413017035`は全5ジョブが初回成功。全667単体・型・build・PC/スマホ操作・照明・共有/復元/オフライン検査を確認。
+- 済: EC2は利用者が`dba310bc8d1ada499aad8ae20d30c646439adbe5`へ更新しhealth=okを確認。更新後の公開HTTPS/WSS/独立招待ルーム検査成功。最終版の中継プログラムと差分なし。
+- 済: Pages `39414666612`成功。公開version/JSと新規ChromeのPC/スマホ起動を確認（`r7f68760`、JS例外0）。利用者は「最新版にする」で反映。
+- 次: なし。
+- 訂正: 照明の不安定さには実際のworld matrix更新漏れが含まれていた。単なるタップ互換イベントの問題ではなく、`aim-world-matrix-refresh.md`の修正で解消。スマホ検査も通常のtapへ戻して成功。
