@@ -20,7 +20,13 @@ try {
     const page = await context.newPage(); page.setDefaultTimeout(60000);
     const errors = []; page.on('pageerror', e => errors.push(e.message));
     const cdp = profile.touch ? await context.newCDPSession(page) : null;
-    const undo = () => profile.touch ? page.getByRole('button', { name: '取り消し', exact: true }).click() : page.getByTitle('Ctrl+Z', { exact: true }).click();
+    const undo = async () => {
+      if (profile.touch) await page.getByRole('button', { name: '取り消し', exact: true }).click();
+      else await page.getByTitle('Ctrl+Z', { exact: true }).click();
+      // Wait for restored meshes and the previous gesture's click suppression.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await page.waitForTimeout(200);
+    };
     const state = () => page.evaluate(() => {
       const g = window.__ow.game.getState(); return { marked: g.marked.map(r => r.id).sort(), selection: g.selection?.id, floors: g.house.floors, furniture: g.house.furniture,
         past: g.past.length, box: g.boxSelect, camera: window.__ow.camera.position.toArray(), mode: g.mode };
@@ -124,6 +130,7 @@ try {
       assert.equal((await state()).floors.find(p => p.id === 'qa-b').x0, 12);
       await undo();
       if (profile.touch) await page.touchscreen.tap(a.x, a.y); else await page.mouse.click(a.x, a.y);
+      await waitCondition(page, () => window.__ow.game.getState().selection?.id === 'qa-a');
       await grouping.uncheck();
       await drag(a, a, 700);
       await waitCondition(page, () => !window.__ow.game.getState().house.floors.some(p => p.id === 'qa-a'));

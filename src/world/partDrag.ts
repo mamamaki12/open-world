@@ -9,6 +9,7 @@ import { startPartLongPress } from './partLongPress';
 export function beginPartDrag(ref: PartRef, ray: THREE.Ray, clientX: number, clientY: number) {
   const game = useGame.getState();
   if (game.mode !== 'build' || game.tool !== 'select') return;
+  if (useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag) return;
   if (game.boxSelect) return;
   const refs = selectionGroup(game.house, ref, game.groupSelection, game.marked);
   const drawn = game.marked.some(r => r.kind === ref.kind && r.id === ref.id);

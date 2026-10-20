@@ -43,4 +43,13 @@ describe('starting a grouped drag', () => {
     expect(useInteraction.getState().buildingDrag?.refs).toHaveLength(2);
     expect(useGame.getState().house.floors).toHaveLength(2);
   });
+  it('does not replace the original undo snapshot when another pointer grabs a member', () => {
+    const ray = new Ray(new Vector3(1, 10, 1), new Vector3(0, -1, 0));
+    beginPartDrag(ref, ray, 100, 100);
+    const base = useGame.getState().dragBase!;
+    useGame.getState().dragTo({ ...base, floors: base.floors.map(p => ({ ...p, x0: p.x0 + 1, x1: p.x1 + 1 })) });
+    beginPartDrag({ kind: 'floor', id: 'b' }, ray, 200, 200);
+    expect(useGame.getState().dragBase).toBe(base);
+    expect(useInteraction.getState().buildingDrag?.startX).toBe(100);
+  });
 });

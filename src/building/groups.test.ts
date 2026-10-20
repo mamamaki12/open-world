@@ -54,4 +54,17 @@ describe('material groups', () => {
     expect(house.furniture).toHaveLength(0);
     expect(house.openings).toHaveLength(0);
   });
+  it('moves a selected mounted item only once when its wall is also selected', () => {
+    const house = fixture();
+    const result = moveBuildingGroup(house, [{ kind: 'wall', id: 'old' }, { kind: 'furniture', id: 'plate' }, { kind: 'opening', id: 'door' }], 1, 0);
+    expect(result.error).toBeNull();
+    expect(result.house.furniture[0].x).toBeCloseTo(house.furniture[0].x + .91);
+    expect(result.house.openings).toBe(house.openings);
+  });
+  it('rejects moving a mounted item away from its wall atomically', () => {
+    const house = fixture();
+    const result = moveBuildingGroup(house, [{ kind: 'furniture', id: 'plate' }], 1, 0);
+    expect(result.error).not.toBeNull();
+    expect(result.house).toBe(house);
+  });
 });
