@@ -52,11 +52,33 @@ export function wallsUnder(house: House, level: number, r: Rect): boolean {
   });
 }
 
-/** 床は地面の上（1階）か、下の階の壁の上（2階以上）に張れる */
+/** 角だけでなく、辺が正の長さで接している。 */
+export function floorEdgesTouch(a: Rect, b: Rect): boolean {
+  return ((a.x1 === b.x0 || b.x1 === a.x0) && Math.min(a.z1, b.z1) > Math.max(a.z0, b.z0)) ||
+    ((a.z1 === b.z0 || b.z1 === a.z0) && Math.min(a.x1, b.x1) > Math.max(a.x0, b.x0));
+}
+
+/** 同じ階の床をたどり、直下の全高壁につながっているか。循環だけでは支持にならない。 */
+function floorSupported(house: House, level: number, r: Rect): boolean {
+  const pending: Rect[] = [r];
+  const remaining = new Set(house.floors.filter(f => f.level === level));
+  for (let i = 0; i < pending.length; i++) {
+    const current = pending[i];
+    if (wallsUnder(house, level - 1, current)) return true;
+    for (const floor of remaining) {
+      if (!floorEdgesTouch(current, floor)) continue;
+      remaining.delete(floor);
+      pending.push(floor);
+    }
+  }
+  return false;
+}
+
+/** 床は地面、全高壁の上、またはその壁に支えられた同じ階の床の隣に張れる。 */
 export function canPlaceFloor(house: House, level: number, r: Rect): string | null {
   if (!rectInsideLot(r)) return '土地の外には置けません';
   if (house.floors.some((f) => f.level === level && rectsOverlap(f, r))) return 'すでに床があります';
-  if (level > 0 && !wallsUnder(house, level - 1, r)) return '床は地面の上か、壁の上に張れます';
+  if (level > 0 && !floorSupported(house, level, r)) return '床は地面・壁の上か、壁に支えられた同じ階の床につなげて張れます';
   return null;
 }
 
