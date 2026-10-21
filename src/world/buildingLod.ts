@@ -9,11 +9,11 @@ export interface BuildingBounds {x0:number;x1:number;y0:number;y1:number;z0:numb
 export function distanceToBuilding(p:{x:number;y:number;z:number},b:BuildingBounds):number {
   return Math.hypot(Math.max(b.x0-p.x,0,p.x-b.x1),Math.max(b.y0-p.y,0,p.y-b.y1),Math.max(b.z0-p.z,0,p.z-b.z1));
 }
-export function buildingTier(distance:number,previous:BuildingTier):BuildingTier {
-  if(distance<=36)return 'near';
-  if(previous==='near'&&distance<46)return 'near';
-  if(distance>=120)return 'distant';
-  if(previous==='distant'&&distance>105)return 'distant';
+export function buildingTier(distance:number,previous:BuildingTier,mobile=false):BuildingTier {
+  if(distance<=(mobile?20:36))return 'near';
+  if(previous==='near'&&distance<(mobile?28:46))return 'near';
+  if(distance>=(mobile?80:120))return 'distant';
+  if(previous==='distant'&&distance>(mobile?68:105))return 'distant';
   return 'exterior';
 }
 const envelopes=new WeakMap<House,{bounds:BuildingBounds;outerWalls:Set<string>}>();

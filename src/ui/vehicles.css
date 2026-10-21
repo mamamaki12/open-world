@@ -95,3 +95,5 @@
 .drive-hud .drive-view{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:46px;height:46px;padding:0;border-radius:50%;line-height:1;vertical-align:middle;margin-left:6px;}
 .drive-view span{font-size:18px;}.drive-view small{font-size:9px;margin-top:1px;}
 .drive-actions{display:flex;align-items:center;justify-content:center;}
+
+.vehicle-roster{pointer-events:auto;background:#101f2bec;color:#fff;border-radius:8px;padding:5px 8px;font-size:12px;text-align:left;margin:5px 0;max-width:260px;} .vehicle-roster summary{cursor:pointer;} .vehicle-roster ul{margin:5px 0;padding-left:18px;max-height:160px;overflow:auto;} .vehicle-roster li{overflow-wrap:anywhere;} .touch .vehicle-roster{position:absolute;left:calc(8px + var(--safe-l));top:100px;max-width:200px;}
