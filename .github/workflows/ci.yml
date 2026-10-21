@@ -70,16 +70,20 @@ jobs:
             sleep 1
           done
           node scripts/check-launcher-layout.mjs
+          node scripts/check-build-menu-layout.mjs
           node scripts/check-build-controls.mjs
           node scripts/check-connected-floors.mjs
+          node scripts/check-shared-floor-extension.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: construction-ui-checks
           path: |
             browser-checks/build-controls/
+            browser-checks/build-menu/
             browser-checks/launcher-layout/
             browser-checks/connected-floors/
+            browser-checks/shared-floor/
           if-no-files-found: ignore
 
   shared-ui:

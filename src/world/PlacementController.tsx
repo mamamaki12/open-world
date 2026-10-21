@@ -6,10 +6,9 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getFurniture } from '../catalog';
 import { designOf } from '../catalog/designs';
-import { BASE_HEIGHT, GRID, lotSize, MAX_LEVEL, STORY_HEIGHT } from '../building/dimensions';
+import { GRID, lotSize, MAX_LEVEL } from '../building/dimensions';
 import {
   axisAlignedSegment,
-  canPlaceFloor,
   canPlaceRoof,
   canPlaceStair,
   canPlaceWall,
@@ -27,15 +26,10 @@ import { snapFurniturePlacement } from '../building/furnitureSnap';
 import { moveBuildingGroup } from '../building/groups';
 import { aimBuilding } from './aimMode';
 import { placementPoint } from './placementRay';
-import { floorExtensionLevel, floorPlacementPlan } from '../building/floorPlacement';
+import { floorPlacementPlan } from '../building/floorPlacement';
+import { floorPointerLevel, pointerSurfaceLevel } from './placementSurface';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
-
-/** 床を張る階：マウスの下の面の階から上へ順に、張れる階を探す（1階の床の上でドラッグしても2階の床になる） */
-function floorLevel(house: House, surface: number, rect: Rect): number {
-  for (let l = surface; l <= MAX_LEVEL; l++) if (canPlaceFloor(house, l, rect) === null) return l;
-  return surface;
-}
 
 /** その階の（高さのある）壁が囲む範囲。壁がなければ null */
 function wallBounds(house: House, level: number): Rect | null {
@@ -49,13 +43,6 @@ function wallBounds(house: House, level: number): Rect | null {
   };
 }
 
-/** 当たったメッシュが、見えている不透明なものか（プレビューやガラスは除く） */
-function solid(o: THREE.Object3D): boolean {
-  const m = (o as THREE.Mesh).material;
-  if (!m) return false;
-  return (Array.isArray(m) ? m : [m]).some((x) => !x.transparent || x.opacity >= 0.99);
-}
-
 export function PlacementController() {
   const { gl, camera, scene } = useThree();
   /** 歩きながら建てるとき、マウスを動かさなくても体の移動に合わせてプレビューを追従させる */
@@ -63,8 +50,6 @@ export function PlacementController() {
 
   useEffect(() => {
     const el = gl.domElement;
-    const raycaster = new THREE.Raycaster();
-    const ndc = new THREE.Vector2();
     let dragStart: { x: number; z: number } | null = null;
     /** ドラッグを始めたときの面の階（ドラッグ中は変えない） */
     let dragSurface = 0;
@@ -102,14 +87,7 @@ export function PlacementController() {
     };
     /** マウスの下にある面の階。地面なら0、床の上ならその階、壁の上なら一つ上の階 */
     const pickSurface = (e: PointerEvent): number => {
-      const r = el.getBoundingClientRect();
-      ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-      raycaster.setFromCamera(ndc, camera);
-      const house = scene.getObjectByName('house');
-      const hit = house ? raycaster.intersectObject(house, true).find((h) => solid(h.object)) : undefined;
-      const ground = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
-      if (!hit || (ground && ground.distanceTo(raycaster.ray.origin) < hit.distance)) return 0;
-      return clamp(Math.floor((hit.point.y - BASE_HEIGHT + 0.15) / STORY_HEIGHT), 0, MAX_LEVEL);
+      return pointerSurfaceLevel(camera, el.getBoundingClientRect(), e.clientX, e.clientY, scene.getObjectByName('house'));
     };
     const cellAt = (p: THREE.Vector3) => ({
       x: clamp(Math.floor(p.x / GRID), 0, lotSize.w - 1),
@@ -155,19 +133,9 @@ export function PlacementController() {
       if (g.tool === 'wall' && (g.defaults.wallHeight === 'fence' || g.defaults.wallHeight === 'privacyFence')) return 0;
       if (g.tool === 'furniture' && getFurniture(g.defaults.furnitureType).grounded) return 0;
       if (g.tool === 'roof') return roofSurface(e);
-      const surface = pickSurface(e);
-      if (g.tool !== 'floor') return surface;
-      const extension = floorExtensionLevel(g.house, surface, level => {
-        const p = groundPoint(e, level);
-        if (!p) return null;
-        const cell = cellAt(p);
-        return cellRect(cell, cell);
-      });
-      if (extension !== null) return extension;
-      const p = groundPoint(e, surface);
-      if (!p) return surface;
-      const cell = cellAt(p);
-      return floorLevel(g.house, surface, cellRect(cell, cell));
+      return g.tool === 'floor'
+        ? floorPointerLevel(g.house, camera, el.getBoundingClientRect(), e.clientX, e.clientY, scene.getObjectByName('house'))
+        : pickSurface(e);
     };
 
     let lastPointer: PointerEvent | null = null;
