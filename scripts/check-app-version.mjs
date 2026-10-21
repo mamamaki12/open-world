@@ -67,6 +67,7 @@ try{
     await page.getByLabel('あなたの名前').fill('版確認');
     await page.getByRole('button',{name:'ひとりで遊ぶ',exact:false}).click();await page.locator('.app').waitFor();
     if(!touch)await page.getByRole('button',{name:'歩いてみる',exact:false}).click();
+    else await page.getByRole('button',{name:'メニュー',exact:true}).click();
     await page.getByRole('button',{name:/^セーブ/}).click();
     await panel.getByText('最新版です',{exact:true}).waitFor();
     await panel.scrollIntoViewIfNeeded();

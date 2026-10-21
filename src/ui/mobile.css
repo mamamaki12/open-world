@@ -404,3 +404,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media(orientation:landscape) and (max-height:500px){.drive-handbrake.touch-btn{width:48px;height:48px;}.drive-brakes{gap:4px;}}
 .drive-brake .pedal-pad{bottom:28px;}
 .drive-brake .pedal-name small{display:block;font-size:9px;line-height:1.2;}
+.walk-menu-status:empty { display: none; }
+.walk-menu-status { padding: 4px 6px 6px; }
+.app.touch .touch-hud .walk-menu-status .chip { display: block; max-width: none; white-space: normal; font-size: 12px; background: transparent; color: var(--game-text, #fff); box-shadow: none; border: 0; padding: 2px 0; min-height: 0; }
