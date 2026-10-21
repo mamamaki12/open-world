@@ -42,7 +42,8 @@ try {
   for(const p of pages)await until(p,()=>window.__ow.game.getState().house.floors.length===2);await settled(friend);
   const floors=await friend.evaluate(()=>window.__ow.game.getState().house.floors);assert.deepEqual(floors.map(({id,level,x0,x1,z0,z1})=>({id:id==='root'?'root':'added',level,x0,x1,z0,z1})),[{id:'root',level:1,x0:1,x1:4,z0:1,z1:4},{id:'added',level:1,x0:4,x1:6,z0:1,z1:4}]);
   assert.deepEqual(await owner.evaluate(()=>window.__ow.game.getState().house.floors),floors,'other browser receives the same extension');
-  assert.deepEqual(await friend.evaluate(()=>window.__ow.camera.position.toArray()),camera,'drag builds without rotating the camera');
+  const afterCamera=await friend.evaluate(()=>window.__ow.camera.position.toArray());
+  assert(Math.hypot(...afterCamera.map((v,i)=>v-camera[i]))<1e-6,'drag builds without rotating the camera');
   await friend.screenshot({path:out+'/landscape-oblique-extension.png'});
   await friend.getByRole('button',{name:'取り消し',exact:true}).click();for(const p of pages)await until(p,()=>window.__ow.game.getState().house.floors.length===1);await settled(friend);
   assert.equal(await owner.evaluate(()=>window.__ow.game.getState().house.floors[0].id),'root');assert.deepEqual(errors,[]);

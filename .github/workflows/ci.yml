@@ -74,7 +74,6 @@ jobs:
           node scripts/check-build-controls.mjs
           node scripts/check-connected-floors.mjs
           node scripts/check-shared-floor-extension.mjs
-          node scripts/check-shared-editing-target.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -85,7 +84,34 @@ jobs:
             browser-checks/launcher-layout/
             browser-checks/connected-floors/
             browser-checks/shared-floor/
-            browser-checks/shared-target/
+          if-no-files-found: ignore
+
+  shared-editing-target:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify two owners and the blue preview on the correct property
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/shared-target-vite.log 2>&1 &
+          web=$!
+          trap 'kill "$web"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-shared-editing-target.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-editing-target-checks
+          path: browser-checks/shared-target/
           if-no-files-found: ignore
 
   shared-ui:
