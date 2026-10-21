@@ -26,6 +26,8 @@ import { useDesigns } from '../catalog/designs';
 import { useStocks, homeHoldings } from '../state/stocks';
 import type { Holding } from '../economy/stocks';
 import { recordPose, forgetPose } from './poseBuffer';
+import { initialEditingLot, confirmedPurchaseLot } from './editingTarget';
+import type { PurchaseTarget } from './editingTarget';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
 export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean; riding?: string | null; /** 送った側の performance.now()。受け取り側の補間に使う */ ts?: number }
@@ -158,6 +160,10 @@ export async function joinShared(url: string) {
     if (!account || savedBundle().wallet?.pending.length) return '所持金を同期中です。少し待ってからお試しください';
     if (useSession.getState().status !== 'connected') return '接続を待っています';
     const id = crypto.randomUUID(); actions.add(id);
+    if (action.type === 'buyLand') {
+      const plot = useEconomy.getState().offers.find(o => o.id === action.offer)?.plot;
+      if (typeof plot === 'number') purchaseTargets.set(id, { plot });
+    } else if (action.type === 'buyLot') purchaseTargets.set(id, { lot });
     send({ type: 'command', command: { id, lot, delta: [], reserved, action } });
     return null;
   };
@@ -166,6 +172,7 @@ export async function joinShared(url: string) {
 }
 /** みんなのワールドの口座（サーバーの正本）に、まだ返事のない自分の出入りを足して表示する */
 const actions = new Set<string>(), actionAcks = new Set<string>();
+const purchaseTargets = new Map<string, PurchaseTarget>();
 let walletSending: string | null = null, firstAccount = true;
 let account: { money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, Holding> } | null = null, accountApplying = false;
 let carsLoaded = false, carsConfirmed = '';
@@ -230,6 +237,7 @@ function leaveShared() {
   homePosition = null; sharedSpawn = false;
   sessionGate.shared = false; sessionGate.money = null; sessionGate.act = null;
   walletSending = null; actions.clear(); actionAcks.clear(); account = null;
+  purchaseTargets.clear();
   carsLoaded = false; carsConfirmed = ''; carsSending = null;
 }
 export async function connectWorld(url: string, code = '', shared = false) {
@@ -269,7 +277,15 @@ function openConnection(generation: number, resume: boolean) {
       } else if (m.type === 'world' && state.role === 'guest') {
         if (!validWorld(m.world)) throw Error('ワールドを読み込めません');
         remoteWorld = m.world;
-        if (!useGame.getState().dragBase) applyWorld(remoteWorld!, true);
+        if (!useGame.getState().dragBase) {
+          let preferred = state.shared && !receivedWorld
+            ? initialEditingLot(remoteWorld!.economy.lots, useEconomy.getState().currentLotId, remoteWorld!.economy.currentLotId, p.id) : undefined;
+          if (state.shared) for (const [id, target] of purchaseTargets) {
+            const lot = confirmedPurchaseLot(remoteWorld!, id, target, p.id);
+            if (lot) { preferred = lot; purchaseTargets.delete(id); }
+          }
+          applyWorld(remoteWorld!, true, preferred);
+        }
         if (state.shared && sharedSpawn) {
           sharedSpawn = false;
           const o = civicOffset();
@@ -311,7 +327,7 @@ function openConnection(generation: number, resume: boolean) {
         }
       }
       else if (m.type === 'result' && actions.has(m.result?.id)) {
-        if (m.result.ok) actionAcks.add(m.result.id); else actions.delete(m.result.id);
+        if (m.result.ok) actionAcks.add(m.result.id); else { actions.delete(m.result.id); purchaseTargets.delete(m.result.id); }
         useGame.getState().notify(m.result.message || (m.result.ok ? '完了しました' : 'できませんでした'));
       }
       else if (m.type === 'account' && m.account && Number.isSafeInteger(m.account.money)) {

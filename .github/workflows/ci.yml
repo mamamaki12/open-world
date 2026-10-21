@@ -74,6 +74,7 @@ jobs:
           node scripts/check-build-controls.mjs
           node scripts/check-connected-floors.mjs
           node scripts/check-shared-floor-extension.mjs
+          node scripts/check-shared-editing-target.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -84,6 +85,7 @@ jobs:
             browser-checks/launcher-layout/
             browser-checks/connected-floors/
             browser-checks/shared-floor/
+            browser-checks/shared-target/
           if-no-files-found: ignore
 
   shared-ui:

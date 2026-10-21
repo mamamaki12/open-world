@@ -4,7 +4,9 @@ import { yen } from '../economy/money';
 import { renovationCost } from '../economy/pricing';
 import { saveEconomy, useCurrentLot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
-import { onlineWorld } from '../session/gate';
+import { onlineWorld, sessionGate } from '../session/gate';
+import { savedBundle } from '../session/saves';
+import { canBuildOn } from '../server/sharedWorld';
 import { clockLabel } from '../world/climate';
 import { useClimate } from '../world/Climate.tsx';
 
@@ -41,6 +43,11 @@ export function BuildChip() {
   const lot = useCurrentLot();
   const house = useGame((s) => s.house);
   const est = useMemo(() => (lot ? renovationCost(lot.built, house) : null), [lot?.built, house]);
+  if (sessionGate.shared) {
+    if (!lot) return <span className="chip warn">土地は不動産屋で購入できます</span>;
+    const me = savedBundle().profile.id, allowed = canBuildOn(lot, me);
+    return <span className={`chip${allowed ? '' : ' warn'}`}>{lot.name} · {allowed ? lot.owner === me ? 'あなたの土地 · 着工無料' : '共同建築可 · 着工無料' : `${lot.ownerName || '持ち主'}さんの建築許可が必要`}</span>;
+  }
   if (onlineWorld()) return <span className="chip">共同建築 · 着工無料</span>;
   if (!lot) {
     return (
