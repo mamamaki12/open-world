@@ -3,6 +3,39 @@ import type { FurnitureDef } from './index';
 const colors = ['#2c3035', '#f0ece4', '#b18b54'];
 /** Local +Z faces away from the wall; wall fixtures share the established nameplate mount pivot. */
 export const LIGHTING: FurnitureDef[] = [
+  { id:'ceiling-disc-light',name:'丸型シーリングライト',category:'lighting',ceiling:true,colors,
+    light:{position:[0,-.15,0],color:'#fff0d5',intensity:24,distance:7},
+    parts:[
+      {shape:'cylinder',size:[.66,.05,.66],pos:[0,-.025,0],paint:'main'},
+      {shape:'cylinder',size:[.6,.09,.6],pos:[0,-.09,0],paint:'white',glow:true},
+    ]},
+  { id:'ceiling-pendant-light',name:'ペンダントライト',category:'lighting',ceiling:true,colors,
+    light:{position:[0,-.65,0],color:'#ffd8a8',intensity:18,distance:6},
+    parts:[
+      {shape:'cylinder',size:[.16,.04,.16],pos:[0,-.02,0],paint:'main'},
+      {shape:'cylinder',size:[.018,.4,.018],pos:[0,-.24,0],paint:'dark'},
+      {shape:'cylinder',size:[.46,.18,.46],pos:[0,-.51,0],paint:'main'},
+      {shape:'cylinder',size:[.4,.025,.4],pos:[0,-.61,0],paint:'white',glow:true},
+    ]},
+  { id:'ceiling-panel-light',name:'角型パネルライト',category:'lighting',ceiling:true,colors,
+    light:{position:[0,-.12,0],color:'#f1f6ff',intensity:28,distance:7},
+    parts:[
+      {shape:'box',size:[1.1,.05,.5],pos:[0,-.025,0],paint:'main'},
+      {shape:'box',size:[1,.025,.4],pos:[0,-.062,0],paint:'white',glow:true},
+    ]},
+  { id:'paper-floor-light',name:'和紙のフロア照明',category:'lighting',colors,
+    light:{position:[0,.58,0],color:'#ffd5a0',intensity:9,distance:5},
+    parts:[
+      {shape:'box',size:[.36,.06,.36],pos:[0,.03,0],paint:'wood'},
+      {shape:'box',size:[.3,.85,.3],pos:[0,.485,0],paint:'white',glow:true},
+      {shape:'box',size:[.34,.035,.34],pos:[0,.93,0],paint:'wood'},
+    ]},
+  { id:'globe-floor-light',name:'ボールフロアライト',category:'lighting',colors,
+    light:{position:[0,.3,0],color:'#ffe9c7',intensity:8,distance:5},
+    parts:[
+      {shape:'cylinder',size:[.27,.055,.27],pos:[0,.0275,0],paint:'main'},
+      {shape:'sphere',size:[.48,.48,.48],pos:[0,.29,0],paint:'white',glow:true},
+    ]},
   { id: 'wall-sconce', name: '壁付けブラケットライト', category: 'lighting', colors,
     mount: { width: .28, height: .54, back: .025 },
     light: { position: [0, 1.6, .23], color: '#ffd6a0', intensity: 2.8, distance: 4.5 },

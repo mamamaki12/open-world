@@ -14,6 +14,10 @@ import { distanceToBuilding, houseEnvelope } from './buildingLod';
 import { DistantHouse } from './DistantHouse';
 import { useVehicles } from '../state/vehicles';
 import { useTouchDevice } from '../ui/useTouchDevice';
+import { furnitureDef } from '../catalog';
+import { furnitureBaseY } from '../building/rules';
+import { mountedTransform } from '../building/mounts';
+import { PlacedLightSource } from './PlacedLightSource';
 const readOnly:ActivateHouse=e=>{e.stopPropagation();useGame.getState().notify(VISIT_READ_ONLY);};
 const baked=new Map<string,BakedHouse>();
 function Baker({id,onDone,desktop}:{id:string;onDone:(id:string)=>void;desktop:boolean}){
@@ -54,7 +58,9 @@ export function TownHouses({shiftX,shiftZ,skip}:{shiftX:number;shiftZ:number;ski
       return <>
        <group visible={tier==='distant'||!parts}><DistantHouse house={house}/></group>
        {parts&&<group dispose={null}>
-        <group visible={tier==='near'} userData={{houseVariant:'full'}}>{parts.full.map((part,i)=><mesh key={i} geometry={part.geometry} material={part.material} castShadow receiveShadow/>)}</group>
+        <group visible={tier==='near'} userData={{houseVariant:'full'}}>{parts.full.map((part,i)=><mesh key={i} geometry={part.geometry} material={part.material} castShadow receiveShadow/>)}
+          {house.furniture.map(f=>{const def=furnitureDef(f);if(!def.light)return null;const t=f.wallMount?mountedTransform(house,f.wallMount,f.type):null;return <group key={f.id} position={[t?.x??f.x,t?.y??furnitureBaseY(house,f),t?.z??f.z]} rotation-y={(t?.rotation??f.rotation)*Math.PI/180}><PlacedLightSource light={def.light}/></group>;})}
+        </group>
         <group visible={tier==='exterior'} userData={{houseVariant:'exterior'}}>{parts.exterior.map((part,i)=><mesh key={i} geometry={part.geometry} material={part.material} castShadow receiveShadow/>)}</group>
        </group>}
       </>;

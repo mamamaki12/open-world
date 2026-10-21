@@ -5,6 +5,7 @@ import { axisAlignedSegment, canPlaceOpening, canPlaceRoof, canPlaceStair, canPl
 import { floorPlacementPlan } from './floorPlacement';
 import { mountedTransform, nameplateMount } from './mounts';
 import { snapFurniturePlacement } from './furnitureSnap';
+import { hasRoomCeiling } from './roomLighting';
 import type { Defaults, Tool } from '../state/store';
 import type { House, PartRef } from './types';
 import type { Preview } from '../state/interaction';
@@ -51,6 +52,7 @@ export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number
     }
   }else if(tool==='furniture'){
     const def=getFurniture(d.furnitureType),pos=snapFurniturePlacement(h,{level,type:def.id,rotation:d.furnitureRotation},p.x,p.z,false);
+    if(def.ceiling&&!hasRoomCeiling(h,level,pos.x,pos.z))return {error:'天井のある部屋の床を狙ってください'};
     preview={kind:'furniture',...pos};
     next={...h,furniture:[...h.furniture,{id:newId('furniture'),level,type:def.id,...pos,rotation:d.furnitureRotation,color:def.colors[0],...(def.label?{label:d.nameplateText}:{}),...designOf(def.id)}]};
   }else if(tool==='erase'){

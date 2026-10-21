@@ -172,6 +172,7 @@ export function floorCovers(house: House, level: number, x: number, z: number, r
 
 /** 家具を置く高さ：その階の床の上。1階で床のない所（庭）なら地面 */
 export function furnitureBaseY(house: House, f: Pick<FurniturePart, 'level' | 'x' | 'z'> & { type?: string; design?: FurnitureDef }): number {
+  if (f.type && furnitureDef(f).ceiling) return floorY(f.level) + WALL_HEIGHT - .035;
   if (f.type && furnitureDef(f).grounded) return 0;
   if (f.level > 0 || floorCovers(house, 0, f.x, f.z)) return floorY(f.level);
   return 0;

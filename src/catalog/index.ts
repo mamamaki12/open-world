@@ -110,6 +110,8 @@ export interface FurnitureDef {
   category?: 'outdoor' | 'lighting';
   /** 取付中心はモデル内の y=1.6m。back は取付中心から背面までの距離。 */
   mount?: { width: number; height: number; back: number };
+  /** 原点を天井下面に置き、部品は下向きに配置する。 */
+  ceiling?: boolean;
   light?: { position: [number, number, number]; color: string; intensity: number; distance: number };
   /** 外構・ガレージ部材は地面基準。部品ごとの衝突判定で車庫の内部を通れる。 */
   grounded?: boolean;
