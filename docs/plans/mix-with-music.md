@@ -2,10 +2,10 @@
 
 ## 現在の状態
 
-- 状態: 実装中
+- 状態: PR作成済み（CI待ち）
 - ブランチ: `claude/project-thread-g2sjwz`
 - 残作業: 実装、CI、マージ。実機（iPhone/Android）での最終確認はしんごさん
-- 確認根拠: （実装後に記入）
+- 確認根拠: tsc・vitest 701件通過。audioSession は Chromium に無いのでクラウドでは鳴り方を確認できない（実機確認待ち）
 - 最終更新: 2026-10-21
 
 ## 目的
