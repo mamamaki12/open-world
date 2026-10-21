@@ -213,37 +213,45 @@ function WalkMenu() {
   );
 }
 
-/** スマホの左上：モード切り替え・取り消し・セーブと、所持金・不動産屋・カジノ */
+/** スマホ建築画面の左上：メニューボタン・所持金・取り消し/やり直しだけ。歩いてみる・地図・バイト・建築状況・セーブはメニューの中（歩き画面と同じ） */
 function TouchHud() {
+  const [open, setOpen] = useState(false);
   const holding=useGame(s=>s.tool!=='select');
   const undo = useGame((s) => s.undo);
   const redo = useGame((s) => s.redo);
   const canUndo = useGame((s) => s.past.length > 0);
   const canRedo = useGame((s) => s.future.length > 0);
   const setOverlay = useGame((s) => s.setOverlay);
+  const setMode = useGame((s) => s.setMode);
   const money = useEconomy((s) => s.money);
+  const pick = (f: () => void) => () => {
+    setOpen(false);
+    f();
+  };
   return (
-    <div className="touch-hud">
+    <div className="touch-hud walk-menu build-hud">
       <div className="touch-hud-row">
-        <ModeButton />
+        <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>
+          ☰
+        </button>
+        <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
         <button className={`tool icon${holding?' history-label':''}`} disabled={!canUndo} onClick={undo} aria-label="取り消し">
           ↶{holding&&' 取り消す'}
         </button>
         <button className={`tool icon${holding?' history-label':''}`} disabled={!canRedo} onClick={redo} aria-label="やり直し">
           ↷{holding&&' やり直す'}
         </button>
-        <SaveMenu />
       </div>
-      <div className="touch-hud-row">
-        <span className={`touch-cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
-        <button className="tool icon labeled" onClick={() => setOverlay('map')} aria-label="町の地図">
-          🗺<span>地図</span>
-        </button>
-        <button className="tool icon labeled" onClick={() => setOverlay('jobs')} aria-label="バイト">
-          💼<span>バイト</span>
-        </button>
-        <BuildChip />
-      </div>
+      {open && (
+        <div className="walk-menu-list">
+          <div className="walk-menu-status"><BuildChip /></div>
+          <button className="walk-menu-item" onClick={pick(() => setMode('walk'))}>🚶 歩いてみる</button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>🗺 地図</button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}>💼 バイト</button>
+          <SaveMenu />
+          <button className="walk-menu-item" onClick={pick(reloadLatest)}>🔄 最新版にする</button>
+        </div>
+      )}
     </div>
   );
 }
