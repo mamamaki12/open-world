@@ -9,6 +9,7 @@ import { useGame } from '../state/store';
 import { plotX, plotZ } from '../economy/town';
 import { CarModel } from './CarModel';
 import { parkVehicle } from './vehicleLogic';
+import { VehicleOccupants } from './VehicleOccupants';
 function ParkedCar({car}:{car:OwnedCar}){
   const ref=useRef<THREE.Group>(null);
   useFrame(()=>{
@@ -16,7 +17,7 @@ function ParkedCar({car}:{car:OwnedCar}){
     const p=currentPlotOf(useEconomy.getState());
     ref.current.position.set(car.x-plotX(p),0,car.z-plotZ(p));ref.current.rotation.y=car.yaw;
   });
-  return <group ref={ref} name={'vehicle-'+car.id}><CarModel def={getCar(car.model)!} color={car.color} pose={car} mods={car.mods}/></group>;
+  return <group ref={ref} name={'vehicle-'+car.id}><CarModel def={getCar(car.model)!} color={car.color} pose={car} mods={car.mods}/><VehicleOccupants owner="" car={car}/></group>;
 }
 export function CarFleet(){
   const cars=useVehicles(s=>s.cars);

@@ -48,6 +48,35 @@ jobs:
             job-checks/
           if-no-files-found: ignore
 
+  vehicle-occupants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Check occupants, stable vehicle geometry and actual entry/exit
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vehicle-occupants-vite.log 2>&1 &
+          web=$!
+          trap 'kill "$web"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-vehicle-occupants.mjs
+          node scripts/check-vehicle-occupant-sync.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vehicle-occupants-checks
+          path: browser-checks/vehicle-occupants/
+          if-no-files-found: ignore
+
   construction-ui:
     runs-on: ubuntu-latest
     timeout-minutes: 20

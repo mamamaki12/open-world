@@ -14,6 +14,14 @@ import { getLocation } from '../economy/market';
 import { yen } from '../economy/money';
 import { Modal } from './Modal';
 import { walkActions } from '../state/touch';
+import { assignVehicleSeats, vehicleSeat } from '../world/vehicleSeats';
+import { sessionGate } from '../session/gate';
+import { useSession } from '../session/session';
+function VehicleRoster({ owner, id, model }: { owner: string; id: string; model: string }) {
+  useSession(s => s.poses); useSession(s => s.members);
+  const def = getCar(model)!, people = assignVehicleSeats(owner || sessionGate.selfId(), id, def.seats, sessionGate.vehicleOccupants());
+  return <details className="vehicle-roster"><summary>乗車中（{people.length}名）</summary><ul>{people.map(({ person, seat }) => <li key={person.id}>{vehicleSeat(def, seat).label}：{person.name}</li>)}</ul></details>;
+}
 export function WorldActionHud(){
   const inside=useVenue(s=>s.inside);
   const driving=useVehicles(s=>s.driving),target=useVehicles(s=>s.target),riding=useVehicles(s=>s.riding),overlay=useGame(s=>s.overlay),view=useGame(s=>s.view);
@@ -23,7 +31,8 @@ export function WorldActionHud(){
   if(riding&&!overlay){
     const car=ridingCar();
     return car?<div className={`drive-hud riding ${view==='first'?'first':''}`} aria-label="同乗中">
-      <div className="drive-dashboard"><b className="drive-model">{getCar(car.model)!.name}・助手席</b><div className="drive-speed">{Math.round(Math.abs(car.speed)*3.6)}<small>km/h</small></div></div>
+      <div className="drive-dashboard"><b className="drive-model">{getCar(car.model)!.name}・{vehicleSeat(getCar(car.model)!,riding.seat??1).label}</b><div className="drive-speed">{Math.round(Math.abs(car.speed)*3.6)}<small>km/h</small></div></div>
+      <VehicleRoster owner={riding.owner} id={car.id} model={car.model}/>
       <div className="drive-actions"><button className="drive-exit" onClick={()=>interact()}><span className="drive-key">F · </span>降りる</button>{viewButton}</div>
     </div>:null;
   }
@@ -35,14 +44,14 @@ export function WorldActionHud(){
       <div className="drive-speed">{car.speed<-.1?'R ':''}{Math.round(Math.abs(car.speed)*3.6)}<small>km/h</small></div>
       {car.drifting ? <b className="drive-drift">DRIFT</b> : car.handbraking ? <b className="drive-drift">サイドブレーキ</b> : null}
     </div>
-    <div className="drive-keyboard-help"><p>W/S 前後 · A/D ハンドル · Space ブレーキ</p><p>Shift サイドブレーキ · Q 視点</p></div>
+    <VehicleRoster owner="" id={car.id} model={car.model}/><div className="drive-keyboard-help"><p>W/S 前後 · A/D ハンドル · Space ブレーキ</p><p>Shift サイドブレーキ · Q 視点</p></div>
     <div className="drive-actions">
       <button className="drive-exit" onClick={()=>interact()}><span className="drive-key">F · </span>降りる</button>
       {viewButton}
     </div>
   </div>;
   const venueLabel=inside&&target.startsWith('venue:')?VENUE_ACTIONS[inside].find(a=>target==='venue:'+a.id)?.label:undefined;
-  const label=venueLabel??(target.startsWith('land:')?'この土地を買う':target.startsWith('register:')?'お店のレジ':target.startsWith('arcade:')?'ゲーム機で遊ぶ':target.startsWith('ride:')?'コイン式の乗り物で遊ぶ':target.startsWith('shutter:')?'ガレージシャッターを開閉する':target.startsWith('furn:')?'引き出し・扉を開け閉めする':car?'運転席に乗る':target.startsWith('ride:')?'乗る':'');
+  const label=venueLabel??(target.startsWith('land:')?'この土地を買う':target.startsWith('register:')?'お店のレジ':target.startsWith('arcade:')?'ゲーム機で遊ぶ':target.startsWith('ride:')?(target.includes('|')?'空いている席に乗る':'コイン式の乗り物で遊ぶ'):target.startsWith('shutter:')?'ガレージシャッターを開閉する':target.startsWith('furn:')?'引き出し・扉を開け閉めする':car?'運転席に乗る':target.startsWith('ride:')?'乗る':'');
   const site=civicOffset(),action=inside==='dealer'?venueAction('dealer',playerMemory.x-site.x,playerMemory.z-site.z):null;
   return label?<div className="door-prompts"><button className="door-prompt" onClick={()=>interact()}><kbd>F</kbd>{label}</button>{action?.model&&<button className="door-prompt" onClick={()=>{useVenue.setState({model:action.model!,dealerIntent:'specs'});useGame.getState().setOverlay('dealer');}}>スペックを見る</button>}</div>:null;
 }
