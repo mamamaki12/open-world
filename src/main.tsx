@@ -8,8 +8,10 @@ import './ui/mobile.css';
 import './ui/game-ui.css';
 import './session/session.css';
 import { registerOffline } from './session/offline';
+import { mixWithOtherAudio } from './audioSession';
 
 cleanReloadParam();
+mixWithOtherAudio();
 void registerOffline().catch(() => undefined);
 
 createRoot(document.getElementById('root')!).render(

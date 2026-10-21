@@ -9,7 +9,7 @@ import { RaceGame } from './casino/RaceGame';
 import { Roulette } from './casino/Roulette';
 import { Slots } from './casino/Slots';
 import { isMuted, setMuted } from './casino/sfx';
-import { onVoiceChange, stopSpeaking, voiceStatus } from './casino/voice';
+import { onVoiceChange, setVoiceWanted, stopSpeaking, voiceStatus } from './casino/voice';
 import { Guide } from './casino/Guide';
 import { Modal } from './Modal';
 import './casino/casino.css';
@@ -104,6 +104,10 @@ export function CasinoPanel() {
   const setTab = (t: Tab | null) => { stopSpeaking(); setTabState(t); };
   const close = useGame((s) => s.setOverlay);
   const race = tab === 'horse' || tab === 'keirin' || tab === 'boat';
+  useEffect(() => {
+    setVoiceWanted(true);
+    return () => { setVoiceWanted(false); stopSpeaking(); };
+  }, []);
   return (
     <Modal title={tab ? TABS.find(t => t.id === tab)!.label : '🎰 GRAND STRIP CASINO'} className={`casino-modal ${tab ? 'casino-playing' : 'casino-lobby-modal'}`} onClose={() => close(null)} tabs={[]} tab={tab ?? ''} onTab={() => undefined}>
       <div className="casino-bar">
