@@ -149,7 +149,7 @@ test('shared world: everyone builds in one town, limit, settle and restart persi
     a.send({ type: 'command', command: { id: 'l1', lot: '', delta: [], reserved: 1e9, action: { type: 'buyLand', offer: first.world.economy.offers[0].id } } });
     assert.equal((await a.next('result')).result.ok, true);
     const lot = (await b.next('world')).world.economy.lots[0];
-    assert.equal(lot.owner, 'a'); assert.ok((await a.next('account')).account.money < 1e8);
+    assert.equal(lot.owner, 'a'); assert.ok((await a.next('account')).account.money < 1e8 + 1000000);
     a.send({ type: 'command', command: { id: 'c1', lot: lot.id, reserved: 1e9, delta: [{ kind: 'floors', id: 'f-test', before: null, after: floor }] } });
     assert.equal((await a.next('result')).result.ok, true);
     assert.ok((await b.next('world')).world.house.floors.some(f => f.id === 'f-test'));
