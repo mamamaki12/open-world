@@ -27,10 +27,10 @@ export interface Location {
 }
 
 export const LOCATIONS: Location[] = [
-  { id: 'rural', name: '郊外の住宅地', land: 5_000_000, factor: 0.9 },
-  { id: 'town', name: '静かな住宅街', land: 12_000_000, factor: 1.0 },
-  { id: 'station', name: '駅近', land: 25_000_000, factor: 1.15 },
-  { id: 'city', name: '都心の一等地', land: 60_000_000, factor: 1.3 },
+  { id: 'rural', name: '郊外の住宅地', land: 250_000, factor: 0.9 },
+  { id: 'town', name: '静かな住宅街', land: 600_000, factor: 1.0 },
+  { id: 'station', name: '駅近', land: 1_250_000, factor: 1.15 },
+  { id: 'city', name: '都心の一等地', land: 3_000_000, factor: 1.3 },
 ];
 
 export function getLocation(id: string): Location {

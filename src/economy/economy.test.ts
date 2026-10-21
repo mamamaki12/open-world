@@ -111,8 +111,8 @@ describe('査定', () => {
   });
 
   it('売値は相場に比例する', () => {
-    expect(salePrice(10_000_000, 'town', 1, 1.2)).toBe(Math.round((22_000_000 * 1.2) / 10000) * 10000);
-    expect(landPrice('city', 1, 0.5)).toBe(30_000_000);
+    expect(salePrice(10_000_000, 'town', 1, 1.2)).toBe(Math.round((10_600_000 * 1.2) / 10000) * 10000);
+    expect(landPrice('city', 1, 0.5)).toBe(1_500_000);
   });
 
   it('家賃は貸しているときだけ入る', () => {

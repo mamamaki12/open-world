@@ -6205,10 +6205,10 @@ function stepMarket(index, rng, bias = 1) {
   return Math.round(Math.min(Math.max(Math.exp(next), 0.5), 2) * 1e3) / 1e3;
 }
 var LOCATIONS = [
-  { id: "rural", name: "\u90CA\u5916\u306E\u4F4F\u5B85\u5730", land: 5e6, factor: 0.9 },
-  { id: "town", name: "\u9759\u304B\u306A\u4F4F\u5B85\u8857", land: 12e6, factor: 1 },
-  { id: "station", name: "\u99C5\u8FD1", land: 25e6, factor: 1.15 },
-  { id: "city", name: "\u90FD\u5FC3\u306E\u4E00\u7B49\u5730", land: 6e7, factor: 1.3 }
+  { id: "rural", name: "\u90CA\u5916\u306E\u4F4F\u5B85\u5730", land: 25e4, factor: 0.9 },
+  { id: "town", name: "\u9759\u304B\u306A\u4F4F\u5B85\u8857", land: 6e5, factor: 1 },
+  { id: "station", name: "\u99C5\u8FD1", land: 125e4, factor: 1.15 },
+  { id: "city", name: "\u90FD\u5FC3\u306E\u4E00\u7B49\u5730", land: 3e6, factor: 1.3 }
 ];
 function getLocation(id2) {
   return LOCATIONS.find((l) => l.id === id2) ?? LOCATIONS[0];
