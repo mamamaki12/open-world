@@ -12,6 +12,8 @@ try {
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
   await page.getByLabel('あなたの名前').fill('オフラインの住人');
   await page.getByRole('button', { name: 'ひとりで遊ぶ', exact: false }).click(); await page.locator('canvas').waitFor();
+  const menu = page.getByRole('button', { name: 'メニュー', exact: true });
+  if (await menu.isVisible()) await menu.click();
   await page.getByRole('button', { name: /^セーブ/ }).click();
   await page.getByRole('button', { name: '保存して開始画面へ' }).click();
   await page.getByLabel('あなたの名前').waitFor();
