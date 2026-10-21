@@ -11,8 +11,8 @@ import { FinishPicker, NamedSwatches, SashPicker } from './FinishPicker';
 import { useTouchDevice } from './useTouchDevice';
 
 export const TOOL_HELP: Record<Tool, string> = {
-  select: 'パーツをクリックして選ぶと、右のパネルで種類・素材・色を変えられます。選んだ家具はドラッグで動かせます。',
-  floor: 'ドラッグで四角く床を張ります（1マス = 910mm）。「テラス」にすると屋外のウッドデッキになります。地面の上なら1階、1階の壁の上からドラッグすると2階の床になります。壁に支えられた床の隣から、同じ高さに延長できます。',
+  select: '道具をしまっています。ドラッグで視点を操作し、上の道具から床・壁などを選んで建ててください。',
+  floor: 'ドラッグで床を張ります（1マス = 910mm）。床の上から外へなぞると、同じ階の床を延長します。重なる部分はそのまま残り、まだ床のない部分だけを追加します。壁の上からは一つ上の階に張れます。',
   wall: 'マス目の線に沿ってドラッグして壁を立てます。床のない側が外壁になります。高さは腰壁・地面から建つ塀・目隠し塀も選べます。',
   door: '壁の上にマウスを当てて、クリックでドアを付けます。',
   window: '壁の上にマウスを当てて、クリックで窓を付けます。',
@@ -24,8 +24,8 @@ export const TOOL_HELP: Record<Tool, string> = {
 
 /** 指で操作するときの説明 */
 const TOUCH_TOOL_HELP: Record<Tool, string> = {
-  select: 'パーツをタップして選ぶと、この引き出しで種類・素材・色を変えられます。選んだ家具は指でなぞって動かせます。',
-  floor: '指でなぞって四角く床を張ります（1マス = 910mm）。地面の上なら1階、1階の壁の上からなぞると2階の床になります。壁に支えられた床の隣から、同じ高さに延長できます。',
+  select: '道具をしまっています。なぞって視点を回し、建築メニューから道具を選んで建ててください。',
+  floor: '床の上から外へなぞると、同じ階で床を延長します。重なる部分は残し、まだ床のない部分だけを追加します（1マス = 910mm）。壁の上からは一つ上の階に張れます。',
   wall: 'マス目の線に沿って指でなぞって壁を立てます。床のない側が外壁になります。「塀」は地面から立ち上がります。',
   door: '壁をタップするとドアを付けます。',
   window: '壁をタップすると窓を付けます。',
@@ -41,14 +41,12 @@ export function ToolOptions() {
   const d = useGame((s) => s.defaults);
   const set = useGame((s) => s.setDefaults);
   const eraseMulti = useGame(s => s.eraseMulti);
-  const groupedSelection = useGame(s => s.groupSelection || s.boxSelect || s.marked.length > 0);
   const designs = useDesigns((s) => s.designs);
   const stairRot = useInteraction((s) => s.stairRot);
 
   let body = null;
   switch (tool) {
     case 'select':
-      body = <SelectSelectionActions />;
       break;
     case 'floor':
       body = (
@@ -180,7 +178,6 @@ export function ToolOptions() {
     <div className="panel tool-options">
       <p className="help">{touch && tool === 'erase' && !eraseMulti ? 'タップして消します。1本指でなぞると視点を回せます。範囲で消すときは「まとめて選ぶ」に切り替えてください。' : (touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
       {touch && (tool === 'wall' || tool === 'floor') && <p className="info">真上から指の位置に合わせて配置します。2本指で移動・ズームできます。</p>}
-      {tool === 'select' && <p className="info">{groupedSelection ? '一括選択中は長押しでは消えません。範囲で選んだものは「選択を削除」でまとめて消せます。' : `${touch ? 'タップ' : 'クリック'}で1ブロックだけ選び、長押しでその1ブロックを削除します。同じ素材・色でまとめて動かすときは、選択後にチェックを入れてください。`}</p>}
       {tool === 'furniture' && d.furnitureType === 'nameplate' && <p className="info">表示する文字を入力し、取り付けたい壁面をタップしてください。壁の手前側に固定します。</p>}
       {tool === 'furniture' && getFurniture(d.furnitureType).light && <p className="info">{getFurniture(d.furnitureType).mount ? '取り付けたい壁面をタップしてください。窓・ドアを避けて壁に固定し、配置後に高さを調整できます。' : '地面や床をタップして置けます。夜や室内を暖かい光で照らします。'}</p>}
       {tool === 'furniture' && getFurniture(d.furnitureType).grounded && <p className="info">地面基準のガレージ建材です。Rまたは向き変更で回転。車庫の入口は+Z側です。柱・壁・屋根・舗装を組み合わせて広げられます。</p>}
@@ -233,32 +230,6 @@ export function EraseSelectionActions() {
       <button className="btn danger" disabled={!count} onClick={() => useGame.getState().deleteMarked()}>まとめて削除{!touch && !walking && <span className="kbd-hint">（Delete）</span>}</button>
       <button className="btn" disabled={!count} onClick={() => useGame.getState().clearMarks()}>選び直す</button>
     </div>
-  </section>;
-}
-
-export function SelectSelectionActions() {
-  const box = useGame(s => s.boxSelect);
-  const count = useGame(s => s.marked.length || (s.selection ? 1 : 0));
-  const touch = useTouchDevice();
-  const game = useGame.getState();
-  const compact = touch && count === 1 && !box;
-  return <section aria-label="選択と一括操作" className={`selection-actions${compact ? ' compact' : ''}`}>
-    <div className="seg">
-      <button className={!box ? 'on' : ''} aria-pressed={!box} onClick={() => game.setBoxSelect(false)}>移動・編集</button>
-      <button className={box ? 'on' : ''} aria-pressed={box} onClick={() => game.setBoxSelect(true)}>範囲選択</button>
-    </div>
-    {!compact && <><p className="info">{box ? 'なぞって範囲を選ぶ（全階）。移動するときは「移動・編集」へ。' : touch ? 'パーツをつかんで移動。範囲を選ぶときは「範囲選択」へ。' : '背景ドラッグ／Shift＋ドラッグで範囲選択。右ドラッグで視点回転。'}</p>
-    <p className="info" role="status">選んだもの：<b>{count}</b> 個</p>
-    <div className="row">
-      <button className="btn danger" disabled={!count} onClick={() => game.marked.length ? game.deleteMarked() : game.deleteSelected()}>選択を削除</button>
-      <button className="btn" disabled={!count} onClick={() => game.clearMarks()}>選び直す</button>
-    </div>
-    {count > 1 && <div className="row" aria-label="選択全体を移動">
-      <button className="btn" onClick={() => game.moveSelection(-1, 0)}>← 1マス</button>
-      <button className="btn" onClick={() => game.moveSelection(1, 0)}>→ 1マス</button>
-      <button className="btn" onClick={() => game.moveSelection(0, -1)}>↑ 1マス</button>
-      <button className="btn" onClick={() => game.moveSelection(0, 1)}>↓ 1マス</button>
-    </div>}</>}
   </section>;
 }
 

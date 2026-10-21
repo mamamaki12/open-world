@@ -83,6 +83,7 @@ export function BuildMenu({
       <div className="build-menu" role="dialog" aria-label="建築メニュー">
         <div className="build-menu-head">
           <span className="build-menu-title">🔨 建てる</span>
+          <button className="btn" onClick={() => { useGame.getState().select(null); setTool('select'); onClose(); }}>道具をしまう</button>
           <button className="btn primary build-menu-done" onClick={onClose}>
             決定
           </button>

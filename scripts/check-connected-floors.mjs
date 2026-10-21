@@ -39,19 +39,24 @@ try {
         } else { await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 8 }); await page.mouse.up(); }
         await page.waitForTimeout(500);
       };
-      await drag(10, 12);
+      // Start ON the existing slab, not just outside its edge.
+      await drag(9, 12);
       await page.waitForFunction(() => window.__ow.game.getState().house.floors.length === 2);
-      await drag(12, 14);
+      await drag(11, 14);
       await page.waitForFunction(() => window.__ow.game.getState().house.floors.length === 3);
       const floors = await page.evaluate(() => window.__ow.game.getState().house.floors);
       assert.deepEqual(floors.map(({ level, x0, x1, z0, z1 }) => ({ level, x0, x1, z0, z1 })), [8, 10, 12].map(x0 => ({ level: 1, x0, x1: x0 + 2, z0: 6, z1: 8 })));
+      assert.equal(floors[0].id, 'root', 'existing slab is preserved');
+      // A covered gesture must neither duplicate the floor nor build an upper one.
+      await drag(9, 10);
+      assert.equal(await page.evaluate(() => window.__ow.game.getState().house.floors.length), 3);
       await page.screenshot({ path: `${out}/${name}-extended.png` });
       if (touch) await page.getByRole('button', { name: '取り消し', exact: true }).click();
       else await page.getByTitle('Ctrl+Z', { exact: true }).click();
       await page.waitForFunction(() => window.__ow.game.getState().house.floors.length === 2);
       assert.deepEqual(errors, []);
       results.push({ name, extensions: 2, level: 1, undo: true, errors });
-      console.log(`${name}: two connected upper floors and undo passed`);
+      console.log(`${name}: drag from an existing floor / two extensions / no duplicate / undo passed`);
     } catch (error) { await page.screenshot({ path: `${out}/${name}-failure.png` }); throw error; }
     finally { await context.close(); }
   }

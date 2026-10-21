@@ -27,7 +27,7 @@ import { snapFurniturePlacement } from '../building/furnitureSnap';
 import { moveBuildingGroup } from '../building/groups';
 import { aimBuilding } from './aimMode';
 import { placementPoint } from './placementRay';
-import { floorExtensionLevel } from '../building/floorPlacement';
+import { floorExtensionLevel, floorPlacementPlan } from '../building/floorPlacement';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
@@ -183,7 +183,6 @@ export function PlacementController() {
       const p = groundPoint(e, surface);
       if (!p) return;
       switch (g.tool) {
-        case 'select':
         case 'erase': {
           if (dragStart && eraseFrom) ui.setPreview({ kind: 'rect', rect: cellRect(dragStart, cellAt(p)), valid: true, tool: 'erase' });
           break;
@@ -195,7 +194,7 @@ export function PlacementController() {
           const level = g.tool === 'floor' ? surface : surface - 1;
           g.setLevel(level);
           const valid =
-            (g.tool === 'floor' ? canPlaceFloor(g.house, level, rect) : canPlaceRoof(g.house, level, rect)) === null;
+            (g.tool === 'floor' ? floorPlacementPlan(g.house, level, rect).error : canPlaceRoof(g.house, level, rect)) === null;
           ui.setPreview({ kind: 'rect', rect, valid, tool: g.tool });
           break;
         }
@@ -233,8 +232,7 @@ export function PlacementController() {
         activeTouch = e.pointerId;
       }
       const g = useGame.getState();
-      if (g.overlay || g.mode !== 'build' && g.tool === 'select') return;
-      if (g.tool === 'select' && (useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag)) return;
+      if (g.overlay || g.tool === 'select') return;
       const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
@@ -251,10 +249,9 @@ export function PlacementController() {
       const g = useGame.getState();
       const ui = useInteraction.getState();
       switch (g.tool) {
-        case 'select':
         case 'erase':
           // ドラッグすると、その範囲のパーツをまとめて選ぶ（パーツのクリックは usePart が受ける）
-          if (g.mode === 'walk' || (e.pointerType === 'touch' && !(g.tool === 'select' ? g.boxSelect : g.eraseMulti))) break;
+          if (g.mode === 'walk' || (e.pointerType === 'touch' && !g.eraseMulti)) break;
           dragStart = cellAt(p);
           dragSurface = surface;
           eraseFrom = { x: e.clientX, y: e.clientY };
@@ -400,7 +397,7 @@ export function PlacementController() {
       const p = groundPoint(e, surface);
       const start = dragStart;
       dragStart = null;
-      if (g.tool === 'erase' || g.tool === 'select') {
+      if (g.tool === 'erase') {
         const from = eraseFrom;
         eraseFrom = null;
         useInteraction.getState().setPreview(null);
@@ -409,7 +406,6 @@ export function PlacementController() {
           const refs = partsInRect(g.house, cellRect(start, cellAt(p)));
           if (g.tool === 'erase' && !g.eraseMulti) g.setEraseMulti(true);
           g.addMarks(refs);
-          if (g.tool === 'select') useGame.getState().select(useGame.getState().marked[0] ?? null);
           useInteraction.setState({ ignorePartClickUntil: Date.now() + 150 });
         }
         return;
@@ -419,11 +415,11 @@ export function PlacementController() {
         const rect = cellRect(start, cellAt(p));
         if (g.tool === 'floor') {
           const level = surface;
-          const err = canPlaceFloor(g.house, level, rect);
-          if (err) return g.notify(err);
+          const plan = floorPlacementPlan(g.house, level, rect);
+          if (plan.error) return g.notify(plan.error);
           const terrace = g.defaults.floorKind === 'terrace';
-          const floor = { id: newId('floor'), level, ...rect, finish: terrace ? g.defaults.terrace : g.defaults.floor, ...(terrace ? { kind: 'terrace' as const } : {}) };
-          g.commit({ ...g.house, floors: [...g.house.floors, floor] });
+          const floors = plan.rects.map(r => ({ id: newId('floor'), level, ...r, finish: terrace ? g.defaults.terrace : g.defaults.floor, ...(terrace ? { kind: 'terrace' as const } : {}) }));
+          g.commit({ ...g.house, floors: [...g.house.floors, ...floors] });
         } else {
           // 屋根は、ドラッグを始めたときにカーソルが読んでいた壁の上端に載る
           const level = surface - 1;

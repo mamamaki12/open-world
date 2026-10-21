@@ -6,50 +6,41 @@ import { useInteraction } from '../state/interaction';
 import { emptyHouse } from '../building/types';
 
 const original = useGame.getState(), originalInteraction = useInteraction.getState();
-const ref = { kind: 'floor' as const, id: 'a' };
+const ray = new Ray(new Vector3(1, 10, 1), new Vector3(0, -1, 0));
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.stubGlobal('window', new EventTarget());
-  vi.stubGlobal('navigator', { vibrate: vi.fn() });
-  const finish = { material: 'wood', color: '#fff' };
-  useGame.setState({ ...original, mode: 'build', tool: 'select', groupSelection: true, past: [], future: [], dragBase: null,
-    house: { ...emptyHouse(), floors: ['a', 'b'].map((id, i) => ({ id, level: 0, x0: i * 4, z0: 1, x1: i * 4 + 2, z1: 3, finish })) } });
+  useInteraction.setState({ buildingDrag: null, furnitureDrag: null });
+  useGame.setState({ ...original, mode: 'build', tool: 'select', selection: null, past: [], future: [], dragBase: null,
+    house: { ...emptyHouse(), floors: [{ id: 'floor', level: 0, x0: 0, z0: 0, x1: 2, z1: 2, finish: { material: 'wood', color: '#fff' } }],
+      furniture: [{ id: 'chair', type: 'chair', level: 0, x: 1, z: 1, rotation: 0, color: '#fff' }] } });
 });
-afterEach(() => {
-  window.dispatchEvent(new Event('pointerup'));
-  vi.useRealTimers(); vi.unstubAllGlobals();
-  useGame.setState(original, true); useInteraction.setState(originalInteraction, true);
-});
-describe('starting a grouped drag', () => {
-  it('can be held before moving without deleting one member', () => {
-    beginPartDrag(ref, new Ray(new Vector3(1, 10, 1), new Vector3(0, -1, 0)), 100, 100);
+afterEach(() => { vi.useRealTimers(); useGame.setState(original, true); useInteraction.setState(originalInteraction, true); });
+describe('construction without a selection tool', () => {
+  it('never selects, drags or long-press deletes a building part', () => {
+    for (const groupSelection of [false, true]) {
+      useGame.setState({ groupSelection });
+      beginPartDrag({ kind: 'floor', id: 'floor' }, ray, 100, 100);
+      vi.advanceTimersByTime(1000);
+      expect(useGame.getState().selection).toBeNull();
+      expect(useGame.getState().house.floors).toHaveLength(1);
+      expect(useInteraction.getState().buildingDrag).toBeNull();
+    }
+  });
+  it('only allows editing furniture that is already active after placement', () => {
+    beginPartDrag({ kind: 'furniture', id: 'chair' }, ray, 100, 100);
+    expect(useInteraction.getState().furnitureDrag).toBeNull();
+    useGame.setState({ selection: { kind: 'furniture', id: 'chair' } });
+    beginPartDrag({ kind: 'furniture', id: 'chair' }, ray, 100, 100);
     vi.advanceTimersByTime(1000);
-    expect(useGame.getState().house.floors.map(f => f.id)).toEqual(['a', 'b']);
-    expect(useInteraction.getState().buildingDrag?.refs.map(r => r.id)).toEqual(['a', 'b']);
-    expect(useGame.getState().past).toHaveLength(0);
+    expect(useInteraction.getState().furnitureDrag?.id).toBe('chair');
+    expect(useGame.getState().house.furniture).toHaveLength(1);
   });
-  it('preserves explicit single-part long-press deletion outside grouped movement', () => {
-    useGame.setState({ groupSelection: false });
-    beginPartDrag(ref, new Ray(new Vector3(1, 10, 1), new Vector3(0, -1, 0)), 100, 100);
-    vi.advanceTimersByTime(600);
-    expect(useGame.getState().house.floors.map(f => f.id)).toEqual(['b']);
-    expect(useGame.getState().past).toHaveLength(1);
-  });
-  it('holds an explicit mixed selection without losing marks or deleting a member', () => {
-    useGame.setState({ groupSelection: false, marked: [{ kind: 'floor', id: 'a' }, { kind: 'floor', id: 'b' }] });
-    beginPartDrag(ref, new Ray(new Vector3(1, 10, 1), new Vector3(0, -1, 0)), 100, 100);
-    vi.advanceTimersByTime(800);
-    expect(useGame.getState().marked).toHaveLength(2);
-    expect(useInteraction.getState().buildingDrag?.refs).toHaveLength(2);
-    expect(useGame.getState().house.floors).toHaveLength(2);
-  });
-  it('does not replace the original undo snapshot when another pointer grabs a member', () => {
-    const ray = new Ray(new Vector3(1, 10, 1), new Vector3(0, -1, 0));
-    beginPartDrag(ref, ray, 100, 100);
-    const base = useGame.getState().dragBase!;
-    useGame.getState().dragTo({ ...base, floors: base.floors.map(p => ({ ...p, x0: p.x0 + 1, x1: p.x1 + 1 })) });
-    beginPartDrag({ kind: 'floor', id: 'b' }, ray, 200, 200);
+  it('does not replace an active furniture drag when another pointer presses', () => {
+    useGame.setState({ selection: { kind: 'furniture', id: 'chair' } });
+    beginPartDrag({ kind: 'furniture', id: 'chair' }, ray, 100, 100);
+    const base = useGame.getState().dragBase;
+    beginPartDrag({ kind: 'furniture', id: 'chair' }, ray, 200, 200);
     expect(useGame.getState().dragBase).toBe(base);
-    expect(useInteraction.getState().buildingDrag?.startX).toBe(100);
+    expect(useInteraction.getState().furnitureDrag?.startX).toBe(100);
   });
 });

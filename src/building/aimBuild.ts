@@ -1,7 +1,8 @@
 import { getFurniture, getOpening } from '../catalog';
 import { designOf } from '../catalog/designs';
 import { BASE_HEIGHT, GRID, lotSize, MAX_LEVEL, STORY_HEIGHT } from './dimensions';
-import { axisAlignedSegment, canPlaceFloor, canPlaceOpening, canPlaceRoof, canPlaceStair, canPlaceWall, newId, normalizeRect, removePart, snapOpeningOffset, wallDir, wallLength } from './rules';
+import { axisAlignedSegment, canPlaceOpening, canPlaceRoof, canPlaceStair, canPlaceWall, newId, normalizeRect, removePart, snapOpeningOffset, wallDir, wallLength } from './rules';
+import { floorPlacementPlan } from './floorPlacement';
 import { mountedTransform, nameplateMount } from './mounts';
 import { snapFurniturePlacement } from './furnitureSnap';
 import type { Defaults, Tool } from '../state/store';
@@ -21,9 +22,10 @@ export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number
   if(tool==='floor'||tool==='roof'){
     const rect=normalizeRect({x0:a.x,z0:a.z,x1:point.x,z1:point.z});rect.x1++;rect.z1++;
     const roofLevel=Math.max(0,l-1);
-    error=tool==='floor'?canPlaceFloor(h,l,rect):canPlaceRoof(h,roofLevel,rect);
+    const floorPlan=tool==='floor'?floorPlacementPlan(h,l,rect):null;
+    error=floorPlan?floorPlan.error:canPlaceRoof(h,roofLevel,rect);
     preview={kind:'rect',rect,valid:!error,tool};
-    if(tool==='floor')next={...h,floors:[...h.floors,{id:newId('floor'),level:l,...rect,finish:d.floorKind==='terrace'?d.terrace:d.floor,...(d.floorKind==='terrace'?{kind:'terrace' as const}:{})}]};
+    if(tool==='floor')next={...h,floors:[...h.floors,...floorPlan!.rects.map(r=>({id:newId('floor'),level:l,...r,finish:d.floorKind==='terrace'?d.terrace:d.floor,...(d.floorKind==='terrace'?{kind:'terrace' as const}:{})}))]};
     else next={...h,roofs:[...h.roofs,{id:newId('roof'),level:roofLevel,...rect,type:d.roofType,axis:rect.x1-rect.x0>=rect.z1-rect.z0?'x':'z',flip:false,pitch:d.roofType==='flat'?0:d.roofPitch,overhang:d.roofType==='flat'?0:d.roofOverhang,finish:d.roofType==='flat'?{material:'sheet',color:'#8f9294'}:d.roofFinish,gableFinish:d.wallExterior}]};
   }else if(tool==='wall'){
     const seg=axisAlignedSegment(a,point),base=d.wallHeight==='fence'||d.wallHeight==='privacyFence'?0:l;

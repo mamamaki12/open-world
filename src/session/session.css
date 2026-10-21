@@ -1,4 +1,4 @@
-:root {
+.world-launch, .world-session, .world-disconnected, .world-network-warning, .modal-network-warning {
   --game-bg-0: #0a1517;
   --game-bg-1: #112226;
   --game-bg-2: #0b191b;
@@ -20,8 +20,9 @@
     radial-gradient(ellipse 70% 50% at 20% 100%, rgba(255, 179, 71, 0.10) 0%, transparent 50%),
     linear-gradient(180deg, var(--game-bg-0) 0%, var(--game-bg-1) 60%, var(--game-bg-2) 100%);
   color: var(--game-text);
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 32px 20px;
   font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   box-sizing: border-box;
@@ -52,6 +53,9 @@
 .world-card {
   position: relative;
   width: min(100%, 540px);
+  min-width: 0;
+  flex: none;
+  margin-block: auto;
   box-sizing: border-box;
   padding: 40px;
   background: var(--game-panel);
@@ -143,6 +147,8 @@
 
 .world-choices {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   margin: 30px 0;
 }
@@ -150,11 +156,12 @@
 .world-choice {
   position: relative;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
   gap: 16px;
   text-align: left;
   width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 18px 20px;
   background: rgba(255, 255, 255, 0.05);
@@ -198,7 +205,11 @@
   display: block;
   font-size: 17px;
   letter-spacing: 0.04em;
+  line-height: 1.4;
+  white-space: normal;
 }
+
+.world-choice > span:not(.choice-icon) { min-width: 0; overflow-wrap: anywhere; }
 
 .world-choice span span {
   display: block;
@@ -463,11 +474,11 @@
   }
 
   .world-launch {
-    align-items: start;
     padding-top: max(24px, env(safe-area-inset-top));
   }
 
   .world-choice {
+    grid-template-columns: 42px minmax(0, 1fr);
     padding: 16px;
     gap: 12px;
   }

@@ -9,7 +9,7 @@ import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { Scene } from '../world/Scene';
 import { Inspector } from './Inspector';
-import { EraseSelectionActions, SelectSelectionActions, ToolOptions } from './ToolOptions';
+import { EraseSelectionActions, ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
 import { DealerPanel } from './DealerPanel';
@@ -37,14 +37,12 @@ import { walkActions } from '../state/touch';
 import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
 import { reloadLatest } from './reload';
 import { FurnitureDesigner } from './FurnitureDesigner';
-import './game-ui.css';
 import { leaveWorld, useSession } from '../session/session';
 import { downloadBackup } from '../session/saves';
 import { VersionStatus } from './VersionStatus';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
-  { id: 'select', label: '選択', key: '1' },
   { id: 'floor', label: '床', key: '2' },
   { id: 'wall', label: '壁', key: '3' },
   { id: 'door', label: 'ドア', key: '4' },
@@ -67,6 +65,7 @@ export function App() {
   const touch = useTouchDevice();
   const walking = useGame((s) => s.mode === 'walk');
   const bulkErase = useGame((s) => s.tool === 'erase' && s.eraseMulti);
+  const editingFurniture = useGame((s) => s.selection?.kind === 'furniture');
   const app = useRef<HTMLDivElement>(null);
   useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
@@ -92,7 +91,7 @@ export function App() {
             <ToolOptions />
           </div>
           <div className="side right">
-            <Inspector />
+            {editingFurniture && <Inspector />}
           </div>
           <ControlsHelp />
         </>
@@ -130,9 +129,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
   const overlay = useGame(s => s.overlay);
   const tool = useGame((s) => s.tool);
   const setTool = useGame((s) => s.setTool);
-  const selected = useGame((s) => s.selection !== null);
-  const selectionCount = useGame(s => s.marked.length);
-  const boxSelect = useGame(s => s.boxSelect);
+  const selected = useGame((s) => s.selection?.kind === 'furniture');
   const bulkErase = useGame((s) => s.tool === 'erase' && s.eraseMulti);
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
   const [menu, setMenu] = useState(false);
@@ -157,9 +154,8 @@ function TouchLayout({ walking }: { walking: boolean }) {
         </>
       ) : (
         <div className="touch-dock">
-          {tool === 'select' && <div className="panel"><SelectSelectionActions /></div>}
-          {selected && selectionCount <= 1 && !boxSelect && (
-            <Sheet key="inspector" title="選んだパーツ" defaultOpen>
+          {selected && (
+            <Sheet key="inspector" title="家具の編集" defaultOpen>
               <Inspector />
             </Sheet>
           )}
@@ -318,6 +314,7 @@ function TopBar() {
       <div className="brand">家づくり</div>
       <ModeButton />
       <div className="tools tool-list">
+        <button className={`tool${tool === 'select' ? ' on' : ''}`} onClick={() => { useGame.getState().select(null); setTool('select'); }} title="1 / Esc">視点操作</button>
         {TOOLS.map((t) => (
           <button
             key={t.id}
@@ -550,6 +547,7 @@ function useKeyboard() {
       }
       const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
       if (digit) {
+        if (digit[1] === '1') { s.select(null); s.setTool('select'); return; }
         const t = TOOLS.find((x) => x.key === digit[1]);
         // 持っているツールの数字をもう一度押すと手ぶら（選択）に戻る
         if (t) s.setTool(walking ? t.id : t.id === s.tool ? 'select' : t.id);
