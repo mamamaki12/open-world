@@ -6,7 +6,6 @@ import { useTouchDevice } from '../ui/useTouchDevice';
 import { VersionStatus } from '../ui/VersionStatus';
 import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave } from './saves';
 import { allowBuilding, joinShared, currentEndpoint, enterOffline, leaveWorld, startSessionTimers, useSession } from './session';
-import './session.css';
 
 let initialization: Promise<void> | undefined;
 const initialRelay = () => new URLSearchParams(location.search).get('relay') || localStorage.getItem('open-world:relay') || import.meta.env.VITE_WORLD_RELAY || (import.meta.env.DEV ? 'ws://127.0.0.1:8787' : '');

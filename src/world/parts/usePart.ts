@@ -20,12 +20,12 @@ export function usePart(ref: PartRef) {
   const scope = useContext(HouseScope);
   const tool = useGame((s) => s.tool);
   const walking = useGame((s) => s.mode === 'walk');
-  const selected = useGame((s) => !scope.activate && !!s.selection && selectionGroup(s.house, s.selection, s.groupSelection, s.marked).some(r => r.kind === ref.kind && r.id === ref.id));
+  const selected = useGame((s) => ref.kind === 'furniture' && !scope.activate && !!s.selection && selectionGroup(s.house, s.selection, s.groupSelection, s.marked).some(r => r.kind === ref.kind && r.id === ref.id));
   const marked = useGame((s) => !scope.activate && s.marked.some((m) => m.kind === ref.kind && m.id === ref.id));
   const aimed = useAim(s => !scope.activate && s.target?.kind === ref.kind && s.target.id === ref.id);
   const [hover, setHover] = useState(false);
   // 歩きモードでは選択はせず、削除ツールだけ効く
-  const interactive = scope.activate ? !walking : walking ? tool === 'erase' : tool === 'select' || tool === 'erase';
+  const interactive = scope.activate ? !walking : tool === 'erase' || !walking && tool === 'select' && ref.kind === 'furniture' && selected;
 
   const highlight: Highlight = marked ? (tool === 'erase' ? 'erase' : 'selected') : selected ? 'selected' : (aimed || hover && interactive) ? (tool === 'erase' ? 'erase' : 'hover') : 'none';
 
@@ -36,7 +36,6 @@ export function usePart(ref: PartRef) {
           if (scope.activate) { e.stopPropagation(); scope.activate(e, ref); return; }
           if (useGame.getState().tool !== 'select') return;
           e.stopPropagation();
-          if (useGame.getState().boxSelect || e.shiftKey) return;
           beginPartDrag(ref, e.ray, e.clientX, e.clientY);
         },
         onClick: (e: ThreeEvent<MouseEvent>) => {
@@ -46,10 +45,6 @@ export function usePart(ref: PartRef) {
           if (Date.now() < useInteraction.getState().ignorePartClickUntil) return;
           if (e.delta > CLICK_SLOP) return;
           const s = useGame.getState();
-          if (s.tool === 'select' && (s.boxSelect || e.shiftKey)) {
-            s.toggleMark(ref);
-            return;
-          }
           if (s.tool === 'erase' && s.eraseMulti) {
             s.toggleMark(ref);
           } else if (s.tool === 'erase') {
