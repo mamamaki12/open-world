@@ -4,7 +4,7 @@ import { sampleHouse } from './sample';
 import { stairRailXs } from './rules';
 import type { House, StairPart } from './types';
 import { LEAP_DROP, climbDuration, climbFrame, planClimb } from './climb';
-import { PLAYER, ceilingHeight, nearestDoor, nearestOpening, resolveCollisions, roofBlocks, stairRails, surfaceHeight, windowPassage } from './walk';
+import { PLAYER, ceilingHeight, nearestDoor, nearestOpening, resolveCollisions, roofBlocks, stairRails, surfaceHeight, vaultWallAhead, windowPassage } from './walk';
 
 const house = sampleHouse();
 
@@ -272,5 +272,30 @@ describe('半分の高さの壁', () => {
   it('壁の上端より高いところ（2階）からは当たらない', () => {
     expect(resolveCollisions(h('half'), p, floorY(0) + STORY_HEIGHT / 2, PLAYER.height)).toEqual(p);
     expect(resolveCollisions(h('full'), p, floorY(0) + STORY_HEIGHT / 2, PLAYER.height)).not.toEqual(p);
+  });
+});
+
+describe('低い壁をジャンプで越える', () => {
+  const w = (id: string, height: 'fence' | 'half' | 'privacyFence' | undefined) => ({
+    id, level: 0, x0: 0, z0: 5, x1: 10, z1: 5, exterior: house.walls[0].exterior, interior: house.walls[0].interior, height,
+  });
+  const h = (height: 'fence' | 'half' | 'privacyFence' | undefined): House => ({ ...house, walls: [w('v', height)], floors: [], stairs: [], roofs: [], openings: [], furniture: [] });
+  const z = 5 * GRID - 0.5;
+
+  it('塀と1/2の壁は前にあれば上端の高さを返す', () => {
+    expect(vaultWallAhead(h('fence'), 2, z, 0, 0, 1)).toBeCloseTo(1.2);
+    expect(vaultWallAhead(h('half'), 2, z, 0, 0, 1)).toBeCloseTo(floorY(0) + STORY_HEIGHT / 2);
+  });
+
+  it('後ろ向き・遠い・高い壁は対象外', () => {
+    expect(vaultWallAhead(h('fence'), 2, z, 0, 0, -1)).toBeNull();
+    expect(vaultWallAhead(h('fence'), 2, z - 2, 0, 0, 1)).toBeNull();
+    expect(vaultWallAhead(h('privacyFence'), 2, z, 0, 0, 1)).toBeNull();
+    expect(vaultWallAhead(h(undefined), 2, z, 0, 0, 1)).toBeNull();
+  });
+
+  it('上端より上へ跳べば壁に当たらず通り抜けられる', () => {
+    const p = resolveCollisions(h('fence'), { x: 2, z: 5 * GRID }, 1.25, PLAYER.height);
+    expect(p.z).toBeCloseTo(5 * GRID);
   });
 });

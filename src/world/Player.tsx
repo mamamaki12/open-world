@@ -22,7 +22,7 @@ import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
 import type { ClimbPlan } from '../building/climb';
 import { resolveLandmarks } from '../building/landmarks';
-import { PLAYER, ceilingHeight, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, windowPassage } from '../building/walk';
+import { PLAYER, ceilingHeight, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, vaultWallAhead, windowPassage } from '../building/walk';
 import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
@@ -286,6 +286,19 @@ export function Player() {
         playerMotion.jumps++;
         st.velY = JUMP_SPEED;
         st.grounded = false;
+        // 前に低い塀・1/2の壁があれば、上端を越えられる高さまで跳んで前へ出る
+        const moving = Math.hypot(st.vx, st.vz) > 0.3;
+        const dx = moving ? st.vx : -Math.sin(playerMemory.bodyYaw);
+        const dz = moving ? st.vz : -Math.cos(playerMemory.bodyYaw);
+        const top = vaultWallAhead(walkHouse(), playerMemory.x, playerMemory.z, playerMemory.y, dx, dz);
+        if (top !== null) {
+          st.velY = Math.max(JUMP_SPEED, Math.sqrt(2 * GRAVITY * (top - playerMemory.y + 0.2)));
+          if (!moving) {
+            const l = Math.hypot(dx, dz);
+            st.vx = (dx / l) * 1.6;
+            st.vz = (dz / l) * 1.6;
+          }
+        }
       }
     };
     const toggleView = () => {
