@@ -44,7 +44,7 @@ try {
   });
   const dest = await fresh();
   // Exercise the real backup file input, not just the import helper.
-  await dest.getByText('接続・バックアップ', { exact: true }).click();
+  await dest.getByText('接続・バックアップ設定', { exact: true }).click();
   await dest.locator('input[type=file]').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
   await until(dest, async () => (await import('/src/state/looks.ts')).useLooks.getState().looks.sex === 'f');
   const expected = await personal(page);
