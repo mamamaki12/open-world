@@ -24,7 +24,8 @@ function Baker({id,onDone,desktop}:{id:string;onDone:(id:string)=>void;desktop:b
  const scene=useMemo(()=>new THREE.Scene(),[]),plot=Number(Object.keys(TOWN_HOUSE_PLOTS).find(p=>TOWN_HOUSE_PLOTS[Number(p)]===id)),house=townHouseAt(plot);
  const [frames,setFrames]=useState(0),key=(desktop?'pc:':'full:')+id;
  useFrame(()=>{if(frames<1){setFrames(frames+1);return;}if(house&&!baked.has(key))baked.set(key,bakeHouse(scene,house,desktop));onDone(id);});
- return house?createPortal(<HouseParts house={house} showRoofs/>,scene):null;
+ // Temporary assemblies must never intercept clicks intended for the visible player's house.
+ return house?createPortal(<HouseParts house={house} showRoofs/>,scene,{events:{enabled:false}}):null;
 }
 export function TownHouses({shiftX,shiftZ,skip}:{shiftX:number;shiftZ:number;skip:Set<number>}){
  const desktop=useDesktopBuildingDetail(),prefix=desktop?'pc:':'full:';
