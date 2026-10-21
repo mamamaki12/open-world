@@ -2,10 +2,10 @@
 
 ## 現在の状態
 
-- 状態: 作業中
+- 状態: PR作成済み（CI待ち）
 - ブランチ: `claude/project-thread-otcilu`
-- 残作業: 基準地価の変更、テスト、docs/economy.md 更新、PR
-- 確認根拠: なし
+- 残作業: CI通過後マージ、EC2 relay を更新（server/README.md の手順）
+- 確認根拠: vitest 701件通過、tsc通過、relay再バンドル済み
 - 最終更新: 2026-10-21
 
 ## 目的
