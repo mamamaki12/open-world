@@ -365,15 +365,35 @@ export function PlacementController() {
       const p = groundPoint(e, surface);
       const start = dragStart;
       dragStart = null;
-      if (g.tool === 'erase') {
+      if (g.tool === 'erase' || g.tool === 'select') {
         const from = eraseFrom;
         eraseFrom = null;
         useInteraction.getState().setPreview(null);
         if (p && from && Math.hypot(e.clientX - from.x, e.clientY - from.y) > 8) {
           // 「1つずつ」のときに範囲で選んだら、「まとめて選ぶ」に切り替えて選んだものを見せる
-          const refs = partsInRect(g.house, cellRect(start, cellAt(p)));
-          if (g.tool === 'erase' && !g.eraseMulti) g.setEraseMulti(true);
-          g.addMarks(refs);
+          const rect = cellRect(start, cellAt(p));
+          let refs = partsInRect(g.house, rect);
+          if (g.tool === 'select') {
+            // 開口部・壁付け家具は、取り付けた壁が同時に選ばれていないと移動できない。
+            // 削除ツールではそのまま消せるよう残すが、選択ツールの一括移動では親壁ごと選ぶ。
+            const selectedWalls = new Set(refs.filter((r) => r.kind === 'wall').map((r) => r.id));
+            refs = refs.filter((r) => {
+              if (r.kind === 'opening') {
+                const wallId = g.house.openings.find((o) => o.id === r.id)?.wallId;
+                return wallId && selectedWalls.has(wallId);
+              }
+              if (r.kind === 'furniture') {
+                const wallId = g.house.furniture.find((f) => f.id === r.id)?.wallMount?.wallId;
+                return !wallId || selectedWalls.has(wallId);
+              }
+              return true;
+            });
+            g.addMarks(refs);
+            useGame.getState().select(useGame.getState().marked[0] ?? null);
+          } else {
+            if (!g.eraseMulti) g.setEraseMulti(true);
+            g.addMarks(refs);
+          }
           useInteraction.setState({ ignorePartClickUntil: Date.now() + 150 });
         }
         return;
