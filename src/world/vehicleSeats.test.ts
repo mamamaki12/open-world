@@ -3,6 +3,13 @@ import { CARS } from '../catalog/cars';
 import { assignVehicleSeats, driverEye, vehicleSeat } from './vehicleSeats';
 
 describe('vehicle seats', () => {
+  it('clears passenger occupancy when leaving vehicle mode for construction', async () => {
+    const { useVehicles } = await import('../state/vehicles');
+    const { parkVehicle } = await import('./vehicleLogic');
+    const old = useVehicles.getState();
+    try { useVehicles.setState({ riding: { owner: 'owner', car: 'car', seat: 1 } }); parkVehicle(); expect(useVehicles.getState().riding).toBeNull(); }
+    finally { useVehicles.setState(old); }
+  });
   it('places distinct seats inside every model with driver on the left', () => {
     for (const d of CARS) {
       const seats = Array.from({ length: d.seats }, (_, i) => vehicleSeat(d, i));

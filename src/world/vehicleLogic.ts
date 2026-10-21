@@ -139,7 +139,7 @@ function registerTarget(p:Memory):string|null{
   }
   return null;
 }
-export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({cars:[...s.cars],driving:null,target:null});saveVehicles();}
+export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({cars:[...s.cars],driving:null,riding:null,target:null});saveVehicles();}
 /** 車の横の空いている場所に降りる。side=-1 は運転席側から探す。 */
 function getOut(p:Memory,car:Pick<OwnedCar,'x'|'z'|'yaw'|'model'|'id'>,side:number){
   const d=getCar(car.model)!,o=origin();
@@ -283,7 +283,7 @@ function carCamera(camera:THREE.Camera,car:{yaw:number;speed:number},d:CarDef,dt
   const first=useGame.getState().view==='first';
   if(first){
     // 座席に座った目の高さ。車の座標を向きに合わせて回す。
-    const e=driverEye(d),at=vehicleSeat(d,seat),eye={...e,x:at.x,z:at.z-.11},c=Math.cos(car.yaw),s=Math.sin(car.yaw);
+    const e=driverEye(d),at=vehicleSeat(getCar(d.id)!,seat),eye={...e,x:at.x,z:at.z-.11},c=Math.cos(car.yaw),s=Math.sin(car.yaw);
     camera.position.set(p.x+eye.x*c+eye.z*s,eye.y,p.z-eye.x*s+eye.z*c);
     camera.lookAt(p.x-Math.sin(p.yaw)*10,camera.position.y+Math.sin(p.pitch)*4,p.z-Math.cos(p.yaw)*10);
   }else{
