@@ -12,7 +12,16 @@ async function open(touch=false,full=false){
 async function view(page,position=[80,75,140],target=[-30,5,12]){
  const frame=await page.evaluate(async({position,target})=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState();s.camera.position.set(...position);s.controls.target.set(...target);s.controls.update();window.__buildingTestState=s;return s.gl.info.render.frame;},{position,target});await page.waitForTimeout(1500);
  await page.waitForFunction(frame=>window.__buildingTestState.gl.info.render.frame>=frame+6,frame);
- return page.evaluate(async()=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState();s.scene.updateMatrixWorld(true);s.gl.info.reset();s.gl.render(s.scene,s.camera);const tiers={near:0,exterior:0,distant:0};s.scene.traverse(o=>{if(o.userData.buildingDetail)tiers[o.userData.buildingDetail]++;});return {calls:s.gl.info.render.calls,triangles:s.gl.info.render.triangles,tiers,dpr:s.gl.getPixelRatio(),shadow:s.gl.shadowMap.type};});
+ return page.evaluate(async()=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState();s.scene.updateMatrixWorld(true);s.gl.info.reset();s.gl.render(s.scene,s.camera);const tiers={near:0,exterior:0,distant:0};s.scene.traverse(o=>{if(o.userData.buildingDetail)tiers[o.userData.buildingDetail]++;});
+  // Rain, vehicles and other moving objects can enter the frame between samples.
+  // Compare the static town-house meshes themselves for the full-detail guarantee.
+  let townTriangles=0;
+  s.scene.getObjectByName('town-houses').traverseVisible(o=>{
+   if(!o.isMesh)return;
+   const g=o.geometry,count=Math.min(g.drawRange.count,g.index?.count??g.attributes.position.count);
+   townTriangles+=count/3*(o.isInstancedMesh?o.count:1);
+  });
+  return {calls:s.gl.info.render.calls,triangles:s.gl.info.render.triangles,townTriangles,tiers,dpr:s.gl.getPixelRatio(),shadow:s.gl.shadowMap.type};});
 }
 const baseline=await open(false,true),before=await view(baseline);await baseline.screenshot({path:out+'/pc-before.png'});await baseline.close();
 const pc=await open(),after=await view(pc);await pc.screenshot({path:out+'/pc-after.png'});
@@ -36,5 +45,5 @@ await pc.waitForFunction(()=>window.__ow.scene.getObjectByName('interior-maison'
 await view(pc,[400,75,400],[0,0,0]);assert.equal(await pc.evaluate(()=>window.__ow.scene.getObjectByName('interior-maison').children.length),0);
 await pc.evaluate(async()=>(await import('/src/state/venue.ts')).useVenue.setState({inside:'maison'}));await pc.waitForTimeout(1000);assert.ok(await pc.evaluate(()=>window.__ow.scene.getObjectByName('interior-maison').children.length>0));
 await pc.close();
-const mobile=await open(true),phone=await view(mobile);assert.equal(phone.tiers.exterior,0);assert.equal(phone.tiers.distant,0);assert.equal(phone.triangles,before.triangles,'mobile keeps the full building meshes');await mobile.close();
+const mobile=await open(true),phone=await view(mobile);assert.equal(phone.tiers.exterior,0);assert.equal(phone.tiers.distant,0);assert.ok(before.townTriangles>0);assert.equal(phone.townTriangles,before.townTriangles,'mobile keeps the full town-house meshes');await mobile.close();
 fs.writeFileSync(out+'/metrics.json',JSON.stringify({before,after,mobile:phone},null,2));console.log(JSON.stringify({before,after,mobile:phone}));assert.deepEqual(errors,[]);await browser.close();
