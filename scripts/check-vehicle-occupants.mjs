@@ -67,6 +67,27 @@ try { for (const touch of [false, true]) {
     await page.waitForFunction(() => window.__seatTest.useVehicles.getState().driving === 'qa-own');
     const ownSeat = await page.evaluate(async () => { const { sessionGate } = await import('/src/session/gate.ts'); return window.__ow.scene.getObjectByName('vehicle-occupant-' + sessionGate.selfId())?.userData.seat; });
     assert.equal(ownSeat, 0);
+    if (touch) {
+      const labelsFit = () => {
+        const root = window.__ow.scene.getObjectByName('vehicle-qa-own'), camera = window.__ow.camera;
+        if (!root) return false;
+        window.__ow.scene.updateMatrixWorld(true); camera.updateMatrixWorld();
+        let count = 0, fitted = true;
+        root.traverse(o => {
+          if (o.name !== 'vehicle-seat-label') return;
+          count++;
+          const p = o.getWorldPosition(o.position.clone()), view = p.clone().applyMatrix4(camera.matrixWorldInverse), ndc = p.project(camera);
+          const width = o.getWorldScale(o.scale.clone()).x * Math.abs(camera.projectionMatrix.elements[0] / view.z) * innerWidth / 2;
+          const x = (ndc.x + 1) * innerWidth / 2;
+          if (x - width / 2 < 0 || x + width / 2 > innerWidth) fitted = false;
+        });
+        return count === 1 && fitted;
+      };
+      await page.waitForFunction(labelsFit);
+      await page.setViewportSize({ width: 320, height: 568 }); await page.waitForFunction(labelsFit);
+      await page.screenshot({ path: `${out}/phone-320-label.png` });
+      await page.setViewportSize({ width: 390, height: 844 }); await page.waitForFunction(labelsFit);
+    }
     const hold = async label => { const r = await page.getByRole('button', { name: label, exact: true }).boundingBox(); await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2); await page.mouse.down(); };
     if (touch) await hold('アクセル'); else await page.keyboard.down('w');
     await page.waitForFunction(() => window.__seatTest.useVehicles.getState().cars[0].speed > .3);
@@ -77,6 +98,6 @@ try { for (const touch of [false, true]) {
     if (touch) await page.mouse.up(); else await page.keyboard.up('Space');
     await page.getByRole('button', { name: /降りる/ }).click();
     await page.waitForFunction(() => !window.__seatTest.useVehicles.getState().driving);
-    assert.deepEqual(errors, []); results.push({ name, seats: occupants, recreatedGeometry: 0, enterExit: true, driveOwn: true, firstPerson: true, errors }); console.log(name + ': occupants, stable geometry, entry/exit and first person passed');
+    assert.deepEqual(errors, []); results.push({ name, seats: occupants, recreatedGeometry: 0, enterExit: true, driveOwn: true, seatLabelsFit: true, firstPerson: true, errors }); console.log(name + ': occupants, stable geometry, entry/exit and first person passed');
   } catch (error) { await page.screenshot({ path: `${out}/${name}-failure.png` }); throw error; } finally { await context.close(); }
 } } finally { await browser.close(); await writeFile(out + '/results.json', JSON.stringify(results, null, 2)); }
