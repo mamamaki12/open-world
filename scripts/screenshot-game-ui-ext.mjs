@@ -63,7 +63,7 @@ async function captureMobile() {
 
   await page.screenshot({ path: join(outDir, `${prefix}-build-mobile.png`), fullPage: false });
 
-  await page.locator('.tool.mode').first().click();
+  await page.getByRole('button', { name: 'メニュー', exact: true }).click(); await page.getByRole('button', { name: '🚶 歩いてみる' }).click();
   await page.waitForTimeout(500);
   await page.screenshot({ path: join(outDir, `${prefix}-walk-mobile.png`), fullPage: false });
 

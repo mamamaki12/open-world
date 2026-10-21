@@ -13,7 +13,7 @@ const open = async (touch, viewport) => {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`http://127.0.0.1:5173/?play=1&touch=${touch ? 1 : 0}`);
   await page.waitForFunction(() => window.__ow);
-  await page.locator('.tool.mode').click();
+  if (touch) { await page.getByRole('button', { name: 'メニュー', exact: true }).click(); await page.getByRole('button', { name: '🚶 歩いてみる' }).click(); } else await page.locator('.tool.mode').click();
   await setup(); return context;
 };
 const setup = async (wall = false) => {
