@@ -53,7 +53,7 @@ try {
   fs.mkdirSync('world-session-checks', { recursive: true });
   await page.evaluate(() => window.__ow.game.getState().setOverlay('map'));
   await page.getByRole('img', { name: '8ブロックに32区画が並ぶ町の地図' }).waitFor();
-  await page.getByRole('button', { name: 'MAISON VÉRANE', exact: true }).click();
+  await page.locator('svg').getByRole('button', { name: 'MAISON VÉRANE', exact: true }).click();
   assert.ok(await page.getByText('北のブティック通りにあります。中で服を選んで試着・購入できます。', { exact: true }).isVisible());
   await page.screenshot({ path: 'world-session-checks/distributed-shop-map.png' });
   assert.deepEqual(errors, []); console.log('All relocated shop entrances / doors / interiors / map passed');
