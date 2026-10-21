@@ -332,7 +332,7 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
           <button className="btn" onClick={() => rotate(-90)}>⟳ 90°</button>
         </div>
       </div>}
-      {!f.wallMount && <p className="info">ドラッグで移動、矢印キーで5cmずつ動かせます。</p>}
+      {!f.wallMount && <p className="info">{def.ceiling?'天井に取り付けています。部屋の中でドラッグ、矢印キーで5cmずつ移動できます。':'ドラッグで移動、矢印キーで5cmずつ動かせます。'}</p>}
     </>
   );
 }

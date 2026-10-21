@@ -27,6 +27,7 @@ import { moveBuildingGroup } from '../building/groups';
 import { aimBuilding } from './aimMode';
 import { placementPoint } from './placementRay';
 import { floorPlacementPlan } from '../building/floorPlacement';
+import { hasRoomCeiling } from '../building/roomLighting';
 import { floorPointerLevel, pointerSurfaceLevel } from './placementSurface';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
@@ -248,6 +249,7 @@ export function PlacementController() {
           // 自分の土地の外（となりの区画など）には置かない
           if (p.x < -0.5 || p.z < -0.5 || p.x > lotSize.w * GRID + 0.5 || p.z > lotSize.d * GRID + 0.5) return g.notify('自分の土地の中に置いてください');
           const pos = snapFurniturePlacement(g.house, { level: surface, type: g.defaults.furnitureType, rotation: g.defaults.furnitureRotation }, p.x, p.z, e.shiftKey);
+          if(getFurniture(g.defaults.furnitureType).ceiling&&!hasRoomCeiling(g.house,surface,pos.x,pos.z))return g.notify('天井のある部屋の床を選んでください');
           const item = {
             id: newId('furniture'),
             level: surface,

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { sessionGate } from '../session/gate';
 import { removePart, removeParts } from '../building/rules';
 import { emptyHouse } from '../building/types';
+import { ceilingEditError,detachUnsupportedCeilingLights } from '../building/roomLighting';
 import { selectionGroup, moveBuildingGroup } from '../building/groups';
 import type { Finish, House, FloorKind, PartRef, RoofType, StairRail, StairShape, WallHeight } from '../building/types';
 
@@ -153,6 +154,8 @@ export const useGame = create<GameState>((set, get) => ({
   commit: (next, coalesce) => {
     const { house, past, lastCommit } = get();
     if (next === house) return;
+    const ceilingError=ceilingEditError(house,next);if(ceilingError){get().notify(ceilingError);return;}
+    next=detachUnsupportedCeilingLights(house,next);
     if (sessionGate.edit && !sessionGate.applying) { sessionGate.edit(house, next); return; }
     const now = Date.now();
     const merge = coalesce !== undefined && lastCommit?.key === coalesce && now - lastCommit.at < 1500 && past.length > 0;
@@ -176,7 +179,7 @@ export const useGame = create<GameState>((set, get) => ({
     set({ house: future[0], past: [...past, house], future: future.slice(1), selection: null, marked: [], lastCommit: null });
   },
   beginDrag: () => set({ dragBase: get().house }),
-  dragTo: (next) => set({ house: next }),
+  dragTo: (next) => {if(!ceilingEditError(get().house,next))set({house:next});},
   endDrag: () => {
     const { dragBase, house, past } = get();
     if (!dragBase) return;

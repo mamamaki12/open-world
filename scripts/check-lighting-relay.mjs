@@ -14,10 +14,10 @@ try{
   await command('land','',{type:'buyLand',offer:relay.world().economy.offers[0].id});
   const lot=relay.world().economy.lots[0],finish={material:'siding',color:'#fff'};
   const wall={id:'lamp-wall',level:0,x0:1,z0:2,x1:6,z1:2,exterior:finish,interior:finish};
-  const fixtures=['wall-sconce','wall-light-bar','indirect-floor-light','garden-bollard-light'].map((type,i)=>({id:'light-'+i,type,level:0,x:2+i,z:3,rotation:0,color:'#2c3035',...(i<2?{wallMount:{wallId:wall.id,offset:1+i,height:1.6,side:1}}:{})}));
+  const fixtures=['wall-sconce','wall-light-bar','indirect-floor-light','garden-bollard-light','ceiling-disc-light','ceiling-pendant-light','ceiling-panel-light','paper-floor-light','globe-floor-light'].map((type,i)=>({id:'light-'+i,type,level:0,x:2+i,z:3,rotation:0,color:'#2c3035',...(i<2?{wallMount:{wallId:wall.id,offset:1+i,height:1.6,side:1}}:{})}));
   const delta=[{kind:'walls',id:wall.id,before:null,after:wall},...fixtures.map(f=>({kind:'furniture',id:f.id,before:null,after:f}))];
   await command('lights',lot.id,undefined,delta);
   const saved=relay.world().economy.lots[0].built;assert.deepEqual(saved.furniture,fixtures);
-  await command('lights',lot.id,undefined,delta);assert.equal(relay.world().economy.lots[0].built.furniture.length,4);
+  await command('lights',lot.id,undefined,delta);assert.equal(relay.world().economy.lots[0].built.furniture.length,fixtures.length);
   console.log('Relay accepts/persists new lighting types, wall mounts and duplicate receipts');
 }finally{ws.close();relay.close();}

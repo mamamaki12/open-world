@@ -1,5 +1,6 @@
 // 動作確認用のサンプルの家（2階建て・切妻屋根）
 import { newId } from './rules';
+import { withDefaultRoomLights } from './roomLighting';
 import type { Finish, House, OpeningPart, WallPart } from './types';
 
 const ext: Finish = { material: 'siding', color: '#f2efe8' };
@@ -49,7 +50,7 @@ export function sampleHouse(): House {
   open(f2Right, 'window', 'casement', 4.55);
   open(f2Inner, 'door', 'door', 6.37, '#efedea');
 
-  return {
+  return withDefaultRoomLights({
     version: 1,
     floors: [
       { id: newId('floor'), level: 0, x0: 6, z0: 6, x1: 16, z1: 14, finish: { material: 'flooring', color: '#c8a57a' } },
@@ -92,5 +93,5 @@ export function sampleHouse(): House {
       { id: newId('furniture'), level: 1, type: 'desk', x: 12.0, z: 12.4, rotation: 180, color: '#c8a57a' },
       { id: newId('furniture'), level: 1, type: 'plant', x: 6.0, z: 12.4, rotation: 0, color: '#6c8f4e' },
     ],
-  };
+  });
 }

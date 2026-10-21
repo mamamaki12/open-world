@@ -1,7 +1,9 @@
 import { BuildingDetail } from './BuildingDetail';
 import { houseEnvelope, isInteriorPart } from './buildingLod';
 import { DistantHouse } from './DistantHouse';
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { markInteriorSurfaces,interiorRegions } from './interiorShade';
+import { hasRoomCeiling } from '../building/roomLighting';
 import * as THREE from 'three';
 import { getFurniture, getOpening, furnitureFootprint } from '../catalog';
 import { GRID, MAX_LEVEL, WALL_HEIGHT, WALL_THICKNESS, floorY } from '../building/dimensions';
@@ -42,6 +44,8 @@ export function HouseView() {
 
 /** 家の部品をまとめて描く（いまの土地の家と、町に建っているほかの土地の家で使う） */
 export function HouseParts({ house, showRoofs = true, activate, exteriorOnly = false }: { house: House; showRoofs?: boolean; activate?: ActivateHouse; exteriorOnly?: boolean }) {
+  const root=useRef<THREE.Group>(null);
+  useLayoutEffect(()=>{const group=root.current;if(!group)return;markInteriorSurfaces(group,house);interiorRegions.set(group,house);return()=>{interiorRegions.delete(group);};},[house,showRoofs,exteriorOnly]);
   const openingsByWall = useMemo(() => {
     const m = new Map<string, House['openings']>();
     for (const o of house.openings) m.set(o.wallId, [...(m.get(o.wallId) ?? []), o]);
@@ -50,6 +54,7 @@ export function HouseParts({ house, showRoofs = true, activate, exteriorOnly = f
 
   return (
     <HouseScope.Provider value={{ house, activate }}>
+      <group ref={root}>
       {house.floors.map((f) => (
         <Floor key={f.id} floor={f} holes={stairHoles(house, f.level)} stairwells={stairHoles(house, f.level + 1)} roofs={house.roofs.filter((r) => r.level === f.level)} />
       ))}
@@ -65,6 +70,7 @@ export function HouseParts({ house, showRoofs = true, activate, exteriorOnly = f
       {showRoofs && house.roofs.map((r) => (
         <Roof key={r.id} roof={r} />
       ))}
+      </group>
     </HouseScope.Provider>
   );
 }
@@ -142,7 +148,7 @@ function PreviewView() {
       return (
         <group position={[preview.x, furnitureBaseY(house, { level, type: defaults.furnitureType, x: preview.x, z: preview.z }), preview.z]} rotation={[0, (defaults.furnitureRotation * Math.PI) / 180, 0]}>
           <FurnitureModel def={def} color={def.colors[0]} label={defaults.nameplateText} />
-          <mesh position={[0, 0.01, 0]} material={okMat}>
+          <mesh position={[0, 0.01, 0]} material={def.ceiling&&!hasRoomCeiling(house,level,preview.x,preview.z)?badMat:okMat}>
             <boxGeometry args={[fp.w, 0.02, fp.d]} />
           </mesh>
         </group>

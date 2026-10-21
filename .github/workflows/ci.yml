@@ -170,11 +170,14 @@ jobs:
             sleep 1
           done
           node scripts/check-furniture-lighting.mjs
+          node scripts/check-interior-lighting.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: furniture-lighting-checks
-          path: browser-checks/furniture-lighting-*.png
+          path: |
+            browser-checks/furniture-lighting-*.png
+            browser-checks/interior-lighting/
           if-no-files-found: ignore
 
   building-detail:
