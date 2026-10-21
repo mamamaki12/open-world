@@ -23,7 +23,7 @@ try{
   const own=await buy(b);assert.notEqual(own,first);
   assert.equal(await a.evaluate(()=>window.__ow.economy.getState().currentLotId),first,'other player’s purchase must not change my editing target');
   await b.evaluate(seed);await until(b,()=>window.__ow.game.getState().house.floors.length===1);await settled(b);
-  await until(a,own=>window.__ow.economy.getState().lots.find(l=>l.id===own).design?.floors.length===1,own);
+  await until(a,own=>{const l=window.__ow.economy.getState().lots.find(l=>l.id===own);return (l?.design??l?.built)?.floors.length===1;},own);
   assert.equal(await a.evaluate(()=>window.__ow.game.getState().house.floors.length),0,'the first player’s property stays untouched');
   const identity=await b.evaluate(async()=>(await import('/src/session/saves.ts')).savedBundle().profile.id);
   await b.evaluate(async()=>(await import('/src/session/session.ts')).leaveWorld());await b.getByLabel('あなたの名前').waitFor();await b.reload();await b.getByLabel('あなたの名前').waitFor();await join(b);
@@ -37,7 +37,9 @@ try{
   const preview=await b.evaluate(async()=>(await import('/src/state/interaction.ts')).useInteraction.getState().preview);assert(preview?.kind==='rect'&&preview.valid,'a valid blue floor preview is shown');
   await b.screenshot({path:out+'/blue-preview-own-second-lot.png'});
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await until(b,()=>window.__ow.game.getState().house.floors.length===2);await settled(b);
-  await until(a,own=>window.__ow.economy.getState().lots.find(l=>l.id===own).design?.floors.length===2,own);
+  await until(a,own=>{const l=window.__ow.economy.getState().lots.find(l=>l.id===own);return (l?.design??l?.built)?.floors.length===2;},own);
+  const remoteFloors=await a.evaluate(own=>{const l=window.__ow.economy.getState().lots.find(l=>l.id===own);return (l.design??l.built).floors;},own);
+  assert.deepEqual(remoteFloors,await b.evaluate(()=>window.__ow.game.getState().house.floors),'both browsers agree on the owner’s floor data');
   assert.equal(await a.evaluate(()=>window.__ow.game.getState().house.floors.length),0);
   await b.screenshot({path:out+'/built-own-second-lot.png'});
   await b.getByRole('button',{name:'取り消し',exact:true}).click();await until(b,()=>window.__ow.game.getState().house.floors.length===1);await settled(b);
