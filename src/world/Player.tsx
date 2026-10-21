@@ -13,7 +13,8 @@ import { useInteraction } from '../state/interaction';
 import { useVehicles } from '../state/vehicles';
 import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract, resolveParkedCars } from './vehicleLogic';
 import { useVenue } from '../state/venue';
-import { resolveVenue, throughDoorway, VENUE_KINDS, venueDoorId } from '../building/venues';
+import { resolveVenue, throughDoorway, VENUE_KINDS, VENUES, venueDoorId, venueEntrance, venueTurn } from '../building/venues';
+import type { Venue } from '../building/venues';
 import { SHOP_BOXES as TUNER_SHOPS } from '../building/tuner';
 import { EXCHANGE } from '../building/exchange';
 const SHOP_BOXES=[...TUNER_SHOPS,EXCHANGE];
@@ -130,6 +131,25 @@ export function warpToLot(id: string) {
   playerMemory.bodyYaw = 0;
   playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
   game.notify(`📍 ${lot.name} にワープしました`);
+}
+
+/** 公式の店（カジノ・不動産屋・服屋など）の入口の前へワープする。建築中なら歩きモードにする */
+export function warpToVenue(kind: Venue) {
+  const game = useGame.getState();
+  parkVehicle();
+  useVenue.setState({inside:null});
+  useSeating.setState({ seated: null, target: null, returnTo: null });
+  game.setOverlay(null);
+  if (game.mode !== 'walk') game.setMode('walk');
+  const site = civicOffset(), door = venueEntrance(kind, 3);
+  playerMemory.x = site.x + door.x;
+  playerMemory.y = 0;
+  playerMemory.z = site.z + door.z;
+  // 入口は正面（z0）側。向きを変えた店は反対側なので、店のほうを向く
+  playerMemory.yaw = venueTurn(kind) === 1 ? Math.PI : 0;
+  playerMemory.bodyYaw = playerMemory.yaw;
+  playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
+  game.notify(`📍 ${VENUES[kind].name} の前にワープしました`);
 }
 
 /** 原点の土地の外にあるもの（カジノ・ほかの持っている家）にぶつかったら押し戻す */

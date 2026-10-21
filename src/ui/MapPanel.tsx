@@ -9,7 +9,8 @@ import { TOWN_HOUSE_PLOTS, townHouseDesign } from '../building/townHouses';
 import { CIVIC_SITE, FIRST_PLOT, LAST_PLOT, TOWN_BOUNDS, TOWN_ROADS, blockOf, districtOf, plotX, plotZ } from '../economy/town';
 import { joinCandidate, lotCells, lotPlots, useCurrentPlot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
-import { playerMemory, warpToLot } from '../world/Player';
+import { playerMemory, warpToLot, warpToVenue } from '../world/Player';
+import { VENUES, VENUE_KINDS } from '../building/venues';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { DEALER } from '../building/dealer';
 import { TUNER } from '../building/tuner';
@@ -119,11 +120,15 @@ export function MapPanel() {
         {typeof selectedLot.joined === 'number' && <p className="info">隣の区画とつなげた広い土地です。</p>}
         {joinWith && <button className="btn" onClick={() => { const err = useEconomy.getState().joinLots(selectedLot.id); if (err) useGame.getState().notify(err); }}>🔗 隣の「{joinWith.name.replace(/（.*）$/, '')}」とつなげる</button>}</>
       : selectedOffer ? <><h3>売り土地：{selectedOffer.name}</h3><p>価格 {yen(offerPrice(selectedOffer, market))}</p><p className="info">看板の前でFを押すと、この土地を購入できます。不動産屋でも購入できます。</p></>
-      : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' || pick?.kind === 'tuner' || pick?.kind === 'exchange' || pick?.kind === 'salon' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : pick.kind === 'tuner' ? 'STANCE GARAGE（車のカスタム）' : pick.kind === 'exchange' ? 'まち証券取引所（実際の株価で売買）' : pick.kind === 'salon' ? 'HAIR SALON LUCE（美容室）' : 'まちの不動産'}</h3><p>地図に表示された店舗へ歩いて入れます。入口のドアは近づくと自動で開きます。</p></>
-      : pick?.kind === 'boutique' ? <><h3>{BOUTIQUE_INFO[pick.id].name}</h3><p className="muted">服屋さん・{BOUTIQUE_INFO[pick.id].tier}</p><p>{pick.id === 'maison' ? '北のブティック通り' : pick.id === 'urban' ? '北東のストリートショップ' : '西の商店街'}にあります。中で服を選んで試着・購入できます。</p></>
+      : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' || pick?.kind === 'tuner' || pick?.kind === 'exchange' || pick?.kind === 'salon' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : pick.kind === 'tuner' ? 'STANCE GARAGE（車のカスタム）' : pick.kind === 'exchange' ? 'まち証券取引所（実際の株価で売買）' : pick.kind === 'salon' ? 'HAIR SALON LUCE（美容室）' : 'まちの不動産'}</h3><p>地図に表示された店舗へ歩いて入れます。入口のドアは近づくと自動で開きます。</p><button className="btn primary" onClick={() => warpToVenue(pick.kind)}>このお店へワープ</button></>
+      : pick?.kind === 'boutique' ? <><h3>{BOUTIQUE_INFO[pick.id].name}</h3><p className="muted">服屋さん・{BOUTIQUE_INFO[pick.id].tier}</p><p>{pick.id === 'maison' ? '北のブティック通り' : pick.id === 'urban' ? '北東のストリートショップ' : '西の商店街'}にあります。中で服を選んで試着・購入できます。</p><button className="btn primary" onClick={() => warpToVenue(pick.id)}>このお店へワープ</button></>
       : pick?.kind === 'plot' && townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot] ?? '') ? <><h3>{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.name}</h3><p className="muted">ほかの住人の家・{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.model}</p></>
       : <p className="muted">地図の家・土地・店舗を選んでください。</p>}
     </div>
+    <section className="map-mylots map-official"><div className="card-title">公式のお店（{VENUE_KINDS.length}）</div><ul>
+      {VENUE_KINDS.map(kind => <li key={kind}><button className="link-btn" onClick={() => setPick(BOUTIQUE_IDS.includes(kind as BoutiqueId) ? { kind: 'boutique', id: kind as BoutiqueId } : { kind: kind as 'casino' })}>{VENUES[kind].name}</button>
+        <button className="btn small" onClick={() => warpToVenue(kind)}>ワープ</button></li>)}
+    </ul></section>
     {shops.length > 0 && <section className="map-mylots map-shops"><div className="card-title">お店・イベント（{shops.length}）</div><ul>
       {shops.map(l => <li key={l.id}><button className="link-btn" onClick={() => setPick({ kind: 'plot', plot: l.plot ?? here })}>🏪 {l.shop.name}</button>
         {(l.shop.flyer || eventLine(l.shop, today)) && <small className="muted">{eventLine(l.shop, today) || l.shop.flyer}</small>}
