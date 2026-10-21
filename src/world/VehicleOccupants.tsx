@@ -24,7 +24,7 @@ function SeatLabel({ text, seat }: { text: string; seat: number }) {
     const t = new THREE.CanvasTexture(canvas); t.colorSpace = THREE.SRGBColorSpace; return t;
   }, [text, seat]);
   useEffect(() => () => texture.dispose(), [texture]);
-  return <sprite scale={[2.2, .22, 1]} renderOrder={10}><spriteMaterial map={texture} depthTest={false} depthWrite={false}/></sprite>;
+  return <sprite name="vehicle-seat-label" scale={[2, .22, 1]} renderOrder={10}><spriteMaterial map={texture} depthTest={false} depthWrite={false}/></sprite>;
 }
 function SeatedPerson({ id, name, seat, def, pose, hidden }: { id: string; name: string; seat: number; def: CarDef; pose?: RemotePose; hidden: boolean }) {
   const rig = useRig(), smooth = useSmooth(), ownOutfit = useWardrobe(s => s.outfit), ownLooks = useLooks(s => s.looks);
@@ -42,7 +42,7 @@ function SeatedPerson({ id, name, seat, def, pose, hidden }: { id: string; name:
   });
   return <group name={'vehicle-occupant-' + id} userData={{ occupant: id, seat, seatName: at.label, occupantName: name }}>
     <group position={[at.x, 0, at.z]} visible={!hidden}>{avatar}</group>
-    <group position={[at.x === 0 ? 0 : Math.sign(at.x) * def.width * .85, def.height + .25 + Math.floor(seat / 2) * .3, at.z]}>
+    <group position={[at.x * 1.3, def.height + .25 + seat * .28, at.z]}>
       <SeatLabel text={`${at.label}：${name}`} seat={seat}/>
     </group>
   </group>;
