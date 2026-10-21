@@ -24,7 +24,7 @@ function loadCars(): OwnedCar[] {
   } catch { return []; }
 }
 /** 助手席に乗っている車。owner は持ち主のプレイヤーID（自分の車は ''）。 */
-export interface Riding { owner: string; car: string }
+export interface Riding { owner: string; car: string; seat?: number }
 export const useVehicles = create<{ cars: OwnedCar[]; driving: string | null; target: string | null; riding: Riding | null }>(() => ({
   cars: loadCars(), driving: null, target: null, riding: null,
 }));

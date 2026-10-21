@@ -1,4 +1,11 @@
 import { describe, expect, it } from 'vitest';
+it('uses shorter mobile detail distances with hysteresis', () => {
+  expect(buildingTier(20, 'distant', true)).toBe('near');
+  expect(buildingTier(25, 'near', true)).toBe('near');
+  expect(buildingTier(30, 'near', true)).toBe('exterior');
+  expect(buildingTier(80, 'near', true)).toBe('distant');
+  expect(buildingTier(70, 'distant', true)).toBe('distant');
+});
 import * as THREE from 'three';
 import { sampleHouse } from '../building/sample';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';

@@ -160,7 +160,7 @@ function initialData(): EconomyData {
     construction: null,
     rented: false,
     // はじめの土地ももらい物ではなく、土地代ぶんを元手に数える（売ったときのもうけが正しく出るように）
-    invested: 5_000_000,
+    invested: 250_000,
     plot: START_PLOT,
   };
   return {

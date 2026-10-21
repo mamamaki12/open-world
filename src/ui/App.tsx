@@ -9,7 +9,7 @@ import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { Scene } from '../world/Scene';
 import { Inspector } from './Inspector';
-import { EraseSelectionActions, SelectSelectionActions, ToolOptions } from './ToolOptions';
+import { EraseSelectionActions, ToolOptions } from './ToolOptions';
 import { patchPart } from './edit';
 import { WalkHud } from './WalkHud';
 import { DealerPanel } from './DealerPanel';
@@ -44,7 +44,6 @@ import { VersionStatus } from './VersionStatus';
 
 // ツールは数字キーで持ち替える（WASD はカメラ・歩く操作に使う）
 const TOOLS: { id: Tool; label: string; key: string }[] = [
-  { id: 'select', label: '選択', key: '1' },
   { id: 'floor', label: '床', key: '2' },
   { id: 'wall', label: '壁', key: '3' },
   { id: 'door', label: 'ドア', key: '4' },
@@ -67,6 +66,7 @@ export function App() {
   const touch = useTouchDevice();
   const walking = useGame((s) => s.mode === 'walk');
   const bulkErase = useGame((s) => s.tool === 'erase' && s.eraseMulti);
+  const editingFurniture = useGame((s) => s.selection?.kind === 'furniture');
   const app = useRef<HTMLDivElement>(null);
   useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
@@ -92,7 +92,7 @@ export function App() {
             <ToolOptions />
           </div>
           <div className="side right">
-            <Inspector />
+            {editingFurniture && <Inspector />}
           </div>
           <ControlsHelp />
         </>
@@ -130,9 +130,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
   const overlay = useGame(s => s.overlay);
   const tool = useGame((s) => s.tool);
   const setTool = useGame((s) => s.setTool);
-  const selected = useGame((s) => s.selection !== null);
-  const selectionCount = useGame(s => s.marked.length);
-  const boxSelect = useGame(s => s.boxSelect);
+  const selected = useGame((s) => s.selection?.kind === 'furniture');
   const bulkErase = useGame((s) => s.tool === 'erase' && s.eraseMulti);
   const label = TOOLS.find((t) => t.id === tool)?.label ?? '';
   const [menu, setMenu] = useState(false);
@@ -157,9 +155,8 @@ function TouchLayout({ walking }: { walking: boolean }) {
         </>
       ) : (
         <div className="touch-dock">
-          {tool === 'select' && <div className="panel"><SelectSelectionActions /></div>}
-          {selected && selectionCount <= 1 && !boxSelect && (
-            <Sheet key="inspector" title="選んだパーツ" defaultOpen>
+          {selected && (
+            <Sheet key="inspector" title="家具の編集" defaultOpen>
               <Inspector />
             </Sheet>
           )}
@@ -217,37 +214,45 @@ function WalkMenu() {
   );
 }
 
-/** スマホの左上：モード切り替え・取り消し・セーブと、所持金・不動産屋・カジノ */
+/** スマホ建築画面の左上：メニューボタン・所持金・取り消し/やり直しだけ。歩いてみる・地図・バイト・建築状況・セーブはメニューの中（歩き画面と同じ） */
 function TouchHud() {
+  const [open, setOpen] = useState(false);
   const holding=useGame(s=>s.tool!=='select');
   const undo = useGame((s) => s.undo);
   const redo = useGame((s) => s.redo);
   const canUndo = useGame((s) => s.past.length > 0);
   const canRedo = useGame((s) => s.future.length > 0);
   const setOverlay = useGame((s) => s.setOverlay);
+  const setMode = useGame((s) => s.setMode);
   const money = useEconomy((s) => s.money);
+  const pick = (f: () => void) => () => {
+    setOpen(false);
+    f();
+  };
   return (
-    <div className="touch-hud">
+    <div className="touch-hud walk-menu build-hud">
       <div className="touch-hud-row">
-        <ModeButton />
+        <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>
+          ☰
+        </button>
+        <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
         <button className={`tool icon${holding?' history-label':''}`} disabled={!canUndo} onClick={undo} aria-label="取り消し">
           ↶{holding&&' 取り消す'}
         </button>
         <button className={`tool icon${holding?' history-label':''}`} disabled={!canRedo} onClick={redo} aria-label="やり直し">
           ↷{holding&&' やり直す'}
         </button>
-        <SaveMenu />
       </div>
-      <div className="touch-hud-row">
-        <span className={`touch-cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
-        <button className="tool icon labeled" onClick={() => setOverlay('map')} aria-label="町の地図">
-          🗺<span>地図</span>
-        </button>
-        <button className="tool icon labeled" onClick={() => setOverlay('jobs')} aria-label="バイト">
-          💼<span>バイト</span>
-        </button>
-        <BuildChip />
-      </div>
+      {open && (
+        <div className="walk-menu-list">
+          <div className="walk-menu-status"><BuildChip /></div>
+          <button className="walk-menu-item" onClick={pick(() => setMode('walk'))}>🚶 歩いてみる</button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>🗺 地図</button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}>💼 バイト</button>
+          <SaveMenu />
+          <button className="walk-menu-item" onClick={pick(reloadLatest)}>🔄 最新版にする</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -318,6 +323,7 @@ function TopBar() {
       <div className="brand">家づくり</div>
       <ModeButton />
       <div className="tools tool-list">
+        <button className={`tool${tool === 'select' ? ' on' : ''}`} onClick={() => { useGame.getState().select(null); setTool('select'); }} title="1 / Esc">視点操作</button>
         {TOOLS.map((t) => (
           <button
             key={t.id}
@@ -550,6 +556,7 @@ function useKeyboard() {
       }
       const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
       if (digit) {
+        if (digit[1] === '1') { s.select(null); s.setTool('select'); return; }
         const t = TOOLS.find((x) => x.key === digit[1]);
         // 持っているツールの数字をもう一度押すと手ぶら（選択）に戻る
         if (t) s.setTool(walking ? t.id : t.id === s.tool ? 'select' : t.id);

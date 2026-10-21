@@ -6,7 +6,8 @@ import { samplePose, sampleCar } from './poseBuffer';
 import type { RemotePose } from './session';
 import { AvatarModel, poseRig, useRig, useSmooth } from '../world/Avatar';
 import { sanitizeLooks } from '../catalog/looks';
-import { CarModel } from '../world/CarModel';
+import { StableCarModel } from '../world/StableCarModel';
+import { VehicleOccupants } from '../world/VehicleOccupants';
 import { getCar } from '../catalog/cars';
 import { useEconomy, currentPlotOf } from '../state/economy';
 import { plotX, plotZ } from '../economy/town';
@@ -39,7 +40,7 @@ function RemoteCar({ owner, car }: { owner: string; car: OwnedCar }) {
     const ride = rideSmoothPose(clock.elapsedTime), target = ride?.key === owner + '|' + car.id ? ride : sampleCar(owner, car.id) ?? car;
     g.position.x = target.x; g.position.z = target.z; g.rotation.y = target.yaw;
   });
-  return <group ref={ref} position={[car.x, 0, car.z]} rotation-y={car.yaw}><CarModel def={getCar(car.model)!} color={car.color} mods={car.mods} pose={car}/></group>;
+  return <group ref={ref} name={'remote-vehicle-'+owner+'-'+car.id} position={[car.x, 0, car.z]} rotation-y={car.yaw}><StableCarModel car={car}/><VehicleOccupants owner={owner} car={car}/></group>;
 }
 function RemoteCars({ id, pose }: { id: string; pose: RemotePose }) {
   const root = useRef<THREE.Group>(null);

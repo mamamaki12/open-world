@@ -33,7 +33,7 @@ const at=await pc.evaluate(async plot=>{const {plotOffset,plotOffsetZ}=await imp
 await view(pc,[at.x+10,5,at.z-12],[at.x+10,3,at.z+8]);
 await pc.waitForFunction(p=>window.__ow.scene.getObjectByName('town-house-'+p).userData.buildingDetail==='near',plot);
 assert.equal(await pc.evaluate(p=>window.__ow.scene.getObjectByName('town-house-'+p).userData.buildingDetail,plot),'near');
-await pc.screenshot({path:out+'/pc-near.png'});
+await pc.waitForFunction(p=>{let ready=false;window.__ow.scene.getObjectByName('town-house-'+p).traverse(o=>{if(o.userData.houseVariant==='full'&&o.visible)ready=true;});return ready;},plot);await pc.screenshot({path:out+'/pc-near.png'});
 await pc.evaluate(async plot=>(await import('/src/world/visit.ts')).useVisit.setState({plot}),plot);await view(pc);
 assert.equal(await pc.evaluate(p=>window.__ow.scene.getObjectByName('town-house-'+p).userData.buildingDetail,plot),'near');
 await pc.evaluate(async()=>(await import('/src/world/visit.ts')).useVisit.setState({plot:null}));
@@ -45,5 +45,5 @@ await pc.waitForFunction(()=>window.__ow.scene.getObjectByName('interior-maison'
 await view(pc,[400,75,400],[0,0,0]);assert.equal(await pc.evaluate(()=>window.__ow.scene.getObjectByName('interior-maison').children.length),0);
 await pc.evaluate(async()=>(await import('/src/state/venue.ts')).useVenue.setState({inside:'maison'}));await pc.waitForTimeout(1000);assert.ok(await pc.evaluate(()=>window.__ow.scene.getObjectByName('interior-maison').children.length>0));
 await pc.close();
-const mobile=await open(true),phone=await view(mobile);assert.equal(phone.tiers.exterior,0);assert.equal(phone.tiers.distant,0);assert.ok(before.townTriangles>0);assert.equal(phone.townTriangles,before.townTriangles,'mobile keeps the full town-house meshes');await mobile.close();
-fs.writeFileSync(out+'/metrics.json',JSON.stringify({before,after,mobile:phone},null,2));console.log(JSON.stringify({before,after,mobile:phone}));assert.deepEqual(errors,[]);await browser.close();
+const mobileFull=await open(true,true),phoneBefore=await view(mobileFull);await mobileFull.close();const mobile=await open(true),phone=await view(mobile);assert.ok(phone.tiers.distant>0);assert.ok(phone.triangles<phoneBefore.triangles*.7,'mobile reduces distant geometry');assert.ok(phone.calls<phoneBefore.calls,'mobile reduces draw calls');assert.equal(phone.dpr,phoneBefore.dpr);assert.equal(phone.shadow,phoneBefore.shadow);await mobile.screenshot({path:out+'/phone-after.png'});await mobile.close();
+fs.writeFileSync(out+'/metrics.json',JSON.stringify({before,after,mobileBefore:phoneBefore,mobile:phone},null,2));console.log(JSON.stringify({before,after,mobileBefore:phoneBefore,mobile:phone}));assert.deepEqual(errors,[]);await browser.close();

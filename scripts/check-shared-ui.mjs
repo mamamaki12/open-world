@@ -23,7 +23,7 @@ try{
    console.log('layout',i,overlay,await p.getByRole('dialog').first().evaluate(e=>({width:e.clientWidth,scroll:e.scrollWidth,rect:e.getBoundingClientRect().toJSON(),close:[...e.querySelectorAll('button')].filter(b=>b.getAttribute('aria-label')==='閉じる').map(b=>b.getBoundingClientRect().toJSON())})));
    await p.getByRole('button',{name:'閉じる',exact:true}).click();
   }
-  if(i===1){await p.getByRole('button',{name:'メニュー',exact:true}).click();await shot(p,'mobile-menu');await p.getByRole('button',{name:'建築に戻る',exact:false}).click();await p.getByRole('button',{name:'セーブ',exact:false}).click();await shot(p,'mobile-build-save');console.log('mobile build save',await p.locator('.save-menu').innerText());}
+  if(i===1){await p.getByRole('button',{name:'メニュー',exact:true}).click();await shot(p,'mobile-menu');await p.getByRole('button',{name:'建築に戻る',exact:false}).click();await p.getByRole('button',{name:'メニュー',exact:true}).click();await p.getByRole('button',{name:'セーブ',exact:false}).click();await shot(p,'mobile-build-save');console.log('mobile build save',await p.locator('.save-menu').innerText());}
  }
  console.log('errors',errors);
 }catch(e){console.error(e);for(const[i,p]of pages.entries()){try{console.log('body',i,await p.locator('body').innerText());await shot(p,i+'-failure');}catch{}}process.exitCode=1;}

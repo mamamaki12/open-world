@@ -18,7 +18,6 @@ import type { PartRef } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { activateOwnedHouse } from '../state/ownedEditing';
-import { beginPartDrag } from './partDrag';
 import { playerMemory } from './Player';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { getLocation } from '../economy/market';
@@ -93,9 +92,6 @@ export function Town() {
     const game = useGame.getState();
     if (game.tool === 'erase') {
       useInteraction.setState({ pendingErase: { ref, x: e.clientX, y: e.clientY } });
-    } else if (game.tool === 'select') {
-      const ray = e.ray.clone(); ray.origin.x -= offset.x; ray.origin.z -= offset.z;
-      beginPartDrag(ref, ray, e.clientX, e.clientY);
     }
   };
 

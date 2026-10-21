@@ -48,7 +48,7 @@ jobs:
             job-checks/
           if-no-files-found: ignore
 
-  bulk-selection:
+  vehicle-occupants:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -59,7 +59,37 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Check desktop and phone selection, movement, deletion and build camera
+      - name: Check occupants, stable vehicle geometry and actual entry/exit
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vehicle-occupants-vite.log 2>&1 &
+          web=$!
+          trap 'kill "$web"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-vehicle-occupants.mjs
+          node scripts/check-vehicle-occupant-sync.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vehicle-occupants-checks
+          path: browser-checks/vehicle-occupants/
+          if-no-files-found: ignore
+
+  construction-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Check launcher layout, view controls, deletion and floor extension
         run: |
           npm run dev -- --host 127.0.0.1 > /tmp/bulk-selection-vite.log 2>&1 &
           web=$!
@@ -68,12 +98,21 @@ jobs:
             if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
             sleep 1
           done
-          node scripts/check-bulk-selection.mjs
+          node scripts/check-launcher-layout.mjs
+          node scripts/check-build-menu-layout.mjs
+          node scripts/check-build-controls.mjs
+          node scripts/check-connected-floors.mjs
+          node scripts/check-shared-floor-extension.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: bulk-selection-checks
-          path: browser-checks/bulk-selection/
+          name: construction-ui-checks
+          path: |
+            browser-checks/build-controls/
+            browser-checks/build-menu/
+            browser-checks/launcher-layout/
+            browser-checks/connected-floors/
+            browser-checks/shared-floor/
           if-no-files-found: ignore
 
   shared-ui:
