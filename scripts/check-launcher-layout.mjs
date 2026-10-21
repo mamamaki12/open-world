@@ -18,6 +18,7 @@ try {
       const fits=async()=>assert.deepEqual(await page.evaluate(()=>{const main=document.querySelector('.world-launch'),card=document.querySelector('.world-card');const bad=[];
         if(main.scrollWidth>main.clientWidth+1)bad.push('horizontal overflow');if(main.scrollTop===0&&card.getBoundingClientRect().top<main.getBoundingClientRect().top-1)bad.push('unreachable top');
         for(const e of main.querySelectorAll('button,input,summary,h1,.world-choice > span')){if(!e.getClientRects().length)continue;const r=e.getBoundingClientRect();if(r.left<-.5||r.right>innerWidth+.5)bad.push(e.textContent||e.tagName);}
+        for(const e of main.querySelectorAll('h1,.world-eyebrow')){const range=document.createRange();range.selectNodeContents(e);const text=range.getBoundingClientRect(),box=e.getBoundingClientRect();if(text.left<box.left-1||text.right>box.right+1)bad.push('clipped heading: '+e.textContent);}
         const buttons=[...main.querySelectorAll('.world-choice')].map(e=>e.getBoundingClientRect());if(buttons[0].bottom>buttons[1].top)bad.push('overlapping play buttons');return bad;
       }),[],name+' controls must fit');
       await fits();await page.screenshot({path:out+'/'+name+'-initial.png'});
