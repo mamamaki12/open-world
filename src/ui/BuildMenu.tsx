@@ -89,6 +89,7 @@ export function BuildMenu({
           </button>
         </div>
         <div className="build-menu-body">
+          <div className="build-menu-catalog">
           <div className="build-menu-tools">
             {tools.map((t) => (
               <button key={t.id} data-tool={t.id} className={`tool-card${tool === t.id ? ' on' : ''}`} onClick={() => setTool(t.id)}>
@@ -98,9 +99,6 @@ export function BuildMenu({
               </button>
             ))}
           </div>
-          <div className="build-menu-options">
-            <ToolOptions />
-          </div>
           <div className="build-menu-tools build-menu-prefabs" aria-label="すぐ建つお店">
             {PREFABS.map((p) => (
               <button key={p.id} className="tool-card" onClick={() => placeShop(p.id, onClose)}>
@@ -109,6 +107,10 @@ export function BuildMenu({
                 <span className="tool-card-desc">{p.desc}</span>
               </button>
             ))}
+          </div>
+          </div>
+          <div className="build-menu-options">
+            <ToolOptions />
           </div>
         </div>
       </div>
