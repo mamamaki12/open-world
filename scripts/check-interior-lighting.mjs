@@ -46,8 +46,24 @@ try{for(const touch of [false,true]){
     assert.ok(lit>dark*1.3+2,`visible illumination: dark=${dark}, lit=${lit}`);
     const sources=await page.evaluate(async()=>{const {furnitureLightSources}=await import('/src/world/furnitureLights.ts');return [...furnitureLightSources.keys()].filter(o=>{for(let p=o;p;p=p.parent)if(p===window.__ow.scene.getObjectByName('house'))return true;return false;}).map(o=>o.getWorldPosition(o.position.clone()).toArray());});
     assert.ok(sources.some(p=>Math.abs(p[1]-3.215)<.03),'source is attached below ceiling');
+    await page.evaluate(async()=>{const saves=await import('/src/session/saves.ts');const saved=JSON.stringify(saves.snapshot());await saves.importSave(saved);});
+    assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.furniture[0].type),'ceiling-disc-light');
     await page.evaluate(()=>{const g=window.__ow.game.getState();g.select({kind:'furniture',id:g.house.furniture[0].id});g.deleteSelected();});
     const removed=await waitBrightness(page,n=>n<60);assert.ok(removed<lit*.8,'removing light darkens room');
+    // Defaults and actual store interiors use visible furniture fixtures and the same capped pool.
+    await page.evaluate(async()=>{const {sampleHouse}=await import('/src/building/sample.ts');window.__ow.game.getState().replaceHouse(sampleHouse());Object.assign(window.__ow.player,{x:7.4,y:.5,z:10.3,yaw:0,bodyYaw:0,pitch:.38});});
+    await until(page,async()=>{const {furnitureLightSources}=await import('/src/world/furnitureLights.ts');let active=0;window.__ow.scene.traverse(o=>{if(o.isPointLight&&o.name.startsWith('furniture-light-')&&o.intensity>0)active++;});return active>0&&furnitureLightSources.size>3;});
+    await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+    await page.screenshot({path:`browser-checks/interior-lighting/${touch?'phone':'pc'}-default-home.png`});
+    const homeCeiling=await page.evaluate(async()=>{const {furnitureLightSources}=await import('/src/world/furnitureLights.ts'),own=window.__ow.scene.getObjectByName('house');return [...furnitureLightSources.keys()].filter(o=>{for(let p=o;p;p=p.parent)if(p===own)return true;return false;}).map(o=>o.getWorldPosition(o.position.clone()).y);});
+    assert.ok(homeCeiling.some(y=>y>2.8&&y<3.15),'lower-storey ceiling source is below upper slab');
+    await page.evaluate(async()=>{const {VENUES}=await import('/src/building/venues.ts'),{civicOffset}=await import('/src/state/economy.ts'),b=VENUES.estate,o=civicOffset();Object.assign(window.__ow.player,{x:o.x+(b.x0+b.x1)/2,y:0,z:o.z+(b.z0+b.z1)/2+2.2,yaw:0,bodyYaw:0,pitch:.35});});
+    await until(page,()=>{const g=window.__ow.scene.getObjectByName('interior-estate');let found=false;g?.traverse(o=>{if(o.userData.venueFixtures)found=true;});return found;});
+    await until(page,()=>{let active=0;window.__ow.scene.traverse(o=>{if(o.isPointLight&&o.name.startsWith('furniture-light-')&&o.intensity>0)active++;});return active>0;});
+    await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+    await page.screenshot({path:`browser-checks/interior-lighting/${touch?'phone':'pc'}-default-store.png`});
+    const pool=await page.evaluate(()=>{const lights=[];window.__ow.scene.traverse(o=>{if(o.isPointLight)lights.push({name:o.name,shadow:o.castShadow});});return lights;});
+    assert.equal(pool.length,touch?3:6);assert.ok(pool.every(l=>l.name.startsWith('furniture-light-')&&!l.shadow));
     assert.deepEqual(errors,[]);results.push({touch,dark,lit,removed,sources,errors});
   }finally{await context.close();}
 }}finally{await browser.close();fs.writeFileSync('browser-checks/interior-lighting/results.json',JSON.stringify(results,null,2));}

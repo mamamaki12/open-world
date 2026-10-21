@@ -4,7 +4,7 @@ import {sampleHouse} from './sample';
 import {townHouseAt,TOWN_HOUSE_PLOTS} from './townHouses';
 import {getFurniture,FURNITURE} from '../catalog';
 import {furnitureBaseY} from './rules';
-import {floorY,WALL_HEIGHT} from './dimensions';
+import {floorY,WALL_HEIGHT,SLAB_THICKNESS} from './dimensions';
 import {emptyHouse} from './types';
 import {aimPlan} from './aimBuild';
 import {useGame} from '../state/store';
@@ -24,6 +24,7 @@ describe('room lighting',()=>{
     for(const def of FURNITURE.filter(f=>f.ceiling)){
       const item={type:def.id,level:1,x:4,z:4};
       expect(furnitureBaseY(room,item)).toBeCloseTo(floorY(1)+WALL_HEIGHT-.035);
+      expect(furnitureBaseY(room,{...item,level:0})).toBeCloseTo(floorY(1)-SLAB_THICKNESS-.035);
       expect(Math.max(...def.parts.map(p=>p.pos[1]+p.size[1]/2))).toBeLessThanOrEqual(.001);
       expect(Math.min(...def.parts.map(p=>p.pos[1]-p.size[1]/2))).toBeGreaterThan(-.8);
       const defaults={...useGame.getState().defaults,furnitureType:def.id};
