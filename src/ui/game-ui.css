@@ -72,7 +72,8 @@
   .world-import,.world-session button,.world-disconnected button,.version-button,
   .version-update,.walk-menu-item,.quick-slots button,.quick-options button,
   .build-history button,.aim-buttons button,.tool-card,.dealer-model,.tuner-option,
-  .ex-stock,.job-card,.drive-actions button,.build-fab,.map-fab,.drive-view) {
+  .ex-row,.job-card,.looks-chip,.looks-primary,.drive-actions button,.build-fab,.map-fab,.drive-view,
+  .quick-meta button,.door-prompt) {
   background: var(--pocket-paper);
   border: 2px solid var(--pocket-line);
   border-radius: 3px;
@@ -89,10 +90,15 @@
   color: var(--pocket-ink);
 }
 #root :is(.tool.on,.btn.on,.choice.on,.seg button.on,.tool-card.on,
-  .quick-slots button[aria-pressed=true],.dealer-model.on,.tuner-option.on,.ex-stock.on) {
+  .quick-slots button[aria-pressed=true],.dealer-model.on,.tuner-option.on,.ex-row.on,
+  .looks-chip[aria-pressed=true]) {
   background: var(--pocket-selected);
   border-color: var(--pocket-ink);
   box-shadow: 0 3px 0 var(--pocket-ink), inset 1px 1px 0 #90ae75;
+  color: #faf7de;
+}
+#root :is(.tool.on,.btn.on,.choice.on,.tool-card.on,.world-primary):hover:not(:disabled) {
+  background: var(--pocket-selected);
   color: #faf7de;
 }
 #root :is(.choice.on small,.tool-card.on .tool-card-desc,.dealer-model.on small,
@@ -132,7 +138,8 @@
   border-radius: 2px;
   box-shadow: none;
 }
-#root :is(input[type=text],input[type=url],input[type=number],select,textarea,.designer-name) {
+#root :is(input[type=text],input[type=url],input[type=number],select,textarea,.designer-name),
+#root .world-field input {
   color: var(--pocket-ink);
   background: #dbe3ba;
   border: 2px solid var(--pocket-line);
@@ -150,14 +157,16 @@
 #root .seg { border-radius: 2px; }
 
 /* In-game readouts: keep the scene clear; only the HUD has an LCD surface. */
-#root :is(.moneybar,.touch-cash,.walk-cash,.drive-hud,.quick-options,.levelbar) { background: var(--pocket-lcd); }
+#root :is(.moneybar,.touch-cash,.walk-cash,.drive-hud,.quick-meta,.levelbar) { background: var(--pocket-lcd); }
 #root :is(.chip.building,.tool.chip.go) { background: #e7d592; color: var(--pocket-ink); border-color: #947944; }
 #root .tool.chip.warn { background: #f2d3b3; color: var(--pocket-red); }
 #root .controls-help { background: var(--pocket-paper); }
 #root .controls-help summary { color: var(--pocket-selected); }
 #root .quick-slots { background: var(--pocket-panel); }
-#root .quick-options { border-color: var(--pocket-line); }
-#root .quick-options span { color: var(--pocket-ink); }
+#root .quick-tools:empty { display: none; }
+#root .quick-meta { border-color: var(--pocket-line); border-radius: 0; }
+#root .quick-meta span { color: var(--pocket-ink); }
+#root .app.walk:not(.touch) .door-prompts { bottom: calc(var(--quick-tools-h,104px) + 22px); }
 #root .quick-swipe-hint { color: var(--pocket-muted); }
 #root .build-history { background: var(--pocket-panel); }
 #root .aim-message { background: var(--pocket-paper); color: var(--pocket-ink); border: 2px solid var(--pocket-ink); border-radius: 2px; }
@@ -167,6 +176,8 @@
 #root :is(.touch-btn,.touch-stick,.touch-stick-knob) { backdrop-filter: none; }
 #root .touch-btn { background: var(--pocket-paper); color: var(--pocket-ink); border: 2px solid var(--pocket-ink); box-shadow: 2px 2px 0 #29392f60; }
 #root .touch-btn:active { background: var(--pocket-lcd); }
+#root .joystick { background: #e8e8cd70; border-color: var(--pocket-ink); box-shadow: 2px 2px 0 #29392f60; }
+#root .joystick-knob { background: var(--pocket-paper); box-shadow: 2px 2px 0 #29392f80; }
 #root :is(.build-fab,.map-fab) { background: var(--pocket-lcd); }
 
 /* Shop screens are game menus as well, rather than separate web storefronts. */
@@ -184,7 +195,9 @@
   background-size: 6px 6px;
   padding: 24px 18px;
 }
-#root :is(.world-launch::before,.world-card::before,.world-glow) { display: none; }
+#root .world-launch::before,
+#root .world-card::before,
+#root .world-glow { display: none; }
 #root .world-card {
   width: min(100%,560px);
   padding: 22px;
@@ -208,12 +221,16 @@
 #root .world-card h1 {
   margin: 0;
   color: var(--pocket-ink);
-  font-family: 'Courier New',monospace;
+  font-family: 'Consolas','MS Gothic',monospace;
   font-size: clamp(28px,5.5vw,46px);
   font-weight: 900;
   line-height: 1.12;
   letter-spacing: -.04em;
   text-shadow: 2px 2px 0 #eef0cb;
+  background: none;
+  -webkit-background-clip: border-box;
+  -webkit-text-fill-color: var(--pocket-ink);
+  filter: none;
 }
 #root .world-subtitle { margin: 10px 0 6px; font-size: 13px; }
 #root .pocket-town { display: block; width: 100%; height: 68px; color: var(--pocket-ink); image-rendering: pixelated; }
@@ -238,6 +255,18 @@
 #root .world-error { background: #f2d5bc; color: #76343d; border: 2px solid var(--pocket-red); border-radius: 2px; }
 #root .world-launch .app-version { border-color: var(--pocket-line); color: var(--pocket-muted); }
 #root .world-launch .version-button { color: var(--pocket-ink); }
+#root .world-launch .version-current strong { color: var(--pocket-ink); }
+#root .world-launch .version-status.current { color: var(--pocket-selected); }
+#root .world-launch :is(.version-status.update,.version-error) { color: var(--pocket-red); }
+#root :is(.ex-row,.garment,.job-card) {
+  background: var(--pocket-paper);
+  color: var(--pocket-ink);
+  border: 2px solid var(--pocket-line);
+  border-radius: 2px;
+  box-shadow: 0 2px 0 var(--pocket-line);
+}
+#root .ex-row.on { background: var(--pocket-selected); color: #faf7de; border-color: var(--pocket-ink); }
+#root :is(.ex-chart,.ex-trade>div,.garment-image) { border-radius: 2px; border-color: var(--pocket-line); }
 #root .world-import { padding: 8px 12px; }
 
 @media (max-width: 480px) {
