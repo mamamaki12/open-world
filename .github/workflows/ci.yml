@@ -136,14 +136,14 @@ jobs:
             sleep 1
           done
           node scripts/check-large-text.mjs
-            node scripts/check-handheld-ui.mjs
+          node scripts/check-handheld-ui.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: large-text-checks
-            path: |
-              browser-checks/large-text/
-              browser-checks/handheld-ui/
+          path: |
+            browser-checks/large-text/
+            browser-checks/handheld-ui/
           if-no-files-found: ignore
 
   shared-ui:

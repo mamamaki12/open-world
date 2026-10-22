@@ -81,7 +81,7 @@
   color: var(--pocket-ink);
   font-family: inherit;
   text-shadow: none;
-  transition: background-color 80ms, box-shadow 80ms;
+  transition: none;
 }
 #root :is(.tool,.btn,.choice,.world-choice,.world-actions button,.world-import,
   .walk-menu-item,.tool-card,.dealer-model,.tuner-option,.version-button):hover:not(:disabled) {
@@ -171,6 +171,20 @@
 #root .build-history { background: var(--pocket-panel); }
 #root .aim-message { background: var(--pocket-paper); color: var(--pocket-ink); border: 2px solid var(--pocket-ink); border-radius: 2px; }
 #root .drive-hud p { color: var(--pocket-ink); }
+#root .app.touch .drive-hud {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+#root .app.touch .drive-dashboard {
+  background: var(--pocket-lcd);
+  color: var(--pocket-ink);
+  border: 2px solid var(--pocket-ink);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 #29392f60;
+}
+#root .app.touch .drive-model { color: var(--pocket-ink); }
 #root .drive-speed { font-family: 'MS Gothic', monospace; letter-spacing: .04em; }
 #root .vehicle-roster { background: var(--pocket-paper); }
 #root :is(.touch-btn,.touch-stick,.touch-stick-knob) { backdrop-filter: none; }

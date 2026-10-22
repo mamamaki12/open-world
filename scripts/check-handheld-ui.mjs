@@ -4,9 +4,9 @@ import {chromium} from 'playwright';
 const base=process.env.WORLD_TEST_URL||'http://127.0.0.1:5173/',out='browser-checks/handheld-ui';fs.mkdirSync(out,{recursive:true});
 const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const results=[];
-try{for(const size of [{name:'pc',width:1280,height:800,touch:false},{name:'phone',width:390,height:844,touch:true},{name:'small',width:320,height:568,touch:true},{name:'landscape',width:844,height:390,touch:true}]){
+try{for(const size of [{name:'pc',width:1280,height:800,touch:false},{name:'phone',width:390,height:844,touch:true},{name:'small',width:320,height:568,touch:true},{name:'landscape',width:844,height:390,touch:true}].filter(s=>!process.env.HANDHELD_UI_SIZES||process.env.HANDHELD_UI_SIZES.split(',').includes(s.name))){
  const context=await browser.newContext({viewport:{width:size.width,height:size.height},hasTouch:size.touch,isMobile:size.touch}),page=await context.newPage(),errors=[];page.setDefaultTimeout(120000);page.on('pageerror',e=>errors.push(e.message));
- const shot=async label=>{await page.screenshot({path:`${out}/${size.name}-${label}.png`});};
+ const shot=async label=>{await page.screenshot({path:`${out}/${size.name}-${label}.png`,animations:'disabled'});};
  try{
   await page.goto(base+'?touch='+Number(size.touch));await page.getByLabel('あなたの名前').fill('ポケットタウン');await shot('title');
   assert.equal(await page.locator('.pocket-town').count(),1);
@@ -26,6 +26,7 @@ try{for(const size of [{name:'pc',width:1280,height:800,touch:false},{name:'phon
   }
   await page.evaluate(async()=>{const {useVehicles}=await import('/src/state/vehicles.ts'),{STOCK_MODS}=await import('/src/catalog/carMods.ts');useVehicles.setState({cars:[{id:'ui-car',model:'breeze',color:'#9b4150',x:12.52,z:16.8,yaw:0,speed:0,steer:0,wheelSpin:0,braking:false,lights:true,mods:{...STOCK_MODS}}]});});
   await page.getByRole('button',{name:/運転席に乗る/}).click();await page.locator('.drive-hud').waitFor();await shot('drive');
+  if(size.touch)assert.equal(await page.locator('.drive-hud').evaluate(e=>getComputedStyle(e).backgroundColor),'rgba(0, 0, 0, 0)','full-screen mobile HUD must not cover the 3D world');
   await page.getByRole('button',{name:'座席から見る',exact:true}).click();await shot('driver-view');
   assert.deepEqual(errors,[]);results.push({name:size.name,screens:11,canvasFilter:'none',errors});console.log(size.name+' handheld UI passed');
  }catch(e){await shot('failure');throw e;}finally{await context.close();}
