@@ -5,8 +5,8 @@ import { cleanReloadParam } from './ui/reload';
 import { ErrorBoundary, NoWebGL, hasWebGL } from './ui/Fallback';
 import './ui/styles.css';
 import './ui/mobile.css';
-import './ui/game-ui.css';
 import './session/session.css';
+import './ui/game-ui.css';
 import { registerOffline } from './session/offline';
 import { mixWithOtherAudio } from './audioSession';
 
