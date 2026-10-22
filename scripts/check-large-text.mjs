@@ -7,6 +7,8 @@ import { chromium } from 'playwright';
 const base = process.env.UI_SNAPSHOT_URL || 'http://127.0.0.1:5173/';
 const out = 'browser-checks/large-text'; fs.mkdirSync(out, { recursive: true });
 const sizes = [
+  { name: 'pc-100', viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 },
+  { name: 'pc-1024', viewport: { width: 1024, height: 700 }, deviceScaleFactor: 1 },
   { name: 'pc-150', viewport: { width: 853, height: 480 }, deviceScaleFactor: 1.5 },
   { name: 'pc-200', viewport: { width: 640, height: 360 }, deviceScaleFactor: 2 },
   { name: 'phone-150', viewport: { width: 260, height: 563 }, deviceScaleFactor: 3, touch: true },
@@ -27,6 +29,7 @@ function scan(rootSel) {
   const els = [];
   for (const root of roots) for (const e of root.querySelectorAll('button,input,select,textarea,a,summary,label,h1,h2,h3,h4,p,span,strong,b,small,em,div,li,td,th')) {
     if (!visible(e) || e.closest('[aria-hidden="true"]')) continue;
+    if (e.closest('details:not([open])') && !e.closest('summary')) continue; // 閉じた折りたたみの中身
     const ctrl = /^(BUTTON|INPUT|SELECT|TEXTAREA|A|SUMMARY)$/.test(e.tagName);
     const ownText = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
     if (!ctrl && !ownText) continue;

@@ -170,6 +170,8 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
   .topbar .tool { padding: 6px 9px; }
   /* 拡大表示などで画面が狭いと、お金のバーが左の説明に重なるのでその下から並べる */
   .side.left { top: calc(var(--hud-top) + 8px); max-height: calc(100% - var(--hud-top) - 54px); }
+  /* 下の道具バーが画面幅いっぱいになるので、歩きモードの説明はその上に出す */
+  .app.walk:not(.touch) .walk-hud { bottom: 118px; max-height: calc(100% - var(--hud-top) - 128px); overflow-y: auto; box-sizing: border-box; }
 }
 
 /* ---- お金（上のバー） ---- */
