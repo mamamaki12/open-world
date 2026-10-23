@@ -171,6 +171,34 @@ jobs:
           path: browser-checks/handheld-ui/
           if-no-files-found: ignore
 
+  car-catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Check vehicle lineup, filters and purchase flow
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/car-catalog-vite.log 2>&1 &
+          web=$!
+          trap 'kill "$web"' EXIT
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-car-catalog.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: car-catalog-checks
+          path: browser-checks/car-catalog/
+          if-no-files-found: ignore
+
   shared-editing-target:
     runs-on: ubuntu-latest
     timeout-minutes: 25
