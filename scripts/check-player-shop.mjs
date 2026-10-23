@@ -31,7 +31,7 @@ try {
   await openRegister(owner, lot);
   await owner.getByPlaceholder('例：しんご設計事務所').fill('しんご設計事務所');
   await owner.getByRole('button', { name: 'お店を開く' }).click();
-  await owner.getByRole('button', { name: '＋ 商品を追加' }).click();
+  await owner.getByRole('button', { name: '商品を追加' }).click();
   const form = owner.locator('.shop-form');
   await form.locator('input').nth(0).fill('家の設計代行');
   await form.locator('input').nth(1).fill('300000');
@@ -53,7 +53,7 @@ try {
   await owner.waitForFunction(b => window.__ow.economy.getState().money === b + 300000, ownerBefore);
   await buyer.waitForFunction(lot => window.__ow.economy.getState().lots.find(l => l.id === lot)?.shop?.sales.length === 1, lot);
   // 会員権：期限つきの券として買い手に残る
-  await owner.getByRole('button', { name: '＋ 商品を追加' }).click();
+  await owner.getByRole('button', { name: '商品を追加' }).click();
   await form.locator('input').nth(0).fill('月会員');
   await form.locator('select').selectOption('membership');
   await form.locator('input').nth(2).fill('100000');

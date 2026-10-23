@@ -49,7 +49,7 @@ async function run(touch){
     await until(page,async()=>{const {furnitureLightSources}=await import('/src/world/furnitureLights.ts');const own=window.__ow.scene.getObjectByName('house');return [...furnitureLightSources.keys()].some(o=>{for(let p=o;p;p=p.parent)if(p===own)return true;return false;});});
     console.log(touch?'phone mounted':'desktop mounted');
     if(!touch){
-      await page.getByRole('button',{name:'↑ 5cm',exact:true}).click();
+      await page.getByRole('button',{name:'上へ 5cm',exact:true}).click();
       assert.ok(Math.abs(await page.evaluate(()=>window.__ow.game.getState().house.furniture[0].wallMount.height)-mounted.wallMount.height-.05)<1e-6);
       await page.evaluate(()=>{const g=window.__ow.game.getState();g.select(null);g.setTool('furniture');g.setDefaults({furnitureType:'indirect-floor-light'});});
       await page.waitForTimeout(500);

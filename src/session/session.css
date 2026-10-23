@@ -495,13 +495,14 @@
   }
 }
 
-/* スマホでは四隅のボタン（メニュー・地図・スティック・建てる）に重ならないよう、上の中央に置く */
+/* スマホでは右上の丸い地図ボタンの真下に置く。上の中央だと縦画面で左上の所持金に重なっていた */
 .app.touch~.world-session {
-  right: auto;
-  left: 50%;
-  transform: translateX(-50%);
+  right: calc(8px + env(safe-area-inset-right, 0px));
   bottom: auto;
-  top: calc(8px + env(safe-area-inset-top));
+  top: calc(68px + env(safe-area-inset-top, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .app.touch~.world-session .world-session-toggle {
@@ -509,11 +510,14 @@
 }
 
 .app.touch~.world-session .world-session-panel {
-  right: auto;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 0;
   bottom: auto;
   top: 46px;
+  max-width: calc(100vw - 16px);
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .app.touch~.world-session { top: calc(60px + env(safe-area-inset-top, 0px)); }
 }
 
 .modal-network-warning {

@@ -191,7 +191,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
     <section className={`tm tm-${race.kind}`} aria-label={`${cfg.ticket}の自動発売機`}>
       <div className="tm-top">
         <span className="tm-brand">{iconText(cfg.icon)} {cfg.ticket} 自動発売機</span>
-        <span className="tm-lamp">● 発売中</span>
+        <span className="tm-lamp">{iconText("● 発売中")}</span>
       </div>
       <div className="tm-body">
         <div className="tm-screen">

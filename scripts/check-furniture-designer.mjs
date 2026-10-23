@@ -13,7 +13,7 @@ await page.waitForFunction(() => window.__ow);
 await page.evaluate(async () => { const { openDesigner } = await import('/src/ui/designer.ts'); openDesigner(); });
 await page.getByRole('button', { name: 'チェスト', exact: true }).click();
 await page.getByRole('button', { name: '1. 箱' }).click().catch(() => {});
-await page.getByRole('button', { name: '＋ 脚（丸）' }).click();
+await page.getByRole('button', { name: '脚（丸）' }).click();
 await page.getByRole('button', { name: '引き出し・扉を開けてみる' }).click();
 await page.waitForTimeout(1200);
 await page.screenshot({ path: `browser-checks/designer-${tag}.png` });

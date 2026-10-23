@@ -170,17 +170,17 @@ function resolveTown(p: { x: number; z: number }, feetY: number, height: number)
     const b={x0:site.x+shop.x0-.25,x1:site.x+shop.x1+.25,z0:site.z+shop.z0-.25,z1:site.z+shop.z1+.25};
     q=[{x:b.x0,z:q.z,d:q.x-b.x0},{x:b.x1,z:q.z,d:b.x1-q.x},{x:q.x,z:b.z0,d:q.z-b.z0},{x:q.x,z:b.z1,d:b.z1-q.z}].sort((a,b)=>a.d-b.d)[0];
   }
-  // ほかの土地の家は中に入れない（入るときはその土地へワープする）
+  // ほかの土地の家（ドアが開いていれば中に入れる）
   for (const l of s.lots) {
     const other = lotHouse(l);
     if (l.id === s.currentLotId || !other || typeof l.plot !== 'number') continue;
     const ox = plotOffset(l.plot, s), oz = plotOffsetZ(l.plot, s);
     const half = (lotCells(l).w * GRID) / 2;
     if (Math.abs(q.x - ox - half) > half + LOT_W * GRID / 2) continue;
-    const r = resolveCollisions(other, { x: q.x - ox, z: q.z - oz }, feetY, height, () => false);
+    const r = resolveCollisions(other, { x: q.x - ox, z: q.z - oz }, feetY, height, isDoorOpen);
     q = { x: r.x + ox, z: r.z + oz };
   }
-  // 町に最初から建っている家（中には入れない）
+  // 町に最初から建っている家
   const taken = new Set([...s.lots.flatMap((l) => [l.plot, l.joined]), ...s.offers.map((o) => o.plot)]);
   for (const key of Object.keys(TOWN_HOUSE_PLOTS)) {
     const plot = Number(key);

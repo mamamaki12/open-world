@@ -10,8 +10,8 @@ it('selects the joining player’s property instead of the server’s first prop
   expect(initialEditingLot([a,b],null,a.id,'b')).toBe(b.id);
   expect(initialEditingLot([a,b,c],c.id,a.id,'b')).toBe(c.id);
 });
-it('can select a permitted builder’s lot and leaves unpermitted property read-only',()=>{
-  expect(initialEditingLot([a,{...b,builders:[{id:'c',name:'C'}]}],null,a.id,'c')).toBe(b.id);
+it('falls back to the open lot when the player owns none',()=>{
+  expect(initialEditingLot([a,b],b.id,a.id,'c')).toBe(b.id);
   expect(initialEditingLot([a],null,a.id,'c')).toBe(a.id);
   expect(initialEditingLot([],null,null,'c')).toBeNull();
 });

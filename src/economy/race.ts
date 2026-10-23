@@ -212,8 +212,9 @@ export function makeRace(kind: RaceKind, no: number, seed: number): Race {
       const strength = gauss(rng) * 0.75;
       const sex = pick(rng, ['牡', '牡', '牝', 'セ']);
       const coat = pick(rng, COATS);
-      const weight = 440 + randInt(rng, 80);
-      const diff = randInt(rng, 17) - 8;
+      // 以前の馬体重の分。乱数の順を変えると同じシードで別のレースになるので引くだけ残す
+      randInt(rng, 80);
+      randInt(rng, 17);
       runners.push({
         index: i,
         no: i + 1,
@@ -225,9 +226,7 @@ export function makeRace(kind: RaceKind, no: number, seed: number): Race {
         coat: coat.color,
         info: {
           性齢: `${sex}${age}`,
-          斤量: (sex === '牝' ? 55 : 57).toFixed(1),
           騎手: `${pick(rng, FAMILY)}${pick(rng, ['', '', '★', '▲'])}`,
-          馬体重: `${weight}(${diff > 0 ? '+' : ''}${diff})`,
           毛色: coat.name,
         },
       });

@@ -20,10 +20,10 @@ const legacy: Record<string, IconName> = {
   '★':'star','⭐':'star','📖':'book','♠':'spade','♥':'heart','♦':'diamond','♣':'club','♚':'crown','♛':'crown','♞':'horse','🎉':'celebration',
   '⛶':'fullscreen','🔊':'volume','🔈':'volume','🔇':'mute','🔑':'key','📈':'chart','📅':'calendar','🧰':'toolbox',
   '📣':'megaphone','📷':'camera','🎨':'palette','🔧':'wrench','☀':'sun','☁':'cloud','☂':'rain','❄':'snow','🔗':'link','🔄':'refresh',
-  '☰':'menu','↶':'undo','↷':'redo','↺':'undo','↻':'rotate','↗':'expand','◀':'left','▶':'right','←':'left','→':'right',
+  '⟲':'undo','⟳':'rotate','◉':'wheel','◆':'diamond','●':'bell','☰':'menu','↶':'undo','↷':'redo','↺':'undo','↻':'rotate','↗':'expand','◀':'left','▶':'right','←':'left','→':'right',
   '↑':'up','↓':'down','▲':'up','▼':'down','▴':'up','▾':'down','✕':'close','×':'close','✓':'check','✔':'check','💾':'save','⏰':'clock',
 };
-const pictograph = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*|[★♠♥♦♣♚♛♞⛶☰↶↷↺↻↗◀▶←→↑↓▲▼▴▾✕✓✔]/gu;
+const pictograph = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*|[★♠♥♦♣♚♛♞⛶☰⟲⟳◉◆●↶↷↺↻↗◀▶←→↑↓▲▼▴▾✕✓✔]/gu;
 
 /** Convert application-owned labels only; user input and form values stay untouched. */
 export function iconText(value: ReactNode): ReactNode {
@@ -33,7 +33,7 @@ export function iconText(value: ReactNode): ReactNode {
   if (leading) return <><AppIcon name={['+','＋'].includes(leading[1]) ? 'plus' : ['×','✕'].includes(leading[1]) ? 'close' : 'minus'} />{value.slice(1)}</>;
   const standalone = value.trim();
   if (standalone === '×' || standalone === '✕') return <AppIcon name="close" />;
-  if (standalone === '+' || standalone === '＋' || standalone === '−' || standalone === '-') {
+  if (standalone === '+' || standalone === '＋' || standalone === '−' || standalone === '-' || standalone === '－') {
     return <AppIcon name={standalone === '+' || standalone === '＋' ? 'plus' : 'minus'} />;
   }
   const matches = [...value.matchAll(pictograph)];
