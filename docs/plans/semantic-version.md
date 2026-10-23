@@ -2,12 +2,12 @@
 
 ## 現在の状態
 
-- 状態: 作業中
-- PR: 未作成
+- 状態: 検証待ち
+- PR: 作成中
 - 公開: 未公開
-- 残作業: scripts/app-version.mjs の実装、vite.config.ts・deploy.yml の切り替え、docs/versioning.md の作成。
+- 残作業: PRのCI確認・マージ後、公開版で「Web版 1.0.0」の表示を確認。
 - 将来の拡張・追加確認: なし。
-- 確認根拠: 最新main dfd02ff を確認。
+- 確認根拠: vitest 725件成功、npm run build で version.json が 1.0.0、scripts/check-app-version.mjs（PC/スマホ・更新あり/オフライン）成功。
 - 最終更新: 2026-10-23
 
 - ブランチ: claude/project-thread-oa34x3
@@ -24,3 +24,4 @@
 ## 経過記録
 
 - 2026-10-23: 計画を作成。
+- 2026-10-23: scripts/app-version.mjs を追加し vite.config.ts の version を置き換え。package.json を 1.0.0 に。deploy.yml に fetch-depth: 0。docs/versioning.md・CLAUDE.md・AGENTS.md にルール。
