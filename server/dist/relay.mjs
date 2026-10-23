@@ -12107,19 +12107,6 @@ function applyAction(w, sender, name, c, a) {
     return { world: { ...paid2, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter((o) => o.id !== offer.id) } }, cost: price2, message: bought.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
   }
   if (!lot) return "\u305D\u306E\u571F\u5730\u306F\u3042\u308A\u307E\u305B\u3093";
-  if (a.type === "builders") {
-    if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u3060\u3051\u5EFA\u3066\u308B\u4EBA\u3092\u6C7A\u3081\u3089\u308C\u307E\u3059";
-    const id2 = typeof a.id === "string" ? a.id.slice(0, 100) : "";
-    if (!id2 || id2 === sender) return "\u305D\u306E\u4EBA\u306F\u9078\u3079\u307E\u305B\u3093";
-    const list = (lot.builders ?? []).filter((b) => b.id !== id2);
-    if (a.allow && list.length >= BUILDER_LIMIT) return `\u4E00\u7DD2\u306B\u5EFA\u3066\u3089\u308C\u308B\u306E\u306F${BUILDER_LIMIT}\u4EBA\u307E\u3067\u3067\u3059`;
-    const next2 = a.allow ? [...list, { id: id2, name: (typeof a.name === "string" ? a.name.trim().slice(0, 24) : "") || "\u3060\u308C\u304B" }] : list;
-    return {
-      world: withLots(lots.map((l) => l.id === lot.id ? { ...l, builders: next2.length ? next2 : void 0 } : l)),
-      cost: 0,
-      message: a.allow ? `${next2[next2.length - 1].name}\u3055\u3093\u304C\u3053\u306E\u571F\u5730\u3067\u5EFA\u3066\u3089\u308C\u308B\u3088\u3046\u306B\u3057\u307E\u3057\u305F` : "\u5EFA\u3066\u308B\u4EBA\u304B\u3089\u5916\u3057\u307E\u3057\u305F"
-    };
-  }
   if (a.type === "list") {
     if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u3060\u3051\u58F2\u308A\u306B\u51FA\u305B\u307E\u3059";
     if (lot.construction) return "\u5DE5\u4E8B\u4E2D\u306F\u58F2\u308A\u306B\u51FA\u305B\u307E\u305B\u3093";
@@ -12224,12 +12211,8 @@ function applyAction(w, sender, name, c, a) {
   if (typeof paid === "string") return paid;
   const received = paid.accounts?.[seller] ? charge(paid, seller, -price, `${lot.name}\u304C${name}\u3055\u3093\u306B\u58F2\u308C\u307E\u3057\u305F`) : paid;
   if (typeof received === "string") return received;
-  const next = lots.map((l) => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: void 0, invested: price, rented: false, builders: void 0 } : l);
+  const next = lots.map((l) => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: void 0, invested: price, rented: false } : l);
   return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: price, message: lot.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
-}
-var BUILDER_LIMIT = 8;
-function canBuildOn(lot, member) {
-  return !lot.owner || lot.owner === member || (lot.builders ?? []).some((b) => b.id === member);
 }
 function houseOf(w, id2) {
   const l = w.economy.lots.find((l2) => l2.id === id2);
@@ -12266,7 +12249,6 @@ function applyCommand(w, sender, c, name = "\u30B2\u30B9\u30C8") {
   try {
     const lot = w.economy.lots.find((l) => l.id === c.lot), before = houseOf(w, c.lot);
     if (!lot || !before) return fail("\u7DE8\u96C6\u3059\u308B\u571F\u5730\u304C\u3042\u308A\u307E\u305B\u3093");
-    if (!canBuildOn(lot, sender)) return fail("\u307B\u304B\u306E\u4EBA\u306E\u571F\u5730\u306B\u306F\u5EFA\u3066\u3089\u308C\u307E\u305B\u3093");
     if (lot.construction) return fail("\u5DE5\u4E8B\u306E\u5B8C\u4E86\u5F8C\u306B\u7DE8\u96C6\u3057\u3066\u304F\u3060\u3055\u3044");
     const undo = c.undoOf ? receipts[c.undoOf] : null;
     if (c.undoOf && (!undo || undo.sender !== sender || undo.undone || undo.cancelled || JSON.stringify(undo.delta?.map((x) => ({ ...x, before: x.after, after: x.before }))) !== JSON.stringify(c.delta))) return fail("\u81EA\u5206\u306E\u64CD\u4F5C\u3060\u3051\u3092\u4E00\u5EA6\u305A\u3064\u623B\u305B\u307E\u3059");

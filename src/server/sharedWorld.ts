@@ -20,7 +20,7 @@ export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; 
   | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] } | { type: 'stocks'; holdings: Record<string, unknown> }
   | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number } | { type: 'play'; fee: number; kind?: 'arcade' | 'ride' }
   | { type: 'request'; title: string; description: string; reward: number } | { type: 'requestStep'; request: string; op: RequestOp }
-  | { type: 'builders'; id: string; name: string; allow: boolean };
+
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
 /** 共有側の口座。所持金は端末の個別ワールドと同期し、車や株は共有側だけに保存する。 */
 export interface Account { name: string; money: number; ledger: { day: number; label: string; amount: number }[]; cars: unknown[]; stocks?: Record<string, unknown> }
@@ -103,16 +103,6 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     return { world: { ...paid, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter(o => o.id !== offer.id) } }, cost: price, message: bought.name + 'を買いました' };
   }
   if (!lot) return 'その土地はありません';
-  if (a.type === 'builders') {
-    if (lot.owner !== sender) return '自分の土地だけ建てる人を決められます';
-    const id = typeof a.id === 'string' ? a.id.slice(0, 100) : '';
-    if (!id || id === sender) return 'その人は選べません';
-    const list = (lot.builders ?? []).filter(b => b.id !== id);
-    if (a.allow && list.length >= BUILDER_LIMIT) return `一緒に建てられるのは${BUILDER_LIMIT}人までです`;
-    const next = a.allow ? [...list, { id, name: (typeof a.name === 'string' ? a.name.trim().slice(0, 24) : '') || 'だれか' }] : list;
-    return { world: withLots(lots.map(l => l.id === lot.id ? { ...l, builders: next.length ? next : undefined } : l)), cost: 0,
-      message: a.allow ? `${next[next.length - 1].name}さんがこの土地で建てられるようにしました` : '建てる人から外しました' };
-  }
   if (a.type === 'list') {
     if (lot.owner !== sender) return '自分の土地だけ売りに出せます';
     if (lot.construction) return '工事中は売りに出せません';
@@ -223,15 +213,10 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
   if (typeof paid === 'string') return paid;
   const received = paid.accounts?.[seller] ? charge(paid, seller, -price, `${lot.name}が${name}さんに売れました`) : paid;
   if (typeof received === 'string') return received;
-  const next = lots.map(l => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: undefined, invested: price, rented: false, builders: undefined } : l);
+  const next = lots.map(l => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: undefined, invested: price, rented: false } : l);
   return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: price, message: lot.name + 'を買いました' };
 }
 
-export const BUILDER_LIMIT = 8;
-/** 持ち主のいない土地は誰でも、持ち主のいる土地はその人と、持ち主が許可した人だけが建てられる */
-export function canBuildOn(lot: Lot, member: string): boolean {
-  return !lot.owner || lot.owner === member || (lot.builders ?? []).some(b => b.id === member);
-}
 
 function houseOf(w: WorldSave, id: string): House | null {
   const l = w.economy.lots.find(l => l.id === id);
@@ -265,7 +250,6 @@ export function applyCommand(w: SharedWorld, sender: string, c: SharedCommand, n
   try {
     const lot = w.economy.lots.find(l => l.id === c.lot), before = houseOf(w, c.lot);
     if (!lot || !before) return fail('編集する土地がありません');
-    if (!canBuildOn(lot, sender)) return fail('ほかの人の土地には建てられません');
     if (lot.construction) return fail('工事の完了後に編集してください');
     const undo = c.undoOf ? receipts[c.undoOf] : null;
     if (c.undoOf && (!undo || undo.sender !== sender || undo.undone || undo.cancelled ||

@@ -1,10 +1,10 @@
-// ほかの住人の家を訪ねる：歩いてその家の区画に入ったら、その家の床・階段・ドアで歩けるようにする。
-// 家を変えたり消したりはできない（建築はいつも自分の土地だけ）
+// ほかの家を訪ねる：歩いてその家の区画に入ったら、その家の床・階段・ドアで歩けるようにする。
+// 町に最初から建っている家と、いま開いていない土地（ほかのプレイヤーの家・自分のほかの土地）の家が対象
 import { create } from 'zustand';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
 import type { House } from '../building/types';
-import { plotOffset, plotOffsetZ, useEconomy } from '../state/economy';
+import { lotCells, lotHouse, plotOffset, plotOffsetZ, useEconomy } from '../state/economy';
 
 /** いま訪ねている区画（家を細かく描き、ドアを開けられるようにする） */
 export const useVisit = create<{ plot: number | null }>(() => ({ plot: null }));
@@ -18,7 +18,15 @@ export interface Visit {
   world: House;
 }
 
-const shifted = new Map<string, House>();
+const shifted = new WeakMap<House, Map<string, House>>();
+function shiftedHouse(house: House, ox: number, oz: number): House {
+  let byOffset = shifted.get(house);
+  if (!byOffset) shifted.set(house, byOffset = new Map());
+  const key = `${ox}:${oz}`;
+  let world = byOffset.get(key);
+  if (!world) byOffset.set(key, world = shiftHouse(house, ox, oz));
+  return world;
+}
 /** 家を ox, oz（m）だけ動かした写し */
 function shiftHouse(h: House, ox: number, oz: number): House {
   const dx = ox / GRID, dz = oz / GRID;
@@ -37,25 +45,27 @@ export function takenPlots(s = useEconomy.getState()): Set<number> {
   return new Set([...s.lots.flatMap((l) => [l.plot, l.joined]), ...s.offers.map((o) => o.plot)].filter((p): p is number => typeof p === 'number'));
 }
 
-/** その位置（いまの土地の座標、m）にある町の家。区画の外なら null */
+/** その位置（いまの土地の座標、m）にある、いまの土地以外の家。区画の外なら null */
 export function visitAt(x: number, z: number): Visit | null {
   const s = useEconomy.getState();
+  const inside = (ox: number, oz: number, w: number) => x >= ox - 0.5 && x <= ox + w * GRID + 0.5 && z >= oz - 0.5 && z <= oz + LOT_D * GRID + 0.5;
+  for (const l of s.lots) {
+    if (l.id === s.currentLotId || typeof l.plot !== 'number') continue;
+    const ox = plotOffset(l.plot, s), oz = plotOffsetZ(l.plot, s);
+    if (!inside(ox, oz, lotCells(l).w)) continue;
+    const house = lotHouse(l);
+    return house ? { plot: l.plot, house, ox, oz, world: shiftedHouse(house, ox, oz) } : null;
+  }
   let taken: Set<number> | null = null;
   for (const key of Object.keys(TOWN_HOUSE_PLOTS)) {
     const plot = Number(key);
     const ox = plotOffset(plot, s), oz = plotOffsetZ(plot, s);
-    if (x < ox - 0.5 || x > ox + LOT_W * GRID + 0.5 || z < oz - 0.5 || z > oz + LOT_D * GRID + 0.5) continue;
+    if (!inside(ox, oz, LOT_W)) continue;
     taken ??= takenPlots(s);
     if (taken.has(plot)) continue;
     const house = townHouseAt(plot);
     if (!house) continue;
-    const cacheKey = `${plot}:${ox}:${oz}`;
-    let world = shifted.get(cacheKey);
-    if (!world) {
-      world = shiftHouse(house, ox, oz);
-      shifted.set(cacheKey, world);
-    }
-    return { plot, house, ox, oz, world };
+    return { plot, house, ox, oz, world: shiftedHouse(house, ox, oz) };
   }
   return null;
 }
