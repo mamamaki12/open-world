@@ -100,6 +100,7 @@ jobs:
           done
           node scripts/check-launcher-layout.mjs
           node scripts/check-build-menu-layout.mjs
+          node scripts/check-app-icons.mjs
           node scripts/check-build-controls.mjs
           node scripts/check-connected-floors.mjs
           node scripts/check-shared-floor-extension.mjs
@@ -110,6 +111,7 @@ jobs:
           path: |
             browser-checks/build-controls/
             browser-checks/build-menu/
+            browser-checks/app-icons/
             browser-checks/launcher-layout/
             browser-checks/connected-floors/
             browser-checks/shared-floor/

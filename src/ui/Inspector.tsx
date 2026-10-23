@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // 右のパネル：選んだパーツの種類・素材・色・寸法を変える
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, furnitureDef, getFurniture, getOpening, openingsOf } from '../catalog';
 import { designOf, useDesigns } from '../catalog/designs';
@@ -30,7 +31,7 @@ export function Inspector() {
       body = (
         <>
           <p className="info">
-            {mm((f.x1 - f.x0) * GRID)} × {mm((f.z1 - f.z0) * GRID)}（{(((f.x1 - f.x0) * (f.z1 - f.z0)) / 2).toFixed(1)}畳）
+            {mm((f.x1 - f.x0) * GRID)}{iconText(" × ")}{mm((f.z1 - f.z0) * GRID)}（{(((f.x1 - f.x0) * (f.z1 - f.z0)) / 2).toFixed(1)}畳）
           </p>
           <FloorKindButtons value={f.kind} onChange={(kind) => patchPart('floor', f.id, { kind })} />
           <FinishPicker label="床材" category="floor" value={f.finish} onChange={(finish) => patchPart('floor', f.id, { finish })} />
@@ -96,7 +97,7 @@ export function Inspector() {
   return (
     <div className="panel inspector">
       <div className="panel-title">
-        <span>{title}</span>
+        <span>{iconText(title)}</span>
         <button className="btn danger small" onClick={deleteSelected} title="Delete キーでも消せます">
           削除
         </button>
@@ -121,10 +122,10 @@ function GroupMove() {
       <label><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> 同じ素材・色をまとめて移動</label>
       <p className="info">移動対象：{count}個。作成した時間に関係なく、同じ種類・仕上げをまとめます。壁の窓・ドアも一緒に動きます。</p>
       <div className="row">
-        <button className="btn" onClick={() => move(-1, 0)}>← 1マス</button>
-        <button className="btn" onClick={() => move(1, 0)}>→ 1マス</button>
-        <button className="btn" onClick={() => move(0, -1)}>↑ 1マス</button>
-        <button className="btn" onClick={() => move(0, 1)}>↓ 1マス</button>
+        <button className="btn" onClick={() => move(-1, 0)}>{iconText("← 1マス")}</button>
+        <button className="btn" onClick={() => move(1, 0)}>{iconText("→ 1マス")}</button>
+        <button className="btn" onClick={() => move(0, -1)}>{iconText("↑ 1マス")}</button>
+        <button className="btn" onClick={() => move(0, 1)}>{iconText("↓ 1マス")}</button>
       </div>
       <p className="info">選択したパーツをドラッグしても移動できます。{enabled && '一括移動中は長押しで消えません。'}素材・色の変更と削除は、最初に選んだ1個に適用します。</p>
     </div>
@@ -160,7 +161,7 @@ function OpeningInspector({ opening: o }: { opening: OpeningPart }) {
   return (
     <>
       <p className="info">
-        幅{mm(def.width)} × 高さ{mm(def.height)}　床から{mm(def.sill)}
+        幅{mm(def.width)}{iconText(" × 高さ")}{mm(def.height)}　床から{mm(def.sill)}
       </p>
       <div className="field">
         <div className="field-label">種類</div>
@@ -175,12 +176,8 @@ function OpeningInspector({ opening: o }: { opening: OpeningPart }) {
       <div className="field">
         <div className="field-label">位置（半マスずつ）</div>
         <div className="row">
-          <button className="btn" onClick={() => move(-GRID / 2)}>
-            ◀ 左へ
-          </button>
-          <button className="btn" onClick={() => move(GRID / 2)}>
-            右へ ▶
-          </button>
+          <button className="btn" onClick={() => move(-GRID / 2)}>{iconText("◀ 左へ")}</button>
+          <button className="btn" onClick={() => move(GRID / 2)}>{iconText("右へ ▶")}</button>
         </div>
       </div>
       {o.kind === 'window' && <SashPicker value={o.sash} color={o.sashColor} onChange={(sash) => patchPart('opening', o.id, { sash })} />}
@@ -222,7 +219,7 @@ function RoofInspector({ roof: r }: { roof: RoofPart }) {
   return (
     <>
       <p className="info">
-        {mm((r.x1 - r.x0) * GRID)} × {mm((r.z1 - r.z0) * GRID)}
+        {mm((r.x1 - r.x0) * GRID)}{iconText(" × ")}{mm((r.z1 - r.z0) * GRID)}
       </p>
       <RoofTypeButtons
         value={r.type}
@@ -290,10 +287,10 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
       {!f.wallMount && <div className="field">
         <div className="field-label">移動・回転</div>
         <div className="row">
-          <button className="btn" onClick={() => move(-0.05, 0)}>← 5cm</button>
-          <button className="btn" onClick={() => move(0.05, 0)}>→ 5cm</button>
-          <button className="btn" onClick={() => move(0, -0.05)}>↑ 5cm</button>
-          <button className="btn" onClick={() => move(0, 0.05)}>↓ 5cm</button>
+          <button className="btn" onClick={() => move(-0.05, 0)}>{iconText("← 5cm")}</button>
+          <button className="btn" onClick={() => move(0.05, 0)}>{iconText("→ 5cm")}</button>
+          <button className="btn" onClick={() => move(0, -0.05)}>{iconText("↑ 5cm")}</button>
+          <button className="btn" onClick={() => move(0, 0.05)}>{iconText("↓ 5cm")}</button>
         </div>
         <div className="row">
           <button className="btn" onClick={() => rotate(90)}>⟲ 90°</button>
@@ -353,10 +350,10 @@ function NameplateMountControls({ item }: { item: FurniturePart }) {
   return <div className="field">
     <div className="field-label">壁への取付位置（高さ {Math.round(mount.height * 100)}cm）</div>
     <div className="row">
-      <button className="btn" onClick={() => change(-0.05, 0)}>← 5cm</button>
-      <button className="btn" onClick={() => change(0.05, 0)}>→ 5cm</button>
-      <button className="btn" onClick={() => change(0, 0.05)}>↑ 5cm</button>
-      <button className="btn" onClick={() => change(0, -0.05)}>↓ 5cm</button>
+      <button className="btn" onClick={() => change(-0.05, 0)}>{iconText("← 5cm")}</button>
+      <button className="btn" onClick={() => change(0.05, 0)}>{iconText("→ 5cm")}</button>
+      <button className="btn" onClick={() => change(0, 0.05)}>{iconText("↑ 5cm")}</button>
+      <button className="btn" onClick={() => change(0, -0.05)}>{iconText("↓ 5cm")}</button>
     </div>
     <p className="info">壁の手前側に固定しています。取り付ける位置や高さを調整できます。</p>
   </div>;

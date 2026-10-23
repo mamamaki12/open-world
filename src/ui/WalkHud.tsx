@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // 歩きモードの画面表示：視点の種類、キー操作の一覧、一人称の照準
 import { useEffect, useState } from 'react';
 import { useDoors } from '../state/doors';
@@ -135,7 +136,7 @@ export function WalkHud() {
               toggleKeys();
             }}
           >
-            {showKeys ? 'キー一覧を閉じる ▴' : 'キー操作をすべて見る ▾'}
+            {iconText(showKeys ? 'キー一覧を閉じる ▴' : 'キー操作をすべて見る ▾')}
           </button>
         )}
       </div>

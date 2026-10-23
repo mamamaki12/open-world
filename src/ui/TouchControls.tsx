@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // スマホ・タブレット用の画面ボタン：歩きモードのスティックと動作ボタン、建築モードのカメラボタン
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
@@ -153,8 +154,8 @@ export function TouchWalkControls({ build }: { build: ReactNode }) {
     <div className="touch-walk">
       {driving ? <>
         <div className="drive-steering" role="group" aria-label="ハンドル">
-          <HoldButton label="左にハンドルを切る" onHold={on=>{driveButtons.left=on;}}>←</HoldButton>
-          <HoldButton label="右にハンドルを切る" onHold={on=>{driveButtons.right=on;}}>→</HoldButton>
+          <HoldButton label="左にハンドルを切る" onHold={on=>{driveButtons.left=on;}}>{iconText("←")}</HoldButton>
+          <HoldButton label="右にハンドルを切る" onHold={on=>{driveButtons.right=on;}}>{iconText("→")}</HoldButton>
         </div>
         <div className="drive-pedals" role="group" aria-label="ペダル">
           <div className="drive-brakes">
@@ -206,7 +207,7 @@ export function Sheet({ title, children, defaultOpen = false, className }: { tit
   return (
     <div className={`sheet${open ? ' open' : ''} ${className ?? ''}`}>
       <button className="sheet-head" onClick={() => setOpen(!open)}>
-        <span>{title}</span>
+        <span>{iconText(title)}</span>
         <span className="sheet-arrow">{open ? '閉じる' : '開く'}</span>
       </button>
       {open && <div className="sheet-body">{children}</div>}

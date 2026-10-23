@@ -13,7 +13,7 @@ const open = async (touch, viewport) => {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`http://127.0.0.1:5173/?play=1&touch=${touch ? 1 : 0}`);
   await page.waitForFunction(() => window.__ow);
-  if (touch) { await page.getByRole('button', { name: 'メニュー', exact: true }).click(); await page.getByRole('button', { name: '🚶 歩いてみる' }).click(); } else await page.locator('.tool.mode').click();
+  if (touch) { await page.getByRole('button', { name: 'メニュー', exact: true }).click(); await page.getByRole('button', { name: '歩いてみる' }).click(); } else await page.locator('.tool.mode').click();
   await setup(); return context;
 };
 const setup = async (wall = false) => {
@@ -60,9 +60,9 @@ try {
   assert.ok(Math.abs(await page.evaluate(() => window.__ow.player.yaw) - yaw) > .2, 'one-finger look while holding a range tool');
   await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.floors.length), 1);
-  await page.getByRole('button',{name:'↶ 取り消す',exact:true}).tap();
+  await page.getByRole('button',{name:'取り消す',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.floors.length),0);
-  await page.getByRole('button',{name:'↷ やり直す',exact:true}).tap();
+  await page.getByRole('button',{name:'やり直す',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.floors.length),1);
   await page.screenshot({ path: 'control-checks/mobile-floor.png' });
   await setup(); await tool(3); await place(); await swipe(130, 0); await place();

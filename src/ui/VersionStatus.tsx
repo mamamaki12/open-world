@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 import { useEffect, useState } from 'react';
 import { useSession } from '../session/session';
 import { reloadLatest } from './reload';
@@ -42,7 +43,7 @@ export function VersionStatus() {
     {result.status === 'update' && result.latest && <p className="version-latest">最新版：{result.latest.version}（{date(result.latest.builtAt)}）</p>}
     <div className="version-actions">
       <button className="version-button" onClick={() => setAttempt(n => n + 1)} disabled={result.status === 'checking' || updating}>最新版を確認</button>
-      <button className="version-button version-update" onClick={() => void update()} disabled={busy || updating || result.status === 'offline'}>{updating ? '保存して更新中…' : '🔄 最新版にする'}</button>
+      <button className="version-button version-update" onClick={() => void update()} disabled={busy || updating || result.status === 'offline'}>{iconText(updating ? '保存して更新中…' : '🔄 最新版にする')}</button>
     </div>
     {error && <p className="version-error" role="alert">{error}</p>}
   </section>;

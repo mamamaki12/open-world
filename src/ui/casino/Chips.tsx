@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // カジノのチップ（額ごとに色が決まっている）と、当たったときのコインの演出
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -41,7 +42,7 @@ export function Chip({ value, size = 48, label, on, onClick, disabled, title }: 
   const text = label ?? chipLabel(value);
   const fontSize = Math.round(size * (text.length >= 4 ? 0.19 : text.length === 3 ? 0.23 : 0.27));
   const style = { '--chip': bg, '--chip-ink': light ? '#222' : '#fff', width: size, height: size, fontSize } as CSSProperties;
-  const content = <span>{text}</span>;
+  const content = <span>{iconText(text)}</span>;
   if (!onClick) return <span className="ow-chip" style={style} title={title}>{content}</span>;
   return (
     <button type="button" className={`ow-chip${on ? ' on' : ''}`} style={style} onClick={onClick} disabled={disabled} title={title ?? yen(value)}>
@@ -101,7 +102,7 @@ export function WinBurst({ text, amount, level }: { text: string; amount: number
         />
       ))}
       <div className="win-text">
-        <b>{text}</b>
+        <b>{iconText(text)}</b>
         <span>+{yen(amount)}</span>
       </div>
     </div>

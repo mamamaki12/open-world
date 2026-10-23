@@ -10,7 +10,7 @@ try {
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://127.0.0.1:5173/?play=1&touch=1');
   await page.waitForFunction(() => window.__ow);
-  await page.getByRole('button', { name: 'メニュー', exact: true }).click(); await page.getByRole('button', { name: '🚶 歩いてみる' }).click();
+  await page.getByRole('button', { name: 'メニュー', exact: true }).click(); await page.getByRole('button', { name: '歩いてみる' }).click();
   await page.evaluate(async () => {
     const { emptyHouse } = await import('/src/building/types.ts');
     window.__ow.game.getState().replaceHouse(emptyHouse());

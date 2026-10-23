@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // お店のゲーム機（モグラたたき）。料金は遊んだ人から店の持ち主へ（みんなのワールド）。持ち主とひとりのときは無料
 import { useEffect, useState } from 'react';
 import { Modal } from './Modal';
@@ -56,7 +57,7 @@ export function ArcadePanel() {
     {!lot ? <p>ゲーム機の前で開いてください。</p> : <>
       <p className="shop-note">{SECONDS}秒で、出てきたモグラをたくさんたたいてください。{fee ? `1回 ${yen(fee)}（お店に払います）` : owner && shared ? '自分のお店なので無料です。' : '無料'}</p>
       <div className="arcade-head"><b>{playing ? `残り ${Math.ceil(left)} 秒` : '待機中'}</b><span>スコア {score}</span><span>ベスト {best}</span></div>
-      <div className="arcade-grid">{Array.from({ length: HOLES }, (_, i) => <button key={i} className={`arcade-hole${i === mole ? ' up' : ''}`} aria-label={i === mole ? 'モグラ' : '穴'} onClick={() => hit(i)}>{i === mole ? '🐹' : ''}</button>)}</div>
+      <div className="arcade-grid">{Array.from({ length: HOLES }, (_, i) => <button key={i} className={`arcade-hole${i === mole ? ' up' : ''}`} aria-label={i === mole ? 'モグラ' : '穴'} onClick={() => hit(i)}>{iconText(i === mole ? '🐹' : '')}</button>)}</div>
       {error && <p className="warn" role="alert">{error}</p>}
       {!playing && <button className="btn primary" disabled={money < fee} onClick={start}>{fee ? `${yen(fee)} で遊ぶ` : '遊ぶ'}</button>}
     </>}

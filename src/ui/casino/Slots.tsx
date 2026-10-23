@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // スロット：3Dの台で3本のリールが回って、左から順に止まる
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CHERRY_PAY, REEL_SYMBOLS, SLOT_FACES, SLOT_PAYS, slotMultiplier, slotReturnRate, spinSlots } from '../../economy/casino';
@@ -45,7 +46,7 @@ const easeOutBack = (t: number) => {
 };
 
 function Symbol({ s }: { s: SlotSymbol }) {
-  return <div className={`sym ${s}`}>{SLOT_FACES[s]}</div>;
+  return <div className={`sym ${s}`}>{iconText(SLOT_FACES[s])}</div>;
 }
 
 export function Slots() {
@@ -149,7 +150,7 @@ export function Slots() {
         <div className="slot-display">
           {result ? (
             result.win > 0 ? (
-              <b className="plus">×{result.mult}　{yen(result.win)}</b>
+              <b className="plus">{iconText("×")}{result.mult}　{yen(result.win)}</b>
             ) : (
               <span>はずれ　また挑戦！</span>
             )
@@ -175,7 +176,7 @@ export function Slots() {
               <Symbol s={s} />
               <Symbol s={s} />
             </span>
-            <b>×{SLOT_PAYS[s]}</b>
+            <b>{iconText("×")}{iconText(SLOT_PAYS[s])}</b>
           </div>
         ))}
         <div className="pay-row">
@@ -183,7 +184,7 @@ export function Slots() {
             <Symbol s="cherry" />
             <small>左だけ</small>
           </span>
-          <b>×{CHERRY_PAY}</b>
+          <b>{iconText("×")}{CHERRY_PAY}</b>
         </div>
         <p className="muted">還元率 {(slotReturnRate() * 100).toFixed(1)}%</p>
       </div>

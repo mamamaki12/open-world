@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 import { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -24,7 +25,7 @@ const TINTS = ['なし', 'ライト', 'ミドル', 'リムジン'];
 function Swatches({ colors, value, onPick, label }: { colors: string[]; value: string; onPick: (c: string) => void; label: string }) {
   return <div className="car-colors tuner-swatches" aria-label={label}>
     {colors.map(c => <button key={c} aria-label={label + ' ' + c} aria-pressed={c.toLowerCase() === value.toLowerCase()} style={{ background: c }} onClick={() => onPick(c)} />)}
-    <label className="tuner-picker" title="好きな色">🎨<input type="color" value={value} onChange={e => onPick(e.target.value)} aria-label={label + 'を自由に選ぶ'} /></label>
+    <label className="tuner-picker" title="好きな色">{iconText("🎨")}<input type="color" value={value} onChange={e => onPick(e.target.value)} aria-label={label + 'を自由に選ぶ'} /></label>
   </div>;
 }
 function Choices<T extends string>({ list, value, onPick, extra }: { list: { id: T; name: string; price: number; note?: string }[]; value: T; onPick: (id: T) => void; extra?: (id: T) => string }) {
@@ -33,7 +34,7 @@ function Choices<T extends string>({ list, value, onPick, extra }: { list: { id:
   </button>)}</div>;
 }
 function Slider({ label, value, min, max, unit, onChange }: { label: string; value: number; min: number; max: number; unit: (v: number) => string; onChange: (v: number) => void }) {
-  return <label className="tuner-slider"><span>{label}<b>{unit(value)}</b></span>
+  return <label className="tuner-slider"><span>{iconText(label)}<b>{unit(value)}</b></span>
     <input type="range" min={min} max={max} step={1} value={value} onChange={e => onChange(Number(e.target.value))} /></label>;
 }
 
@@ -56,7 +57,7 @@ export function TunerPanel() {
   const def = getCar(car.model)!, before = tunedCar(def, (car.mods ?? STOCK_MODS)), after = tunedCar(def, mods);
   const lines = quote(car, { color, mods }), total = quoteTotal(lines);
   const evStock = car.model === 'volt' && mods.engine === 'stock';
-  const stat = (label: string, a: string, b: string) => <><dt>{label}</dt><dd>{a === b ? b : <>{a} → <b className="tuner-up">{b}</b></>}</dd></>;
+  const stat = (label: string, a: string, b: string) => <><dt>{iconText(label)}</dt><dd>{a === b ? b : <>{a}{iconText(" → ")}<b className="tuner-up">{b}</b></>}</dd></>;
   const grip = (g: number) => '★'.repeat(Math.max(1, Math.min(5, Math.round((g - .75) / .1) + 1))) + '☆'.repeat(5 - Math.max(1, Math.min(5, Math.round((g - .75) / .1) + 1)));
   return <Modal title={title} onClose={() => close(null)} tabs={TABS} tab={tab} onTab={setTab} className="dealer-modal tuner-modal">
     <p>所持金 <b>{yen(money)}</b></p>
@@ -75,7 +76,7 @@ export function TunerPanel() {
         </div>
         <dl className="car-specs">
           {stat('最高出力', horsepower(before) + ' PS', horsepower(after) + ' PS')}
-          {stat('0→40km/h', zeroTo40(before).toFixed(1) + ' 秒', zeroTo40(after).toFixed(1) + ' 秒')}
+          {iconText(stat('0→40km/h', zeroTo40(before).toFixed(1) + ' 秒', zeroTo40(after).toFixed(1) + ' 秒'))}
           {stat('最高速度（街中）', Math.round(before.maxSpeed * 3.6) + ' km/h', Math.round(after.maxSpeed * 3.6) + ' km/h')}
           {stat('コーナリング', grip(before.grip), grip(after.grip))}
         </dl>
@@ -90,7 +91,7 @@ export function TunerPanel() {
           {tab === 'engine' && <>
             <h3>エンジン載せ替え</h3>
             <Choices list={ENGINES} value={mods.engine} onPick={v => set('engine', v)} extra={id => { const t = tunedCar(def, { ...mods, engine: id }); return horsepower(t) + 'PS · ' + (id === 'stock' && car.model === 'volt' ? '電気モーター' : ENGINES.find(e => e.id === id)!.layout); }} />
-            <button className="btn" onClick={() => playEngineRev(evStock ? 'electric' : mods.engine)}>🔊 エンジン音を聞く</button>
+            <button className="btn" onClick={() => playEngineRev(evStock ? 'electric' : mods.engine)}>{iconText("🔊 エンジン音を聞く")}</button>
           </>}
           {tab === 'wheels' && <>
             <h3>ホイールのデザイン</h3><Choices list={WHEELS} value={mods.wheel} onPick={v => set('wheel', v)} />
@@ -108,7 +109,7 @@ export function TunerPanel() {
           </>}
         </div>
         <div className="dealer-confirm tuner-quote">
-          {lines.length ? <ul>{lines.map(l => <li key={l.label}><span>{l.label}</span><b>{yen(l.price)}</b></li>)}</ul> : <p>パーツを選ぶと見積もりが出ます。</p>}
+          {lines.length ? <ul>{lines.map(l => <li key={l.label}><span>{iconText(l.label)}</span><b>{yen(l.price)}</b></li>)}</ul> : <p>パーツを選ぶと見積もりが出ます。</p>}
           {error && <p role="alert" className="warn">{error}</p>}
           <div className="tuner-actions">
             <button className="btn primary big-btn" disabled={!lines.length || money < total} onClick={() => {

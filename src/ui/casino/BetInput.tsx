@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // 賭け金の入力。チップを押して積む。上限はなし（所持金まで）
 import { yen } from '../../economy/money';
 import { useEconomy } from '../../state/economy';
@@ -15,7 +16,7 @@ export function BetInput({ value, onChange, disabled, label = '賭け金' }: {
   return (
     <div className="bet-input">
       <div className="bet-row">
-        <span className="bet-label">{label}</span>
+        <span className="bet-label">{iconText(label)}</span>
         <ChipStack amount={value} />
         <span className={`bet-amount${value > money ? ' minus' : ''}`}>{yen(value)}</span>
         <input
@@ -42,7 +43,7 @@ export function BetInput({ value, onChange, disabled, label = '賭け金' }: {
           />
         ))}
         <span className="tray-ops">
-          <button className="btn small" disabled={disabled} onClick={() => set(value * 2)}>×2</button>
+          <button className="btn small" disabled={disabled} onClick={() => set(value * 2)}>{iconText("×2")}</button>
           <button className="btn small" disabled={disabled} onClick={() => set(value / 2)}>½</button>
           <button className="btn small" disabled={disabled} onClick={() => set(0)}>クリア</button>
           <button className="btn small danger" disabled={disabled || money <= 0} onClick={() => set(money)}>オールイン</button>

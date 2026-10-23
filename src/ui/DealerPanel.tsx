@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 import { useVenue } from '../state/venue';
 import { useEffect, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
@@ -44,7 +45,7 @@ export function DealerPanel(){
           <p className="cat-hint">ドラッグで回転・ホイールで拡大</p>
         </div>
         <div className="cat-colors">
-          <span>ボディカラー <b>{COLOR_NAMES[color]}</b></span>
+          <span>ボディカラー <b>{iconText(COLOR_NAMES[color])}</b></span>
           <div className="cat-swatches" aria-label="ボディカラー">{CAR_COLORS.map(c=><button key={c} aria-label={'カラー '+(COLOR_NAMES[c]??c)} aria-pressed={c===color} style={{background:c}} onClick={()=>setColor(c)}/>)}</div>
         </div>
         <p className="cat-note">{model.note}</p>
@@ -52,14 +53,14 @@ export function DealerPanel(){
           <div><dt>最高速度（街中）</dt><dd>{Math.round(model.maxSpeed*3.6)} km/h</dd></div>
           <div><dt>{ev?'電費':'燃費'}</dt><dd>{model.economy.toFixed(1)} {ev?'km/kWh':'km/L'}</dd></div>
           <div><dt>乗車定員</dt><dd>{model.seats}名</dd></div>
-          <div><dt>全長 × 全幅 × 全高</dt><dd>{model.length.toFixed(2)} × {model.width.toFixed(2)} × {model.height.toFixed(2)} m</dd></div>
+          <div><dt>{iconText("全長 × 全幅 × 全高")}</dt><dd>{model.length.toFixed(2)}{iconText(" × ")}{model.width.toFixed(2)}{iconText(" × ")}{model.height.toFixed(2)} m</dd></div>
         </dl>
         <p className="cat-info">納車は店の横の駐車場です。Fで乗り降り、W/Sで前後、A/Dでハンドル、Spaceでブレーキ、Lでライト、Qで視点切替。スマホはスティックと画面のボタンで運転できます。</p>
       </section>
     </div>
     <div className="cat-buy">
       {error&&<p role="alert" className="warn">{error}</p>}
-      {confirm?<><p><b>{model.name}</b>（{COLOR_NAMES[color]}）を <b>{yen(model.price)}</b> で購入しますか？ 購入後の残高 {yen(money-model.price)}</p>
+      {confirm?<><p><b>{model.name}</b>（{iconText(COLOR_NAMES[color])}）を <b>{yen(model.price)}</b> で購入しますか？ 購入後の残高 {yen(money-model.price)}</p>
         <div className="cat-buy-row"><button className="btn" onClick={()=>setConfirm(false)}>戻る</button><button className="btn primary" onClick={buy}>購入を確定する</button></div></>
       :<div className="cat-buy-row"><div className="cat-buy-price"><small>販売価格</small><b>{yen(model.price)}</b></div>
         <button className="btn primary" disabled={short||full} onClick={()=>setConfirm(true)}>{full?'これ以上持てません（10台まで）':short?'所持金が足りません':'この車を購入する'}</button></div>}

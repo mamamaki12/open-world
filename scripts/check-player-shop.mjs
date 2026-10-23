@@ -36,7 +36,7 @@ try {
   await form.locator('input').nth(0).fill('家の設計代行');
   await form.locator('input').nth(1).fill('300000');
   await form.locator('textarea').fill('2階建てまで。打ち合わせは現地で。');
-  await owner.getByRole('button', { name: '📷 いまの景色を写す' }).click();
+  await owner.getByRole('button', { name: 'いまの景色を写す' }).click();
   await owner.getByRole('button', { name: '保存', exact: true }).click();
   await owner.waitForFunction(lot => window.__ow.economy.getState().lots.find(l => l.id === lot)?.shop?.items.length === 1, lot);
   await owner.screenshot({ path: out + '/owner.png' });

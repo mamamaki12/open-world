@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // 券売機（自動発売機）：実際の窓口の機械と同じ順番で投票する。
 // 式別 → 方式 → 番号 → 金額 → 確認・セット をくり返して「投票内容」にため、最後に「購入」で券が出てくる
 import { useMemo, useState } from 'react';
@@ -189,7 +190,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
   return (
     <section className={`tm tm-${race.kind}`} aria-label={`${cfg.ticket}の自動発売機`}>
       <div className="tm-top">
-        <span className="tm-brand">{cfg.icon} {cfg.ticket} 自動発売機</span>
+        <span className="tm-brand">{iconText(cfg.icon)} {cfg.ticket} 自動発売機</span>
         <span className="tm-lamp">● 発売中</span>
       </div>
       <div className="tm-body">
@@ -203,7 +204,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
             {steps.map((s, i) => (
               <li key={s.id} className={i === stepIndex ? 'now' : i < stepIndex ? 'done' : ''}>
                 <span>{i + 1}</span>
-                {s.label}
+                {iconText(s.label)}
               </li>
             ))}
           </ol>
@@ -215,7 +216,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
                 <div className="tm-grid types">
                   {cfg.bets.map((b) => (
                     <button key={b} className={`tm-key type t-${b}`} onClick={() => chooseType(b)}>
-                      <b>{cfg.betNames[b]}</b>
+                      <b>{iconText(cfg.betNames[b])}</b>
                       <small>
                         {b === 'place' ? `${placeCount(race)}着までに入る` : TYPE_HINT[b]}
                       </small>
@@ -228,13 +229,13 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
             {step === 'method' && (
               <>
                 <p className="tm-ask">
-                  <span className="tm-chip">{cfg.betNames[type]}</span> 方式を選んでください
+                  <span className="tm-chip">{iconText(cfg.betNames[type])}</span> 方式を選んでください
                 </p>
                 <div className="tm-grid methods">
                   {methodsOf(type).map((m) => (
                     <button key={m} className="tm-key method" onClick={() => chooseMethod(m)}>
-                      <b>{METHOD_NAME[m]}</b>
-                      <small>{METHOD_HELP[m]}</small>
+                      <b>{iconText(METHOD_NAME[m])}</b>
+                      <small>{iconText(METHOD_HELP[m])}</small>
                     </button>
                   ))}
                 </div>
@@ -244,13 +245,13 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
             {step === 'pick' && (
               <>
                 <p className="tm-ask">
-                  <span className="tm-chip">{cfg.betNames[type]}</span>
-                  {shape.k > 1 && <span className="tm-chip light">{METHOD_NAME[method]}</span>}
+                  <span className="tm-chip">{iconText(cfg.betNames[type])}</span>
+                  {shape.k > 1 && <span className="tm-chip light">{iconText(METHOD_NAME[method])}</span>}
                   {isBracket ? '枠番' : cfg.numberName}を選んでください
                 </p>
                 {rows.map((row, r) => (
                   <div key={row.label} className="tm-pick-row">
-                    {rows.length > 1 || shape.k > 1 ? <div className="tm-row-label">{row.label}</div> : null}
+                    {rows.length > 1 || shape.k > 1 ? <div className="tm-row-label">{iconText(row.label)}</div> : null}
                     <div className="tm-grid numbers">
                       {choices.map((ch) => {
                         const on = cols[r].includes(ch.id);
@@ -313,14 +314,13 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
                   </div>
                   <div className="tm-quick">
                     {[100, 1000, 10000, 100000, 1000000].map((v) => (
-                      <button key={v} className="tm-pad small" onClick={() => addAmount(v)}>
-                        +{v >= 10000 ? `${v / 10000}万` : v.toLocaleString()}円
+                      <button key={v} className="tm-pad small" onClick={() => addAmount(v)}>{iconText("+")}{v >= 10000 ? `${v / 10000}万` : v.toLocaleString()}円
                       </button>
                     ))}
                   </div>
                 </div>
                 <p className="tm-sum">
-                  {combos.length}通り × {yen(stake)} = <b>{yen(combos.length * stake)}</b>
+                  {combos.length}{iconText("通り × ")}{yen(stake)} = <b>{yen(combos.length * stake)}</b>
                 </p>
               </>
             )}
@@ -330,9 +330,9 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
                 <p className="tm-ask">内容を確かめて「セット」を押してください</p>
                 <dl className="tm-confirm">
                   <dt>式別</dt>
-                  <dd>{cfg.betNames[type]}</dd>
+                  <dd>{iconText(cfg.betNames[type])}</dd>
                   <dt>方式</dt>
-                  <dd>{METHOD_NAME[method]}</dd>
+                  <dd>{iconText(METHOD_NAME[method])}</dd>
                   <dt>買い目</dt>
                   <dd className="tm-combos">
                     {combos.slice(0, 24).map((c) => (
@@ -344,7 +344,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
                   </dd>
                   <dt>金額</dt>
                   <dd>
-                    各 {yen(stake)} × {combos.length}通り = <b>{yen(combos.length * stake)}</b>
+                    各 {yen(stake)}{iconText(" × ")}{combos.length}通り = <b>{yen(combos.length * stake)}</b>
                   </dd>
                 </dl>
               </>
@@ -355,17 +355,13 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
             <button className="tm-btn cancel" onClick={cancelAll} disabled={step === 'type'}>
               取消
             </button>
-            <button className="tm-btn" onClick={back} disabled={stepIndex <= 0}>
-              ◀ 戻る
-            </button>
+            <button className="tm-btn" onClick={back} disabled={stepIndex <= 0}>{iconText("◀ 戻る")}</button>
             {step === 'confirm' ? (
               <button className="tm-btn go" onClick={set}>
                 セット
               </button>
             ) : (
-              <button className="tm-btn go" onClick={next} disabled={!canNext}>
-                次へ ▶
-              </button>
+              <button className="tm-btn go" onClick={next} disabled={!canNext}>{iconText("次へ ▶")}</button>
             )}
           </div>
         </div>
@@ -380,7 +376,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
                 <li key={c.id}>
                   <span className="tm-cart-no">{k + 1}</span>
                   <span className="tm-cart-main">
-                    <b>{cfg.betNames[c.type]}</b> {BET_SHAPE[c.type].k > 1 && <small>{METHOD_NAME[c.method]}</small>}
+                    <b>{iconText(cfg.betNames[c.type])}</b> {BET_SHAPE[c.type].k > 1 && <small>{iconText(METHOD_NAME[c.method])}</small>}
                     <br />
                     <span className="tm-cart-combo">
                       {c.combos.length === 1 ? comboLabel(race, c.type, c.combos[0]) : `${comboLabel(race, c.type, c.combos[0])} ほか`}
@@ -391,9 +387,7 @@ export function TicketMachine({ race, probs, onBuy }: { race: Race; probs: Probs
                     <br />
                     {yen(c.combos.length * c.stake)}
                   </span>
-                  <button className="tm-x" onClick={() => setCart((cs) => cs.filter((x) => x.id !== c.id))} aria-label="この投票を取り消す">
-                    ×
-                  </button>
+                  <button className="tm-x" onClick={() => setCart((cs) => cs.filter((x) => x.id !== c.id))} aria-label="この投票を取り消す">{iconText("×")}</button>
                 </li>
               ))}
             </ul>
@@ -461,7 +455,7 @@ export function PrintedTickets({ race, probs, tickets }: { race: Race; probs: Pr
                 <span className="ticket-date">{date}</span>
               </div>
               <div className="ticket-type">
-                <b>{cfg.betNames[t0.type]}</b>
+                <b>{iconText(cfg.betNames[t0.type])}</b>
                 {t0.method && BET_SHAPE[t0.type].k > 1 && <span>{t0.method}</span>}
               </div>
               <div className="ticket-combos">
@@ -475,11 +469,11 @@ export function PrintedTickets({ race, probs, tickets }: { race: Race; probs: Pr
               </div>
               <div className="ticket-amount">
                 {g.length > 1 && <small>各{t0.stake.toLocaleString()}円 {g.length}通り</small>}
-                <b>★★{sum.toLocaleString()}円★★</b>
+                <b>{iconText("★★")}{sum.toLocaleString()}{iconText("円★★")}</b>
               </div>
               <div className="ticket-foot">
                 <span className="ticket-bars" />
-                <small>{cfg.title}</small>
+                <small>{iconText(cfg.title)}</small>
               </div>
             </div>
           );

@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // ハイ＆ロー：次のカードが今より大きいか小さいか。当てたら続けて倍々に挑める（3Dのカードテーブル）
 import { useEffect, useRef, useState } from 'react';
 import { cardName, drawCard, highLowMultiplier, highLowWins } from '../../economy/casino';
@@ -105,7 +106,7 @@ export function HighLow() {
         <div className="hl-info">
           {pot > 0 ? (
             <>
-              <div className="streak">{'★'.repeat(Math.min(streak, 10))} {streak}連勝中！</div>
+              <div className="streak">{iconText('★'.repeat(Math.min(streak, 10)))} {streak}連勝中！</div>
               <div className="pot">持ち分 <b>{yen(pot)}</b></div>
               <div className="muted">続けて当てれば、さらに倍になります。</div>
             </>
@@ -122,11 +123,9 @@ export function HighLow() {
         {burst && burst.level > 0 && <WinBurst key={burst.id} level={burst.level} amount={burst.amount} text="GET!" />}
       </div>
       <div className="hl-buttons">
-        <button className="btn hl-btn high" disabled={hi === 0 || !!flipping} onClick={() => guess('high')}>
-          ▲ ハイ<small>×{hi || '-'}</small>
+        <button className="btn hl-btn high" disabled={hi === 0 || !!flipping} onClick={() => guess('high')}>{iconText("▲ ハイ")}<small>{iconText("×")}{hi || '-'}</small>
         </button>
-        <button className="btn hl-btn low" disabled={lo === 0 || !!flipping} onClick={() => guess('low')}>
-          ▼ ロー<small>×{lo || '-'}</small>
+        <button className="btn hl-btn low" disabled={lo === 0 || !!flipping} onClick={() => guess('low')}>{iconText("▼ ロー")}<small>{iconText("×")}{lo || '-'}</small>
         </button>
         {pot > 0 && !flipping && (
           <button className="btn hl-btn take" onClick={take}>

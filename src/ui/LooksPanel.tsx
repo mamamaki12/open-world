@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // 見た目を作る画面（最初の1回・あとから変更）と、美容室の髪型・カラー選び。3Dで確かめながら選ぶ
 import { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
@@ -26,7 +27,7 @@ function Preview({ looks, close }: { looks: Looks; close: boolean }) {
 }
 
 type Mode = 'create' | 'edit' | 'salon';
-const Row = ({ label, children }: { label: string; children: React.ReactNode }) => <div className="looks-row"><span>{label}</span><div>{children}</div></div>;
+const Row = ({ label, children }: { label: string; children: React.ReactNode }) => <div className="looks-row"><span>{iconText(label)}</span><div>{children}</div></div>;
 
 export function LooksPanel({ mode }: { mode: Mode }) {
   const now = useLooks(s => s.looks), money = useEconomy(s => s.money);
@@ -51,7 +52,7 @@ export function LooksPanel({ mode }: { mode: Mode }) {
     void finish();
   };
   const pick = <T,>(v: T, cur: T, on: () => void, label: React.ReactNode, extra = '') =>
-    <button className={`looks-chip${extra}`} aria-pressed={v === cur} onClick={on}>{label}</button>;
+    <button className={`looks-chip${extra}`} aria-pressed={v === cur} onClick={on}>{iconText(label)}</button>;
   return <Modal title={salon ? '💇 HAIR SALON LUCE' : mode === 'create' ? '🙂 あなたの見た目をつくる' : '🙂 見た目を変える'} onClose={close} tabs={[]} tab="" onTab={() => {}} className="looks-modal">
     <div className="looks-layout">
       <Preview looks={draft} close={salon} />
