@@ -4,7 +4,7 @@ import type { House, PartRef } from '../building/types';
 import { isInteriorPart } from './buildingLod';
 export interface BakedPart {geometry:THREE.BufferGeometry;material:THREE.Material}
 export interface BakedHouse {full:BakedPart[];exterior:BakedPart[]}
-const KEEP=['position','normal','uv'];
+const KEEP=['position','normal','uv','indoorCoverage'];
 /** Bake full and exterior-only variants from one assembly, without mounting a second house. */
 export function bakeHouse(root:THREE.Object3D,house:House,includeExterior=true):BakedHouse {
   root.updateMatrixWorld(true);
@@ -19,6 +19,7 @@ export function bakeHouse(root:THREE.Object3D,house:House,includeExterior=true):
     const g=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();g.applyMatrix4(mesh.matrixWorld);
     if(!g.attributes.normal)g.computeVertexNormals();const count=g.attributes.position.count;
     if(!g.attributes.uv)g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(count*2),2));
+    if(!g.attributes.indoorCoverage)g.setAttribute('indoorCoverage',new THREE.Float32BufferAttribute(new Float32Array(count),1));
     const groups=Array.isArray(mesh.material)&&g.groups.length?g.groups:[{start:0,count,materialIndex:0}];
     for(const grp of groups){
       const mat=mats[grp.materialIndex??0];if(!mat||!mat.visible)continue;

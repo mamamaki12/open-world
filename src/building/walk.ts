@@ -360,3 +360,35 @@ export function windowPassage(house: House, o: OpeningPart, x: number, z: number
   return { x: cx, z: cz, sillY, nx: dz * side, nz: -dx * side, width, height, climb, ok: reason === null, reason };
 }
 
+
+/** ジャンプで越えられる壁：塀と1/2の壁。足からの高さがこれまで */
+export const VAULT_MAX_RISE = 2.1;
+
+/**
+ * 向き (dx, dz) の前すぐにある、ジャンプで越えられる低い壁の上端の高さ。なければ null。
+ * ふつうのジャンプで届く高さ（maxStep 以下）の壁や、目隠しフェンス・ふつうの壁は対象にしない
+ */
+export function vaultWallAhead(house: House, x: number, z: number, feetY: number, dx: number, dz: number, reach = 0.6): number | null {
+  const dl = Math.hypot(dx, dz);
+  if (dl < 1e-6) return null;
+  const fx = dx / dl, fz = dz / dl;
+  let best: number | null = null;
+  for (const w of house.walls) {
+    if (w.height !== 'fence' && w.height !== 'half') continue;
+    const top = wallBaseY(w) + wallHeight(w);
+    const rise = top - feetY;
+    if (rise <= PLAYER.maxStep || rise > VAULT_MAX_RISE) continue;
+    const ax = w.x0 * GRID, az = w.z0 * GRID;
+    const bx = w.x1 * GRID, bz = w.z1 * GRID;
+    const len2 = (bx - ax) ** 2 + (bz - az) ** 2;
+    if (len2 < 1e-9) continue;
+    const t = Math.min(1, Math.max(0, ((x - ax) * (bx - ax) + (z - az) * (bz - az)) / len2));
+    const ox = ax + (bx - ax) * t - x, oz = az + (bz - az) * t - z;
+    const dist = Math.hypot(ox, oz);
+    if (dist > PLAYER.radius + WALL_THICKNESS / 2 + reach) continue;
+    // 壁が前（左右45°以内）にあるときだけ
+    if (dist > 1e-6 && (ox * fx + oz * fz) / dist < Math.SQRT1_2) continue;
+    if (best === null || top > best) best = top;
+  }
+  return best;
+}

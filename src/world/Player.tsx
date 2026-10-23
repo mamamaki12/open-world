@@ -13,7 +13,8 @@ import { useInteraction } from '../state/interaction';
 import { useVehicles } from '../state/vehicles';
 import { driveFrame, parkVehicle, refreshVehicleTarget, vehicleInteract, resolveParkedCars } from './vehicleLogic';
 import { useVenue } from '../state/venue';
-import { resolveVenue, throughDoorway, VENUE_KINDS, venueDoorId } from '../building/venues';
+import { resolveVenue, throughDoorway, VENUE_KINDS, VENUES, venueDoorId, venueEntrance, venueTurn } from '../building/venues';
+import type { Venue } from '../building/venues';
 import { SHOP_BOXES as TUNER_SHOPS } from '../building/tuner';
 import { EXCHANGE } from '../building/exchange';
 const SHOP_BOXES=[...TUNER_SHOPS,EXCHANGE];
@@ -22,7 +23,7 @@ import { getOpening } from '../catalog';
 import { LEAP_VELOCITY, climbDuration, climbFrame, planClimb } from '../building/climb';
 import type { ClimbPlan } from '../building/climb';
 import { resolveLandmarks } from '../building/landmarks';
-import { PLAYER, ceilingHeight, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, windowPassage } from '../building/walk';
+import { PLAYER, ceilingHeight, nearestOpening, resolveCollisions, roofBlocks, surfaceHeight, vaultWallAhead, windowPassage } from '../building/walk';
 import type { WindowPassage } from '../building/walk';
 import { isDoorOpen, useDoors } from '../state/doors';
 import { playClimbSound, playDoorSound, playLandSound, playWindowSound } from './sound';
@@ -130,6 +131,25 @@ export function warpToLot(id: string) {
   playerMemory.bodyYaw = 0;
   playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
   game.notify(`📍 ${lot.name} にワープしました`);
+}
+
+/** 公式の店（カジノ・不動産屋・服屋など）の入口の前へワープする。建築中なら歩きモードにする */
+export function warpToVenue(kind: Venue) {
+  const game = useGame.getState();
+  parkVehicle();
+  useVenue.setState({inside:null});
+  useSeating.setState({ seated: null, target: null, returnTo: null });
+  game.setOverlay(null);
+  if (game.mode !== 'walk') game.setMode('walk');
+  const site = civicOffset(), door = venueEntrance(kind, 3);
+  playerMemory.x = site.x + door.x;
+  playerMemory.y = 0;
+  playerMemory.z = site.z + door.z;
+  // 入口は正面（z0）側。向きを変えた店は反対側なので、店のほうを向く
+  playerMemory.yaw = venueTurn(kind) === 1 ? Math.PI : 0;
+  playerMemory.bodyYaw = playerMemory.yaw;
+  playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
+  game.notify(`📍 ${VENUES[kind].name} の前にワープしました`);
 }
 
 /** 原点の土地の外にあるもの（カジノ・ほかの持っている家）にぶつかったら押し戻す */
@@ -286,6 +306,19 @@ export function Player() {
         playerMotion.jumps++;
         st.velY = JUMP_SPEED;
         st.grounded = false;
+        // 前に低い塀・1/2の壁があれば、上端を越えられる高さまで跳んで前へ出る
+        const moving = Math.hypot(st.vx, st.vz) > 0.3;
+        const dx = moving ? st.vx : -Math.sin(playerMemory.bodyYaw);
+        const dz = moving ? st.vz : -Math.cos(playerMemory.bodyYaw);
+        const top = vaultWallAhead(walkHouse(), playerMemory.x, playerMemory.z, playerMemory.y, dx, dz);
+        if (top !== null) {
+          st.velY = Math.max(JUMP_SPEED, Math.sqrt(2 * GRAVITY * (top - playerMemory.y + 0.2)));
+          if (!moving) {
+            const l = Math.hypot(dx, dz);
+            st.vx = (dx / l) * 1.6;
+            st.vz = (dz / l) * 1.6;
+          }
+        }
       }
     };
     const toggleView = () => {

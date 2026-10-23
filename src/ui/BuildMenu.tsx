@@ -1,6 +1,6 @@
 // スマホ用の建築メニュー：「建てる」ボタンから開き、道具を大きなカードで選び、その下で種類・素材・色を選ぶ
 import { useEffect } from 'react';
-import { buildMenuOpen } from '../state/controls';
+import { setBuildMenuOpen } from '../state/controls';
 import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { ToolOptions } from './ToolOptions';
@@ -73,10 +73,10 @@ export function BuildMenu({
   const tool = useGame((s) => s.tool);
   const setTool = useGame((s) => s.setTool);
   useEffect(() => {
-    buildMenuOpen.current = true;
+    setBuildMenuOpen(true);
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    return () => { buildMenuOpen.current = false; window.removeEventListener('keydown', onKey); };
+    return () => { setBuildMenuOpen(false); window.removeEventListener('keydown', onKey); };
   }, [onClose]);
   return (
     <div className="overlay build-menu-overlay" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -88,7 +88,7 @@ export function BuildMenu({
             決定
           </button>
         </div>
-        <div className="build-menu-body">
+        <div className={`build-menu-body${tool === 'select' ? ' catalog-only' : ''}`}>
           <div className="build-menu-catalog">
           <div className="build-menu-tools">
             {tools.map((t) => (
@@ -109,9 +109,9 @@ export function BuildMenu({
             ))}
           </div>
           </div>
-          <div className="build-menu-options">
-            <ToolOptions />
-          </div>
+          {tool !== 'select' && <div className="build-menu-options">
+            <ToolOptions showHelp={false} />
+          </div>}
         </div>
       </div>
     </div>

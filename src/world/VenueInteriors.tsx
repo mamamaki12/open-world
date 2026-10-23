@@ -1,12 +1,11 @@
 import { VenueInteriorDetail } from './VenueDetail';
-import { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { VenueFixtures } from './VenueFixtures';
+import { useEffect, useMemo } from 'react';
 import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
-import { VENUES, VENUE_ACTIONS, VENUE_DOORS, VENUE_KINDS, venueRotation, venueTurn } from '../building/venues';
+import { VENUES, VENUE_ACTIONS, VENUE_DOORS, VENUE_KINDS, venueRotation } from '../building/venues';
 import type { Venue } from '../building/venues';
-import { civicOffset, useCurrentPlot } from '../state/economy';
-import { playerMemory } from './Player';
+import { useCurrentPlot } from '../state/economy';
 import { CIVIC_SITE, plotX, plotZ } from '../economy/town';
 import { isBoutique } from '../building/boutiques';
 import { SALON_CHAIRS } from '../building/salon';
@@ -155,38 +154,19 @@ function Shell({kind}:{kind:Venue}){
   </>;
 }
 const HEIGHT:Record<Venue,number>={casino:6.4,estate:3.2,dealer:4.5,tuner:4.8,exchange:5,salon:3.4,maison:4.2,atelier:3.6,urban:3.6,daily:3.6};
-const LIGHT:Record<Venue,{y:number;intensity:number;color:string;distance:number}>={
-  casino:{y:4,intensity:20,color:'#ffd9a0',distance:20},estate:{y:2.5,intensity:12,color:'#fff0db',distance:12},dealer:{y:4.2,intensity:25,color:'#e2f2ff',distance:20},
-  tuner:{y:4.3,intensity:24,color:'#f4f6ff',distance:18},
-  salon:{y:3,intensity:13,color:'#fff1dc',distance:12},
-  exchange:{y:4.2,intensity:16,color:'#f4f6ff',distance:14},
-  maison:{y:3.6,intensity:14,color:'#ffe6bf',distance:12},atelier:{y:3.1,intensity:12,color:'#fff0db',distance:12},urban:{y:3.1,intensity:12,color:'#f4f8ff',distance:12},daily:{y:3.1,intensity:13,color:'#ffffff',distance:12},
-};
-/** 店内の照明はひとつだけ置き、近くの店へ動かす（ライトの数が変わるとシェーダーを作り直して一瞬止まるため）。 */
-function VenueLight(){
-  const ref=useRef<THREE.PointLight>(null);
-  useFrame(()=>{
-    const l=ref.current;if(!l)return;
-    const o=civicOffset(),p=playerMemory,x=p.x-o.x,z=p.z-o.z;
-    const kind=VENUE_KINDS.map(k=>{const b=VENUES[k];return {k,d:Math.hypot(x-(b.x0+b.x1)/2,z-(b.z0+b.z1)/2)};}).sort((a,b)=>a.d-b.d)[0].k;
-    const b=VENUES[kind],c=LIGHT[kind];
-    const near=x>b.x0-2&&x<b.x1+2&&z>b.z0-(venueTurn(kind)===1?6:0)&&z<b.z1+(venueTurn(kind)===-1?6:0);
-    l.position.set((b.x0+b.x1)/2,c.y,(b.z0+b.z1)/2);l.intensity=near?c.intensity:0;l.color.set(c.color);l.distance=c.distance;
-  });
-  return <pointLight ref={ref} intensity={0}/>;
-}
 /** 3つの店の売り場はいつも建物の中にある。扉を開ければ外から見え、そのまま歩いて入れる。 */
 export function VenueInteriors(){
   const plot=useCurrentPlot();
   return <group name="venue-interior" position={[CIVIC_SITE.x-plotX(plot),0,CIVIC_SITE.z-plotZ(plot)]}>
-    <VenueLight/>
     {VENUE_KINDS.map(kind=>{
       const b=VENUES[kind],cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
       return <group key={kind} position={[cx,0,cz]} rotation-y={venueRotation(kind)}>
         <VenueInteriorDetail kind={kind} centred>
+        <VenueFixtures width={b.x1-b.x0} depth={b.z1-b.z0} height={HEIGHT[kind]} warm={kind==='casino'||kind==='maison'||kind==='salon'}>
         <Shell kind={kind}/>
         {(kind==='casino'||kind==='estate'||kind==='exchange')&&VENUE_ACTIONS[kind].map(a=><Label key={a.id} text={'F · '+a.label} p={[a.x,kind==='casino'?2.2:2,a.z+.25]} w={2.5} h={.4} color={kind==='estate'?'#286e6b':kind==='exchange'?'#1e4d8c':'#ffe5a6'}/>)}
-        {kind==='casino'?<><CasinoInterior/><CasinoDecor/></>:kind==='estate'?<><EstateInterior/><EstateDecor/></>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:kind==='exchange'?<ExchangeInterior/>:kind==='salon'?<SalonInterior/>:<DealerInterior/>}</VenueInteriorDetail>
+        {kind==='casino'?<><CasinoInterior/><CasinoDecor/></>:kind==='estate'?<><EstateInterior/><EstateDecor/></>:isBoutique(kind)?<BoutiqueInterior id={kind}/>:kind==='tuner'?<TunerInterior/>:kind==='exchange'?<ExchangeInterior/>:kind==='salon'?<SalonInterior/>:<DealerInterior/>}
+        </VenueFixtures></VenueInteriorDetail>
       </group>;
     })}
   </group>;

@@ -1,0 +1,21 @@
+import {expect,it} from 'vitest';
+import * as THREE from 'three';
+import {markInteriorSurfaces,shadeInteriorMaterial,interiorShadeEnabled} from './interiorShade';
+import {emptyHouse} from '../building/types';
+import {bakeHouse} from './bakeHouse';
+it('bakes covered surfaces and shader attenuation without dimming point lamps or adding lights',()=>{
+  const finish={material:'flooring',color:'#fff'},f={id:'f',level:0,x0:0,z0:0,x1:8,z1:8,finish};
+  const h={...emptyHouse(),floors:[f,{...f,id:'up',level:1}],furniture:[{id:'chair',level:0,type:'chair',x:3,z:3,rotation:0,color:'#fff'}]};
+  const root=new THREE.Group(),material=new THREE.MeshStandardMaterial(),mesh=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),material);
+  mesh.position.set(3,1,3);mesh.userData.partRef={kind:'furniture',id:'chair'};root.add(mesh);
+  markInteriorSurfaces(root,h);
+  expect([...mesh.geometry.attributes.indoorCoverage.array].every(v=>v===1)).toBe(true);
+  const baked=bakeHouse(root,h);expect([...baked.full[0].geometry.attributes.indoorCoverage.array].every(v=>v===1)).toBe(true);
+  const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',fragmentShader:'#include <common>\n#include <lights_fragment_begin>\n#include <lights_fragment_end>'};
+  material.onBeforeCompile(shader as never,{} as never);
+  expect(shader.fragmentShader).toContain('directLight.color*=mix');
+  expect(shader.fragmentShader).toContain('getPointLightInfo( pointLight, geometryPosition, directLight );');
+  expect(shader.uniforms).toMatchObject({interiorShadeEnabled});
+  shadeInteriorMaterial(material);expect(root.children).toHaveLength(1);
+  baked.full.forEach(p=>p.geometry.dispose());baked.exterior.forEach(p=>p.geometry.dispose());mesh.geometry.dispose();material.dispose();
+});

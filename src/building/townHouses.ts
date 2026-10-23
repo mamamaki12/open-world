@@ -3,6 +3,7 @@
 // 実在の家の作りを参考にした（大手ハウスメーカーの鉄骨・木造住宅、和風住宅、平屋、北欧住宅、
 // 木造アパート、鉄骨のALCアパート、分譲マンション、打ち放しのデザイナーズマンションなど）
 import { MAX_LEVEL } from './dimensions';
+import { withDefaultRoomLights } from './roomLighting';
 import { TOWN_HOUSE_PLOTS } from '../economy/town';
 import { HouseKit, fin } from './townHouseKit';
 import type { Box } from './townHouseKit';
@@ -668,7 +669,7 @@ export function townHouseAt(plot: number): House | null {
   if (!design) return null;
   let house = cache.get(plot);
   if (!house) {
-    const h = design.build();
+    const h = withDefaultRoomLights(design.build());
     const tag = (pid: string) => `${pid}@${plot}`;
     house = {
       ...h,

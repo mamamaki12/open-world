@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QUICK_TOOLS, aimActions, useAim, useControls } from '../state/controls';
 import { useGame } from '../state/store';
 import { useVehicles } from '../state/vehicles';
@@ -16,6 +16,13 @@ export function QuickBar(){
   const furniture=useGame(s=>s.defaults.furnitureType),driving=useVehicles(s=>s.driving),aim=useControls(s=>s.aimBuild),touch=useTouchDevice();
   const selectedFurniture=useGame(s=>s.selection?.kind==='furniture');
   const target=useAim(),slots=useRef<HTMLDivElement>(null),hold=useRef<ReturnType<typeof setTimeout>>(),[pressing,setPressing]=useState(false);
+  const bar=useRef<HTMLDivElement>(null);
+  useLayoutEffect(()=>{
+    const node=bar.current,app=node?.closest<HTMLElement>('.app');if(!node||!app||touch)return;
+    const update=()=>app.style.setProperty('--quick-tools-h',`${Math.ceil(node.getBoundingClientRect().height)}px`);
+    update();const observer=new ResizeObserver(update);observer.observe(node);
+    return()=>{observer.disconnect();app.style.removeProperty('--quick-tools-h');};
+  },[driving,overlay,touch]);
   const centered=view==='first'&&aim&&tool!=='select';
   const release=()=>{clearTimeout(hold.current);setPressing(false);};
   useEffect(()=>()=>clearTimeout(hold.current),[]);
@@ -23,7 +30,7 @@ export function QuickBar(){
   if(driving||overlay)return null;
   const name=tool==='furniture'?getFurniture(furniture).name:NAMES[tool];
   return <>
-    <div className="quick-tools" aria-label="道具のホットバー">
+    <div ref={bar} className="quick-tools" aria-label="道具のホットバー">
       {/* スマホでは道具の選択バーを出さず、右下の「建てる」ボタンから選ぶ */}
       {!touch&&<div className="quick-slots" ref={slots}>{QUICK_TOOLS.map((t,i)=><button key={t} aria-label={`${i+1}: ${NAMES[t]}`} aria-pressed={t===tool} onClick={()=>setTool(t)}><kbd>{i+1}</kbd><span>{toolIcon(t)}</span><small>{NAMES[t]}</small></button>)}</div>}
       {tool!=='select'&&<BuildHistory/>}

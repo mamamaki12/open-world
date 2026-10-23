@@ -6205,10 +6205,10 @@ function stepMarket(index, rng, bias = 1) {
   return Math.round(Math.min(Math.max(Math.exp(next), 0.5), 2) * 1e3) / 1e3;
 }
 var LOCATIONS = [
-  { id: "rural", name: "\u90CA\u5916\u306E\u4F4F\u5B85\u5730", land: 5e6, factor: 0.9 },
-  { id: "town", name: "\u9759\u304B\u306A\u4F4F\u5B85\u8857", land: 12e6, factor: 1 },
-  { id: "station", name: "\u99C5\u8FD1", land: 25e6, factor: 1.15 },
-  { id: "city", name: "\u90FD\u5FC3\u306E\u4E00\u7B49\u5730", land: 6e7, factor: 1.3 }
+  { id: "rural", name: "\u90CA\u5916\u306E\u4F4F\u5B85\u5730", land: 25e4, factor: 0.9 },
+  { id: "town", name: "\u9759\u304B\u306A\u4F4F\u5B85\u8857", land: 6e5, factor: 1 },
+  { id: "station", name: "\u99C5\u8FD1", land: 125e4, factor: 1.15 },
+  { id: "city", name: "\u90FD\u5FC3\u306E\u4E00\u7B49\u5730", land: 3e6, factor: 1.3 }
 ];
 function getLocation(id2) {
   return LOCATIONS.find((l) => l.id === id2) ?? LOCATIONS[0];
@@ -10780,6 +10780,67 @@ var furniture_default = {
 // src/catalog/lighting.ts
 var colors = ["#2c3035", "#f0ece4", "#b18b54"];
 var LIGHTING = [
+  {
+    id: "ceiling-disc-light",
+    name: "\u4E38\u578B\u30B7\u30FC\u30EA\u30F3\u30B0\u30E9\u30A4\u30C8",
+    category: "lighting",
+    ceiling: true,
+    colors,
+    light: { position: [0, -0.15, 0], color: "#fff0d5", intensity: 24, distance: 7 },
+    parts: [
+      { shape: "cylinder", size: [0.66, 0.05, 0.66], pos: [0, -0.025, 0], paint: "main" },
+      { shape: "cylinder", size: [0.6, 0.09, 0.6], pos: [0, -0.09, 0], paint: "white", glow: true }
+    ]
+  },
+  {
+    id: "ceiling-pendant-light",
+    name: "\u30DA\u30F3\u30C0\u30F3\u30C8\u30E9\u30A4\u30C8",
+    category: "lighting",
+    ceiling: true,
+    colors,
+    light: { position: [0, -0.65, 0], color: "#ffd8a8", intensity: 18, distance: 6 },
+    parts: [
+      { shape: "cylinder", size: [0.16, 0.04, 0.16], pos: [0, -0.02, 0], paint: "main" },
+      { shape: "cylinder", size: [0.018, 0.4, 0.018], pos: [0, -0.24, 0], paint: "dark" },
+      { shape: "cylinder", size: [0.46, 0.18, 0.46], pos: [0, -0.51, 0], paint: "main" },
+      { shape: "cylinder", size: [0.4, 0.025, 0.4], pos: [0, -0.61, 0], paint: "white", glow: true }
+    ]
+  },
+  {
+    id: "ceiling-panel-light",
+    name: "\u89D2\u578B\u30D1\u30CD\u30EB\u30E9\u30A4\u30C8",
+    category: "lighting",
+    ceiling: true,
+    colors,
+    light: { position: [0, -0.12, 0], color: "#f1f6ff", intensity: 28, distance: 7 },
+    parts: [
+      { shape: "box", size: [1.1, 0.05, 0.5], pos: [0, -0.025, 0], paint: "main" },
+      { shape: "box", size: [1, 0.025, 0.4], pos: [0, -0.062, 0], paint: "white", glow: true }
+    ]
+  },
+  {
+    id: "paper-floor-light",
+    name: "\u548C\u7D19\u306E\u30D5\u30ED\u30A2\u7167\u660E",
+    category: "lighting",
+    colors,
+    light: { position: [0, 0.58, 0], color: "#ffd5a0", intensity: 9, distance: 5 },
+    parts: [
+      { shape: "box", size: [0.36, 0.06, 0.36], pos: [0, 0.03, 0], paint: "wood" },
+      { shape: "box", size: [0.3, 0.85, 0.3], pos: [0, 0.485, 0], paint: "white", glow: true },
+      { shape: "box", size: [0.34, 0.035, 0.34], pos: [0, 0.93, 0], paint: "wood" }
+    ]
+  },
+  {
+    id: "globe-floor-light",
+    name: "\u30DC\u30FC\u30EB\u30D5\u30ED\u30A2\u30E9\u30A4\u30C8",
+    category: "lighting",
+    colors,
+    light: { position: [0, 0.3, 0], color: "#ffe9c7", intensity: 8, distance: 5 },
+    parts: [
+      { shape: "cylinder", size: [0.27, 0.055, 0.27], pos: [0, 0.0275, 0], paint: "main" },
+      { shape: "sphere", size: [0.48, 0.48, 0.48], pos: [0, 0.29, 0], paint: "white", glow: true }
+    ]
+  },
   {
     id: "wall-sconce",
     name: "\u58C1\u4ED8\u3051\u30D6\u30E9\u30B1\u30C3\u30C8\u30E9\u30A4\u30C8",

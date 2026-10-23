@@ -6,7 +6,7 @@ import type { CarDef } from '../catalog/cars';
 import { carHitsBox, carHitsWalls } from '../building/vehicleWalls';
 import { GRID, LOT_W, LOT_D } from '../building/dimensions';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
-import { takenPlots, visitAt } from './visit';
+import { takenPlots, visitAt, useVisit } from './visit';
 import { furnitureDef, hasMovingParts } from '../catalog';
 import { furnitureBaseY } from '../building/rules';
 import { playDoorSound } from './sound';
@@ -34,6 +34,7 @@ import { touchMove } from '../state/touch';
 import { sessionGate } from '../session/gate';
 import type { OwnedCar } from '../state/vehicles';
 import { sampleCar } from '../session/poseBuffer';
+import { assignVehicleSeats, vehicleSeat } from './vehicleSeats';
 
 const FACILITY_BOXES = [...LANDMARK_COLLIDERS, ...SHOP_BOXES];
 export const driveButtons = { left:false, right:false, accelerator:false, brake:false, handbrake:false };
@@ -138,7 +139,7 @@ function registerTarget(p:Memory):string|null{
   }
   return null;
 }
-export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({cars:[...s.cars],driving:null,target:null});saveVehicles();}
+export function parkVehicle(){engineHum(null,0,0);const s=useVehicles.getState();const c=s.cars.find(c=>c.id===s.driving);if(c){c.speed=0;c.slipAngle=0;c.reverseHold=0;c.drifting=false;c.handbraking=false;}resetDriveButtons();useVehicles.setState({cars:[...s.cars],driving:null,riding:null,target:null});saveVehicles();}
 /** 車の横の空いている場所に降りる。side=-1 は運転席側から探す。 */
 function getOut(p:Memory,car:Pick<OwnedCar,'x'|'z'|'yaw'|'model'|'id'>,side:number){
   const d=getCar(car.model)!,o=origin();
@@ -177,9 +178,15 @@ export function vehicleInteract(p:Memory) {
     if(getOut(p,car,-1))parkVehicle();
     return true;
   }
-  if(s.target?.startsWith('ride:')){
+  if(s.target?.startsWith('ride:') && s.target.includes('|')){
     const [owner,car]=s.target.slice(5).split('|');
-    useVehicles.setState({riding:{owner,car},target:null});
+    const target = owner ? sessionGate.remoteCars().find(c => c.owner === owner && c.car.id === car)?.car : s.cars.find(c => c.id === car);
+    if (!target) return false;
+    const occupied = assignVehicleSeats(owner || sessionGate.selfId(), car, getCar(target.model)!.seats, sessionGate.vehicleOccupants());
+    const seat = Array.from({ length: getCar(target.model)!.seats - 1 }, (_, i) => i + 1).find(i => !occupied.some(p => p.seat === i));
+    if (seat === undefined) { useGame.getState().notify('この車は満席です'); return true; }
+    useVehicles.setState({riding:{owner,car,seat},target:null});
+    useVisit.setState({ plot: null });
     useGame.setState({view:'third'});
     useGame.getState().setTool('select');
     useDoors.getState().setTarget(null);
@@ -195,6 +202,7 @@ export function vehicleInteract(p:Memory) {
   const c=s.cars.find(c=>c.id===s.target);
   if(!c)return false;
   useVehicles.setState({driving:c.id,riding:null});
+  useVisit.setState({ plot: null });
   useGame.setState({view:'third'});
   useGame.getState().setTool('select');
   useDoors.getState().setTarget(null);
@@ -234,7 +242,7 @@ export function driveFrame(camera:THREE.Camera,keys:Set<string>,dt:number,p:Memo
   engineHum(mods.engine==='stock'&&car.model==='volt'?'electric':mods.engine,Math.abs(car.speed)/d.maxSpeed,throttle);
   p.yaw+=car.yaw-previousYaw;
   Object.assign(p,{x:car.x-o.x,y:0,z:car.z-o.z,bodyYaw:car.yaw});
-  carCamera(camera,car,d,dt,p,-1,scene);
+  carCamera(camera,car,d,dt,p,0,scene);
   saveClock+=dt;if(saveClock>5){saveClock=0;saveVehicles();}
   return true;
 }
@@ -255,18 +263,27 @@ function rideFrame(camera:THREE.Camera,dt:number,p:Memory,scene?:THREE.Scene){
   const ride=rideSmoothPose(rideTime);
   if(!ride){useVehicles.setState({riding:null});return false;}
   const d=getCar(ride.model)!,o=origin();
+  const riding = useVehicles.getState().riding!;
+  const claims = sessionGate.vehicleOccupants();
+  const assigned = assignVehicleSeats(riding.owner || sessionGate.selfId(), riding.car, d.seats, claims).find(p => p.person.id === sessionGate.selfId());
+  if (!assigned && claims.some(p => p.id === sessionGate.selfId() && p.riding === riding.car)) {
+    const car = ridingCar(); if (car) getOut(p, car, 1);
+    useVehicles.setState({ riding: null }); useGame.getState().notify('この車は満席です'); return false;
+  }
+  const seat = assigned?.seat ?? riding.seat ?? 1;
+  if (riding.seat !== seat) useVehicles.setState({ riding: { ...riding, seat } });
   if(useGame.getState().tool!=='select')useGame.getState().setTool('select');
   p.yaw+=ride.yaw-p.bodyYaw;
   Object.assign(p,{x:ride.x-o.x,y:0,z:ride.z-o.z,bodyYaw:ride.yaw});
-  carCamera(camera,ride,d,dt,p,1,scene);
+  carCamera(camera,ride,d,dt,p,seat,scene);
   return true;
 }
-/** 車に乗っているときのカメラ。seat=-1 は運転席、1 は助手席。 */
+/** 車に乗っているときのカメラ。0は運転席、1は助手席、以降は後席。 */
 function carCamera(camera:THREE.Camera,car:{yaw:number;speed:number},d:CarDef,dt:number,p:Memory,seat:number,scene?:THREE.Scene){
   const first=useGame.getState().view==='first';
   if(first){
     // 座席に座った目の高さ。車の座標を向きに合わせて回す。
-    const e=driverEye(d),eye={...e,x:-seat*e.x},c=Math.cos(car.yaw),s=Math.sin(car.yaw);
+    const e=driverEye(d),at=vehicleSeat(getCar(d.id)!,seat),eye={...e,x:at.x,z:at.z-.11},c=Math.cos(car.yaw),s=Math.sin(car.yaw);
     camera.position.set(p.x+eye.x*c+eye.z*s,eye.y,p.z-eye.x*s+eye.z*c);
     camera.lookAt(p.x-Math.sin(p.yaw)*10,camera.position.y+Math.sin(p.pitch)*4,p.z-Math.cos(p.yaw)*10);
   }else{

@@ -6,8 +6,10 @@ import type { CarDef } from '../catalog/cars';
 import type { OwnedCar } from '../state/vehicles';
 import { STOCK_MODS } from '../catalog/carMods';
 import type { CarMods, PaintFinish, WheelStyle } from '../catalog/carMods';
-import { carBelt, carCowl, carGeoms, carShape, gridGeometry, samples } from './carShape';
+import { carGeoms, carShape, gridGeometry, samples } from './carShape';
 import type { CarShape, Row } from './carShape';
+import { driverEye } from './vehicleSeats';
+export { driverEye } from './vehicleSeats';
 
 /** 塗装の質感ごとの材質 */
 export function paintMaterial(finish:PaintFinish){
@@ -75,9 +77,6 @@ function Roundel({x,y,z,side}:{x:number;y:number;z:number;side:number}){
 }
 export { carBelt } from './carShape';
 /** 運転席の目の位置（車の座標：x 左右、y 高さ、z 前後で前が −）。ハンドルの真後ろ。 */
-export function driverEye(d:CarDef){
-  return {x:-d.width*.25,y:Math.min(carBelt(d)+.56,d.height-.14),z:Math.max(carCowl(d)+1,d.length*.04)};
-}
 type V3=[number,number,number];
 const UP=new THREE.Vector3(0,1,0);
 /** a から b へ伸びる角材 */

@@ -35,7 +35,7 @@ async function run(touch){
       });
       await page.waitForTimeout(1000);
       const p=await page.evaluate(()=>window.__ow.project(4.55,2.1,3.64));await page.mouse.move(p.x,p.y);
-      await until(page,async()=>{const p=(await import('/src/state/interaction.ts')).useInteraction.getState().preview;return p?.kind==='nameplate'&&p.type==='wall-sconce';});
+      await until(page,async()=>{const p=(await import('/src/state/interaction.ts')).useInteraction.getState().preview;return p?.kind==='nameplate'&&p.type==='wall-sconce'&&p.mount.wallId==='lamp-wall';});
       assert.equal((await stats(page)).sources,0,'preview does not register a lamp');
       await page.mouse.click(p.x,p.y);
     }else{

@@ -28,9 +28,10 @@ import type { Holding } from '../economy/stocks';
 import { recordPose, forgetPose } from './poseBuffer';
 import { initialEditingLot, confirmedPurchaseLot } from './editingTarget';
 import type { PurchaseTarget } from './editingTarget';
+import { periodicSaveDue } from './periodicSave';
 
 export interface Member { id: string; name: string; host: boolean; canBuild: boolean }
-export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean; riding?: string | null; /** 送った側の performance.now()。受け取り側の補間に使う */ ts?: number }
+export interface RemotePose { x: number; y: number; z: number; yaw: number; outfit: Outfit; looks?: Looks; cars: OwnedCar[]; driving?: string | null; walking?: boolean; riding?: string | null; ridingOwner?: string; ridingSeat?: number; /** 送った側の performance.now()。受け取り側の補間に使う */ ts?: number }
 interface SessionState {
   screen: 'menu' | 'game'; status: 'offline' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
   role: 'home' | 'host' | 'guest'; shared: boolean; code: string; message: string; members: Member[]; poses: Record<string, RemotePose>; busy: boolean; replaced: boolean;
@@ -178,11 +179,15 @@ let account: { money: number; ledger: { day: number; label: string; amount: numb
 let carsLoaded = false, carsConfirmed = '';
 let carsSending: { id: string; snapshot: string } | null = null;
 /** 走行はオブジェクトを直接更新するため、配列参照ではなく保存内容を比較する。 */
-function flushCars() {
+let carsSentAt = -Infinity;
+function flushCars(force = false) {
   if (!sessionGate.shared || !account || !carsLoaded || carsSending || useSession.getState().status !== 'connected') return;
-  const snapshot = JSON.stringify(useVehicles.getState().cars);
+  const vehicles = useVehicles.getState();
+  if (!force && vehicles.driving && performance.now() - carsSentAt < 10000) return;
+  const snapshot = JSON.stringify(vehicles.cars);
   if (snapshot === carsConfirmed) return;
   carsSending = { id: crypto.randomUUID(), snapshot };
+  carsSentAt = performance.now();
   send({ type: 'command', command: { id: carsSending.id, lot: '', delta: [], reserved: 0, action: { type: 'cars', cars: JSON.parse(snapshot) } } });
 }
 function showAccount() {
@@ -368,7 +373,7 @@ function validPose(p: RemotePose) { return !!p && [p.x, p.y, p.z, p.yaw].every(v
 export function allowBuilding(id: string, canBuild: boolean) { send({ type: 'permission', target: id, canBuild }); }
 export async function leaveWorld() {
   if (sessionGate.superseded) { location.reload(); return; }
-  flushCars();
+  flushCars(true);
   if (sessionGate.shared && useSession.getState().status === 'connected' && (savedBundle().wallet?.pending.length || actions.size || carsSending)) {
     useSession.setState({ message: '所持金・車の同期中です。少し待ってから退出してください' }); return;
   }
@@ -381,6 +386,14 @@ export async function leaveWorld() {
 }
 /** Install once outside React effects; subscriptions never outlive the page. */
 export function startSessionTimers() {
+  sessionGate.selfId = () => savedBundle()?.profile.id ?? 'local';
+  sessionGate.vehicleOccupants = () => {
+    const s = useSession.getState(), v = useVehicles.getState(), me = sessionGate.selfId();
+    return [{ id: me, name: savedBundle()?.profile.name || '自分', driving: v.driving, riding: v.riding?.car,
+      ridingOwner: v.riding ? v.riding.owner || me : '', ridingSeat: v.riding?.seat },
+      ...Object.entries(s.poses).map(([id, p]) => ({ id, name: s.members.find(m => m.id === id)?.name || 'ゲスト',
+        driving: p.driving, riding: p.riding, ridingOwner: p.ridingOwner, ridingSeat: p.ridingSeat }))];
+  };
   const saveProfile = () => { if (!sessionGate.applying && !accountApplying) void persist().catch(() => useSession.setState({ message: '端末への保存に失敗しました。バックアップを保存してください' })); };
   const looks = useLooks.subscribe((s, prev) => { if (s.looks !== prev.looks || s.created !== prev.created) saveProfile(); });
   const wardrobe = useWardrobe.subscribe((s, prev) => { if (s.owned !== prev.owned || s.outfit !== prev.outfit) saveProfile(); });
@@ -409,11 +422,12 @@ export function startSessionTimers() {
       if (full || json !== sentHeavy[key]) { heavy[key] = value; sentHeavy[key] = json; }
     }
     send({ type: 'pose', pose: { x: p.x + plotX(plot), y: p.y, z: p.z + plotZ(plot), yaw: p.yaw, ts: Math.round(performance.now()), ...heavy,
-      driving: v.driving, riding: v.riding?.car ?? null, walking: useGame.getState().mode === 'walk' && !v.driving && !v.riding } });
+      driving: v.driving, riding: v.riding?.car ?? null, ridingOwner: v.riding ? v.riding.owner || sessionGate.selfId() : '', ridingSeat: v.riding?.seat, walking: useGame.getState().mode === 'walk' && !v.driving && !v.riding } });
     if (poseTick % 2) return;
     if (s.role === 'host' || s.shared) autoVenueDoors(p, useGame.getState().mode === 'walk' && !v.driving);
-    if (v.driving !== wasDriving) { wasDriving = v.driving; flushCars(); void persist(); }
+    if (v.driving !== wasDriving) { wasDriving = v.driving; flushCars(true); void persist(); }
   }, 50);
+  let lastPeriodicSave = performance.now();
   const save = setInterval(() => {
     flushCars();
     if (useSession.getState().role === 'host' && useSession.getState().status === 'connected') {
@@ -421,12 +435,16 @@ export function startSessionTimers() {
       if (lots !== lastLots) { lastLots = lots; publishWorld(); }
       send({ type: 'clock', clock: { day: e.day, clock: e.clock, market: e.market, marketHistory: e.marketHistory } });
     }
-    void persist().catch(() => useSession.setState({ message: '端末への保存に失敗しました。バックアップを保存してください' }));
+    const vehicles = useVehicles.getState(), now = performance.now();
+    if (periodicSaveDue(now, lastPeriodicSave, !!(vehicles.driving || vehicles.riding))) {
+      lastPeriodicSave = now;
+      void persist().catch(() => useSession.setState({ message: '端末への保存に失敗しました。バックアップを保存してください' }));
+    }
   }, 2000);
   const cars = useVehicles.subscribe((s, prev) => {
     if (accountApplying || (s.cars === prev.cars && s.driving === prev.driving)) return;
     saveProfile();
-    flushCars();
+    flushCars(s.driving !== prev.driving);
   });
   const stocks = useStocks.subscribe((s, prev) => {
     if (!sessionGate.shared && s.holdings !== prev.holdings) saveProfile();
@@ -440,6 +458,6 @@ export function startSessionTimers() {
   const edits = useGame.subscribe((s, prev) => {
     if (!sessionGate.applying && s.house !== prev.house && !s.dragBase) void persist().catch(() => undefined);
   });
-  const hide = () => { if (document.hidden) void persist(); }; document.addEventListener('visibilitychange', hide);
+  const hide = () => { if (document.hidden) { flushCars(true); void persist(); } }; document.addEventListener('visibilitychange', hide);
   return () => { looks(); wardrobe(); designs(); money(); cars(); stocks(); clearInterval(pose); clearInterval(save); doors(); edits(); document.removeEventListener('visibilitychange', hide); };
 }

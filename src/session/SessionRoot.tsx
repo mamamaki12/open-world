@@ -4,6 +4,8 @@ import { useGame } from '../state/store';
 import { useVehicles } from '../state/vehicles';
 import { useTouchDevice } from '../ui/useTouchDevice';
 import { VersionStatus } from '../ui/VersionStatus';
+import { useBuildMenu } from '../state/controls';
+import { PocketTitle } from '../ui/PocketTitle';
 import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave } from './saves';
 import { allowBuilding, joinShared, currentEndpoint, enterOffline, leaveWorld, startSessionTimers, useSession } from './session';
 
@@ -31,20 +33,18 @@ function Launcher() {
   return <main className="world-launch">
     <div className="world-glow" aria-hidden="true" />
     <section className="world-card">
-      <p className="world-eyebrow">BUILD A PLACE TOGETHER</p>
-      <h1>OPEN WORLD</h1>
-      <p className="world-subtitle">今日は、どの町で過ごす？</p>
+      <PocketTitle/>
       <label className="world-field">
         プレイヤー名
         <input aria-label="あなたの名前" maxLength={24} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" placeholder="名前を入力" />
       </label>
       <div className="world-choices">
         <button className="world-choice world-primary" disabled={working} onClick={() => void run(enterOffline)}>
-          <span className="choice-icon">🏠</span>
+          <span className="choice-icon" aria-hidden="true">A</span>
           <span><strong>ひとりで遊ぶ</strong><span>自分の町を続ける · オフライン対応</span></span>
         </button>
         <button className="world-choice" disabled={working || !relay || state.status === 'connecting'} onClick={() => void run(() => joinShared(relay))}>
-          <span className="choice-icon">🌐</span>
+          <span className="choice-icon" aria-hidden="true">B</span>
           <span><strong>みんなのワールドで遊ぶ</strong><span>みんなで1つの町に住む · 最大10人</span></span>
         </button>
       </div>
@@ -73,7 +73,8 @@ function SessionHud() {
   const touch = useTouchDevice(), building = useGame(g => g.mode !== 'walk');
   const inCar = useVehicles(v => !!v.driving || !!v.riding);
   const gameOverlay = useGame(g => g.overlay);
-  const overlay = gameOverlay || (touch && (building || inCar));
+  const buildMenu = useBuildMenu(s => s.open);
+  const overlay = gameOverlay || buildMenu || (touch && (building || inCar));
   return <><aside className="world-session">
     {state.role !== 'home' && !overlay && <button className="world-session-toggle" onClick={() => setOpen(!open)}>{touch ? `👥 ${state.members.length}` : state.shared ? `みんなのワールド · ${state.members.length}人` : `${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>}
     {open && state.role !== 'home' && !overlay && <section className="world-session-panel"><h2>一緒に遊んでいる人</h2>

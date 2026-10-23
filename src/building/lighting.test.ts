@@ -57,11 +57,11 @@ describe('furniture lighting', () => {
   });
   it('keeps the existing relay pricing fallback compatible and defines warm finite light sources', () => {
     const lamps=FURNITURE.filter(f=>f.category==='lighting');
-    expect(lamps.length).toBe(5);
+    expect(lamps.length).toBe(10);
     for(const f of lamps){
       expect(f.parts.some(p=>p.glow)).toBe(true);
       expect(f.light!.position.every(Number.isFinite)).toBe(true);
-      expect(f.light!.distance).toBeGreaterThan(0);expect(f.light!.distance).toBeLessThanOrEqual(5);
+      expect(f.light!.distance).toBeGreaterThan(0);expect(f.light!.distance).toBeLessThanOrEqual(7);
       if(f.id!=='floor-lamp')expect(furniturePrice(f.id)).toBe(furniturePrice('unknown-old-relay-type'));
     }
   });

@@ -5,8 +5,8 @@
 //   → 画面に触れるたびに無音の読み上げをして、読み上げを使える状態にしておく（primeVoice）
 // - 声の一覧は少し遅れて読み込まれる → 声を出すたびに日本語の声を探し直す
 // - 止めてすぐ次を読むと、Chrome では黙ってしまうことがある → 話している途中なら、終わってから最新の1つだけを読む
-// - iPhone をマナーモード（消音）にしていると、ページの音は鳴らない
-//   → 触れたときに無音の音声を「再生」して、マナーモードでも鳴る「再生」扱いに切り替える（unlockMedia）
+// - 無音の読み上げをすると、スマホで流している音楽が止まることがある
+//   → 声の準備はカジノを開いているあいだだけにする（setVoiceWanted）。音楽と混ぜる設定は audioSession.ts
 // - 日本語の声が入っていない端末もある → そのときは読まず、画面に「字幕だけ」と出す（voiceStatus）
 import { isMuted } from './sfx';
 
@@ -56,59 +56,15 @@ export function onVoiceChange(f: () => void) {
   return () => listeners.delete(f);
 }
 
-/** 0.2秒の無音の WAV */
-function silentWav() {
-  const rate = 8000;
-  const n = rate / 5;
-  const buf = new ArrayBuffer(44 + n);
-  const v = new DataView(buf);
-  const str = (o: number, t: string) => [...t].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
-  str(0, 'RIFF');
-  v.setUint32(4, 36 + n, true);
-  str(8, 'WAVEfmt ');
-  v.setUint32(16, 16, true);
-  v.setUint16(20, 1, true);
-  v.setUint16(22, 1, true);
-  v.setUint32(24, rate, true);
-  v.setUint32(28, rate, true);
-  v.setUint16(32, 1, true);
-  v.setUint16(34, 8, true);
-  str(36, 'data');
-  v.setUint32(40, n, true);
-  for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
-  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
-}
-
-let mediaUnlocked = false;
-let mediaTrying = false;
-/** iPhone のマナーモードでも音が出るように、ページの音を「再生」扱いにする */
-function unlockMedia() {
-  if (mediaUnlocked || mediaTrying) return;
-  const nav = navigator as Navigator & { audioSession?: { type: string } };
-  try {
-    if (nav.audioSession) nav.audioSession.type = 'playback';
-  } catch {
-    /* 対応していない端末 */
-  }
-  try {
-    mediaTrying = true;
-    const a = new Audio(silentWav());
-    a.setAttribute('playsinline', '');
-    a.volume = 0.01;
-    void a
-      .play()
-      .then(() => (mediaUnlocked = true))
-      .catch(() => undefined)
-      .finally(() => (mediaTrying = false));
-  } catch {
-    mediaTrying = false;
-  }
+let wanted = false;
+/** カジノを開いているあいだだけ声の準備をする（ほかの画面で音楽を止めないため） */
+export function setVoiceWanted(v: boolean) {
+  wanted = v;
 }
 
 /** 画面に触れたその場で無音の読み上げをして、iPhone などでも声を出せるようにする */
 export function primeVoice() {
-  if (isMuted()) return;
-  unlockMedia();
+  if (!wanted || isMuted()) return;
   const s = synth();
   if (!s || primed) return;
   primed = true;
