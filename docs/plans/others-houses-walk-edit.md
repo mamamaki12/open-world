@@ -29,5 +29,7 @@
 
 ## 進捗
 
-- 済: 計画
-- 次: 1〜3 の実装、単体テスト、Playwright で確認
+- 済: 計画、1〜3 の実装、src/world/visit.test.ts、scripts/check-others-house-walk.mjs（PC・スマホでドアのボタン→開ける→床の上に立つ、CIに追加）
+- 済: 「一緒に建てる人」（UI・builders 操作・check-lot-builders.mjs）を削除、server/dist/relay.mjs を再ビルド
+- 次: PR、マージ後に EC2 の relay 更新（server/README.md）
+- 未定: 町に最初から建っている家の編集（しんごの判断待ち）
