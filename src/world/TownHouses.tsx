@@ -5,6 +5,7 @@ import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
 import { plotX, plotZ } from '../economy/town';
 import { HouseParts } from './HouseView';
 import { useVisit } from './visit';
+import { useGame } from '../state/store';
 import type { ThreeEvent } from '@react-three/fiber';
 import { bakeHouse } from './bakeHouse';
 import type { BakedHouse } from './bakeHouse';
@@ -25,10 +26,15 @@ function Baker({id,onDone,desktop}:{id:string;onDone:(id:string)=>void;desktop:b
  // Temporary assemblies must never intercept clicks intended for the visible player's house.
  return house?createPortal(<HouseParts house={house} showRoofs/>,scene,{events:{enabled:false}}):null;
 }
+/** 建築モードで町の家を押したことを拾う見えない箱（家の細かい部品を毎回レイキャストしないため） */
+function EditTarget({house,onDown}:{house:NonNullable<ReturnType<typeof townHouseAt>>;onDown:(e:ThreeEvent<PointerEvent>)=>void}){
+ const b=houseEnvelope(house).bounds;
+ return <mesh position={[(b.x0+b.x1)/2,(b.y0+b.y1)/2,(b.z0+b.z1)/2]} onPointerDown={onDown}><boxGeometry args={[b.x1-b.x0,b.y1-b.y0,b.z1-b.z0]}/><meshBasicMaterial visible={false}/></mesh>;
+}
 export function TownHouses({shiftX,shiftZ,skip,onEdit}:{shiftX:number;shiftZ:number;skip:Set<number>;onEdit:(plot:number,e:ThreeEvent<PointerEvent>)=>void}){
  const desktop=useDesktopBuildingDetail(),prefix=desktop?'pc:':'full:';
  const [,setVersion]=useState(0),visiting=useVisit(v=>v.plot),designs=useMemo(()=>[...new Set(Object.values(TOWN_HOUSE_PLOTS))],[]);
- const camera=useThree(s=>s.camera),touch=useTouchDevice(),inVehicle=useVehicles(s=>!!(s.driving||s.riding));
+ const build=useGame(s=>s.mode==='build'),camera=useThree(s=>s.camera),touch=useTouchDevice(),inVehicle=useVehicles(s=>!!(s.driving||s.riding));
  const [wanted,setWanted]=useState<string[]>(()=>desktop?[]:designs),elapsed=useRef(0),point=useMemo(()=>new THREE.Vector3(),[]);
  const refresh=()=>{
   if(!desktop){setWanted(old=>old===designs?old:designs);return;}
@@ -49,7 +55,8 @@ export function TownHouses({shiftX,shiftZ,skip,onEdit}:{shiftX:number;shiftZ:num
   {Object.entries(TOWN_HOUSE_PLOTS).map(([p,id])=>{
    const plot=Number(p),house=townHouseAt(plot);if(skip.has(plot)||!house)return null;
    const parts=baked.get(prefix+id);if(!desktop&&!parts&&visiting!==plot)return null;
-   return <group key={plot} position={[plotX(plot)+shiftX,0,plotZ(plot)+shiftZ]} onPointerDown={e=>onEdit(plot,e)}>
+   return <group key={plot} position={[plotX(plot)+shiftX,0,plotZ(plot)+shiftZ]}>
+    {build&&<EditTarget house={house} onDown={e=>onEdit(plot,e)}/>}
     <BuildingDetail name={'town-house-'+plot} bounds={houseEnvelope(house).bounds} forceFull={visiting===plot}>{tier=>{
       if(visiting===plot)return <HouseParts house={house} showRoofs activate={e=>onEdit(plot,e)}/>;
       // Keep the baked meshes alive while driving across a distance boundary.
