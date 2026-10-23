@@ -17,7 +17,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PartRef } from '../building/types';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
-import { activateOwnedHouse } from '../state/ownedEditing';
+import { activateOwnedHouse, claimTownHouse, editBlocked } from '../state/ownedEditing';
 import { playerMemory } from './Player';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { getLocation } from '../economy/market';
@@ -82,19 +82,37 @@ export function Town() {
   const activate = (id: string, e: ThreeEvent<PointerEvent>, ref?: PartRef) => {
     if (useGame.getState().mode !== 'build' || e.button !== 0) return;
     e.stopPropagation();
-    const offset = activateOwnedHouse(id);
-    if (offset === null) return;
-    camera.position.x -= offset.x; camera.position.z -= offset.z;
-    const orbit = controls as unknown as OrbitControlsImpl | undefined;
-    if (orbit) { orbit.target.x -= offset.x; orbit.target.z -= offset.z; orbit.update(); }
-    camera.updateMatrixWorld();
-    playerMemory.x -= offset.x; playerMemory.z -= offset.z;
+    const blocked = editBlocked(id);
+    if (blocked) { useGame.getState().notify(blocked); return; }
+    if (!focus(id)) return;
     useInteraction.setState({ ignorePartClickUntil: Date.now() + 100 });
     if (!ref) return;
     const game = useGame.getState();
     if (game.tool === 'erase') {
       useInteraction.setState({ pendingErase: { ref, x: e.clientX, y: e.clientY } });
     }
+  };
+  /** その土地を編集先にして、見えている場所が変わらないようカメラと人をずらす */
+  const focus = (id: string) => {
+    const offset = activateOwnedHouse(id);
+    if (offset === null) return false;
+    camera.position.x -= offset.x; camera.position.z -= offset.z;
+    const orbit = controls as unknown as OrbitControlsImpl | undefined;
+    if (orbit) { orbit.target.x -= offset.x; orbit.target.z -= offset.z; orbit.update(); }
+    camera.updateMatrixWorld();
+    playerMemory.x -= offset.x; playerMemory.z -= offset.z;
+    return true;
+  };
+  /** 町に最初から建っている家をクリック：その家を編集できる土地にして編集先にする */
+  const editTown = (plot: number, e: ThreeEvent<PointerEvent>) => {
+    if (useGame.getState().mode !== 'build' || e.button !== 0) return;
+    // 手前の自分の家や地面を押したときに、奥に見えている町の家を拾わない
+    const ground = e.ray.direction.y < 0 ? -e.ray.origin.y / e.ray.direction.y : Infinity;
+    if (e.intersections[0]?.object !== e.object || e.distance > ground + 0.05) return;
+    e.stopPropagation();
+    useInteraction.setState({ ignorePartClickUntil: Date.now() + 300 });
+    const err = claimTownHouse(plot, focus);
+    if (err) useGame.getState().notify(err);
   };
 
   return (
@@ -132,7 +150,7 @@ export function Town() {
       </group>
 
       <group name="neighbors">
-        <TownHouses shiftX={shift} shiftZ={shiftZ} skip={taken} />
+        <TownHouses shiftX={shift} shiftZ={shiftZ} skip={taken} onEdit={editTown} />
         {lots.map((l) => {
           if (typeof l.plot !== 'number') return null;
           const house = lotHouse(l);
@@ -149,7 +167,7 @@ export function Town() {
               )}
               {!current && house && <BuildingDetail bounds={houseEnvelope(house).bounds}>{tier => tier === 'distant' ? <group onPointerDown={e => activate(l.id,e)}><DistantHouse house={house}/></group> : <HouseParts house={house} showRoofs={showRoofs} exteriorOnly={tier === 'exterior'} activate={(e, ref) => activate(l.id, e, ref)}/>}</BuildingDetail>}
               {l.shop ? <Signboard lines={shopSign(l.shop, today)} tone="shop" /> : <Signboard
-                lines={[!sessionGate.shared || l.owner === savedBundle().profile.id ? 'あなたの土地' : l.owner ? `${l.ownerName || 'ほかの人'}の土地` : '共有の土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
+                lines={[l.town ? '町の家' : !sessionGate.shared || l.owner === savedBundle().profile.id ? 'あなたの土地' : l.owner ? `${l.ownerName || 'ほかの人'}の土地` : '共有の土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
                 tone="owned"
               />}
             </group>

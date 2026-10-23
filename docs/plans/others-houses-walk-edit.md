@@ -2,7 +2,7 @@
 
 ## 現在の状態
 
-- 状態: 作業中
+- 状態: 作業中（第2弾：町の家の編集）
 - ブランチ: `claude/project-thread-1z7bcq`
 - 残作業: 下の「進捗」を参照
 - 最終更新: 2026-10-23
@@ -31,5 +31,10 @@
 
 - 済: 計画、1〜3 の実装、src/world/visit.test.ts、scripts/check-others-house-walk.mjs（PC・スマホでドアのボタン→開ける→床の上に立つ、CIに追加）
 - 済: 「一緒に建てる人」（UI・builders 操作・check-lot-builders.mjs）を削除、server/dist/relay.mjs を再ビルド
-- 次: PR、マージ後に EC2 の relay 更新（server/README.md）
-- 未定: 町に最初から建っている家の編集（しんごの判断待ち）
+- 済: PR #130 マージ（2026-10-23）
+- 次（第2弾、しんご 2026-10-23「最初から建っている家も編集できるように。店は編集できないように」）:
+  - `Lot.town?: true`（町の家。持ち主なし・誰でも編集可・売買/賃貸/お店/連結は不可）。id は `town-<区画>`。
+  - 建築モードで町の家をクリック → その区画の町の家を土地にして（ひとり: economy.editTownHouse、共有: relay の操作 `townHouse`）、そこを編集先にする。
+  - お店（Lot.shop）がある他人の土地は編集不可（relay とクリック時の両方）。公式のお店は元々編集不可。
+  - relay 変更あり → マージ後 EC2 更新。
+- 済（第2弾）: 上記を実装。sharedWorld.test.ts に町の家・お店の制限のテスト、scripts/check-town-house-edit.mjs（クリック→編集先が町の家に・売れない）をCIに追加。

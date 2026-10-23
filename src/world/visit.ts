@@ -70,5 +70,3 @@ export function visitAt(x: number, z: number): Visit | null {
   return null;
 }
 
-/** 訪ねた家では何も変えられないことを知らせる */
-export const VISIT_READ_ONLY = 'ほかの人の家なので、変えたり消したりはできません';

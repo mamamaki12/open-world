@@ -145,7 +145,7 @@ function Appraisal({ lot }: { lot: Lot }) {
             ))}
           </ul>
         </details>
-        <div className="row">
+        {!lot.town && <div className="row">
           <button
             className="btn danger"
             disabled={!!lot.construction}
@@ -158,10 +158,11 @@ function Appraisal({ lot }: { lot: Lot }) {
           >
             {confirm ? `もう一度押すと ${yen(n.sale)} で売ります` : `土地ごと売る（${yen(n.sale)}）`}
           </button>
-        </div>
+        </div>}
+        {lot.town && <p className="muted">町に最初から建っている家です。だれでも編集できますが、売ったり貸したりはできません。</p>}
       </section>
 
-      <section className="card">
+      {!lot.town && <section className="card">
         <div className="card-title">貸す</div>
         <p>
           売らずに貸すと、毎日（{DAY_SECONDS}秒ごと）家賃が入ります。
@@ -183,7 +184,7 @@ function Appraisal({ lot }: { lot: Lot }) {
         >
           {lot.rented ? '貸すのをやめる' : '貸す'}
         </button>
-      </section>
+      </section>}
     </>
   );
 }
@@ -201,7 +202,7 @@ function SharedLot({ lot, sale }: { lot: Lot; sale: number }) {
   return (
     <div className="estate">
       <h3>{lot.name}</h3>
-      <p className="muted">持ち主：{mine ? 'あなた' : lot.ownerName ?? 'だれか'}{lot.tenant ? `　住んでいる人：${lot.tenant === me ? 'あなた' : lot.tenantName ?? 'だれか'}` : ''}　いまの査定 {yen(sale)}</p>
+      <p className="muted">持ち主：{lot.town ? 'なし（町の家）' : mine ? 'あなた' : lot.ownerName ?? 'だれか'}{lot.tenant ? `　住んでいる人：${lot.tenant === me ? 'あなた' : lot.tenantName ?? 'だれか'}` : ''}　いまの査定 {yen(sale)}</p>
       {mine ? <>
         <section className="card">
           <div className="card-title">売りに出す</div>
@@ -250,11 +251,11 @@ function LotList() {
       <tbody>
         {lots.map((l) => {
           const n = lotNumbers(l, market);
-          const status = l.construction ? '🏗 工事中' : l.rented ? '🔑 賃貸中' : l.built ? '🏠 完成' : '更地';
+          const status = l.town ? '町の家' : l.construction ? '🏗 工事中' : l.rented ? '🔑 賃貸中' : l.built ? '🏠 完成' : '更地';
           return (
             <tr key={l.id} className={l.id === current ? 'on' : ''}>
               <td>{l.name}</td>
-              <td>{sessionGate.shared ? <>{l.owner === savedBundle().profile.id ? 'あなた' : l.ownerName}{l.listing ? `・売出 ${yen(l.listing.price)}` : ''}{l.rentOffer && !l.tenant ? `・貸家 ${yen(l.rentOffer.rent)}/日` : ''}</> : status}</td>
+              <td>{sessionGate.shared ? <>{l.town ? '町の家' : l.owner === savedBundle().profile.id ? 'あなた' : l.ownerName}{l.listing ? `・売出 ${yen(l.listing.price)}` : ''}{l.rentOffer && !l.tenant ? `・貸家 ${yen(l.rentOffer.rent)}/日` : ''}</> : status}</td>
               <td className="num">{l.built ? yen(n.sale) : yen(n.landNow)}</td>
               <td>
                 {l.id === current ? (
