@@ -5,8 +5,8 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const root=path.resolve('dist'),current=JSON.parse(fs.readFileSync(path.join(root,'version.json'),'utf8'));
-const newer={...current,id:'next-release',version:'rnext987',builtAt:new Date(Date.parse(current.builtAt)+60000).toISOString()};
-const older={...current,id:'old-release',version:'rold1234',builtAt:new Date(Date.parse(current.builtAt)-60000).toISOString()};
+const newer={...current,id:'next-release',version:'9.9.9',builtAt:new Date(Date.parse(current.builtAt)+60000).toISOString()};
+const older={...current,id:'old-release',version:'0.0.1',builtAt:new Date(Date.parse(current.builtAt)-60000).toISOString()};
 let mode='current';
 const server=http.createServer((req,res)=>{
   const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
