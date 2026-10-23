@@ -2,9 +2,10 @@
 
 ## 現在の状態
 
-- 状態: 作業中
+- 状態: 完了
+- PR: [#126](https://github.com/mamamaki12/open-world/pull/126)（マージ済み）
 - ブランチ: `claude/project-thread-q2epak`
-- 残作業: PRのCI確認・マージ
+- 残作業: なし
 - 確認根拠: scripts/check-phone-top-hud.mjs（320x568 / 375x667 / 390x844 / 844x390）。修正前のCSSでは 320x568 で「👥 overlaps cash」になり失敗することも確認。
 - 最終更新: 2026-10-23
 
