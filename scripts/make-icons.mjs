@@ -8,7 +8,7 @@ const icons = [
   ['apple-touch-icon.png', 180, 'icon.svg'],
   ['icon-192.png', 192, 'icon.svg'],
   ['icon-512.png', 512, 'icon.svg'],
-  // Android で丸や角丸に切り抜かれても欠けないよう、絵を中央80%に収めた版
+  // Android で丸や角丸に切り抜かれても欠けないよう、主要な絵を中央の安全円（半径40%）に収めた版
   ['icon-maskable-512.png', 512, 'icon-maskable.svg'],
 ];
 const browser = await chromium.launch();

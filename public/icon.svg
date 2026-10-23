@@ -1,30 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5fb3e6"/>
-      <stop offset="1" stop-color="#bfe4f6"/>
-    </linearGradient>
-    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#c0533a"/>
-      <stop offset="1" stop-color="#8e3526"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" fill="url(#sky)"/>
-  <circle cx="392" cy="122" r="46" fill="#ffd45a"/>
-  <path d="M0 392c90-30 180-36 270-20s170 14 242-6v146H0z" fill="#79bf5e"/>
-  <path d="M0 430c110-22 230-26 340-12 64 8 120 6 172-4v98H0z" fill="#5ea548"/>
-  <!-- house -->
-  <g id="fg">
-  <rect x="320" y="170" width="28" height="60" fill="#8e3526"/>
-  <rect x="146" y="250" width="220" height="160" fill="#f6f0e4"/>
-  <rect x="146" y="250" width="220" height="16" fill="#e2d8c4"/>
-  <path d="M112 266 256 140l144 126" fill="none" stroke="url(#roof)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="226" y="314" width="56" height="96" rx="6" fill="#7a5a3a"/>
-  <circle cx="270" cy="364" r="5" fill="#f2c94c"/>
-  <rect x="174" y="292" width="40" height="40" rx="4" fill="#9fd3f0" stroke="#fff" stroke-width="6"/>
-  <rect x="300" y="292" width="40" height="40" rx="4" fill="#9fd3f0" stroke="#fff" stroke-width="6"/>
-  <!-- coin -->
-  <circle cx="392" cy="402" r="52" fill="#f2b632" stroke="#c98a12" stroke-width="10"/>
-  <text x="392" y="426" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="66" fill="#8a5a00">¥</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" shape-rendering="crispEdges">
+  <title>Open World — classic town</title>
+  <rect width="512" height="512" fill="#f5f0dc"/>
+  <path d="M32 32h448v448H32z" fill="none" stroke="#29392f" stroke-width="8"/>
+  <path d="M44 44h424v424H44z" fill="none" stroke="#71806a" stroke-width="4"/>
+  <path d="M64 64h384v384H64z" fill="#c4d39e" stroke="#71806a" stroke-width="8"/>
+  <path d="M72 72h368v8H80v360h-8z" fill="#29392f" opacity=".12"/>
+  <!-- Pixel paths keep the mark independent of installed fonts. -->
+  <path transform="translate(-128 -72) scale(1.5)" d="M216 112h24v8h-24zm-8 8h8v40h-8zm32 0h8v40h-8zm-24 40h24v8h-24zm48-48h8v40h-8zm32 0h8v40h-8zm-16 24h8v16h-8zm-8 16h8v16h-8zm16 0h8v16h-8z" fill="#29392f"/>
+  <!-- Essential artwork is inside radius 204.8 about (256,256). -->
+  <g id="town" fill="#29392f">
+    <path d="M120 370h272v16H120z"/>
+    <path d="M128 282h64v88h-64zm8-24h48v24h-48z"/>
+    <path d="M320 274h64v96h-64zm8-24h48v24h-48z"/>
+    <path d="m184 282 72-72 72 72h-24v88h-96v-88z"/>
+    <path d="M148 204h8v8h-8zm208-16h16v16h-16z"/>
+  </g>
+  <g fill="#c4d39e">
+    <path d="M144 298h16v16h-16zm24 0h8v16h-8zm-24 32h16v16h-16zm24 0h8v16h-8z"/>
+    <path d="M336 290h16v16h-16zm24 0h8v16h-8zm-24 32h16v16h-16zm24 0h8v16h-8z"/>
+    <path d="M224 298h16v16h-16zm48 0h16v16h-16zm-28 40h24v32h-24z"/>
   </g>
 </svg>
