@@ -5,6 +5,7 @@ import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { DAY_SECONDS, landOffers, landPrice, stepMarket, getLocation } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { JOINED_W, freePlot } from '../economy/town';
+import { townHouseLot } from '../building/townHouses';
 import { lotsDensity } from '../economy/neighborhood';
 import { applyChanges } from '../session/edits';
 import type { Change } from '../session/edits';
@@ -15,7 +16,7 @@ import { REQUEST_LIMITS, cleanRequests, requestError, stepRequest } from '../eco
 import type { RequestOp } from '../economy/requests';
 
 /** 建築以外の操作。家・土地の代金は買った人の口座から売り手の口座へ直接移る（新しい土地だけは不動産屋へ払う） */
-export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'list'; price: number | null } | { type: 'buyLot' }
+export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'townHouse'; plot: number } | { type: 'list'; price: number | null } | { type: 'buyLot' }
   | { type: 'offerRent'; rent: number | null } | { type: 'rentLot' } | { type: 'endLease' }
   | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] } | { type: 'stocks'; holdings: Record<string, unknown> }
   | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number } | { type: 'play'; fee: number; kind?: 'arcade' | 'ride' }
@@ -101,6 +102,15 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     if (typeof paid === 'string') return paid;
     const current = w.economy.currentLotId ?? bought.id;
     return { world: { ...paid, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter(o => o.id !== offer.id) } }, cost: price, message: bought.name + 'を買いました' };
+  }
+  if (a.type === 'townHouse') {
+    // 町に最初から建っている家を、だれでも編集できる土地にする（持ち主なし・売買や賃貸はできない）
+    const town = Number.isSafeInteger(a.plot) ? townHouseLot(a.plot) : null;
+    if (!town) return 'その家は編集できません';
+    if (lots.some(l => l.id === town.id)) return { world: w, cost: 0, message: '' };
+    if (plotsOfLots(lots).includes(a.plot)) return 'その区画はもう使われています';
+    if (lots.length >= 90) return 'この町にはもう土地を増やせません';
+    return { world: withLots([...lots, town]), cost: 0, message: '' };
   }
   if (!lot) return 'その土地はありません';
   if (a.type === 'list') {
@@ -250,6 +260,7 @@ export function applyCommand(w: SharedWorld, sender: string, c: SharedCommand, n
   try {
     const lot = w.economy.lots.find(l => l.id === c.lot), before = houseOf(w, c.lot);
     if (!lot || !before) return fail('編集する土地がありません');
+    if (lot.shop && lot.owner && lot.owner !== sender) return fail('お店は持ち主しか変えられません');
     if (lot.construction) return fail('工事の完了後に編集してください');
     const undo = c.undoOf ? receipts[c.undoOf] : null;
     if (c.undoOf && (!undo || undo.sender !== sender || undo.undone || undo.cancelled ||

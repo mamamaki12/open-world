@@ -32,6 +32,7 @@ jobs:
           done
           node scripts/check-vehicle-walls.mjs
           node scripts/check-others-house-walk.mjs
+          node scripts/check-town-house-edit.mjs
           node scripts/check-double-tap-jump.mjs
           node scripts/check-driving-assists.mjs
           node scripts/check-aim-controls.mjs

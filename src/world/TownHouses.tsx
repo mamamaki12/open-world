@@ -4,9 +4,8 @@ import { createPortal, useFrame, useThree } from '@react-three/fiber';
 import { TOWN_HOUSE_PLOTS, townHouseAt } from '../building/townHouses';
 import { plotX, plotZ } from '../economy/town';
 import { HouseParts } from './HouseView';
-import { useGame } from '../state/store';
-import { VISIT_READ_ONLY, useVisit } from './visit';
-import type { ActivateHouse } from './HouseScope';
+import { useVisit } from './visit';
+import type { ThreeEvent } from '@react-three/fiber';
 import { bakeHouse } from './bakeHouse';
 import type { BakedHouse } from './bakeHouse';
 import { BuildingDetail, useDesktopBuildingDetail } from './BuildingDetail';
@@ -18,7 +17,6 @@ import { furnitureDef } from '../catalog';
 import { furnitureBaseY } from '../building/rules';
 import { mountedTransform } from '../building/mounts';
 import { PlacedLightSource } from './PlacedLightSource';
-const readOnly:ActivateHouse=e=>{e.stopPropagation();useGame.getState().notify(VISIT_READ_ONLY);};
 const baked=new Map<string,BakedHouse>();
 function Baker({id,onDone,desktop}:{id:string;onDone:(id:string)=>void;desktop:boolean}){
  const scene=useMemo(()=>new THREE.Scene(),[]),plot=Number(Object.keys(TOWN_HOUSE_PLOTS).find(p=>TOWN_HOUSE_PLOTS[Number(p)]===id)),house=townHouseAt(plot);
@@ -27,7 +25,7 @@ function Baker({id,onDone,desktop}:{id:string;onDone:(id:string)=>void;desktop:b
  // Temporary assemblies must never intercept clicks intended for the visible player's house.
  return house?createPortal(<HouseParts house={house} showRoofs/>,scene,{events:{enabled:false}}):null;
 }
-export function TownHouses({shiftX,shiftZ,skip}:{shiftX:number;shiftZ:number;skip:Set<number>}){
+export function TownHouses({shiftX,shiftZ,skip,onEdit}:{shiftX:number;shiftZ:number;skip:Set<number>;onEdit:(plot:number,e:ThreeEvent<PointerEvent>)=>void}){
  const desktop=useDesktopBuildingDetail(),prefix=desktop?'pc:':'full:';
  const [,setVersion]=useState(0),visiting=useVisit(v=>v.plot),designs=useMemo(()=>[...new Set(Object.values(TOWN_HOUSE_PLOTS))],[]);
  const camera=useThree(s=>s.camera),touch=useTouchDevice(),inVehicle=useVehicles(s=>!!(s.driving||s.riding));
@@ -51,9 +49,9 @@ export function TownHouses({shiftX,shiftZ,skip}:{shiftX:number;shiftZ:number;ski
   {Object.entries(TOWN_HOUSE_PLOTS).map(([p,id])=>{
    const plot=Number(p),house=townHouseAt(plot);if(skip.has(plot)||!house)return null;
    const parts=baked.get(prefix+id);if(!desktop&&!parts&&visiting!==plot)return null;
-   return <group key={plot} position={[plotX(plot)+shiftX,0,plotZ(plot)+shiftZ]}>
+   return <group key={plot} position={[plotX(plot)+shiftX,0,plotZ(plot)+shiftZ]} onPointerDown={e=>onEdit(plot,e)}>
     <BuildingDetail name={'town-house-'+plot} bounds={houseEnvelope(house).bounds} forceFull={visiting===plot}>{tier=>{
-      if(visiting===plot)return <HouseParts house={house} showRoofs activate={readOnly}/>;
+      if(visiting===plot)return <HouseParts house={house} showRoofs activate={e=>onEdit(plot,e)}/>;
       // Keep the baked meshes alive while driving across a distance boundary.
       // Visibility changes avoid rebuilding/uploading the same geometry on every pass.
       return <>

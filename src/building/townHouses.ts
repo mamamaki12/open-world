@@ -4,7 +4,8 @@
 // 木造アパート、鉄骨のALCアパート、分譲マンション、打ち放しのデザイナーズマンションなど）
 import { MAX_LEVEL } from './dimensions';
 import { withDefaultRoomLights } from './roomLighting';
-import { TOWN_HOUSE_PLOTS } from '../economy/town';
+import { TOWN_HOUSE_PLOTS, districtOf } from '../economy/town';
+import type { Lot } from '../state/economy';
 import { HouseKit, fin } from './townHouseKit';
 import type { Box } from './townHouseKit';
 import type { Finish, House } from './types';
@@ -688,6 +689,15 @@ export function townHouseAt(plot: number): House | null {
 /** プレイヤーの建築の上限（2階）を超える階を使っているか */
 export function exceedsPlayerLevels(house: House): boolean {
   return house.walls.some((w) => w.level > MAX_LEVEL) || house.floors.some((f) => f.level > MAX_LEVEL);
+}
+
+/** 町の家を編集するときの土地（持ち主なし・だれでも編集できる。売買・賃貸・お店にはできない） */
+export const townLotId = (plot: number) => 'town-' + plot;
+export function townHouseLot(plot: number): Lot | null {
+  const house = townHouseAt(plot), district = districtOf(plot);
+  if (!house || !district) return null;
+  return { id: townLotId(plot), name: townHouseDesign(TOWN_HOUSE_PLOTS[plot])?.name ?? '町の家', location: district.location, variance: 1,
+    built: JSON.parse(JSON.stringify(house)) as House, design: null, construction: null, rented: false, invested: 0, plot, town: true };
 }
 
 export { TOWN_HOUSE_PLOTS };

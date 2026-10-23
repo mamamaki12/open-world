@@ -37,3 +37,4 @@
   - 建築モードで町の家をクリック → その区画の町の家を土地にして（ひとり: economy.editTownHouse、共有: relay の操作 `townHouse`）、そこを編集先にする。
   - お店（Lot.shop）がある他人の土地は編集不可（relay とクリック時の両方）。公式のお店は元々編集不可。
   - relay 変更あり → マージ後 EC2 更新。
+- 済（第2弾）: 上記を実装。sharedWorld.test.ts に町の家・お店の制限のテスト、scripts/check-town-house-edit.mjs（クリック→編集先が町の家に・売れない）をCIに追加。

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { changes } from '../session/edits';
 import { applyCommand, initialSharedWorld, publicWorld, tickWorld, withAccount, SHARED_START_MONEY } from './sharedWorld';
 import type { SharedWorld } from './sharedWorld';
+import { TOWN_HOUSE_PLOTS } from '../economy/town';
 
 const floor = { id: 'f-test', level: 0, x0: 20, z0: 16, x1: 22, z1: 18, finish: { material: 'flooring', color: '#c8a27a' } };
 const ok = (w: SharedWorld, who: string, c: Parameters<typeof applyCommand>[2]) => {
@@ -44,6 +45,25 @@ describe('shared world', () => {
     const built = ok(w, 'b', { id: 'c2', lot: lot.id, delta: addFloor(w, lot.id), reserved: 0 });
     expect(built.economy.lots[0].built?.floors).toHaveLength(1);
     expect(built.economy.lots[0].owner).toBe('a');
+  });
+  it('turns a town house into an ownerless lot anyone can edit but nobody can sell', () => {
+    const { w } = town();
+    const plot = Number(Object.keys(TOWN_HOUSE_PLOTS)[0]);
+    const claimed = ok(w, 'b', { id: 't1', lot: '', delta: [], reserved: 0, action: { type: 'townHouse', plot } });
+    const lot = claimed.economy.lots.find(l => l.plot === plot)!;
+    expect(lot).toMatchObject({ id: 'town-' + plot, town: true });
+    expect(lot.owner).toBeUndefined();
+    expect(ok(claimed, 'a', { id: 't2', lot: '', delta: [], reserved: 0, action: { type: 'townHouse', plot } }).economy.lots).toHaveLength(claimed.economy.lots.length);
+    const built = ok(claimed, 'a', { id: 't3', lot: lot.id, delta: addFloor(claimed, lot.id), reserved: 0 });
+    expect(built.economy.lots.find(l => l.id === lot.id)!.built?.floors.some(f => f.id === 'f-test')).toBe(true);
+    expect(applyCommand(built, 'a', { id: 't4', lot: lot.id, delta: [], reserved: 0, action: { type: 'list', price: 1000 } }).result.ok).toBe(false);
+    expect(applyCommand(w, 'a', { id: 't5', lot: '', delta: [], reserved: 0, action: { type: 'townHouse', plot: 0 } }).result.ok).toBe(false);
+  });
+  it('keeps someone else’s shop editable only by its owner', () => {
+    const { w, lot } = town();
+    const shop = ok(w, 'a', { id: 's1', lot: lot.id, delta: [], reserved: 0, action: { type: 'shop', shop: { name: '店', items: [] } } });
+    expect(applyCommand(shop, 'b', { id: 's2', lot: lot.id, delta: addFloor(shop, lot.id), reserved: 0 }).result.message).toContain('お店');
+    ok(shop, 'a', { id: 's3', lot: lot.id, delta: addFloor(shop, lot.id), reserved: 0 });
   });
   it('moves money from the buyer to the seller when a listed lot sells', () => {
     const { w, lot } = town();
