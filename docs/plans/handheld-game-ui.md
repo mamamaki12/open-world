@@ -2,12 +2,12 @@
 
 ## 現在の状態
 
-- 状態: 検証待ち
+- 状態: 完了
 - PR: [#121](https://github.com/mamamaki12/open-world/pull/121)
-- 公開: 未公開
-- 残作業: 1. 型検査・ビルドと実画面テストを再実行。2. 配色・選択／hover・文字切れ・320px／横画面／200%拡大を確認し調整。3. PR作成、CI、マージと公開確認。
+- 公開: https://mamamaki12.github.io/open-world/ （公開版 r5c6d1c6で確認）
+- 残作業: なし。
 - 将来の拡張・追加確認: なし。
-- 確認根拠: 基点main 11e15af（#117照明、#119地図ワープ、#120文字拡大修正）、未完PR #110を確認。UIの初期実装は保存済み。実画面テストは中断しており成功確認は未完。PR未作成・UI未公開。
+- 確認根拠: PR #121は86cb7c6でマージ済み。CI 39802814097全9ジョブ成功。Pages 39893537142成功。公開版r5c6d1c6でPC・スマホの開始／建築／乗車／座席視点／降車、JavaScriptエラー0件、スマホHUD透明性を確認。ローカル4画面サイズと文字拡大も成功。3D描画の変更なし。
 - 最終更新: 2026-10-23
 - ブランチ: codex/handheld-game-ui
 - 依頼: Webアプリ的な見た目を減らし、DS・ゲームボーイを参考にゲーム機らしいUIにする。
@@ -36,6 +36,8 @@
 - 2026-10-23: CI 39798507909ではcheck／building-detail／vehicle-occupants／shared-ui／furniture-lightingが成功。残る3項目は準備・検証の合計時間で中断。large-textログは6サイズとも `all screens ok`、その直後に追加UI検査が時間切れ。constructionはブラウザ準備約13分の後、起動と各画面の建築メニューまで成功。world-sessionは準備約7分、複数の店舗入店まで成功して時間切れ。検証は省略せず、handheld-uiを独立ジョブへ分割、construction40分／large-text35分／world-session30分に実行枠を調整して再実行。
 - 2026-10-23: ローカルではPC200%・スマホ縦横150%の全対象画面が成功。既存スクリプトのボタン名差分で取りこぼしていたスマホ建築メニューも、別の一時検証で実際に開き、縦横150%とも重なり0件を確認。証跡 `browser-checks/large-text-build-menu/`（ignored）。スマホHUD透明化後の再検証も成功。
 
+- 2026-10-23: PR #121のマージとCI全9ジョブ成功を確認。公開版r5c6d1c6（Pages 39893537142）をChromeのPC1280x800／スマホ390x844で操作し、開始・家具メニュー・乗車・乗員表示・座席視点・降車が成功。JavaScriptエラー0件、canvas filterなし、スマホHUD透明。証跡は browser-checks/public-handheld-ui/（ignored）。個別planを完了に更新し、plans/READMEは変更していない。
+
 ## 再開用の環境
 
 - Node: `C:/Users/munku/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe`
@@ -44,4 +46,4 @@
 - ブランチ: `codex/handheld-game-ui`
 - Vite: Nodeで `node_modules/vite/bin/vite.js --host 127.0.0.1` を起動。ChromeとViteの実行にはsandbox昇格が必要な環境。
 - ソース変更後はViteを再起動してからQAする（HMR付きモジュールとテストの動的importで状態ストアが二重化するのを避ける）。
-- UIはまだ公開していない。照明 #117 は公開・実画面確認まで完了し、記録を `interior-ceiling-lighting.md` に残した。
+- UIは公開・実画面確認まで完了。照明 #117 の記録は `interior-ceiling-lighting.md` を参照。
