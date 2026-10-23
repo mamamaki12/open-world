@@ -252,6 +252,7 @@ jobs:
             sleep 1
           done
           node scripts/check-shared-ui-layout.mjs
+          node scripts/check-phone-top-hud.mjs
           node scripts/check-shared-takeover.mjs
           node scripts/check-appearance-onboarding.mjs
       - uses: actions/upload-artifact@v4
