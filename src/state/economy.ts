@@ -56,11 +56,12 @@ export interface Lot {
   /** 仕事の依頼（報酬は預かり中） */
   requests?: WorkRequest[];
   shop?: Shop;
+  /** 町に最初から建っていた家（だれでも編集できる。売買・賃貸・お店・連結はできない） */
+  town?: true;
   /** みんなのワールドでの持ち主（ゲストID）。ひとりで遊ぶときは使わない */
   owner?: string;
   ownerName?: string;
   /** みんなのワールドで、持ち主が建築を許可した人（ゲストID） */
-  builders?: { id: string; name: string }[];
   /** みんなのワールドで売りに出している値段 */
   listing?: { price: number };
   /** みんなのワールドで借りる人を募集している1日の家賃と、借りている人 */
@@ -89,7 +90,7 @@ export function joinCandidate(lots: Lot[], id: string): Lot | null {
   const lot = lots.find((l) => l.id === id);
   if (!lot || typeof lot.plot !== 'number' || typeof lot.joined === 'number') return null;
   const other = joinNeighbor(lot.plot);
-  return lots.find((l) => l.id !== id && l.plot === other && typeof l.joined !== 'number') ?? null;
+  return lot.town ? null : lots.find((l) => l.id !== id && l.plot === other && !l.town && typeof l.joined !== 'number') ?? null;
 }
 
 export interface Txn {
@@ -294,6 +295,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
         let costs = 0;
         let rent = 0;
         for (const l of lots) {
+          if (l.town) continue; // 町の家はだれのものでもない
           const n = lotNumbers(l, market);
           costs += n.bill.upkeep + n.bill.tax;
           rent += n.bill.rent;
@@ -364,6 +366,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
       const s = get();
       const lot = s.lots.find((l) => l.id === id);
       if (!lot) return 'その土地は持っていません';
+      if (lot.town) return '町の家は売れません';
       if (lot.construction) return '工事中は売れません';
       const price = lotNumbers(lot, s.market).sale;
       const lots = s.lots.filter((l) => l.id !== id);
@@ -383,6 +386,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
       if (onlineWorld()) return '賃貸の変更はひとりで遊ぶモードで行ってください';
       const lot = get().lots.find((l) => l.id === id);
       if (!lot) return 'その土地は持っていません';
+      if (lot.town) return '町の家は貸せません';
       if (rented && !lot.built) return '家が建っていないので貸せません';
       if (rented && lot.construction) return '工事中は貸せません';
       set({ lots: updateLot(id, { rented }) });
@@ -480,7 +484,7 @@ export const useEconomy = create<EconomyState>((set, get) => {
 
     setShop: (lotId, shop) => {
       set({ lots: get().lots.map((l) => {
-        if (l.id !== lotId) return l;
+        if (l.id !== lotId || l.town) return l;
         const { shop: _old, ...rest } = l;
         return shop ? { ...rest, shop } : rest;
       }) });
@@ -544,7 +548,7 @@ export function useLotCells(): { w: number; d: number } {
 /** その区画の、道路をはさまない隣にある自分の土地（まだつなげていないもの） */
 export function ownedNeighbor(lots: Lot[], plot: number | undefined): Lot | null {
   const n = typeof plot === 'number' ? joinNeighbor(plot) : null;
-  return n === null ? null : lots.find((l) => l.plot === n && typeof l.joined !== 'number') ?? null;
+  return n === null ? null : lots.find((l) => l.plot === n && !l.town && typeof l.joined !== 'number') ?? null;
 }
 
 /** 土地を買い、join なら隣の自分の土地とつなげる */

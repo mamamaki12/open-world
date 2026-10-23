@@ -11,7 +11,6 @@ import {
   drawOrder,
   makeRace,
   payoutPer100,
-  placeCount,
   popularCombos,
   ticketPayout,
   winningCombos,
@@ -149,7 +148,6 @@ function FrameBadge({ frame }: { frame: number }) {
 }
 
 function RaceCard({ race, probs }: { race: Race; probs: Probs }) {
-  const pc = placeCount(race);
   const popularity = useMemo(() => {
     const ord = probs.win.map((_, i) => i).sort((a, b) => probs.win[b] - probs.win[a]);
     const rank: number[] = [];
@@ -182,13 +180,12 @@ function RaceCard({ race, probs }: { race: Race; probs: Probs }) {
               <th>{cfg.numberName}</th>
               <th>印</th>
               <th>{race.kind === 'horse' ? '馬名' : '選手名'}</th>
+              <th className="num">人気</th>
+              {showWin && <th className="num">単勝</th>}
               {race.kind === 'horse' && <th>脚質</th>}
               {infoKeys.map((k) => (
                 <th key={k}>{k}</th>
               ))}
-              {showWin && <th className="num">単勝</th>}
-              {pc > 0 && <th className="num">複勝</th>}
-              <th className="num">人気</th>
             </tr>
           </thead>
           <tbody>
@@ -207,13 +204,12 @@ function RaceCard({ race, probs }: { race: Race; probs: Probs }) {
                   {r.name}
                   {r.info['毛色'] && <small className="muted">（{r.info['毛色']}）</small>}
                 </td>
+                <td className="num">{popularity[r.index]}</td>
+                {showWin && <td className="num">{comboOdds(race, probs, 'win', [r.index])?.toFixed(1)}</td>}
                 {race.kind === 'horse' && <td>{r.style}</td>}
                 {infoKeys.map((k) => (
                   <td key={k}>{r.info[k]}</td>
                 ))}
-                {showWin && <td className="num">{comboOdds(race, probs, 'win', [r.index])?.toFixed(1)}</td>}
-                {pc > 0 && <td className="num">{comboOdds(race, probs, 'place', [r.index])?.toFixed(1)}</td>}
-                <td className="num">{popularity[r.index]}</td>
               </tr>
             ))}
           </tbody>

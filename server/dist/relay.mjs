@@ -414,9 +414,9 @@ var require_permessage_deflate = __commonJS({
        * @param {Function} callback Callback
        * @public
        */
-      decompress(data, fin, callback) {
+      decompress(data, fin2, callback) {
         zlibLimiter.add((done) => {
-          this._decompress(data, fin, (err, result) => {
+          this._decompress(data, fin2, (err, result) => {
             done();
             callback(err, result);
           });
@@ -430,9 +430,9 @@ var require_permessage_deflate = __commonJS({
        * @param {Function} callback Callback
        * @public
        */
-      compress(data, fin, callback) {
+      compress(data, fin2, callback) {
         zlibLimiter.add((done) => {
-          this._compress(data, fin, (err, result) => {
+          this._compress(data, fin2, (err, result) => {
             done();
             callback(err, result);
           });
@@ -446,7 +446,7 @@ var require_permessage_deflate = __commonJS({
        * @param {Function} callback Callback
        * @private
        */
-      _decompress(data, fin, callback) {
+      _decompress(data, fin2, callback) {
         const endpoint = this._isServer ? "client" : "server";
         if (!this._inflate) {
           const key = `${endpoint}_max_window_bits`;
@@ -463,7 +463,7 @@ var require_permessage_deflate = __commonJS({
         }
         this._inflate[kCallback] = callback;
         this._inflate.write(data);
-        if (fin) this._inflate.write(TRAILER);
+        if (fin2) this._inflate.write(TRAILER);
         this._inflate.flush(() => {
           const err = this._inflate[kError];
           if (err) {
@@ -482,7 +482,7 @@ var require_permessage_deflate = __commonJS({
           } else {
             this._inflate[kTotalLength] = 0;
             this._inflate[kBuffers] = [];
-            if (fin && this.params[`${endpoint}_no_context_takeover`]) {
+            if (fin2 && this.params[`${endpoint}_no_context_takeover`]) {
               this._inflate.reset();
             }
           }
@@ -497,7 +497,7 @@ var require_permessage_deflate = __commonJS({
        * @param {Function} callback Callback
        * @private
        */
-      _compress(data, fin, callback) {
+      _compress(data, fin2, callback) {
         const endpoint = this._isServer ? "server" : "client";
         if (!this._deflate) {
           const key = `${endpoint}_max_window_bits`;
@@ -520,13 +520,13 @@ var require_permessage_deflate = __commonJS({
             this._deflate[kBuffers],
             this._deflate[kTotalLength]
           );
-          if (fin) {
+          if (fin2) {
             data2 = new FastBuffer(data2.buffer, data2.byteOffset, data2.length - 4);
           }
           this._deflate[kCallback] = null;
           this._deflate[kTotalLength] = 0;
           this._deflate[kBuffers] = [];
-          if (fin && this.params[`${endpoint}_no_context_takeover`]) {
+          if (fin2 && this.params[`${endpoint}_no_context_takeover`]) {
             this._deflate.reset();
           }
           callback(null, data2);
@@ -6306,6 +6306,9 @@ var TOWN_ROADS = [
     return { x0: TOWN_BOUNDS.x0 - 10, x1: TOWN_BOUNDS.x1 + 10, z0: z - 3, z1: z + 3 };
   })
 ];
+function districtOf(plot) {
+  return DISTRICTS.find((d) => plot >= d.from && plot <= d.to) ?? null;
+}
 function plotsOf(location) {
   const d = DISTRICTS.find((x) => x.location === location);
   if (!d) return [];
@@ -6322,6 +6325,41 @@ function freePlot(location, taken, rng) {
 }
 var JOIN_SHIFT = Math.round((LOT_WIDTH + 4) / GRID);
 var JOINED_W = JOIN_SHIFT + LOT_W;
+
+// src/building/stairs.ts
+function stairPlan(shape = "straight") {
+  if (shape === "l") return { flights: [
+    { x: 0.5, z: 0, dir: 0, length: 2, bottom: 0, top: 0.5 },
+    { x: 1, z: 2.5, dir: 1, length: 2, bottom: 0.5, top: 1 }
+  ], landings: [{ x0: 0, z0: 2, x1: 1, z1: 3, height: 0.5 }] };
+  if (shape === "u") return { flights: [
+    { x: 0.5, z: 0, dir: 0, length: 2, bottom: 0, top: 0.5 },
+    { x: 1.5, z: 2, dir: 2, length: 2, bottom: 0.5, top: 1 }
+  ], landings: [{ x0: 0, z0: 2, x1: 2, z1: 3, height: 0.5 }] };
+  return { flights: [{ x: 0.5, z: 0, dir: 0, length: shape === "compact" ? 3 : STAIR_LENGTH, bottom: 0, top: 1 }], landings: [] };
+}
+var direction = (dir) => [[0, 1], [1, 0], [0, -1], [-1, 0]][dir];
+function stairWorldGrid(s, x, z) {
+  const a = x - 0.5, b = z - 0.5;
+  const [rx, rz] = [[a, b], [b, -a], [-a, -b], [-b, a]][s.rot];
+  return { x: s.x + 0.5 + rx, z: s.z + 0.5 + rz };
+}
+function stairRects(s) {
+  const plan = stairPlan(s.shape);
+  const rects = plan.flights.map((f) => {
+    const [dx, dz] = direction(f.dir);
+    return {
+      x0: Math.min(f.x, f.x + dx * f.length) - Math.abs(dz) / 2,
+      x1: Math.max(f.x, f.x + dx * f.length) + Math.abs(dz) / 2,
+      z0: Math.min(f.z, f.z + dz * f.length) - Math.abs(dx) / 2,
+      z1: Math.max(f.z, f.z + dz * f.length) + Math.abs(dx) / 2
+    };
+  });
+  return [...rects, ...plan.landings].map((r) => {
+    const pts = [stairWorldGrid(s, r.x0, r.z0), stairWorldGrid(s, r.x1, r.z1)];
+    return { x0: Math.min(...pts.map((p) => p.x)), x1: Math.max(...pts.map((p) => p.x)), z0: Math.min(...pts.map((p) => p.z)), z1: Math.max(...pts.map((p) => p.z)) };
+  });
+}
 
 // src/catalog/materials.json
 var materials_default = {
@@ -10937,41 +10975,6 @@ function furnitureDef(item) {
   return getFurniture(item.type ?? "");
 }
 
-// src/building/stairs.ts
-function stairPlan(shape = "straight") {
-  if (shape === "l") return { flights: [
-    { x: 0.5, z: 0, dir: 0, length: 2, bottom: 0, top: 0.5 },
-    { x: 1, z: 2.5, dir: 1, length: 2, bottom: 0.5, top: 1 }
-  ], landings: [{ x0: 0, z0: 2, x1: 1, z1: 3, height: 0.5 }] };
-  if (shape === "u") return { flights: [
-    { x: 0.5, z: 0, dir: 0, length: 2, bottom: 0, top: 0.5 },
-    { x: 1.5, z: 2, dir: 2, length: 2, bottom: 0.5, top: 1 }
-  ], landings: [{ x0: 0, z0: 2, x1: 2, z1: 3, height: 0.5 }] };
-  return { flights: [{ x: 0.5, z: 0, dir: 0, length: shape === "compact" ? 3 : STAIR_LENGTH, bottom: 0, top: 1 }], landings: [] };
-}
-var direction = (dir) => [[0, 1], [1, 0], [0, -1], [-1, 0]][dir];
-function stairWorldGrid(s, x, z) {
-  const a = x - 0.5, b = z - 0.5;
-  const [rx, rz] = [[a, b], [b, -a], [-a, -b], [-b, a]][s.rot];
-  return { x: s.x + 0.5 + rx, z: s.z + 0.5 + rz };
-}
-function stairRects(s) {
-  const plan = stairPlan(s.shape);
-  const rects = plan.flights.map((f) => {
-    const [dx, dz] = direction(f.dir);
-    return {
-      x0: Math.min(f.x, f.x + dx * f.length) - Math.abs(dz) / 2,
-      x1: Math.max(f.x, f.x + dx * f.length) + Math.abs(dz) / 2,
-      z0: Math.min(f.z, f.z + dz * f.length) - Math.abs(dx) / 2,
-      z1: Math.max(f.z, f.z + dz * f.length) + Math.abs(dx) / 2
-    };
-  });
-  return [...rects, ...plan.landings].map((r) => {
-    const pts = [stairWorldGrid(s, r.x0, r.z0), stairWorldGrid(s, r.x1, r.z1)];
-    return { x0: Math.min(...pts.map((p) => p.x)), x1: Math.max(...pts.map((p) => p.x)), z0: Math.min(...pts.map((p) => p.z)), z1: Math.max(...pts.map((p) => p.z)) };
-  });
-}
-
 // src/building/rules.ts
 function rectInsideLot(r) {
   return r.x0 >= 0 && r.z0 >= 0 && r.x1 <= lotSize.w && r.z1 <= lotSize.d && r.x1 > r.x0 && r.z1 > r.z0;
@@ -11136,6 +11139,15 @@ function wallOutsideSide(house, w) {
   if (rightIn) return 1;
   return 2;
 }
+function snapOpeningOffset(wallLen, raw, width) {
+  const step = GRID / 2;
+  let snapped = Math.round(raw / step) * step;
+  const min = width / 2 + 0.05;
+  const max = wallLen - width / 2 - 0.05;
+  if (snapped < min) snapped = min;
+  if (snapped > max) snapped = max;
+  return snapped;
+}
 function canPlaceOpening(house, wallId, typeId, offset, ignoreId) {
   const wall = house.walls.find((w) => w.id === wallId);
   if (!wall) return "\u58C1\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
@@ -11174,7 +11186,926 @@ function canPlaceStair(house, s, ignoreId) {
   if (clash) return "\u4ED6\u306E\u968E\u6BB5\u3068\u91CD\u306A\u308A\u307E\u3059";
   return null;
 }
+function stairHoles(house, level) {
+  return house.stairs.filter((s) => s.level === level - 1).flatMap(stairRects);
+}
 var HALF_WALL = WALL_THICKNESS / 2;
+
+// src/building/roomLighting.ts
+var contains = (r, x, z) => x >= r.x0 * GRID - 2e-3 && x <= r.x1 * GRID + 2e-3 && z >= r.z0 * GRID - 2e-3 && z <= r.z1 * GRID + 2e-3;
+var coverageCache = /* @__PURE__ */ new WeakMap();
+function hasRoomCeiling(h, level, x, z) {
+  let levels = coverageCache.get(h);
+  if (!levels) coverageCache.set(h, levels = /* @__PURE__ */ new Map());
+  let data = levels.get(level);
+  if (!data) {
+    data = { floors: h.floors.filter((f) => f.level === level && f.kind !== "terrace"), covers: [...h.roofs.filter((r) => r.level === level), ...h.floors.filter((f) => f.level === level + 1)], holes: stairHoles(h, level + 1) };
+    levels.set(level, data);
+  }
+  return data.floors.some((f) => contains(f, x, z)) && !data.holes.some((r) => contains(r, x, z)) && data.covers.some((r) => contains(r, x, z));
+}
+function withDefaultRoomLights(h) {
+  const added = [];
+  const levels = [...new Set(h.floors.map((f) => f.level))];
+  for (const level of levels) {
+    const cells = /* @__PURE__ */ new Map();
+    for (const f of h.floors.filter((f2) => f2.level === level && f2.kind !== "terrace"))
+      for (let x = Math.floor(f.x0); x < f.x1; x++) for (let z = Math.floor(f.z0); z < f.z1; z++) {
+        const p = { x: (x + 0.5) * GRID, z: (z + 0.5) * GRID };
+        if (hasRoomCeiling(h, level, p.x, p.z)) cells.set(`${x},${z}`, p);
+      }
+    const walls = h.walls.filter((w) => w.level === level && !w.height);
+    const blocked = (a, b) => walls.some((w) => {
+      const x0 = Math.min(w.x0, w.x1) * GRID, x1 = Math.max(w.x0, w.x1) * GRID, z0 = Math.min(w.z0, w.z1) * GRID, z1 = Math.max(w.z0, w.z1) * GRID;
+      return w.x0 === w.x1 ? Math.min(a.x, b.x) < x0 && Math.max(a.x, b.x) > x0 && a.z >= z0 && a.z <= z1 : Math.min(a.z, b.z) < z0 && Math.max(a.z, b.z) > z0 && a.x >= x0 && a.x <= x1;
+    });
+    while (cells.size) {
+      const first = cells.keys().next().value, queue = [first], room = [];
+      const pending = /* @__PURE__ */ new Set([first]);
+      for (let i = 0; i < queue.length; i++) {
+        const key = queue[i], p = cells.get(key);
+        room.push(p);
+        const [x, z] = key.split(",").map(Number);
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const k = `${x + dx},${z + dz}`, q = cells.get(k);
+          if (q && !pending.has(k) && !blocked(p, q)) {
+            pending.add(k);
+            queue.push(k);
+          }
+        }
+      }
+      for (const key of pending) cells.delete(key);
+      const centre = { x: room.reduce((s, p) => s + p.x, 0) / room.length, z: room.reduce((s, p) => s + p.z, 0) / room.length };
+      room.sort((a, b) => Math.hypot(a.x - centre.x, a.z - centre.z) - Math.hypot(b.x - centre.x, b.z - centre.z));
+      const placed = [];
+      for (const p of room) {
+        if (placed.some((q) => Math.hypot(p.x - q.x, p.z - q.z) < 3.6)) continue;
+        placed.push(p);
+        added.push({ id: `default-light-${level}-${added.length}`, level, type: room.length < 14 ? "ceiling-disc-light" : "ceiling-panel-light", ...p, rotation: 0, color: "#f0ece4" });
+      }
+    }
+  }
+  return { ...h, furniture: [...h.furniture, ...added] };
+}
+
+// src/building/townHouseKit.ts
+var fin = (material, color) => ({ material, color });
+var HouseKit = class {
+  constructor(key) {
+    this.key = key;
+  }
+  house = emptyHouse();
+  count = 0;
+  /** 窓・ドアのいつもの色 */
+  style = { sashColor: "#3a3c3f", panelColor: "#5a3e2b" };
+  id(kind) {
+    this.count += 1;
+    return `town-${this.key}-${kind}-${this.count}`;
+  }
+  floor(level, x0, z0, x1, z1, finish, kind) {
+    this.house.floors.push({ id: this.id("floor"), level, x0, z0, x1, z1, finish, ...kind ? { kind } : {} });
+  }
+  wall(level, x0, z0, x1, z1, exterior, interior = exterior, height) {
+    const w = { id: this.id("wall"), level, x0, z0, x1, z1, exterior, interior, ...height ? { height } : {} };
+    this.house.walls.push(w);
+    return w;
+  }
+  /** 四角い部屋の外周の壁4枚（床も張る） */
+  box(level, x0, z0, x1, z1, exterior, interior, floor) {
+    if (floor) this.floor(level, x0, z0, x1, z1, floor);
+    return {
+      n: this.wall(level, x0, z0, x1, z0, exterior, interior),
+      s: this.wall(level, x0, z1, x1, z1, exterior, interior),
+      w: this.wall(level, x0, z0, x0, z1, exterior, interior),
+      e: this.wall(level, x1, z0, x1, z1, exterior, interior)
+    };
+  }
+  /** 窓・ドアを付ける。at は壁の始点（x0・z0 の側）からの中心の位置（マス、半マス刻み） */
+  open(wall, type, at, style = {}) {
+    const def = getOpening(type);
+    const offset = snapOpeningOffset(wallLength(wall), at * GRID, def.width);
+    const o = {
+      id: this.id("opening"),
+      wallId: wall.id,
+      kind: def.kind,
+      type,
+      offset,
+      sashColor: style.sashColor ?? this.style.sashColor,
+      panelColor: style.panelColor ?? this.style.panelColor
+    };
+    const sash2 = style.sash ?? this.style.sash;
+    if (sash2) o.sash = sash2;
+    this.house.openings.push(o);
+  }
+  /** 同じ窓を何か所かに付ける */
+  windows(wall, type, ats, style) {
+    for (const at of ats) this.open(wall, type, at, style);
+  }
+  stair(level, x, z, rot, finish, shape) {
+    this.house.stairs.push({ id: this.id("stair"), level, x, z, rot, finish, rail: "both", ...shape ? { shape } : {} });
+  }
+  /** 完成時に、上階の床端と階段穴の側面を腰壁で保護する。 */
+  finish() {
+    const guardStart = this.house.walls.length;
+    const guard = fin("metal-v", "#6f7377");
+    const add = (level, x0, z0, x1, z1, height) => {
+      const edge = { x0, z0, x1, z1 };
+      if (!this.house.walls.some((w) => w.level === level && wallsOverlap(w, edge))) {
+        this.wall(level, x0, z0, x1, z1, guard, guard, height);
+      }
+    };
+    for (let x = 0; x < LOT_W; x++) {
+      add(0, x, 0, x + 1, 0, "fence");
+      if (x < 8) add(0, x, LOT_D, x + 1, LOT_D, "fence");
+    }
+    for (let z = 0; z < LOT_D; z++) {
+      add(0, 0, z, 0, z + 1, "fence");
+      add(0, LOT_W, z, LOT_W, z + 1, "fence");
+    }
+    for (const level of new Set(this.house.floors.map((f) => f.level))) {
+      if (level === 0) continue;
+      const holes = stairHoles(this.house, level);
+      const covered = (x, z) => this.house.floors.some((f) => f.level === level && x > f.x0 && x < f.x1 && z > f.z0 && z < f.z1) && !holes.some((h) => x > h.x0 && x < h.x1 && z > h.z0 && z < h.z1);
+      const exits = this.house.stairs.filter((s) => s.level === level - 1).map((s) => {
+        const flights = stairPlan(s.shape).flights;
+        const f = flights[flights.length - 1];
+        const [dx, dz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][f.dir];
+        const p = stairWorldGrid(s, f.x + dx * f.length, f.z + dz * f.length);
+        return { p, alongX: (f.dir + s.rot) % 2 === 1 };
+      });
+      for (const s of this.house.stairs.filter((s2) => s2.level === level)) {
+        const f = stairPlan(s.shape).flights[0];
+        exits.push({ p: stairWorldGrid(s, f.x, f.z), alongX: (f.dir + s.rot) % 2 === 1 });
+      }
+      const entrance = (x0, z0, x1, z1) => exits.some((e) => e.alongX === (x0 === x1) && Math.abs(e.p.x - (x0 + x1) / 2) < 0.01 && Math.abs(e.p.z - (z0 + z1) / 2) < 0.01);
+      for (let z = 0; z < LOT_D; z++) for (let x = 0; x < LOT_W; x++) {
+        if (!covered(x + 0.5, z + 0.5)) continue;
+        const edges = [
+          [x, z, x + 1, z, x + 0.5, z - 0.5],
+          [x, z + 1, x + 1, z + 1, x + 0.5, z + 1.5],
+          [x, z, x, z + 1, x - 0.5, z + 0.5],
+          [x + 1, z, x + 1, z + 1, x + 1.5, z + 0.5]
+        ];
+        for (const [ax, az, bx, bz, nx, nz] of edges) {
+          if (!covered(nx, nz) && !entrance(ax, az, bx, bz)) add(level, ax, az, bx, bz, "half");
+        }
+      }
+    }
+    const merged = [];
+    const added = this.house.walls.splice(guardStart);
+    added.sort((a, b) => a.level - b.level || String(a.height).localeCompare(String(b.height)) || Number(a.x0 === a.x1) - Number(b.x0 === b.x1) || (a.x0 === a.x1 ? a.x0 - b.x0 || a.z0 - b.z0 : a.z0 - b.z0 || a.x0 - b.x0));
+    for (const w of added) {
+      const prev = merged[merged.length - 1];
+      if (prev && prev.level === w.level && prev.height === w.height && (prev.x0 === prev.x1 && w.x0 === w.x1 && prev.x0 === w.x0 && prev.z1 === w.z0 || prev.z0 === prev.z1 && w.z0 === w.z1 && prev.z0 === w.z0 && prev.x1 === w.x0)) {
+        prev.x1 = w.x1;
+        prev.z1 = w.z1;
+      } else merged.push(w);
+    }
+    this.house.walls.push(...merged);
+    return this.house;
+  }
+  roof(level, x0, z0, x1, z1, type, finish, gableFinish, opts = {}) {
+    this.house.roofs.push({
+      id: this.id("roof"),
+      level,
+      x0,
+      z0,
+      x1,
+      z1,
+      type,
+      finish,
+      gableFinish,
+      axis: opts.axis ?? "x",
+      flip: opts.flip ?? false,
+      pitch: opts.pitch ?? 4,
+      overhang: opts.overhang ?? 0.6
+    });
+  }
+  /** 家具。gx・gz はマス単位の中心の位置。rot は度（0 で +Z（道路側）を向く） */
+  item(level, type, gx, gz, rot = 0, color, label) {
+    const def = getFurniture(type);
+    this.house.furniture.push({
+      id: this.id("furniture"),
+      level,
+      type,
+      x: round(gx * GRID),
+      z: round(gz * GRID),
+      rotation: rot,
+      color: color ?? def.colors[0],
+      ...label ? { label } : {}
+    });
+  }
+};
+var round = (v) => Math.round(v * 1e3) / 1e3;
+
+// src/building/townHouses.ts
+var WHITE = "#efedea";
+var inner = fin("wallpaper", "#f7f5f0");
+var wood = fin("oak", "#a77b52");
+function familyHouse(st) {
+  const k = new HouseKit(st.key);
+  k.style = st.sash;
+  const ext = st.exterior;
+  const up = st.upper ?? ext;
+  const door = { panelColor: WHITE };
+  const f1 = k.box(0, 4, 4, 18, 13, ext, inner, st.floor);
+  k.wall(0, 14, 4, 14, 9, inner);
+  const hallWet = k.wall(0, 14, 9, 18, 9, inner);
+  k.open(hallWet, "door", 0.5, door);
+  k.open(hallWet, "door", 3, door);
+  const ldkHall = k.wall(0, 14, 9, 14, 13, inner);
+  k.open(ldkHall, "door", 2.5, { panelColor: st.accent ?? WHITE });
+  const bath = k.wall(0, 14, 6, 16, 6, fin("wall-tile", "#e9eef0"), inner);
+  k.open(bath, "door", 1, door);
+  k.wall(0, 16, 6, 18, 6, inner);
+  k.wall(0, 16, 6, 16, 9, inner);
+  k.stair(0, 12, 11, 2, wood);
+  st.living.forEach((t, i) => k.open(f1.s, t, [2.5, 5, 7.5][i]));
+  k.open(f1.s, "entrance", 12, { panelColor: st.sash.panelColor });
+  k.open(f1.w, st.bedroomWindow, 2);
+  k.open(f1.w, "casement-tall", 8);
+  k.open(f1.n, "sliding-small", 1);
+  k.open(f1.n, "sliding", 6);
+  k.open(f1.n, "high", 12);
+  k.open(f1.e, "sliding-small", 3.5);
+  k.open(f1.e, "fix", 7.5);
+  k.floor(0, 15, 13, 17, 14, fin("terrace-tile", "#b9b2a3"), "terrace");
+  const f2 = k.box(1, 4, 4, 18, 13, up, inner, st.floor);
+  const rooms = k.wall(1, 4, 8, 18, 8, inner);
+  k.windows(rooms, "door", [3, 8.5, 11, 13], door);
+  k.wall(1, 10, 4, 10, 8, inner);
+  k.wall(1, 14, 4, 14, 8, inner);
+  k.wall(1, 16, 4, 16, 8, inner);
+  const bed2a = k.wall(1, 14, 10, 14, 13, inner);
+  k.open(bed2a, "door", 1.5, door);
+  k.wall(1, 14, 10, 18, 10, inner);
+  k.open(f2.s, st.bedroomWindow, 2);
+  k.open(f2.s, st.balcony ? "patio" : st.bedroomWindow, 6);
+  k.open(f2.s, st.bedroomWindow, 12);
+  k.open(f2.n, st.bedroomWindow, 3);
+  k.open(f2.n, st.bedroomWindow, 8);
+  k.open(f2.n, "sliding-small", 13);
+  k.open(f2.w, st.bedroomWindow, 2);
+  k.open(f2.w, "fix", 7);
+  k.open(f2.e, "casement", 2);
+  k.open(f2.e, st.bedroomWindow, 7.5);
+  if (st.balcony) {
+    k.floor(1, 7, 13, 13, 15, st.balcony, "terrace");
+    k.wall(1, 7, 13, 7, 15, up, up, "half");
+    k.wall(1, 7, 15, 13, 15, up, up, "half");
+    k.wall(1, 13, 13, 13, 15, up, up, "half");
+    k.item(1, "flowerpot", 8, 14.3);
+    k.item(1, "flowerpot", 12, 14.3, 0, "#f2c230");
+  }
+  const r = st.roof;
+  k.roof(1, 4, 4, 18, 13, r.type, r.finish, up, { pitch: r.pitch, axis: r.axis ?? "x", overhang: r.overhang ?? 0.6 });
+  k.item(0, "kitchen-island", 9, 5.9, 0);
+  k.item(0, "cupboard", 7, 4.33, 0);
+  k.item(0, "fridge", 12.3, 4.47, 0);
+  k.item(0, "dining", 9, 8, 0, "#c8a57a");
+  for (const [x, z, rot] of [[8.5, 7.4, 0], [9.5, 7.4, 0], [8.5, 8.6, 180], [9.5, 8.6, 180]]) k.item(0, "chair", x, z, rot, "#2f3133");
+  k.item(0, "tv", 4.31, 10.2, 90, "#4e3626");
+  k.item(0, "rug", 6.3, 10.2, 90, "#b9ab97");
+  k.item(0, "low-table", 6.3, 10.2, 90);
+  k.item(0, st.sofa, 8.1, 10.2, 270);
+  k.item(0, "plant", 13.3, 12.3);
+  k.item(0, "floor-lamp", 4.6, 12.4);
+  k.item(0, "aircon", 4.22, 6.5, 90);
+  for (const x of [6.5, 9]) k.item(0, "curtain", x, 12.86, 180);
+  k.item(0, "shoe-cabinet", 17.7, 11.8, 270);
+  k.item(0, "plant", 14.6, 12.4, 0, "#6c8f4e");
+  k.item(0, "washbasin", 14.38, 7.5, 90);
+  k.item(0, "washer", 15.6, 8.58, 180);
+  k.item(0, "toilet", 17, 6.45, 0);
+  k.item(0, "bath", 16, 4.52, 0);
+  k.item(1, "bed-double", 7, 5.21, 0);
+  k.item(1, "wardrobe", 4.41, 6, 90);
+  k.item(1, "curtain", 7, 4.12, 0);
+  k.item(1, "aircon", 8.8, 4.2, 0);
+  k.item(1, "bed-single", 11, 5.21, 0, "#9aa7b3");
+  k.item(1, "desk", 13, 4.42, 0);
+  k.item(1, "chair", 13, 5, 180);
+  k.item(1, "wardrobe", 15, 4.41, 0);
+  k.item(1, "toilet", 17, 4.45, 0);
+  k.item(1, "sofa", 4.58, 10.5, 90, "#7d8a96");
+  k.item(1, "low-table", 6, 10.5, 90);
+  k.item(1, "shelf", 8, 8.25, 0);
+  k.item(1, "plant", 12.5, 12.3);
+  k.item(1, "bed-single", 15.2, 11.3, 90, "#c9b8a4");
+  for (const x of [6, 10, 16]) k.item(1, "curtain", x, 12.86, 180);
+  if (st.carport) k.item(0, "garage-carport", 21, 16.4, 0);
+  k.item(0, "tree", 1.6, 15);
+  k.item(0, "tree", 2.2, 18.4, 0, "#6c8f4e");
+  k.item(0, "tree", 9, 18.6, 0, "#3d5e3a");
+  for (const x of [1, 3, 5, 7, 11, 13]) k.item(0, "hedge", x, 19.45);
+  k.item(0, "flowerbed", 12.5, 14.4);
+  k.item(0, "nameplate-post", 15, 19.3, 0, "#f2efe8", st.family);
+  return k.finish();
+}
+function japaneseHouse() {
+  const k = new HouseKit("wafu");
+  k.style = { sashColor: "#5a4636", panelColor: "#3b2c22" };
+  const lower = fin("yakisugi", "#2a2826");
+  const upper = fin("shikkui", "#f1ede3");
+  const tatami = fin("tatami", "#c9c08a");
+  const floor = fin("hinoki-floor", "#d8b98f");
+  const kawara = fin("kawara", "#4a4f55");
+  const shoji = { panelColor: "#efe6d2" };
+  const f1 = k.box(0, 4, 5, 18, 14, lower, fin("plaster", "#e8dfcf"));
+  k.floor(0, 9, 5, 18, 14, floor);
+  k.floor(0, 4, 11, 9, 14, floor);
+  const washitsu = k.wall(0, 9, 5, 9, 11, fin("plaster", "#e8dfcf"));
+  k.open(washitsu, "slide-door", 4, shoji);
+  k.wall(0, 4, 11, 9, 11, fin("plaster", "#e8dfcf"));
+  k.floor(0, 4, 5, 9, 11, tatami);
+  const wet = k.wall(0, 14, 5, 14, 9, inner);
+  k.open(wet, "door", 3, { panelColor: WHITE });
+  k.wall(0, 14, 9, 18, 9, inner);
+  const bathW = k.wall(0, 16, 5, 16, 9, inner);
+  k.open(bathW, "door", 3, { panelColor: WHITE });
+  const genkan = k.wall(0, 14, 11, 18, 11, inner);
+  k.open(genkan, "slide-door", 2, shoji);
+  k.wall(0, 14, 11, 14, 14, inner);
+  k.stair(0, 15, 10, 3, fin("hinoki", "#d8b98f"));
+  k.open(f1.s, "patio", 1.5);
+  k.open(f1.s, "patio", 3.5);
+  k.open(f1.s, "patio", 7);
+  k.open(f1.s, "patio", 9);
+  k.open(f1.s, "slide-door", 12, { panelColor: "#5a4636" });
+  k.open(f1.w, "sliding", 3);
+  k.open(f1.n, "sliding", 2.5);
+  k.open(f1.n, "sliding-small", 7.5);
+  k.open(f1.n, "high", 11);
+  k.open(f1.e, "sliding-small", 1);
+  k.open(f1.e, "sliding-small", 3);
+  k.floor(0, 4, 14, 11, 15, fin("deck", "#8a6240"), "terrace");
+  const f2 = k.box(1, 4, 5, 18, 14, upper, inner, floor);
+  const room = k.wall(1, 8, 5, 8, 11, inner);
+  k.open(room, "door", 4, { panelColor: WHITE });
+  k.open(f2.s, "sliding", 2);
+  k.open(f2.s, "sliding", 6.5);
+  k.open(f2.n, "sliding", 2);
+  k.open(f2.n, "sliding", 6.5);
+  k.open(f2.w, "sliding-small", 3);
+  k.open(f2.e, "sliding", 3);
+  k.roof(1, 4, 5, 18, 14, "hip", kawara, upper, { pitch: 4.5, overhang: 0.75 });
+  k.item(0, "zataku", 6.5, 8, 0);
+  k.item(0, "shelf", 4.3, 6.5, 90, "#7c5534");
+  k.item(0, "kitchen", 11.5, 5.44, 0, "#c8a57a");
+  k.item(0, "fridge", 13.4, 5.47, 0);
+  k.item(0, "dining", 11.5, 8.3, 90, "#7c5534");
+  for (const [x, z, r] of [[10.9, 7.9, 90], [10.9, 8.7, 90], [12.1, 7.9, 270], [12.1, 8.7, 270]]) k.item(0, "chair", x, z, r, "#7c5534");
+  k.item(0, "tv", 4.31, 12.5, 90, "#4e3626");
+  k.item(0, "sofa", 8, 12.5, 270, "#4f5b52");
+  k.item(0, "low-table", 6.2, 12.5, 90, "#7c5534");
+  k.item(0, "washbasin", 15, 8.6, 180);
+  k.item(0, "washer", 14.45, 6, 90);
+  k.item(0, "bath", 17, 6, 90);
+  k.item(0, "toilet", 15.5, 5.45, 0);
+  k.item(0, "shoe-cabinet", 17.7, 12.5, 270, "#7c5534");
+  k.item(1, "bed-double", 6, 6.21, 0, "#c9b8a4");
+  k.item(1, "wardrobe", 4.41, 9, 90, "#c8a57a");
+  k.item(1, "desk", 9.5, 5.42, 0, "#7c5534");
+  k.item(1, "bed-single", 12.4, 7, 0, "#e9e4da");
+  for (const x of [1, 3, 5, 7, 9]) k.item(0, "hedge", x, 19.45, 0, "#3d5e3a");
+  k.item(0, "tree", 2, 16, 0, "#3d5e3a");
+  k.item(0, "tree", 20.5, 7, 0, "#4f7a45");
+  k.item(0, "flowerpot", 13.5, 15.2, 0, "#f08fb3");
+  k.wall(0, 0, 0, 24, 0, fin("cedar", "#8a6240"), fin("cedar", "#8a6240"), "privacyFence");
+  k.wall(0, 0, 0, 0, 14, fin("cedar", "#8a6240"), fin("cedar", "#8a6240"), "privacyFence");
+  k.wall(0, 24, 0, 24, 14, fin("cedar", "#8a6240"), fin("cedar", "#8a6240"), "privacyFence");
+  k.item(0, "nameplate-post", 16, 19.3, 0, "#2f2a26", "\u5C71\u672C");
+  return k.finish();
+}
+function singleStoryHouse() {
+  const k = new HouseKit("hiraya");
+  k.style = { sashColor: "#26282b", panelColor: "#2a2b2d", sash: "alu-resin" };
+  const wall = fin("stucco", "#f4f1ea");
+  const cedar = fin("cedar", "#a77b52");
+  const floor = fin("solid-oak", "#c8a57a");
+  const roof = fin("standing", "#2c2e31");
+  k.floor(0, 3, 4, 21, 10, floor);
+  k.floor(0, 15, 10, 21, 16, floor);
+  const back = k.wall(0, 3, 4, 21, 4, wall, inner);
+  const west = k.wall(0, 3, 4, 3, 10, cedar, inner);
+  const frontA = k.wall(0, 3, 10, 15, 10, cedar, inner);
+  const inside = k.wall(0, 15, 10, 15, 16, cedar, inner);
+  const frontB = k.wall(0, 15, 16, 21, 16, wall, inner);
+  const east = k.wall(0, 21, 4, 21, 16, wall, inner);
+  const bedroom = k.wall(0, 8, 4, 8, 10, inner);
+  k.open(bedroom, "door", 5, { panelColor: WHITE });
+  const wet = k.wall(0, 15, 4, 15, 10, inner);
+  k.open(wet, "door", 5, { panelColor: WHITE });
+  const wetHall = k.wall(0, 15, 7, 21, 7, inner);
+  k.windows(wetHall, "door", [1.5, 4.5], { panelColor: WHITE });
+  k.wall(0, 18, 4, 18, 7, inner);
+  const studyWall = k.wall(0, 15, 12, 21, 12, inner);
+  k.open(studyWall, "door", 1, { panelColor: WHITE });
+  const study = k.wall(0, 18, 12, 18, 16, inner);
+  k.open(study, "door", 2, { panelColor: WHITE });
+  k.windows(frontA, "patio", [2.5, 6.5, 11]);
+  k.open(frontA, "big-fix", 8.75);
+  k.open(west, "sliding", 3);
+  k.windows(back, "high", [2.5, 8.5]);
+  k.open(back, "sliding-small", 13.5);
+  k.open(back, "sliding-small", 16.5);
+  k.open(inside, "casement-tall", 3);
+  k.open(frontB, "entrance", 1.5, { panelColor: "#7b4f2f" });
+  k.open(frontB, "sliding", 4.5);
+  k.open(east, "casement", 4.5);
+  k.open(east, "sliding", 10);
+  k.roof(0, 3, 4, 15, 10, "gable", roof, cedar, { axis: "x", pitch: 3, overhang: 0.9 });
+  k.roof(0, 15, 4, 21, 16, "gable", roof, wall, { axis: "z", pitch: 3, overhang: 0.9 });
+  k.floor(0, 4, 10, 15, 13, fin("deck", "#8a6240"), "terrace");
+  k.item(0, "bed-double", 5.5, 5.21, 0, "#e9e4da");
+  k.item(0, "wardrobe", 3.41, 8.9, 90);
+  k.item(0, "curtain", 5.5, 9.86, 180);
+  k.item(0, "kitchen-island", 11.5, 5.9, 0, "#2f3133");
+  k.item(0, "cupboard", 11.5, 4.33, 0, "#c8a57a");
+  k.item(0, "fridge", 13.8, 4.47, 0);
+  k.item(0, "dining", 11.5, 8.6, 0, "#7c5534");
+  for (const [x, z, r] of [[11, 8, 0], [12, 8, 0], [11, 9.2, 180], [12, 9.2, 180]]) k.item(0, "chair", x, z, r, "#7c5534");
+  k.item(0, "sofa", 8.58, 7.2, 90, "#e9e4da");
+  k.item(0, "low-table", 9.9, 7.2, 90, "#c8a57a");
+  k.item(0, "tv", 14.69, 7.2, 270, "#c8a57a");
+  k.item(0, "plant", 8.6, 9.4);
+  k.item(0, "bath", 19.5, 5, 0);
+  k.item(0, "toilet", 16.5, 4.45, 0);
+  k.item(0, "washbasin", 20.62, 8.5, 270);
+  k.item(0, "washer", 19.3, 9.6, 180);
+  k.item(0, "shoe-cabinet", 15.31, 14.5, 90, "#c8a57a");
+  k.item(0, "desk", 19.5, 15.58, 180);
+  k.item(0, "shelf", 20.75, 13.8, 270);
+  k.item(0, "low-table", 9, 11.5, 0, "#c8a57a");
+  k.item(0, "garage-carport", 3.5, 16.5, 0);
+  k.item(0, "tree", 13, 15.5, 0, "#8a9a3e");
+  k.item(0, "tree", 22.6, 18.5, 0, "#4f7a45");
+  k.item(0, "flowerbed", 10, 14, 0, "#f2c230");
+  k.item(0, "nameplate-post", 15, 19.2, 0, "#f2efe8", "\u9AD8\u6A4B");
+  return k.finish();
+}
+function narrowTownhouse() {
+  const k = new HouseKit("narrow");
+  k.style = { sashColor: "#26282b", panelColor: "#2a2b2d", sash: "alu-resin" };
+  const ext = fin("metal-v", "#e1e3e4");
+  const accent = fin("woodboard", "#7a5535");
+  const floor = fin("flooring", "#a77b52");
+  const door = { panelColor: WHITE };
+  const x0 = 8, x1 = 15, z0 = 4, z1 = 16;
+  k.floor(0, x0, z0, x1, z1, fin("mortar", "#9a9a96"));
+  const back = k.wall(0, x0, z0, x1, z0, ext, inner);
+  const west = k.wall(0, x0, z0, x0, z1, ext, inner);
+  const east = k.wall(0, x1, z0, x1, z1, ext, inner);
+  k.wall(0, x0, z1, 9, z1, ext, inner);
+  k.wall(0, 13, z1, x1, z1, ext, inner);
+  const garage = k.wall(0, x0, 10, x1, 10, inner);
+  k.open(garage, "door", 5.5, door);
+  k.open(garage, "slide-door", 2, door);
+  const wet = k.wall(0, x0, 7, x1, 7, inner);
+  k.windows(wet, "door", [1.5, 4, 6], door);
+  k.wall(0, 11, z0, 11, 7, inner);
+  k.wall(0, 13, z0, 13, 7, inner);
+  k.open(east, "entrance", 4.5, { panelColor: "#7b4f2f" });
+  k.open(back, "sliding-small", 2);
+  k.open(west, "high", 1.5);
+  k.item(0, "garage-shutter", 11, z1 - 0.2, 0);
+  k.item(0, "bath", 9.5, 4.52, 0);
+  k.item(0, "washbasin", 12, 6.62, 180);
+  k.item(0, "washer", 12, 4.42, 0);
+  k.item(0, "toilet", 14, 4.45, 0);
+  k.item(0, "shoe-cabinet", 14.7, 9.3, 270);
+  k.stair(0, 9, 10, 0, wood, "u");
+  const f2 = k.box(1, x0, z0, x1, z1, accent, inner, floor);
+  k.windows(f2.s, "big-fix", [1.5, 5.5]);
+  k.open(f2.w, "sliding", 6);
+  k.open(f2.e, "sliding", 3);
+  k.open(f2.e, "sliding", 9);
+  k.item(1, "kitchen", 11.5, 4.44, 0);
+  k.item(1, "fridge", 9, 4.47, 0);
+  k.item(1, "dining", 11.5, 6.4, 0, "#c8a57a");
+  for (const [x, z, r] of [[11, 5.8, 0], [12, 5.8, 0], [11, 7, 180], [12, 7, 180]]) k.item(1, "chair", x, z, r);
+  k.item(1, "sofa", 11.5, 15.4, 180, "#4f5b52");
+  k.item(1, "low-table", 11.5, 14, 0);
+  k.item(1, "tv", 14.65, 13, 270, "#2f3133");
+  k.item(1, "plant", 8.6, 15.4);
+  for (const x of [9.5, 13.5]) k.item(1, "curtain", x, z1 - 0.13, 180, "#9aa7b3");
+  k.stair(1, 9, 10, 0, wood, "u");
+  const f3 = k.box(2, x0, z0, x1, z1, ext, inner, floor);
+  const rooms = k.wall(2, x0, 9, x1, 9, inner);
+  k.windows(rooms, "door", [1, 6.5], door);
+  k.wall(2, 11, z0, 11, 9, inner);
+  k.windows(f3.s, "sliding", [2, 5]);
+  k.open(f3.n, "sliding-small", 1.5);
+  k.open(f3.n, "sliding", 5);
+  k.open(f3.w, "sliding", 9);
+  k.item(2, "bed-double", 11.5, 14.8, 180, "#9aa7b3");
+  k.item(2, "wardrobe", 14.59, 12.5, 270);
+  k.item(2, "bed-single", 13, 5.21, 0, "#e9e4da");
+  k.item(2, "desk", 9.5, 4.42, 0);
+  k.item(2, "bed-single", 9.5, 7.6, 90, "#c9b8a4");
+  k.roof(2, x0, z0, x1, z1, "shed", fin("standing", "#5d6166"), ext, { axis: "x", pitch: 2, overhang: 0.4 });
+  k.item(0, "flowerpot", 7.4, 17);
+  k.item(0, "nameplate-post", 16, 17.5, 0, "#2f2a26", "\u4E2D\u6751");
+  return k.finish();
+}
+function apartment(st) {
+  const k = new HouseKit(st.key);
+  k.style = st.sash;
+  const { x0, x1, zBack: c, zFront: zf } = st;
+  const W = (x1 - x0) / st.units;
+  const lobbyUnit = st.lobby ? Math.floor(st.units / 2) : -1;
+  const corridor = fin("terrace-tile", "#a9a49b");
+  const stairFinish = fin("mortar", "#9a9a96");
+  for (let level = 0; level < st.floors; level++) {
+    const box = k.box(level, x0, c, x1, zf, st.exterior, inner, level === 0 && st.lobby ? void 0 : st.floor);
+    for (let u = 0; u < st.units; u++) {
+      const ux = x0 + u * W;
+      const rel = u * W;
+      if (u > 0) k.wall(level, ux, c, ux, zf, inner);
+      if (level === 0 && st.lobby && u !== lobbyUnit) k.floor(0, ux, c, ux + W, zf, st.floor);
+      if (level === 0 && u === lobbyUnit) {
+        lobby(k, st, box, ux, rel, W);
+        continue;
+      }
+      unit(k, st, box, level, ux, rel, W);
+    }
+    k.open(box.w, "sliding", zf - c - 3);
+    k.open(box.e, "sliding", zf - c - 3);
+    if (level > 0) {
+      k.floor(level, x0, c - 2, x1, c, corridor, "terrace");
+      k.floor(level, x1, c - 2, x1 + 2, c, corridor, "terrace");
+      k.wall(level, x0, c - 2, x1 + 2, c - 2, st.railing, st.railing, "half");
+      k.wall(level, x0, c - 2, x0, c, st.railing, st.railing, "half");
+      k.floor(level, x0, zf, x1, zf + 2, fin("terrace-tile", "#c9c5bb"), "terrace");
+      k.wall(level, x0, zf + 2, x1, zf + 2, st.railing, st.railing, "half");
+      for (let u = 0; u <= st.units; u++) k.wall(level, x0 + u * W, zf, x0 + u * W, zf + 2, st.railing, st.railing, "half");
+    }
+    if (level < st.floors - 1) {
+      k.stair(level, x1, c, 0, stairFinish, "u");
+      k.wall(level, x1 + 2, c - 2, x1 + 2, c + 3, st.railing, st.railing);
+    }
+  }
+  k.floor(0, x0, c - 2, x1 + 2, c, corridor, "terrace");
+  for (let u = 0; u < st.units; u++) {
+    if (u === lobbyUnit) continue;
+    const ux = x0 + u * W;
+    k.floor(0, ux, zf, ux + W, zf + 2, fin("deck", "#8a6240"), "terrace");
+    k.wall(0, ux, zf + 2, ux + W, zf + 2, fin("galvalume", "#5d6166"), fin("galvalume", "#5d6166"), "fence");
+  }
+  const top = st.floors - 1;
+  const r = st.roof;
+  if (r.type === "flat") k.roof(top, x0, c, x1, zf, "flat", r.finish, st.exterior, { overhang: 0.3 });
+  else k.roof(top, x0, c, x1, zf, r.type, r.finish, st.exterior, { pitch: r.pitch ?? 3, overhang: 0.6 });
+  k.item(0, "mailbox", x1 + 1, Math.min(19.5, zf + 3.2), 0);
+  k.item(0, "tree", 1.2, Math.min(18.8, zf + 3.5));
+  k.item(0, "tree", 22.8, Math.min(18.8, zf + 3.5), 0, "#6c8f4e");
+  k.item(0, "nameplate-post", (x0 + x1) / 2 + 3, 19.3, 0, "#2f2a26", st.name);
+  return k.finish();
+}
+function unit(k, st, box, level, ux, rel, W) {
+  const { zBack: c, zFront: zf } = st;
+  const door = { panelColor: WHITE };
+  const bedroom = W >= 8;
+  const wetX1 = bedroom ? ux + 4 : ux + W;
+  k.open(box.n, "entrance", rel + 1, { panelColor: st.sash.panelColor });
+  k.open(box.n, "high", rel + 3);
+  if (bedroom) k.open(box.n, "sliding", rel + 6.5);
+  const ats = W >= 8 ? [1.5, 4, 6.5].slice(0, st.frontWindows.length) : [1.5, 4.5];
+  ats.forEach((at, i) => k.open(box.s, st.frontWindows[i % st.frontWindows.length], rel + at));
+  const hall = k.wall(level, ux + 2, c, ux + 2, c + 4, inner);
+  k.open(hall, "door", 3.5, door);
+  const bath = k.wall(level, ux + 2, c + 2, wetX1, c + 2, fin("wall-tile", "#e9eef0"), inner);
+  k.open(bath, "door", 1, door);
+  if (bedroom) k.wall(level, wetX1, c, wetX1, c + 4, inner);
+  const ldk = k.wall(level, ux, c + 4, ux + W, c + 4, inner);
+  k.open(ldk, "door", 1, door);
+  if (bedroom) k.open(ldk, "door", 4.5, door);
+  k.item(level, "shoe-cabinet", ux + 0.3, c + 2.2, 90);
+  k.item(level, "bath", (ux + 2 + wetX1) / 2, c + 0.52, 0);
+  k.item(level, "washbasin", ux + 2.38, c + 2.5, 90);
+  k.item(level, "washer", wetX1 - 0.42, c + 2.45, 270);
+  k.item(level, "toilet", wetX1 - 0.45, c + 3.45, 270);
+  k.item(level, "kitchen", ux + W - 1.6, c + 4.44, 0);
+  k.item(level, "fridge", ux + 2.5, c + 4.47, 0);
+  const lz = zf - 2.2;
+  k.item(level, "sofa", ux + 0.58, lz, 90, ["#7d8a96", "#b9ab97", "#4f5b52"][(level + ux) % 3]);
+  k.item(level, "low-table", ux + 1.9, lz, 90);
+  k.item(level, "tv", ux + W - 0.31, lz, 270);
+  k.item(level, "aircon", ux + W / 2, zf - 0.22, 180);
+  for (const at of ats) k.item(level, "curtain", ux + at, zf - 0.13, 180, ["#e9e4da", "#9aa7b3", "#c9b8a4"][(level + u0(ux)) % 3]);
+  if (bedroom) {
+    k.item(level, "dining", ux + W - 2.2, c + 6.6, 0, "#c8a57a");
+    k.item(level, "chair", ux + W - 2.7, c + 6, 0);
+    k.item(level, "chair", ux + W - 1.7, c + 6, 0);
+    k.item(level, "bed-double", ux + 4 + (W - 4.8) / 2, c + 1.21, 0, "#e9e4da");
+    k.item(level, "wardrobe", ux + W - 0.41, c + 2.6, 270);
+  } else {
+    k.item(level, "bed-single", ux + W - 0.63, c + 6.3, 0, "#e9e4da");
+  }
+  if (level > 0 && (ux + level) % 2 === 0) k.item(level, "plant", ux + W - 0.6, zf + 1);
+}
+var u0 = (x) => Math.round(x);
+function lobby(k, st, box, ux, rel, W) {
+  const { zBack: c, zFront: zf } = st;
+  k.floor(0, ux, c, ux + W, zf, fin("marble", "#e8e4dc"));
+  const mid = W / 2;
+  k.open(box.s, "entrance-wide", rel + mid, { panelColor: "#26282b" });
+  k.open(box.s, "big-fix", rel + mid - 2);
+  k.open(box.s, "big-fix", rel + mid + 2);
+  k.open(box.n, "entrance-wide", rel + mid, { panelColor: "#26282b" });
+  k.item(0, "mailbox", ux + 0.3, c + 5, 90);
+  k.item(0, "sofa", ux + W - 0.58, c + 6, 270, "#4f5b52");
+  k.item(0, "rug", ux + W / 2, c + 6, 0, "#7d8a96");
+  k.item(0, "plant", ux + 0.6, zf - 0.6);
+  k.item(0, "plant", ux + W - 0.6, zf - 0.6);
+  k.item(0, "floor-lamp", ux + W - 0.6, c + 8.2);
+  k.floor(0, ux, zf, ux + W, zf + 2, fin("terrace-tile", "#b9b2a3"), "terrace");
+}
+var sash = (sashColor, panelColor, s) => ({ sashColor, panelColor, ...s ? { sash: s } : {} });
+var TOWN_HOUSE_DESIGNS = [
+  {
+    id: "steel-family",
+    name: "\u9244\u9AA82\u968E\u5EFA\u3066\u306E\u5BB6",
+    model: "\u5927\u624B\u30CF\u30A6\u30B9\u30E1\u30FC\u30AB\u30FC\u306E\u9244\u9AA8\u4F4F\u5B85\uFF08\u5F6B\u308A\u306E\u6DF1\u3044\u30B3\u30F3\u30AF\u30EA\u30FC\u30C8\u5916\u58C1\u30FB\u4F4E\u3044\u5BC4\u68DF\uFF09",
+    kind: "house",
+    build: () => familyHouse({
+      key: "steel",
+      exterior: fin("deep-concrete", "#cbbfa8"),
+      floor: fin("flooring", "#c8a57a"),
+      roof: { type: "hip", finish: fin("slate", "#3b3d40"), pitch: 3 },
+      sash: sash("#6f7377", "#3b2c22", "alu-resin"),
+      living: ["patio", "patio", "big-fix"],
+      bedroomWindow: "sliding",
+      balcony: fin("terrace-tile", "#c9c5bb"),
+      carport: true,
+      family: "\u4F50\u85E4",
+      sofa: "sofa-l"
+    })
+  },
+  {
+    id: "wood-ceramic",
+    name: "\u9676\u7248\u5916\u58C1\u306E\u6728\u9020\u4F4F\u5B85",
+    model: "\u5927\u624B\u30CF\u30A6\u30B9\u30E1\u30FC\u30AB\u30FC\u306E\u6728\u9020\u4F4F\u5B85\uFF08\u9676\u7248\u5916\u58C1\u30FB\u5E73\u677F\u74E6\u306E\u5207\u59BB\uFF09",
+    kind: "house",
+    build: () => familyHouse({
+      key: "ceramic",
+      exterior: fin("ceramic-wall", "#9b8670"),
+      upper: fin("ceramic-wall", "#ece6da"),
+      floor: fin("walnut-floor", "#6b4a33"),
+      roof: { type: "gable", finish: fin("kawara-flat", "#3a3c3f"), pitch: 4, axis: "x", overhang: 0.75 },
+      sash: sash("#3b2c22", "#5a3e2b", "wood"),
+      living: ["patio", "patio", "patio"],
+      bedroomWindow: "sliding",
+      balcony: fin("deck", "#8a6240"),
+      carport: true,
+      family: "\u9234\u6728",
+      sofa: "sofa",
+      accent: "#5a3e2b"
+    })
+  },
+  {
+    id: "provence",
+    name: "\u5357\u6B27\u98A8\u306E\u5BB6",
+    model: "\u5357\u6B27\uFF08\u30D7\u30ED\u30F4\u30A1\u30F3\u30B9\uFF09\u98A8\u306E\u6CE8\u6587\u4F4F\u5B85\uFF08\u5857\u308A\u58C1\u30FBS\u5F62\u74E6\u306E\u5BC4\u68DF\uFF09",
+    kind: "house",
+    build: () => familyHouse({
+      key: "nanou",
+      exterior: fin("stucco", "#f1e3c8"),
+      floor: fin("cushion-floor", "#c8a57a"),
+      roof: { type: "hip", finish: fin("kawara-s", "#b8613f"), pitch: 4, overhang: 0.5 },
+      sash: sash("#f1f1ef", "#8a5236"),
+      living: ["patio", "patio", "sliding"],
+      bedroomWindow: "casement-tall",
+      balcony: null,
+      carport: false,
+      family: "\u4F0A\u85E4",
+      sofa: "sofa"
+    })
+  },
+  {
+    id: "nordic",
+    name: "\u5317\u6B27\u98A8\u306E\u6728\u306E\u5BB6",
+    model: "\u5317\u6B27\u4F4F\u5B85\uFF08\u767D\u3044\u677F\u5F35\u308A\u30FB\u6728\u88FD\u30C8\u30EA\u30D7\u30EB\u30AC\u30E9\u30B9\u7A93\u30FB\u6025\u52FE\u914D\u306E\u5207\u59BB\uFF09",
+    kind: "house",
+    build: () => familyHouse({
+      key: "nordic",
+      exterior: fin("cedar", "#e8dcc6"),
+      floor: fin("hinoki-floor", "#d8b98f"),
+      roof: { type: "gable", finish: fin("shingle", "#3b3d40"), pitch: 7, axis: "x", overhang: 0.45 },
+      sash: sash("#f1f1ef", "#2d3b52", "resin-triple"),
+      living: ["patio", "big-fix", "patio"],
+      bedroomWindow: "casement-tall",
+      balcony: null,
+      carport: false,
+      family: "\u6E21\u8FBA",
+      sofa: "sofa"
+    })
+  },
+  {
+    id: "cube",
+    name: "\u30AD\u30E5\u30FC\u30D6\u578B\u306E\u30E2\u30C0\u30F3\u4F4F\u5B85",
+    model: "\u7BB1\u578B\u306E\u30B7\u30F3\u30D7\u30EB\u30E2\u30C0\u30F3\u4F4F\u5B85\uFF08\u30AC\u30EB\u30D0\u30EA\u30A6\u30E0\u5916\u58C1\u30FB\u9678\u5C4B\u6839\uFF09",
+    kind: "house",
+    build: () => familyHouse({
+      key: "cube",
+      exterior: fin("galvalume", "#2c2e31"),
+      upper: fin("woodboard", "#a0754d"),
+      floor: fin("big-tile", "#d9d6cf"),
+      roof: { type: "flat", finish: fin("sheet", "#6e6a64"), pitch: 0, overhang: 0.3 },
+      sash: sash("#26282b", "#2a2b2d", "resin"),
+      living: ["big-fix", "patio", "big-fix"],
+      bedroomWindow: "sliding",
+      balcony: fin("terrace-tile", "#8d8c88"),
+      carport: true,
+      family: "\u5C0F\u6797",
+      sofa: "sofa-l"
+    })
+  },
+  { id: "japanese", name: "\u548C\u98A8\u306E\u5BB6", model: "\u74E6\u5C4B\u6839\u306E\u65E5\u672C\u5BB6\u5C4B\uFF08\u713C\u6749\u3068\u6F06\u55B0\u30FB\u3044\u3076\u3057\u74E6\u30FB\u7E01\u5074\uFF09", kind: "house", build: japaneseHouse },
+  { id: "hiraya", name: "\u5E73\u5C4B\u306E\u5BB6", model: "L\u5B57\u306E\u5E73\u5C4B\uFF08\u30AC\u30EB\u30D0\u30EA\u30A6\u30E0\u7ACB\u5E73\u847A\u304D\u30FB\u30A6\u30C3\u30C9\u30C7\u30C3\u30AD\uFF09", kind: "house", build: singleStoryHouse },
+  { id: "narrow", name: "3\u968E\u5EFA\u3066\u306E\u5BB6", model: "\u90FD\u5E02\u578B\u306E\u72ED\u5C0F3\u968E\u5EFA\u3066\uFF08\u30D3\u30EB\u30C8\u30A4\u30F3\u30AC\u30EC\u30FC\u30B8\uFF09", kind: "house", build: narrowTownhouse },
+  {
+    id: "wood-apartment",
+    name: "\u30CF\u30A4\u30C4\u30FB\u30B3\u30FC\u30DD\uFF08\u6728\u9020\u30A2\u30D1\u30FC\u30C8\uFF09",
+    model: "2\u968E\u5EFA\u3066\u306E\u6728\u9020\u30A2\u30D1\u30FC\u30C8\uFF08\u5916\u5ECA\u4E0B\u30FB\u5916\u968E\u6BB5\uFF09",
+    kind: "apartment",
+    build: () => apartment({
+      key: "wapt",
+      name: "\u30B3\u30FC\u30DD\u685C",
+      floors: 2,
+      units: 3,
+      x0: 3,
+      x1: 21,
+      zBack: 4,
+      zFront: 15,
+      exterior: fin("siding", "#d9d2c3"),
+      railing: fin("siding", "#6e6a64"),
+      roof: { type: "gable", finish: fin("slate", "#3a4a5c"), pitch: 3 },
+      frontWindows: ["patio"],
+      sash: sash("#b8bcc0", "#a69d92"),
+      floor: fin("cushion-floor", "#c8a57a"),
+      lobby: false
+    })
+  },
+  {
+    id: "steel-apartment",
+    name: "ALC\u306E\u9244\u9AA8\u30A2\u30D1\u30FC\u30C8",
+    model: "3\u968E\u5EFA\u3066\u306E\u9244\u9AA8\u30A2\u30D1\u30FC\u30C8\uFF08ALC\u30D1\u30CD\u30EB\u30FB\u9678\u5C4B\u6839\uFF09",
+    kind: "apartment",
+    build: () => apartment({
+      key: "sapt",
+      name: "\u30E1\u30BE\u30F3\u9752\u8449",
+      floors: 3,
+      units: 3,
+      x0: 3,
+      x1: 21,
+      zBack: 4,
+      zFront: 15,
+      exterior: fin("alc", "#e9e6df"),
+      railing: fin("alc", "#7a7772"),
+      roof: { type: "flat", finish: fin("sheet", "#7d7a74") },
+      frontWindows: ["patio"],
+      sash: sash("#b8bcc0", "#2d3b52", "alu-resin"),
+      floor: fin("flooring", "#c8a57a"),
+      lobby: false
+    })
+  },
+  {
+    id: "mansion",
+    name: "\u5206\u8B72\u30DE\u30F3\u30B7\u30E7\u30F3",
+    model: "5\u968E\u5EFA\u3066\u306E\u5206\u8B72\u30DE\u30F3\u30B7\u30E7\u30F3\uFF08\u30BF\u30A4\u30EB\u5F35\u308A\u30FB\u30A8\u30F3\u30C8\u30E9\u30F3\u30B9\u30DB\u30FC\u30EB\uFF09",
+    kind: "mansion",
+    build: () => apartment({
+      key: "mansion",
+      name: "\u30D1\u30FC\u30AF\u30CF\u30A4\u30E0",
+      floors: 5,
+      units: 3,
+      x0: 3,
+      x1: 21,
+      zBack: 3,
+      zFront: 15,
+      exterior: fin("border-tile", "#b8a68c"),
+      railing: fin("concrete", "#d2d0ca"),
+      roof: { type: "flat", finish: fin("sheet", "#7d7a74") },
+      frontWindows: ["patio"],
+      sash: sash("#6f7377", "#3b2c22", "alu-resin"),
+      floor: fin("flooring", "#a77b52"),
+      lobby: true
+    })
+  },
+  {
+    id: "designers",
+    name: "\u30C7\u30B6\u30A4\u30CA\u30FC\u30BA\u30DE\u30F3\u30B7\u30E7\u30F3",
+    model: "\u30B3\u30F3\u30AF\u30EA\u30FC\u30C8\u6253\u3061\u653E\u3057\u306E4\u968E\u5EFA\u3066\u30DE\u30F3\u30B7\u30E7\u30F3\uFF08\u5927\u958B\u53E3\u306EFIX\u7A93\uFF09",
+    kind: "mansion",
+    build: () => apartment({
+      key: "designers",
+      name: "RC SQUARE",
+      floors: 4,
+      units: 2,
+      x0: 3,
+      x1: 21,
+      zBack: 3,
+      zFront: 14,
+      exterior: fin("concrete", "#bdbcb8"),
+      railing: fin("concrete", "#a5a49f"),
+      roof: { type: "flat", finish: fin("sheet", "#8d8c88") },
+      frontWindows: ["big-fix", "patio", "big-fix"],
+      sash: sash("#26282b", "#2a2b2d", "resin"),
+      floor: fin("mortar", "#a9a6a0"),
+      lobby: true
+    })
+  },
+  {
+    id: "tower",
+    name: "\u30BF\u30EF\u30FC\u30DE\u30F3\u30B7\u30E7\u30F3",
+    model: "9\u968E\u5EFA\u3066\u306E\u90FD\u5FC3\u306E\u30DE\u30F3\u30B7\u30E7\u30F3\uFF08\u767D\u3044\u30BF\u30A4\u30EB\u30FB\u30AC\u30E9\u30B9\u306E\u624B\u3059\u308A\u58C1\u98A8\uFF09",
+    kind: "mansion",
+    build: () => apartment({
+      key: "tower",
+      name: "\u30B6\u30FB\u30BF\u30EF\u30FC",
+      floors: 9,
+      units: 2,
+      x0: 4,
+      x1: 20,
+      zBack: 3,
+      zFront: 14,
+      exterior: fin("tile", "#e8e2d6"),
+      railing: fin("alc", "#cfc9bd"),
+      roof: { type: "flat", finish: fin("sheet", "#7d7a74") },
+      frontWindows: ["patio", "big-fix", "patio"],
+      sash: sash("#8e9296", "#26282b", "alu-resin"),
+      floor: fin("herringbone", "#a77b52"),
+      lobby: true
+    })
+  },
+  {
+    id: "residence",
+    name: "\u4F4E\u5C64\u306E\u9AD8\u7D1A\u30EC\u30B8\u30C7\u30F3\u30B9",
+    model: "3\u968E\u5EFA\u3066\u306E\u4F4E\u5C64\u9AD8\u7D1A\u30DE\u30F3\u30B7\u30E7\u30F3\uFF08\u5929\u7136\u77F3\u5F35\u308A\u30FB\u5C4B\u4E0A\u7DD1\u5316\uFF09",
+    kind: "mansion",
+    build: () => apartment({
+      key: "residence",
+      name: "\u30B0\u30E9\u30F3\u30EC\u30B8\u30C7\u30F3\u30B9",
+      floors: 3,
+      units: 2,
+      x0: 3,
+      x1: 21,
+      zBack: 3,
+      zFront: 14,
+      exterior: fin("natural-stone", "#cfc8bb"),
+      railing: fin("natural-stone", "#8c7d6a"),
+      roof: { type: "flat", finish: fin("green-roof", "#6c8f4e") },
+      frontWindows: ["patio", "patio", "patio"],
+      sash: sash("#5a4636", "#3b2c22", "alu-resin"),
+      floor: fin("walnut-floor", "#6b4a33"),
+      lobby: true
+    })
+  }
+];
+var cache = /* @__PURE__ */ new Map();
+function townHouseDesign(id2) {
+  return TOWN_HOUSE_DESIGNS.find((d) => d.id === id2);
+}
+function townHouseAt(plot) {
+  const id2 = TOWN_HOUSE_PLOTS[plot];
+  const design = id2 ? townHouseDesign(id2) : void 0;
+  if (!design) return null;
+  let house = cache.get(plot);
+  if (!house) {
+    const h = withDefaultRoomLights(design.build());
+    const tag = (pid) => `${pid}@${plot}`;
+    house = {
+      ...h,
+      floors: h.floors.map((f) => ({ ...f, id: tag(f.id) })),
+      walls: h.walls.map((w) => ({ ...w, id: tag(w.id) })),
+      openings: h.openings.map((o) => ({ ...o, id: tag(o.id), wallId: tag(o.wallId) })),
+      stairs: h.stairs.map((st) => ({ ...st, id: tag(st.id) })),
+      roofs: h.roofs.map((r) => ({ ...r, id: tag(r.id) })),
+      furniture: h.furniture.map((f) => ({ ...f, id: tag(f.id), ...f.wallMount ? { wallMount: { ...f.wallMount, wallId: tag(f.wallMount.wallId) } } : {} }))
+    };
+    cache.set(plot, house);
+  }
+  return house;
+}
+var townLotId = (plot) => "town-" + plot;
+function townHouseLot(plot) {
+  const house = townHouseAt(plot), district = districtOf(plot);
+  if (!house || !district) return null;
+  return {
+    id: townLotId(plot),
+    name: townHouseDesign(TOWN_HOUSE_PLOTS[plot])?.name ?? "\u753A\u306E\u5BB6",
+    location: district.location,
+    variance: 1,
+    built: JSON.parse(JSON.stringify(house)),
+    design: null,
+    construction: null,
+    rented: false,
+    invested: 0,
+    plot,
+    town: true
+  };
+}
 
 // src/building/shopSites.ts
 function shopSite(x, z, width, depth) {
@@ -11769,8 +12700,8 @@ function partCosts(house) {
   const out = [];
   const area = (r) => Math.abs(r.x1 - r.x0) * Math.abs(r.z1 - r.z0) * GRID * GRID;
   for (const f of house.floors) {
-    const unit = (f.level === 0 ? STRUCTURE.groundFloor : STRUCTURE.upperFloor) + materialPrice(f.finish.material);
-    out.push({ category: "floor", id: f.id, cost: area(f) * unit, key: JSON.stringify(f) });
+    const unit2 = (f.level === 0 ? STRUCTURE.groundFloor : STRUCTURE.upperFloor) + materialPrice(f.finish.material);
+    out.push({ category: "floor", id: f.id, cost: area(f) * unit2, key: JSON.stringify(f) });
   }
   for (const w of house.walls) {
     const side = wallOutsideSide(house, w);
@@ -11789,8 +12720,8 @@ function partCosts(house) {
     const w = Math.abs(r.x1 - r.x0) * GRID + 2 * r.overhang;
     const d = Math.abs(r.z1 - r.z0) * GRID + 2 * r.overhang;
     const slope = r.type === "flat" ? 1 : Math.hypot(1, r.pitch / 10);
-    const unit = STRUCTURE.roof + materialPrice(r.finish.material);
-    out.push({ category: "roof", id: r.id, cost: w * d * slope * unit, key: JSON.stringify(r) });
+    const unit2 = STRUCTURE.roof + materialPrice(r.finish.material);
+    out.push({ category: "roof", id: r.id, cost: w * d * slope * unit2, key: JSON.stringify(r) });
   }
   for (const f of house.furniture) {
     out.push({ category: "furniture", id: f.id, cost: f.design ? designPrice(furnitureDef(f)) : furniturePrice(f.type), key: `${f.type}:${f.color}` });
@@ -12106,20 +13037,15 @@ function applyAction(w, sender, name, c, a) {
     const current = w.economy.currentLotId ?? bought.id;
     return { world: { ...paid2, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter((o) => o.id !== offer.id) } }, cost: price2, message: bought.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
   }
-  if (!lot) return "\u305D\u306E\u571F\u5730\u306F\u3042\u308A\u307E\u305B\u3093";
-  if (a.type === "builders") {
-    if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u3060\u3051\u5EFA\u3066\u308B\u4EBA\u3092\u6C7A\u3081\u3089\u308C\u307E\u3059";
-    const id2 = typeof a.id === "string" ? a.id.slice(0, 100) : "";
-    if (!id2 || id2 === sender) return "\u305D\u306E\u4EBA\u306F\u9078\u3079\u307E\u305B\u3093";
-    const list = (lot.builders ?? []).filter((b) => b.id !== id2);
-    if (a.allow && list.length >= BUILDER_LIMIT) return `\u4E00\u7DD2\u306B\u5EFA\u3066\u3089\u308C\u308B\u306E\u306F${BUILDER_LIMIT}\u4EBA\u307E\u3067\u3067\u3059`;
-    const next2 = a.allow ? [...list, { id: id2, name: (typeof a.name === "string" ? a.name.trim().slice(0, 24) : "") || "\u3060\u308C\u304B" }] : list;
-    return {
-      world: withLots(lots.map((l) => l.id === lot.id ? { ...l, builders: next2.length ? next2 : void 0 } : l)),
-      cost: 0,
-      message: a.allow ? `${next2[next2.length - 1].name}\u3055\u3093\u304C\u3053\u306E\u571F\u5730\u3067\u5EFA\u3066\u3089\u308C\u308B\u3088\u3046\u306B\u3057\u307E\u3057\u305F` : "\u5EFA\u3066\u308B\u4EBA\u304B\u3089\u5916\u3057\u307E\u3057\u305F"
-    };
+  if (a.type === "townHouse") {
+    const town = Number.isSafeInteger(a.plot) ? townHouseLot(a.plot) : null;
+    if (!town) return "\u305D\u306E\u5BB6\u306F\u7DE8\u96C6\u3067\u304D\u307E\u305B\u3093";
+    if (lots.some((l) => l.id === town.id)) return { world: w, cost: 0, message: "" };
+    if (plotsOfLots(lots).includes(a.plot)) return "\u305D\u306E\u533A\u753B\u306F\u3082\u3046\u4F7F\u308F\u308C\u3066\u3044\u307E\u3059";
+    if (lots.length >= 90) return "\u3053\u306E\u753A\u306B\u306F\u3082\u3046\u571F\u5730\u3092\u5897\u3084\u305B\u307E\u305B\u3093";
+    return { world: withLots([...lots, town]), cost: 0, message: "" };
   }
+  if (!lot) return "\u305D\u306E\u571F\u5730\u306F\u3042\u308A\u307E\u305B\u3093";
   if (a.type === "list") {
     if (lot.owner !== sender) return "\u81EA\u5206\u306E\u571F\u5730\u3060\u3051\u58F2\u308A\u306B\u51FA\u305B\u307E\u3059";
     if (lot.construction) return "\u5DE5\u4E8B\u4E2D\u306F\u58F2\u308A\u306B\u51FA\u305B\u307E\u305B\u3093";
@@ -12224,12 +13150,8 @@ function applyAction(w, sender, name, c, a) {
   if (typeof paid === "string") return paid;
   const received = paid.accounts?.[seller] ? charge(paid, seller, -price, `${lot.name}\u304C${name}\u3055\u3093\u306B\u58F2\u308C\u307E\u3057\u305F`) : paid;
   if (typeof received === "string") return received;
-  const next = lots.map((l) => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: void 0, invested: price, rented: false, builders: void 0 } : l);
+  const next = lots.map((l) => l.id === lot.id ? { ...l, owner: sender, ownerName: name, listing: void 0, invested: price, rented: false } : l);
   return { world: { ...received, economy: { ...received.economy, lots: next } }, cost: price, message: lot.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
-}
-var BUILDER_LIMIT = 8;
-function canBuildOn(lot, member) {
-  return !lot.owner || lot.owner === member || (lot.builders ?? []).some((b) => b.id === member);
 }
 function houseOf(w, id2) {
   const l = w.economy.lots.find((l2) => l2.id === id2);
@@ -12266,7 +13188,7 @@ function applyCommand(w, sender, c, name = "\u30B2\u30B9\u30C8") {
   try {
     const lot = w.economy.lots.find((l) => l.id === c.lot), before = houseOf(w, c.lot);
     if (!lot || !before) return fail("\u7DE8\u96C6\u3059\u308B\u571F\u5730\u304C\u3042\u308A\u307E\u305B\u3093");
-    if (!canBuildOn(lot, sender)) return fail("\u307B\u304B\u306E\u4EBA\u306E\u571F\u5730\u306B\u306F\u5EFA\u3066\u3089\u308C\u307E\u305B\u3093");
+    if (lot.shop && lot.owner && lot.owner !== sender) return fail("\u304A\u5E97\u306F\u6301\u3061\u4E3B\u3057\u304B\u5909\u3048\u3089\u308C\u307E\u305B\u3093");
     if (lot.construction) return fail("\u5DE5\u4E8B\u306E\u5B8C\u4E86\u5F8C\u306B\u7DE8\u96C6\u3057\u3066\u304F\u3060\u3055\u3044");
     const undo = c.undoOf ? receipts[c.undoOf] : null;
     if (c.undoOf && (!undo || undo.sender !== sender || undo.undone || undo.cancelled || JSON.stringify(undo.delta?.map((x) => ({ ...x, before: x.after, after: x.before }))) !== JSON.stringify(c.delta))) return fail("\u81EA\u5206\u306E\u64CD\u4F5C\u3060\u3051\u3092\u4E00\u5EA6\u305A\u3064\u623B\u305B\u307E\u3059");
