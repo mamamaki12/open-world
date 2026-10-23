@@ -22,9 +22,6 @@ try {
   await owner.evaluate(()=>window.__ow.economy.getState().receive(2000000000,'QA'));await settled(owner);
   await owner.evaluate(()=>{const e=window.__ow.economy.getState();const error=e.buyLand(e.offers[0].id);if(error)throw Error(error);});
   for(const p of pages)await until(p,()=>window.__ow.economy.getState().lots.length===1);await settled(owner);
-  const member=await friend.evaluate(async()=>{const p=(await import('/src/session/saves.ts')).savedBundle().profile;return {id:p.id,name:p.name};});
-  await owner.evaluate(async member=>{const e=window.__ow.economy.getState();(await import('/src/session/gate.ts')).sessionGate.act(e.lots[0].id,{type:'builders',...member,allow:true},0);},member);
-  await until(friend,()=>window.__ow.economy.getState().lots[0].builders?.length===1);await settled(owner);
   for(const p of pages)await p.evaluate(()=>{const e=window.__ow.economy.getState();e.switchLot(e.lots[0].id);});
   await owner.evaluate(async()=>{const {emptyHouse}=await import('/src/building/types.ts'),finish={material:'flooring',color:'#c8a57a'};
     window.__ow.game.getState().commit({...emptyHouse(),walls:[{id:'support',level:0,x0:1,x1:1,z0:1,z1:4,exterior:finish,interior:finish}],floors:[{id:'root',level:1,x0:1,x1:4,z0:1,z1:4,finish}]});});

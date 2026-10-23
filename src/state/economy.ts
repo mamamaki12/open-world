@@ -60,7 +60,6 @@ export interface Lot {
   owner?: string;
   ownerName?: string;
   /** みんなのワールドで、持ち主が建築を許可した人（ゲストID） */
-  builders?: { id: string; name: string }[];
   /** みんなのワールドで売りに出している値段 */
   listing?: { price: number };
   /** みんなのワールドで借りる人を募集している1日の家賃と、借りている人 */

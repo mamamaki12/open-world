@@ -31,6 +31,7 @@ jobs:
             sleep 1
           done
           node scripts/check-vehicle-walls.mjs
+          node scripts/check-others-house-walk.mjs
           node scripts/check-double-tap-jump.mjs
           node scripts/check-driving-assists.mjs
           node scripts/check-aim-controls.mjs
@@ -254,7 +255,6 @@ jobs:
           node scripts/check-phone-top-hud.mjs
           node scripts/check-shared-takeover.mjs
           node scripts/check-appearance-onboarding.mjs
-          node scripts/check-lot-builders.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

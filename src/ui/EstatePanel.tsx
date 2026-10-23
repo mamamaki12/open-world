@@ -12,7 +12,6 @@ import { JoinOption } from './JoinOption';
 import { warpToLot } from '../world/Player';
 import { sessionGate } from '../session/gate';
 import { savedBundle } from '../session/saves';
-import { useSession } from '../session/session';
 
 type Tab = 'lot' | 'lots' | 'land' | 'market' | 'ledger';
 const TABS: { id: Tab; label: string }[] = [
@@ -222,9 +221,7 @@ function SharedLot({ lot, sale }: { lot: Lot; sale: number }) {
             {lot.rentOffer && <button className="btn" onClick={() => act({ type: 'offerRent', rent: null })}>募集をやめる</button>}
           </>}
         </section>
-        <Builders lot={lot} act={act} />
       </> : <>
-        {lot.builders?.some(b => b.id === me) && <p>持ち主から、この土地で建てることを許可されています。</p>}
         {lot.listing && <section className="card"><div className="card-title">売り出し中</div>
           <p>{yen(lot.listing.price)}（代金は持ち主へ直接払います）</p>
           <button className="btn primary" onClick={() => act({ type: 'buyLot' }, lot.listing!.price)}>{yen(lot.listing.price)} で買う</button></section>}
@@ -237,24 +234,6 @@ function SharedLot({ lot, sale }: { lot: Lot; sale: number }) {
         {!lot.listing && !lot.rentOffer && <p>この家はいま売り出しも貸し出しもしていません。</p>}
       </>}
     </div>
-  );
-}
-
-/** 持ち主が、この土地で一緒に建てられる人を決める（いまワールドにいる人から選ぶ） */
-function Builders({ lot, act }: { lot: Lot; act: (a: { type: 'builders'; id: string; name: string; allow: boolean }) => void }) {
-  const me = savedBundle().profile.id, members = useSession(s => s.members);
-  const builders = lot.builders ?? [];
-  const others = members.filter(m => m.id !== me && !builders.some(b => b.id === m.id));
-  return (
-    <section className="card">
-      <div className="card-title">一緒に建てる人</div>
-      <p>許可した人は、マップからこの土地へワープして建てられます。</p>
-      {builders.map(b => <div key={b.id} className="row"><span>{b.name}さん</span>
-        <button className="btn small" onClick={() => act({ type: 'builders', id: b.id, name: b.name, allow: false })}>外す</button></div>)}
-      {others.map(m => <div key={m.id} className="row"><span>{m.name}さん（いまいる人）</span>
-        <button className="btn small primary" onClick={() => act({ type: 'builders', id: m.id, name: m.name, allow: true })}>建てられるようにする</button></div>)}
-      {!builders.length && !others.length && <p className="muted">いまワールドにほかの人がいません。友達が入っているときに選べます。</p>}
-    </section>
   );
 }
 
