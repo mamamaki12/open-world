@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 import { useEffect, useRef, useState } from 'react';
 import { EXCHANGE } from '../building/exchange';
 import { SHOP_PATHS } from '../building/shopPaths';
@@ -64,12 +65,12 @@ export function MapPanel() {
     }));
   };
   return <Modal title="🗺 町の地図" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="map-modal">
-    <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span>{shared && <span><i className="sw" style={{ background: '#d9d6cf' }} />ほかの人の家・土地</span>}<span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span><span>📍お店・イベント</span><button className="btn small" onClick={() => close('jobs')}>💼 バイトをする</button><button className="btn small" onClick={() => close('requests')}>🤝 依頼</button></div>
+    <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span>{shared && <span><i className="sw" style={{ background: '#d9d6cf' }} />ほかの人の家・土地</span>}<span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span><span>{iconText("📍お店・イベント")}</span><button className="btn small" onClick={() => close('jobs')}>{iconText("💼 バイトをする")}</button><button className="btn small" onClick={() => close('requests')}>{iconText("🤝 依頼")}</button></div>
     <p className="info">西の商店街には服屋・不動産屋・証券取引所・美容室、北側には2つの服屋があります。南側はカジノと車のお店が並びます。</p>
     <div className="map-controls" aria-label="地図の表示">
       <button className="btn" onClick={() => { setZoom(1); map.current?.scrollTo(0, 0); }}>全体</button>
-      <button className="btn" aria-label="地図を拡大" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, z + .5))}>＋ 拡大</button>
-      <button className="btn" aria-label="地図を縮小" disabled={zoom <= 1} onClick={() => setZoom(z => Math.max(1, z - .5))}>－ 縮小</button>
+      <button className="btn" aria-label="地図を拡大" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, z + .5))}>{iconText("＋ 拡大")}</button>
+      <button className="btn" aria-label="地図を縮小" disabled={zoom <= 1} onClick={() => setZoom(z => Math.max(1, z - .5))}>{iconText("－ 縮小")}</button>
       <button className="btn" onClick={centerHere}>現在地</button>
     </div>
     <p className="info">拡大すると指で上下左右に動かせます。家・売地・店舗をタップして詳細を表示します。</p>
@@ -112,13 +113,13 @@ export function MapPanel() {
           <path d="M0 0 C-6 -8 -6 -14 0 -14 C6 -14 6 -8 0 0 Z" fill={l.shop.event && l.shop.event.day >= today ? '#d63a2f' : '#e07b1f'} stroke="#fff" strokeWidth={1.2} /><circle cy={-9.5} r={2.2} fill="#fff" />
         </g>)}
         <g transform={`translate(${sx(mx)},${sy(mz)})`}><circle r={6} fill="#2470dd" stroke="#fff" strokeWidth={2} /><circle r={11} fill="#2470dd22" /></g>
-        <text x={WIDTH - 30} y={28} textAnchor="end" fontSize={12} fill="#526456">N ↑</text>
+        <text x={WIDTH - 30} y={28} textAnchor="end" fontSize={12} fill="#526456">{"N ↑"}</text>
       </svg>
     </div>
     <div className="map-detail card">
-      {selectedLot ? <><h3>{selectedLot.name}</h3><p className="muted">{getLocation(selectedLot.location).name}・{selectedLot.construction ? '工事中' : selectedLot.built ? '家あり' : '土地'}</p>{selectedLot.shop && <div className="map-shop"><b>🏪 {selectedLot.shop.name}</b>{selectedLot.shop.flyer && <p>{selectedLot.shop.flyer}</p>}{eventLine(selectedLot.shop, today) && <p>{eventLine(selectedLot.shop, today)}</p>}</div>}<button className="btn primary" onClick={() => warpToLot(selectedLot.id)}>{selectedLot.id === currentId ? 'この家の前に戻る' : selectedLot.shop ? 'このお店へワープ' : 'この家へワープ'}</button>
+      {selectedLot ? <><h3>{selectedLot.name}</h3><p className="muted">{getLocation(selectedLot.location).name}・{selectedLot.construction ? '工事中' : selectedLot.built ? '家あり' : '土地'}</p>{selectedLot.shop && <div className="map-shop"><b>{iconText("🏪 ")}{selectedLot.shop.name}</b>{selectedLot.shop.flyer && <p>{selectedLot.shop.flyer}</p>}{eventLine(selectedLot.shop, today) && <p>{iconText(eventLine(selectedLot.shop, today))}</p>}</div>}<button className="btn primary" onClick={() => warpToLot(selectedLot.id)}>{selectedLot.id === currentId ? 'この家の前に戻る' : selectedLot.shop ? 'このお店へワープ' : 'この家へワープ'}</button>
         {typeof selectedLot.joined === 'number' && <p className="info">隣の区画とつなげた広い土地です。</p>}
-        {joinWith && <button className="btn" onClick={() => { const err = useEconomy.getState().joinLots(selectedLot.id); if (err) useGame.getState().notify(err); }}>🔗 隣の「{joinWith.name.replace(/（.*）$/, '')}」とつなげる</button>}</>
+        {joinWith && <button className="btn" onClick={() => { const err = useEconomy.getState().joinLots(selectedLot.id); if (err) useGame.getState().notify(err); }}>{iconText("🔗 隣の「")}{joinWith.name.replace(/（.*）$/, '')}」とつなげる</button>}</>
       : selectedOffer ? <><h3>売り土地：{selectedOffer.name}</h3><p>価格 {yen(offerPrice(selectedOffer, market))}</p><p className="info">看板の前でFを押すと、この土地を購入できます。不動産屋でも購入できます。</p></>
       : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' || pick?.kind === 'tuner' || pick?.kind === 'exchange' || pick?.kind === 'salon' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : pick.kind === 'tuner' ? 'STANCE GARAGE（車のカスタム）' : pick.kind === 'exchange' ? 'まち証券取引所（実際の株価で売買）' : pick.kind === 'salon' ? 'HAIR SALON LUCE（美容室）' : 'まちの不動産'}</h3><p>地図に表示された店舗へ歩いて入れます。入口のドアは近づくと自動で開きます。</p><button className="btn primary" onClick={() => warpToVenue(pick.kind)}>このお店へワープ</button></>
       : pick?.kind === 'boutique' ? <><h3>{BOUTIQUE_INFO[pick.id].name}</h3><p className="muted">服屋さん・{BOUTIQUE_INFO[pick.id].tier}</p><p>{pick.id === 'maison' ? '北のブティック通り' : pick.id === 'urban' ? '北東のストリートショップ' : '西の商店街'}にあります。中で服を選んで試着・購入できます。</p><button className="btn primary" onClick={() => warpToVenue(pick.id)}>このお店へワープ</button></>
@@ -130,7 +131,7 @@ export function MapPanel() {
         <button className="btn small" onClick={() => warpToVenue(kind)}>ワープ</button></li>)}
     </ul></section>
     {shops.length > 0 && <section className="map-mylots map-shops"><div className="card-title">お店・イベント（{shops.length}）</div><ul>
-      {shops.map(l => <li key={l.id}><button className="link-btn" onClick={() => setPick({ kind: 'plot', plot: l.plot ?? here })}>🏪 {l.shop.name}</button>
+      {shops.map(l => <li key={l.id}><button className="link-btn" onClick={() => setPick({ kind: 'plot', plot: l.plot ?? here })}>{iconText("🏪 ")}{l.shop.name}</button>
         {(l.shop.flyer || eventLine(l.shop, today)) && <small className="muted">{eventLine(l.shop, today) || l.shop.flyer}</small>}
         <button className="btn small" onClick={() => warpToLot(l.id)}>ワープ</button></li>)}
     </ul></section>}

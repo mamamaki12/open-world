@@ -118,7 +118,7 @@ function screenTexture(){
   g.strokeStyle='#fff';g.lineWidth=10;[[0,60,256,80],[90,0,120,160],[0,140,256,120]].forEach(([a,b,cc,dd])=>{g.beginPath();g.moveTo(a,b);g.lineTo(cc,dd);g.stroke();});
   g.strokeStyle='#2a7bff';g.lineWidth=6;g.beginPath();g.moveTo(105,160);g.lineTo(112,72);g.lineTo(256,82);g.stroke();
   g.fillStyle='#ff5a36';g.beginPath();g.moveTo(108,128);g.lineTo(98,148);g.lineTo(118,148);g.fill();
-  g.fillStyle='#1d2329';g.fillRect(0,0,256,22);g.fillStyle='#fff';g.font='13px sans-serif';g.fillText('12:00   FM 80.0   ☀ 22°',8,15);
+  g.fillStyle='#1d2329';g.fillRect(0,0,256,22);g.fillStyle='#fff';g.font='13px sans-serif';g.fillText('12:00   FM 80.0       22°',8,15);g.save();g.translate(176,10);g.strokeStyle='#fff';g.lineWidth=1.2;g.beginPath();g.arc(0,0,3,0,Math.PI*2);for(let a=0;a<8;a++){const t=a*Math.PI/4;g.moveTo(Math.cos(t)*5,Math.sin(t)*5);g.lineTo(Math.cos(t)*7,Math.sin(t)*7);}g.stroke();g.restore();
   screenTex=new THREE.CanvasTexture(c);screenTex.colorSpace=THREE.SRGBColorSpace;return screenTex;
 }
 /** 内装：ダッシュボード・メーター・ハンドル・シート・ドアの内張り・センターコンソール */

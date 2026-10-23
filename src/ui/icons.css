@@ -1,0 +1,7 @@
+/* Open World's own SVG drawings, using the active classic UI ink color. */
+.app-icon { display: inline-block; width: 1.15em; height: 1.15em; flex: 0 0 auto; vertical-align: -.18em; overflow: visible; }
+.tool-card-icon > .app-icon, .build-fab-icon > .app-icon { width: 1em; height: 1em; vertical-align: 0; }
+#root .build-menu-options { box-sizing: border-box; padding: 2px 0 8px; }
+#root .build-menu-options > .tool-options { min-width: 0; box-sizing: border-box; padding: 10px 12px 14px; }
+#root .build-menu-title { display: inline-flex; align-items: center; gap: .4em; }
+

@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // 不動産屋：工事（着工・改築）、査定、売る・貸す、土地を買う、相場、家計簿
 import { useMemo, useState } from 'react';
 import { DAILY, DAY_SECONDS, getLocation } from '../economy/market';
@@ -62,7 +63,7 @@ function CurrentLot({ onGoLand }: { onGoLand: () => void }) {
     <div className="estate">
       <h3>{lot.name}</h3>
       <p className="muted">
-        立地：{n.location.name}（建物の査定 ×{n.location.factor}）　まわりのにぎわい ×{n.density.toFixed(2)}　土地の評価：{yen(n.landNow)}
+        立地：{n.location.name}{iconText("（建物の査定 ×")}{n.location.factor}{iconText("）　まわりのにぎわい ×")}{n.density.toFixed(2)}　土地の評価：{yen(n.landNow)}
       </p>
 
       <section className="card">
@@ -84,7 +85,7 @@ function CurrentLot({ onGoLand }: { onGoLand: () => void }) {
               <tbody>
                 {cats.map((c) => (
                   <tr key={c}>
-                    <td>{COST_CATEGORY_NAMES[c]}</td>
+                    <td>{iconText(COST_CATEGORY_NAMES[c])}</td>
                     <td className="num">{yen(est.byCategory[c])}</td>
                   </tr>
                 ))}
@@ -124,11 +125,11 @@ function Appraisal({ lot }: { lot: Lot }) {
         <table className="ledger compact">
           <tbody>
             <tr><td>建築費（いま建て直すと）</td><td className="num">{yen(n.buildCost)}</td></tr>
-            <tr><td>品質係数</td><td className="num">×{q.factor.toFixed(2)}</td></tr>
-            <tr><td>立地</td><td className="num">×{n.location.factor}</td></tr>
+            <tr><td>品質係数</td><td className="num">{iconText("×")}{q.factor.toFixed(2)}</td></tr>
+            <tr><td>立地</td><td className="num">{iconText("×")}{n.location.factor}</td></tr>
             <tr><td>建物の査定</td><td className="num">{yen(n.appraisal)}</td></tr>
-            <tr><td>土地（にぎわい ×{n.density.toFixed(2)}）</td><td className="num">{yen(n.landValue)}</td></tr>
-            <tr><td>相場</td><td className="num">×{market.toFixed(2)}</td></tr>
+            <tr><td>{iconText("土地（にぎわい ×")}{n.density.toFixed(2)}）</td><td className="num">{yen(n.landValue)}</td></tr>
+            <tr><td>相場</td><td className="num">{iconText("×")}{market.toFixed(2)}</td></tr>
             <tr className="total"><td>いま売ると</td><td className="num">{yen(n.sale)}</td></tr>
             <tr><td>これまでにかけたお金</td><td className="num">{yen(lot.invested)}</td></tr>
             <tr><td>もうけ</td><td className={`num ${profit >= 0 ? 'plus' : 'minus'}`}>{profit >= 0 ? '+' : ''}{yen(profit)}</td></tr>
@@ -139,7 +140,7 @@ function Appraisal({ lot }: { lot: Lot }) {
           <ul className="checks">
             {q.items.map((it) => (
               <li key={it.label} className={it.ok ? 'ok' : 'ng'}>
-                {it.ok ? '✓' : '✗'} {it.label}
+                {iconText(it.ok ? '✓' : '✗')} {iconText(it.label)}
                 <small>{it.value > 0 ? `+${it.value}` : `できていないと ${it.value}`}</small>
               </li>
             ))}
@@ -282,7 +283,7 @@ function LandShop() {
   const selected = offers.find(o => o.id === confirmId);
   return (
     <div>
-      <p className="muted">売り土地は毎日入れ替わります。値段は相場で上下します。広さはどれも 24×20 マス（約397m²）。</p>
+      <p className="muted">{iconText("売り土地は毎日入れ替わります。値段は相場で上下します。広さはどれも 24×20 マス（約397m²）。")}</p>
       {selected && <section className="card" aria-label="土地購入の確認">
         <h3>{selected.name}を購入しますか？</h3>
         <p>購入価格 <b>{yen(offerPrice(selected, market))}</b></p>
@@ -306,7 +307,7 @@ function LandShop() {
             return (
               <tr key={o.id}>
                 <td>{o.name}</td>
-                <td>{loc.name}<small className="muted">（家の査定 ×{loc.factor}）</small></td>
+                <td>{loc.name}<small className="muted">{iconText("（家の査定 ×")}{loc.factor}）</small></td>
                 <td className="num">{yen(price)}</td>
                 <td>
                   <button
@@ -341,9 +342,7 @@ function MarketView() {
   return (
     <div>
       <p>
-        いまの相場は <b className="big">{market.toFixed(2)}</b>。家や土地の値段は「査定 × 相場」で決まります。
-        相場は毎日上下し、長い目で見ると 1.00 に戻ろうとします。安いときに土地を買い、高いときに売るのがコツです。
-      </p>
+        いまの相場は <b className="big">{market.toFixed(2)}</b>{iconText("。家や土地の値段は「査定 × 相場」で決まります。 相場は毎日上下し、長い目で見ると 1.00 に戻ろうとします。安いときに土地を買い、高いときに売るのがコツです。")}</p>
       <svg className="chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="相場の動き">
         {[0.5, 1, 1.5].map((v) => (
           <g key={v}>
@@ -370,7 +369,7 @@ function Ledger() {
       <section className="card">
         <div className="card-title">バイト</div>
         <p className="muted">コンビニのレジ・倉庫の仕分けなど、作業をして給料をもらえます。</p>
-        <button className="btn primary" onClick={() => setOverlay('jobs')}>💼 バイトを探す</button>
+        <button className="btn primary" onClick={() => setOverlay('jobs')}>{iconText("💼 バイトを探す")}</button>
       </section>
       <p>
         ギャンブル通算：賭けた {yen(gamble.bet)}・払戻 {yen(gamble.won)}・収支{' '}
@@ -384,7 +383,7 @@ function Ledger() {
           {ledger.map((t, i) => (
             <tr key={i}>
               <td>{t.day}日目</td>
-              <td>{t.label}</td>
+              <td>{iconText(t.label)}</td>
               <td className={`num ${t.amount >= 0 ? 'plus' : 'minus'}`}>{t.amount >= 0 ? '+' : ''}{yen(t.amount)}</td>
             </tr>
           ))}

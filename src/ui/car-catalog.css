@@ -67,7 +67,7 @@
 .catalog-results {margin:12px 0;}
 .catalog-filter-panel {border:1px solid var(--pocket-line);background:var(--pocket-panel);}
 .catalog-filter-panel summary {display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:700;list-style:none;}
-.catalog-filter-panel summary::before {content:'＋';}.catalog-filter-panel[open] summary::before {content:'−';}
+.catalog-filter-panel summary > .app-icon {flex:none;}
 .catalog-filter-panel summary span {margin-left:auto;font-size:11px;color:var(--pocket-muted);font-weight:400;}
 .catalog-filter-panel .catalog-filters {border:0;border-top:1px solid var(--pocket-line);}
 @media(max-width:600px){.catalog-intro>small{font-size:10px;}.catalog-filter-panel summary {font-size:12px;gap:8px;}.catalog-filter-panel summary span {font-size:10px;}}

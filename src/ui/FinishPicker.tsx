@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 import { useState } from 'react';
 import { SASH_TYPES, getSashType, materialsIn } from '../catalog';
 import type { MaterialCategory, MaterialDef, NamedColor } from '../catalog';
@@ -22,7 +23,7 @@ export function FinishPicker({ label, category, value, onChange }: {
   const pick = (m: MaterialDef) => onChange({ material: m.id, color: m.colors.includes(value.color) ? value.color : m.colors[0] });
   return (
     <div className="field">
-      <div className="field-label">{label}</div>
+      <div className="field-label">{iconText(label)}</div>
       <button className={`mat-current${open ? ' open' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open}>
         <img className="mat-thumb" src={materialThumb(current.id, value.color)} alt="" />
         <span className="mat-text">
@@ -30,7 +31,7 @@ export function FinishPicker({ label, category, value, onChange }: {
           {current.note && <small className="mat-note">{current.note}</small>}
           <span className="mat-foot">
             <small className="mat-price">{yen(materialPrice(current.id))}/m²</small>
-            <span className="mat-toggle">{open ? '閉じる ▴' : `${mats.length}種から選ぶ ▾`}</span>
+            <span className="mat-toggle">{iconText(open ? '閉じる ▴' : `${mats.length}種から選ぶ ▾`)}</span>
           </span>
         </span>
       </button>
@@ -61,7 +62,7 @@ export function SashPicker({ value, color, onChange }: { value: string | undefin
           <button key={t.id} className={`mat-tile${t.id === current.id ? ' on' : ''}`} title={`${t.name}：${t.note}`} onClick={() => onChange(t.id)}>
             <img src={sashThumb(t.id, color, 72)} alt="" />
             <span className="mat-tile-name">{t.name}</span>
-            <small>{t.priceRate === 1 ? '標準' : `値段×${t.priceRate}`}</small>
+            <small>{iconText(t.priceRate === 1 ? '標準' : `値段×${t.priceRate}`)}</small>
           </button>
         ))}
       </div>
@@ -109,7 +110,7 @@ export function NamedSwatches({ label, colors, value, onChange }: {
   return (
     <div className="field">
       <div className="field-label">
-        {label}：{name}
+        {iconText(label)}：{name}
       </div>
       <Swatches colors={colors} value={value} onChange={onChange} />
     </div>

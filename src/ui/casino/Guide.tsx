@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // 初心者向けの遊び方。ルール・賭け方・配当の目安・コツを、ゲームの上にたためる形で出す。
 // 倍率や確率はゲームの設定から計算するので、設定を変えても説明がずれない
 import { useEffect, useState } from 'react';
@@ -48,7 +49,7 @@ function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="guide-sec">
-      <h4>{title}</h4>
+      <h4>{iconText(title)}</h4>
       {children}
     </section>
   );
@@ -123,7 +124,7 @@ function RouletteGuide() {
         <p className="guide-note">倍率は戻ってくる額（賭け金込み）です。1万円を赤に置いて当たれば 2万円が戻ります。0 が出ると、赤・黒などの外側の賭けはすべて負けです。</p>
       </Section>
       <Section title="はじめての方へ">
-        <p>まずは「赤」か「黒」に少し置いてみましょう。約半分の確率で倍になります。慣れたら数字1つで大当たり（×36）を狙えます。還元率は 97.3% で、カジノの中ではいちばん損をしにくいゲームです。</p>
+        <p>{iconText("まずは「赤」か「黒」に少し置いてみましょう。約半分の確率で倍になります。慣れたら数字1つで大当たり（×36）を狙えます。還元率は 97.3% で、カジノの中ではいちばん損をしにくいゲームです。")}</p>
       </Section>
     </>
   );
@@ -147,7 +148,7 @@ function HighLowGuide() {
       </Section>
       <Section title="遊び方">
         <ol>
-          <li>賭け金を決めて「▲ ハイ」か「▼ ロー」を押します。</li>
+          <li>{iconText("賭け金を決めて「▲ ハイ」か「▼ ロー」を押します。")}</li>
           <li>当たると持ち分が倍率どおりに増えます。「受け取る」でお金にするか、そのまま次も当てて増やすかを選べます。</li>
           <li>はずれると、その回の持ち分はすべてなくなります。</li>
         </ol>
@@ -229,26 +230,24 @@ function RaceGuide({ kind }: { kind: RaceKind }) {
       <Section title={`${cfg.ticket}の買い方`}>
         <ol>
           <li>出走表を見て、勝ちそうな{cfg.who}を考えます。</li>
-          <li>
-            自動発売機で「式別」（券の種類、下の表）→「方式」→ {cfg.numberName} → 金額の順に押し、確認して「セット」。何回でもセットできます。
-          </li>
+          <li>{iconText("自動発売機で「式別」（券の種類、下の表）→「方式」→ ")}{cfg.numberName}{iconText(" → 金額の順に押し、確認して「セット」。何回でもセットできます。")}</li>
           <li>右の「投票内容」を確かめて「購入する」と、{cfg.ticket}が出てきます。</li>
-          <li>「発走！」でレースが始まります。当たれば、オッズ × 賭け金が払い戻されます。</li>
+          <li>{iconText("「発走！」でレースが始まります。当たれば、オッズ × 賭け金が払い戻されます。")}</li>
         </ol>
-        <p className="guide-note">方式は、通常（1つの組）・ボックス（選んだ中の組み合わせを全部）・ながし（軸を1つ決めて相手と全部）・フォーメーション（着順ごとに選んで掛け合わせ）から選べます。点数 × 金額がかかります。</p>
+        <p className="guide-note">{iconText("方式は、通常（1つの組）・ボックス（選んだ中の組み合わせを全部）・ながし（軸を1つ決めて相手と全部）・フォーメーション（着順ごとに選んで掛け合わせ）から選べます。点数 × 金額がかかります。")}</p>
       </Section>
       <Section title="券の種類">
         <Table
           head={['券', '当てるもの', '当てやすさ', '配当の目安']}
           rows={cfg.bets.map((b) => [
-            <b key="n">{cfg.betNames[b]}</b>,
+            <b key="n">{iconText(cfg.betNames[b])}</b>,
             BET_DESC[b](kind) + (BET_SHAPE[b].k > 1 ? `（${BET_SHAPE[b].k}つ選ぶ）` : ''),
-            <span key="e" className="guide-stars">{'★'.repeat(BET_LEVEL[b].easy)}{'☆'.repeat(5 - BET_LEVEL[b].easy)}</span>,
+            <span key="e" className="guide-stars">{iconText('★'.repeat(BET_LEVEL[b].easy))}{'☆'.repeat(5 - BET_LEVEL[b].easy)}</span>,
             BET_LEVEL[b].pay,
           ])}
         />
         <p className="guide-note">
-          売り上げのうち {Math.round(Math.min(...cfg.bets.map((b) => cfg.payout[b] ?? 0)) * 1000) / 10}〜{Math.round(Math.max(...cfg.bets.map((b) => cfg.payout[b] ?? 0)) * 1000) / 10}% が払い戻しに回ります（実際の{cfg.title}と同じ割合）。
+          売り上げのうち {Math.round(Math.min(...cfg.bets.map((b) => cfg.payout[b] ?? 0)) * 1000) / 10}〜{Math.round(Math.max(...cfg.bets.map((b) => cfg.payout[b] ?? 0)) * 1000) / 10}% が払い戻しに回ります（実際の{iconText(cfg.title)}と同じ割合）。
         </p>
       </Section>
       <Section title="出走表の見方">
@@ -280,8 +279,8 @@ export function Guide({ game }: { game: GuideGame }) {
   return (
     <div className={`guide${open ? ' open' : ''}`}>
       <button className="guide-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span>📖 {TITLES[game]}（はじめての方へ）</span>
-        <span className="guide-arrow">{open ? '閉じる ▲' : '開く ▼'}</span>
+        <span>{iconText("📖 ")}{iconText(TITLES[game])}（はじめての方へ）</span>
+        <span className="guide-arrow">{iconText(open ? '閉じる ▲' : '開く ▼')}</span>
       </button>
       {open && (
         <div className="guide-body">

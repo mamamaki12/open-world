@@ -1,3 +1,4 @@
+import { AppIcon, iconText, type IconName } from './AppIcon';
 // スマホ用の建築メニュー：「建てる」ボタンから開き、道具を大きなカードで選び、その下で種類・素材・色を選ぶ
 import { useEffect } from 'react';
 import { setBuildMenuOpen } from '../state/controls';
@@ -8,7 +9,7 @@ import { PREFABS, placePrefab } from '../building/prefabs';
 import { lotSize } from '../building/dimensions';
 import { sessionGate } from '../session/gate';
 
-const PREFAB_ICONS: Record<string, string> = { 'prefab-shop': '🏪', stall: '🏮', tent: '⛺' };
+const PREFAB_ICONS: Record<string, IconName> = { 'prefab-shop': 'store', stall: 'stall', tent: 'tent' };
 
 /** すぐ建つお店を、いまの土地の空いている場所に置く */
 function placeShop(id: string, done: () => void) {
@@ -21,16 +22,16 @@ function placeShop(id: string, done: () => void) {
   done();
 }
 
-const ICONS: Record<Tool, string> = {
-  select: '👆',
-  floor: '⬜',
-  wall: '🧱',
-  door: '🚪',
-  window: '🪟',
-  stair: '🪜',
-  roof: '🏠',
-  furniture: '🛋️',
-  erase: '🗑️',
+const ICONS: Record<Tool, IconName> = {
+  select: 'hand',
+  floor: 'floor',
+  wall: 'wall',
+  door: 'door',
+  window: 'window',
+  stair: 'stair',
+  roof: 'roof',
+  furniture: 'furniture',
+  erase: 'erase',
 };
 
 const DESCRIPTIONS: Record<Tool, string> = {
@@ -46,7 +47,7 @@ const DESCRIPTIONS: Record<Tool, string> = {
 };
 
 export function toolIcon(tool: Tool) {
-  return ICONS[tool];
+  return <AppIcon name={ICONS[tool]} />;
 }
 
 /** 画面の右上に出す、建築メニューを開くボタン。いま持っている道具も表示する */
@@ -55,7 +56,7 @@ export function BuildButton({ label, onOpen }: { label: string; onOpen: () => vo
   const holding = tool !== 'select';
   return (
     <button className={`build-fab${holding ? ' holding' : ''}`} onClick={onOpen} aria-label="建築メニューを開く">
-      <span className="build-fab-icon">{holding ? ICONS[tool] : '🔨'}</span>
+      <span className="build-fab-icon">{<AppIcon name={holding ? ICONS[tool] : 'hammer'} />}</span>
       <span className="build-fab-label">{holding ? label : '建てる'}</span>
     </button>
   );
@@ -82,7 +83,7 @@ export function BuildMenu({
     <div className="overlay build-menu-overlay" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="build-menu" role="dialog" aria-label="建築メニュー">
         <div className="build-menu-head">
-          <span className="build-menu-title">🔨 建てる</span>
+          <span className="build-menu-title">{iconText("🔨 建てる")}</span>
           <button className="btn" onClick={() => { useGame.getState().select(null); setTool('select'); onClose(); }}>道具をしまう</button>
           <button className="btn primary build-menu-done" onClick={onClose}>
             決定
@@ -93,7 +94,7 @@ export function BuildMenu({
           <div className="build-menu-tools">
             {tools.map((t) => (
               <button key={t.id} data-tool={t.id} className={`tool-card${tool === t.id ? ' on' : ''}`} onClick={() => setTool(t.id)}>
-                <span className="tool-card-icon">{ICONS[t.id]}</span>
+                <span className="tool-card-icon">{<AppIcon name={ICONS[t.id]} />}</span>
                 <span className="tool-card-name">{walking && t.id === 'select' ? '手ぶら' : t.label}</span>
                 <span className="tool-card-desc">{walking && t.id === 'select' ? '何も持たずに歩く' : DESCRIPTIONS[t.id]}</span>
               </button>
@@ -102,7 +103,7 @@ export function BuildMenu({
           <div className="build-menu-tools build-menu-prefabs" aria-label="すぐ建つお店">
             {PREFABS.map((p) => (
               <button key={p.id} className="tool-card" onClick={() => placeShop(p.id, onClose)}>
-                <span className="tool-card-icon">{PREFAB_ICONS[p.id]}</span>
+                <span className="tool-card-icon">{<AppIcon name={PREFAB_ICONS[p.id]} />}</span>
                 <span className="tool-card-name">{p.name}</span>
                 <span className="tool-card-desc">{p.desc}</span>
               </button>

@@ -269,10 +269,7 @@
   display: none;
 }
 
-.world-card summary::before {
-  content: '⚙';
-  font-size: 14px;
-}
+
 
 .world-actions {
   display: flex;

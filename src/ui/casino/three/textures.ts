@@ -1,3 +1,5 @@
+import { drawCanvasIcon } from '../../canvasIcon';
+import type { IconName } from '../../iconPaths';
 // カジノの3Dで使う絵（キャンバスに描いてテクスチャにする）。同じ絵は作り直さずに使い回す
 import * as THREE from 'three';
 import { WHEEL_ORDER, cardName, rouletteColor } from '../../../economy/casino';
@@ -363,6 +365,7 @@ export function cardFaceTexture(rank: number, suit: string) {
   const W = 256;
   const H = 358;
   return canvasTexture(`card:${rank}${suit}`, W, H, (g) => {
+    const mark: IconName = ({ '♠': 'spade', '♥': 'heart', '♦': 'diamond', '♣': 'club' } as const)[suit as '♠'|'♥'|'♦'|'♣'];
     const red = suit === '♥' || suit === '♦';
     const ink = red ? '#c8102e' : '#161616';
     g.fillStyle = '#fdfcf8';
@@ -380,7 +383,7 @@ export function cardFaceTexture(rank: number, suit: string) {
       g.font = `700 44px ${SERIF}`;
       g.fillText(name, 30, 36);
       g.font = `34px ${SERIF}`;
-      g.fillText(suit, 30, 76);
+      drawCanvasIcon(g, mark, 30, 76, 30);
     };
     corner();
     g.save();
@@ -390,13 +393,13 @@ export function cardFaceTexture(rank: number, suit: string) {
     g.restore();
     if (rank === 1) {
       g.font = `150px ${SERIF}`;
-      g.fillText(suit, W / 2, H / 2 + 6);
+      drawCanvasIcon(g, mark, W / 2, H / 2 + 6, 140);
     } else if (rank >= 11) {
       g.strokeStyle = ink;
       g.lineWidth = 3;
       g.strokeRect(58, 64, W - 116, H - 128);
       g.font = `110px ${SERIF}`;
-      g.fillText(rank === 13 ? '♚' : rank === 12 ? '♛' : '♞', W / 2, H / 2 - 18);
+      drawCanvasIcon(g, rank === 11 ? 'horse' : 'crown', W / 2, H / 2 - 18, 100, false);
       g.font = `700 54px ${SERIF}`;
       g.fillText(name, W / 2, H / 2 + 74);
     } else {
@@ -425,7 +428,7 @@ export function cardFaceTexture(rank: number, suit: string) {
         g.save();
         g.translate(x, y);
         if (y > M + 1) g.rotate(Math.PI);
-        g.fillText(suit, 0, 0);
+        drawCanvasIcon(g, mark, 0, 0, 46);
         g.restore();
       }
     }

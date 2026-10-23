@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // 左のパネル：いま持っているツールで置くパーツの種類・素材・色を選ぶ
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, getFurniture, openingsOf } from '../catalog';
 import { useDesigns } from '../catalog/designs';
@@ -86,7 +87,7 @@ export function ToolOptions({ showHelp = true }: { showHelp?: boolean } = {}) {
                 >
                   <span>{o.name}</span>
                   <small>
-                    幅{Math.round(o.width * 1000)} × 高さ{Math.round(o.height * 1000)}
+                    幅{Math.round(o.width * 1000)}{iconText(" × 高さ")}{Math.round(o.height * 1000)}
                   </small>
                 </button>
               ))}
@@ -156,7 +157,7 @@ export function ToolOptions({ showHelp = true }: { showHelp?: boolean } = {}) {
             ] as const
           ).map(([label, items]) => (
             <div key={label}>
-              <div className="field-label">{label}</div>
+              <div className="field-label">{iconText(label)}</div>
               <div className="choice-list">
                 {items.map((f) => (
                   <button key={f.id} className={`choice${f.id === d.furnitureType ? ' on' : ''}`} onClick={() => set({ furnitureType: f.id })}>
@@ -244,7 +245,7 @@ export function FloorKindButtons({ value = 'room', onChange }: { value?: FloorKi
       <div className="seg">
         {(Object.keys(FLOOR_KIND_NAMES) as FloorKind[]).map((k) => (
           <button key={k} className={k === value ? 'on' : ''} onClick={() => onChange(k)}>
-            {FLOOR_KIND_NAMES[k]}
+            {iconText(FLOOR_KIND_NAMES[k])}
           </button>
         ))}
       </div>
@@ -261,7 +262,7 @@ export function WallHeightButtons({ value = 'full', onChange }: { value?: WallHe
       <div className="choice-list">
         {(Object.keys(WALL_HEIGHT_NAMES) as WallHeight[]).map((h) => (
           <button key={h} className={`choice${h === value ? ' on' : ''}`} onClick={() => onChange(h)}>
-            {WALL_HEIGHT_NAMES[h]}
+            {iconText(WALL_HEIGHT_NAMES[h])}
           </button>
         ))}
       </div>
@@ -277,7 +278,7 @@ export function StairShapeButtons({ value = 'straight', onChange }: { value?: im
     ['l', 'L字＋踊り場', '3×3マス'], ['u', '折り返し＋踊り場', '2×3マス'],
   ] as const;
   return <div className="field"><div className="field-label">階段の形・サイズ</div><div className="choice-list">
-    {shapes.map(([shape, label, size]) => <button key={shape} className={`choice${shape === value ? ' on' : ''}`} onClick={() => onChange(shape)}><span>{label}</span><small>{size}</small></button>)}
+    {shapes.map(([shape, label, size]) => <button key={shape} className={`choice${shape === value ? ' on' : ''}`} onClick={() => onChange(shape)}><span>{iconText(label)}</span><small>{size}</small></button>)}
   </div><p className="info">L字・折り返しは途中に水平な踊り場があり、そこで方向を変えて上れます。</p></div>;
 }
 
@@ -288,7 +289,7 @@ export function StairRailButtons({ value = 'left', onChange }: { value?: StairRa
       <div className="seg">
         {(Object.keys(STAIR_RAIL_NAMES) as StairRail[]).map((r) => (
           <button key={r} className={r === value ? 'on' : ''} onClick={() => onChange(r)}>
-            {STAIR_RAIL_NAMES[r]}
+            {iconText(STAIR_RAIL_NAMES[r])}
           </button>
         ))}
       </div>
@@ -303,7 +304,7 @@ export function RoofTypeButtons({ value, onChange }: { value: RoofType; onChange
       <div className="seg">
         {(Object.keys(ROOF_TYPE_NAMES) as RoofType[]).map((t) => (
           <button key={t} className={t === value ? 'on' : ''} onClick={() => onChange(t)}>
-            {ROOF_TYPE_NAMES[t]}
+            {iconText(ROOF_TYPE_NAMES[t])}
           </button>
         ))}
       </div>
@@ -324,7 +325,7 @@ export function Slider({ label, unit, min, max, step, value, onChange, scale = 1
   return (
     <div className="field">
       <div className="field-label">
-        {label}：{+(value * scale).toFixed(1)}
+        {iconText(label)}：{+(value * scale).toFixed(1)}
         {unit}
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} />
