@@ -4,7 +4,8 @@
 
 - 状態: 作業中
 - ブランチ: `claude/project-thread-q2epak`
-- 残作業: 修正・縦横スクショ確認・PR
+- 残作業: PRのCI確認・マージ
+- 確認根拠: scripts/check-phone-top-hud.mjs（320x568 / 375x667 / 390x844 / 844x390）。修正前のCSSでは 320x568 で「👥 overlaps cash」になり失敗することも確認。
 - 最終更新: 2026-10-23
 
 ## 目標
