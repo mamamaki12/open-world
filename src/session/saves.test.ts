@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 vi.mock('./database', () => ({ readSave: vi.fn(async () => undefined), writeSave: vi.fn(async (_data: unknown) => {}) }));
-import { initializeSave, importSave, persist, snapshot, validBundle } from './saves';
+import { applyWorld, initializeSave, importSave, persist, snapshot, validBundle } from './saves';
+import { useGame } from '../state/store';
+import { sessionGate } from './gate';
+import { originShift } from '../state/economy';
+import { plotX, plotZ } from '../economy/town';
 import { writeSave } from './database';
 import { useEconomy } from '../state/economy';
 import { useLooks } from '../state/looks';
@@ -51,4 +55,19 @@ it('keeps the current game when import storage fails and allows subsequent saves
   expect(useEconomy.getState().money).toBe(100);
   await persist();
   expect(vi.mocked(writeSave).mock.calls.at(-1)![0]).toMatchObject({ profile: { money: 100 } });
+});
+
+it('loads the confirmed personal lot house and shifts the origin without changing town position',()=>{
+  const w=snapshot().home,first=w.economy.lots[0],mine={...first,id:'my-second-lot',plot:1,design:{...w.house,furniture:[]}};
+  w.economy.lots=[{...first,plot:0},mine];w.economy.currentLotId=first.id;
+  applyWorld(w);const previous=sessionGate.shared,listener=originShift.listener,shift=vi.fn();sessionGate.shared=true;originShift.listener=shift;
+  try{
+    applyWorld(w,true,mine.id);
+    expect(useEconomy.getState().currentLotId).toBe(mine.id);
+    expect(useGame.getState().house).toEqual(mine.design);
+    expect(shift).toHaveBeenCalledWith(plotX(0)-plotX(1),plotZ(0)-plotZ(1));
+    // Normal snapshots must preserve the explicit local selection, even when viewing another owner.
+    applyWorld(w,true,first.id);shift.mockClear();applyWorld(w,true);
+    expect(useEconomy.getState().currentLotId).toBe(first.id);expect(shift).not.toHaveBeenCalled();
+  }finally{sessionGate.shared=previous;originShift.listener=listener;}
 });

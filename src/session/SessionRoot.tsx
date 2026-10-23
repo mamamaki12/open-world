@@ -4,6 +4,7 @@ import { useGame } from '../state/store';
 import { useVehicles } from '../state/vehicles';
 import { useTouchDevice } from '../ui/useTouchDevice';
 import { VersionStatus } from '../ui/VersionStatus';
+import { useBuildMenu } from '../state/controls';
 import { PocketTitle } from '../ui/PocketTitle';
 import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave } from './saves';
 import { allowBuilding, joinShared, currentEndpoint, enterOffline, leaveWorld, startSessionTimers, useSession } from './session';
@@ -72,7 +73,8 @@ function SessionHud() {
   const touch = useTouchDevice(), building = useGame(g => g.mode !== 'walk');
   const inCar = useVehicles(v => !!v.driving || !!v.riding);
   const gameOverlay = useGame(g => g.overlay);
-  const overlay = gameOverlay || (touch && (building || inCar));
+  const buildMenu = useBuildMenu(s => s.open);
+  const overlay = gameOverlay || buildMenu || (touch && (building || inCar));
   return <><aside className="world-session">
     {state.role !== 'home' && !overlay && <button className="world-session-toggle" onClick={() => setOpen(!open)}>{touch ? `👥 ${state.members.length}` : state.shared ? `みんなのワールド · ${state.members.length}人` : `${state.code} · ${state.members.length}/4人`}{state.busy ? ' · 確定中' : ''}</button>}
     {open && state.role !== 'home' && !overlay && <section className="world-session-panel"><h2>一緒に遊んでいる人</h2>

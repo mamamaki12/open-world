@@ -1,5 +1,6 @@
 import { useGame } from '../state/store';
-import { useEconomy } from '../state/economy';
+import { useEconomy, currentPlotOf, originShift } from '../state/economy';
+import { plotX, plotZ } from '../economy/town';
 import { useWardrobe } from '../state/wardrobe';
 import { useVehicles, validCar } from '../state/vehicles';
 import { sanitizeWardrobe } from '../catalog/clothes';
@@ -59,20 +60,25 @@ export function validBundle(v: unknown): v is SaveBundle {
     typeof p.name === 'string' && p.name.length <= 24 && Number.isFinite(p.money) && Array.isArray(p.ledger) &&
     Array.isArray(p.cars) && p.cars.length <= 10 && p.cars.every(validCar) && !!p.wardrobe && Array.isArray(p.wardrobe.owned);
 }
-export function applyWorld(w: WorldSave, preserveSelection = false) {
+export function applyWorld(w: WorldSave, preserveSelection = false, preferredLot?: string | null) {
   const previous = sessionGate.applying; sessionGate.applying = true;
   try {
     sessionGate.receipts = copy(w.receipts ?? {});
     sessionGate.worldId = w.worldId || crypto.randomUUID();
     useDoors.setState({ open: copy(w.doors ?? {}) });
-    const local = useEconomy.getState().currentLotId;
-    const selected = preserveSelection && w.economy.lots.some(l => l.id === local) ? local : w.economy.currentLotId;
+    const before = useEconomy.getState(), local = before.currentLotId, oldPlot = currentPlotOf(before);
+    const selected = preferredLot && w.economy.lots.some(l => l.id === preferredLot) ? preferredLot
+      : preserveSelection && w.economy.lots.some(l => l.id === local) ? local : w.economy.currentLotId;
     const lots = w.economy.lots.map(l => l.id === w.economy.currentLotId ? { ...l, design: w.house } : l);
     const active = lots.find(l => l.id === selected);
     const house = selected === w.economy.currentLotId ? w.house : active ? active.design ?? active.built ?? emptyHouse() : w.house;
     useEconomy.setState({ ...copy(w.economy), currentLotId: selected,
       lots: lots.map(l => l.id === selected ? { ...l, design: null } : l) });
     useGame.setState({ house: copy(house), past: [], future: [], dragBase: null, selection: null, marked: [], lastCommit: null });
+    if (sessionGate.shared && preserveSelection && selected !== local) {
+      const nextPlot = currentPlotOf(useEconomy.getState());
+      originShift.listener?.(plotX(oldPlot)-plotX(nextPlot), plotZ(oldPlot)-plotZ(nextPlot));
+    }
   } finally { sessionGate.applying = previous; }
 }
 export function applyProfile(p: GuestProfile) {

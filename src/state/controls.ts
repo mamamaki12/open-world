@@ -5,6 +5,11 @@ import type { PartRef } from '../building/types';
 export const QUICK_TOOLS: Tool[] = ['select','floor','wall','door','window','stair','roof','furniture','erase'];
 export const AIM_REACH = 7;
 export const buildMenuOpen = { current:false };
+export const useBuildMenu = create<{ open: boolean }>(() => ({ open: false }));
+export function setBuildMenuOpen(open: boolean) {
+  buildMenuOpen.current = open;
+  useBuildMenu.setState({ open });
+}
 export function cycleTool(tool: Tool, direction: number): Tool {
   const i = QUICK_TOOLS.indexOf(tool);
   return QUICK_TOOLS[(i + (direction > 0 ? 1 : -1) + QUICK_TOOLS.length) % QUICK_TOOLS.length];
