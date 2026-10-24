@@ -15,7 +15,6 @@ import {
   newId,
   partsInRect,
   normalizeRect,
-  removePart,
 } from '../building/rules';
 import type { Rect } from '../building/rules';
 import type { House } from '../building/types';
@@ -219,11 +218,7 @@ export function PlacementController() {
       const ui = useInteraction.getState();
       switch (g.tool) {
         case 'erase':
-          // ドラッグすると、その範囲のパーツをまとめて選ぶ（パーツのクリックは usePart が受ける）
-          if (g.mode === 'walk' || (e.pointerType === 'touch' && !g.eraseMulti)) break;
-          dragStart = cellAt(p);
-          dragSurface = surface;
-          eraseFrom = { x: e.clientX, y: e.clientY };
+          // 削除は1つずつ（パーツのクリックは usePart が受ける）。範囲では消さない
           break;
         case 'floor':
         case 'roof':
@@ -311,7 +306,7 @@ export function PlacementController() {
         if (Math.hypot(e.clientX - pendingErase.x, e.clientY - pendingErase.y) <= 5) {
           const game = useGame.getState();
           if (game.tool === 'erase' && game.eraseMulti) game.toggleMark(pendingErase.ref);
-          else if (game.tool === 'erase') game.commit(removePart(game.house, pendingErase.ref));
+          else if (game.tool === 'erase') game.eraseOne(pendingErase.ref);
         }
         // 別の所有地を選んだ直後も、ドラッグなら範囲選択の終了処理へ進む。
         if (!dragStart) return;
@@ -392,9 +387,6 @@ export function PlacementController() {
             });
             g.addMarks(refs);
             useGame.getState().select(useGame.getState().marked[0] ?? null);
-          } else {
-            if (!g.eraseMulti) g.setEraseMulti(true);
-            g.addMarks(refs);
           }
           useInteraction.setState({ ignorePartClickUntil: Date.now() + 150 });
         }

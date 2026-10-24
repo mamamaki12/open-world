@@ -35,7 +35,8 @@ try {
       await page.evaluate(()=>{window.__ow.game.getState().setMode('build');window.__ow.game.getState().setTool('select');});
       await page.getByRole('button',{name:'建築メニューを開く',exact:true}).click();await dialog.waitFor();
       await fits();await page.screenshot({path:out+'/'+name+'-bare.png'});
-      for(const tool of ['floor','wall','door','window','stair','roof','furniture','erase']){
+      assert.equal(await dialog.locator('[data-tool="erase"]').count(),0,'erase lives above the build button, not in the menu');
+      for(const tool of ['floor','wall','door','window','stair','roof','furniture']){
         await dialog.locator('[data-tool="'+tool+'"]').click();await fits();
         if(tool==='floor'||tool==='furniture')await page.screenshot({path:out+'/'+name+'-'+tool+'.png'});
       }

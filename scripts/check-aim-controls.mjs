@@ -38,7 +38,10 @@ const openBuildMenu = async id => {
 const tool = async n => {
   const hot = page.getByRole('button', { name: new RegExp(`^${n}: `) });
   if (await hot.count()) return hot.tap();
-  await openBuildMenu(await page.evaluate(async n => (await import('/src/state/controls.ts')).QUICK_TOOLS[n - 1], n));
+  const id = await page.evaluate(async n => (await import('/src/state/controls.ts')).QUICK_TOOLS[n - 1], n);
+  // 削除は建築メニューではなく「建てる」の上の小さなボタンから選ぶ
+  if (id === 'erase') return page.getByRole('button', { name: '1つ削除する', exact: true }).tap();
+  await openBuildMenu(id);
   await page.getByRole('button', { name: '決定' }).tap();
 };
 const swipe = async (dx, dy) => {

@@ -32,18 +32,24 @@ try {
       assert(Math.hypot(...after.camera.map((v,i)=>v-before.camera[i]))>.1,'bare drag must move the view');
       assert.deepEqual(after.floors,before.floors);assert.deepEqual(after.marked,[]);assert.equal(after.selection,null);
       console.log(profile.name,'no selection / no long-press delete / bare drag rotates passed');
-      if(profile.touch){await page.getByRole('button',{name:'建築メニューを開く',exact:true}).click();assert.equal(await page.locator('[data-tool="select"]').count(),0);await page.locator('[data-tool="erase"]').click();}
-      else await page.keyboard.press('9');
-      await page.getByRole('button',{name:'まとめて選ぶ',exact:true}).click();if(profile.touch)await page.getByRole('button',{name:'決定',exact:true}).click();
+      const pickErase=async()=>{if(profile.touch)await page.getByRole('button',{name:'1つ削除する',exact:true}).click();else await page.keyboard.press('9');await waitForCondition(page,()=>window.__ow.game.getState().tool==='erase',undefined,30000);};
+      if(profile.touch){await page.getByRole('button',{name:'建築メニューを開く',exact:true}).click();assert.equal(await page.locator('[data-tool="select"]').count(),0);assert.equal(await page.locator('[data-tool="erase"]').count(),0);await page.getByRole('button',{name:'決定',exact:true}).click();}
+      await page.evaluate(()=>window.__ow.game.getState().setTool('wall'));
+      await pickErase();assert.equal(await page.getByRole('button',{name:'まとめて選ぶ',exact:true}).count(),0);
       await frame();await drag(await project(7*.91,0,6*.91),await project(15*.91,0,10*.91));
-      await waitForCondition(page,()=>window.__ow.game.getState().marked.length===2,undefined,30000);
-      await page.getByRole('button',{name:/まとめて削除/}).click();assert.deepEqual((await state()).floors.map(f=>f.id),['outside']);await undo();assert.equal((await state()).floors.length,3);
+      assert.equal((await state()).floors.length,3,'dragging with erase must not delete a range');assert.deepEqual((await state()).marked,[]);
+      const b=await project(12.5*.91,0,7.5*.91);await drag(b,b);
+      await waitForCondition(page,()=>window.__ow.game.getState().house.floors.length===2,undefined,30000);
+      assert.deepEqual((await state()).floors.map(f=>f.id),['a','outside']);
+      assert.equal(await page.evaluate(()=>window.__ow.game.getState().tool),'erase','stays in erase mode after one delete');
+      await undo();assert.equal((await state()).floors.length,3);
+      if(profile.touch){await page.getByRole('button',{name:'削除をやめる',exact:true}).click();await waitForCondition(page,()=>window.__ow.game.getState().tool==='wall',undefined,30000);}
       await page.screenshot({path:out+'/'+profile.name+'.png'});
       const player=await page.evaluate(()=>{window.__ow.game.getState().setMode('walk');Object.assign(window.__ow.player,{x:70,y:.5,z:-40,yaw:Math.PI/2});return {...window.__ow.player};});await page.waitForTimeout(500);
       if(profile.touch){await page.getByRole('button',{name:'メニュー',exact:true}).click();await page.getByRole('button',{name:/建築に戻る/}).click();}else await page.getByRole('button',{name:/建築に戻る/}).click();
       await waitForCondition(page,()=>window.__ow.game.getState().mode==='build',undefined,30000);
       const camera=(await state()).camera;assert(Math.hypot(camera[0]-player.x,camera[2]-player.z)<20);
-      assert.deepEqual(errors,[]);results.push({profile:profile.name,status:'passed'});console.log(profile.name,'erase / undo / nearby build camera passed');
+      assert.deepEqual(errors,[]);results.push({profile:profile.name,status:'passed'});console.log(profile.name,'single erase / toggle back / undo / nearby build camera passed');
     }catch(e){await page.screenshot({path:out+'/'+profile.name+'-failure.png'}).catch(()=>{});throw e;}finally{await context.close();}
   }
 }finally{fs.writeFileSync(out+'/results.json',JSON.stringify(results,null,2));await browser.close();}
