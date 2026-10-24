@@ -51,14 +51,22 @@ export function toolIcon(tool: Tool) {
 }
 
 /** 画面の右上に出す、建築メニューを開くボタン。いま持っている道具も表示する */
-export function BuildButton({ label, onOpen }: { label: string; onOpen: () => void }) {
+export function BuildButton({ label, onOpen, onPutAway }: { label: string; onOpen: () => void; onPutAway?: () => void }) {
   const tool = useGame((s) => s.tool);
   const holding = tool !== 'select';
-  return (
+  const fab = (
     <button className={`build-fab${holding ? ' holding' : ''}`} onClick={onOpen} aria-label="建築メニューを開く">
       <span className="build-fab-icon">{<AppIcon name={holding ? ICONS[tool] : 'hammer'} />}</span>
       <span className="build-fab-label">{holding ? label : '建てる'}</span>
     </button>
+  );
+  if (!onPutAway) return fab;
+  // 道具を持っているときは、メニューを開かずにすぐ手ぶらに戻れるボタンを真下に出す
+  return (
+    <div className="build-fab-stack">
+      {fab}
+      {holding && <button className="build-fab-away" onClick={onPutAway} aria-label="道具をしまう"><AppIcon name="close" />しまう</button>}
+    </div>
   );
 }
 

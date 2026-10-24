@@ -104,6 +104,7 @@ jobs:
           node scripts/check-build-menu-layout.mjs
           node scripts/check-app-icons.mjs
           node scripts/check-build-controls.mjs
+          node scripts/check-phone-build-ux.mjs
           node scripts/check-connected-floors.mjs
           node scripts/check-shared-floor-extension.mjs
       - uses: actions/upload-artifact@v4
