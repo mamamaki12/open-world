@@ -3,11 +3,12 @@ import react from '@vitejs/plugin-react';
 import { readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { appVersion } from './scripts/app-version.mjs';
 
 const builtAt = new Date().toISOString();
 let revision = 'local';
 try { revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { /* Source archives can still be built. */ }
-const appBuild = { id: revision + '@' + builtAt, version: revision === 'local' ? 'local' : 'r' + revision.slice(0, 7), builtAt };
+const appBuild = { id: revision + '@' + builtAt, version: appVersion(), builtAt };
 function versionMetadata(): Plugin {
   return { name: 'world-version',
     configureServer(server) { server.middlewares.use((req, res, next) => {

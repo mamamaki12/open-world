@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { compareBuild, fetchLatestBuild, validBuild } from './version';
 
-const current = { id: 'first', version: 'r1234567', builtAt: '2026-10-19T10:00:00Z' };
+const current = { id: 'first', version: '1.0.0', builtAt: '2026-10-19T10:00:00Z' };
 afterEach(() => vi.unstubAllGlobals());
 it('recognizes exactly the running published build', () => {
   expect(compareBuild(current, { ...current }).status).toBe('current');
