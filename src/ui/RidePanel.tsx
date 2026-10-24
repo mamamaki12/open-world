@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // お店のコイン式の乗り物。料金は遊んだ人から店の持ち主へ（みんなのワールド）。持ち主とひとりのときは無料
 import { useEffect, useState } from 'react';
 import { Modal } from './Modal';
@@ -45,7 +46,7 @@ export function RidePanel() {
     {!lot ? <p>乗り物の前で開いてください。</p> : <>
       <p className="shop-note">{SECONDS}秒間、コインを入れて乗り物を動かします。{fee ? `1回 ${yen(fee)}（お店に払います）` : owner && shared ? '自分のお店なので無料です。' : '無料'}</p>
       <div className="ride-stage">
-        <div className={`ride-car${playing ? ' playing' : ''}`}>🚗</div>
+        <div className={`ride-car${playing ? ' playing' : ''}`}>{iconText("🚗")}</div>
         <div className="ride-timer">{playing ? `残り ${Math.ceil(left)} 秒` : 'コインを入れてください'}</div>
       </div>
       {error && <p className="warn" role="alert">{error}</p>}

@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // レース映像：3Dのレース場を中継カメラのように追いかけて映す。実況（声つき）、残り距離、通過順、全体図つき
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -323,20 +324,20 @@ export function RaceView({ race, motion, order, onDone, ticketPanel }: Props) {
         <span className="race-title">{race.name}　{race.surface ?? ''}{race.distance}m</span>
         <span className="race-clock">{hud.clock}</span>
         <span className="race-remain">{hud.remain}</span>
-        {ticketPanel && <button className="race-tickets-toggle" aria-expanded={showTickets} onClick={()=>setShowTickets(!showTickets)}>🎟 購入した券を見る</button>}
+        {ticketPanel && <button className="race-tickets-toggle" aria-expanded={showTickets} onClick={()=>setShowTickets(!showTickets)}>{iconText("🎟 購入した券を見る")}</button>}
       </div>
       {showTickets && <section className="race-ticket-drawer" aria-label="購入した券"><button className="btn small" onClick={()=>setShowTickets(false)}>閉じる</button>{ticketPanel}</section>}
       <div className="race-screen" ref={wrapRef}>
         <Race3D race={race} course={motion.course} sim={sim} height={full ? '100%' : height} />
         <button className="race-full-btn" onClick={() => setFull(!full)} aria-label={full ? '全画面をやめる' : '全画面で見る'}>
-          {full ? '✕ 戻る' : '⛶ 全画面'}
+          {iconText(full ? '✕ 戻る' : '⛶ 全画面')}
         </button>
         <canvas className="race-mini" ref={miniRef} aria-hidden />
-        {hud.bell && <div className="race-bell">🔔 打鐘</div>}
+        {hud.bell && <div className="race-bell">{iconText("🔔 打鐘")}</div>}
       </div>
       <div className="race-calls" aria-live="polite">
         {calls.slice(0, 2).map((c, k) => (
-          <div key={c.key} className={k === 0 ? 'now' : 'prev'}>{c.text}</div>
+          <div key={c.key} className={k === 0 ? 'now' : 'prev'}>{iconText(c.text)}</div>
         ))}
       </div>
       <div className="race-strip">
@@ -356,15 +357,14 @@ export function RaceView({ race, motion, order, onDone, ticketPanel }: Props) {
       <div className="row race-controls">
         <span className="muted">速さ</span>
         {SPEEDS.map((s) => (
-          <button key={s} className={`btn small${s === speed ? ' on' : ''}`} onClick={() => setSpeed(s)}>
-            ×{s}
+          <button key={s} className={`btn small${s === speed ? ' on' : ''}`} onClick={() => setSpeed(s)} aria-label="閉じる">{iconText("×")}{s}
           </button>
         ))}
         <button className={`btn small${overview ? ' on' : ''}`} onClick={() => setOverview(!overview)}>
           {overview ? '中継に戻す' : 'コース全体を見る'}
         </button>
         <button className="btn small" onClick={() => (skipRef.current = true)}>結果まで飛ばす</button>
-        <span className="muted">{cfg.icon} 実際の時計で再生すると ×1</span>
+        <span className="muted">{iconText(cfg.icon)}{iconText(" 実際の時計で再生すると ×1")}</span>
       </div>
     </div>
   );

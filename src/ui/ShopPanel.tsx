@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // プレイヤーのお店（レジの前で開く）。持ち主は店を開いて商品を自由に登録、ほかのプレイヤーは一回払いで買う。
 import { useState } from 'react';
 import { Modal } from './Modal';
@@ -84,7 +85,7 @@ export function ShopPanel() {
     </> : <>
       {owner && <p className="shop-note">みんなのワールドで、ほかのプレイヤーが一回払いで買えます。代金はそのままあなたの所持金に入ります。</p>}
       {!owner && <p>所持金 {yen(money)}</p>}
-      {!owner && shared && (() => { const mine = passesOf(shop, savedBundle().profile.id, today); return mine.length ? <div className="card shop-passes"><b>あなたの券</b>{mine.map((p) => <div key={p.id}>🎫 {p.item} · {passNote(p)}</div>)}</div> : null; })()}
+      {!owner && shared && (() => { const mine = passesOf(shop, savedBundle().profile.id, today); return mine.length ? <div className="card shop-passes"><b>あなたの券</b>{mine.map((p) => <div key={p.id}>{iconText("🎫 ")}{p.item} · {passNote(p)}</div>)}</div> : null; })()}
       <div className="shop-items">
         {shop.items.map((i) => <div key={i.id} className="shop-item card">
           {i.photo ? <img src={i.photo} alt="" /> : <div className="shop-photo-empty">写真なし</div>}
@@ -112,12 +113,12 @@ export function ShopPanel() {
         <div className="field"><div className="field-label">説明</div><textarea maxLength={SHOP_LIMITS.description} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></div>
         <div className="field"><div className="field-label">写真</div>
           {draft.photo && <img className="shop-preview" src={draft.photo} alt="" />}
-          <button className="btn" onClick={() => setDraft({ ...draft, photo: snapPhoto() })}>📷 いまの景色を写す</button>
+          <button className="btn" onClick={() => setDraft({ ...draft, photo: snapPhoto() })}>{iconText("📷 いまの景色を写す")}</button>
           <p className="shop-note">パネルの裏に見えている景色が写ります。見せたい物の方を向いてからレジを開いてください。</p>
         </div>
         <button className="btn primary" onClick={() => editItem(draft)}>保存</button><button className="btn" onClick={() => setDraft(null)}>やめる</button>
       </div> : <>
-        <button className="btn primary" disabled={shop.items.length >= SHOP_LIMITS.items} onClick={() => { setDraft(blank()); setError(''); }}>＋ 商品を追加</button>
+        <button className="btn primary" disabled={shop.items.length >= SHOP_LIMITS.items} onClick={() => { setDraft(blank()); setError(''); }}>{iconText("＋ 商品を追加")}</button>
         <button className="btn danger" onClick={() => { if (confirm('お店を閉じますか？商品と売上の記録は消えます')) save(null); }}>閉店する</button>
       </>)}
     </>}

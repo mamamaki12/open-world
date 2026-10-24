@@ -105,7 +105,9 @@ export function Town() {
   };
   /** 町に最初から建っている家をクリック：その家を編集できる土地にして編集先にする */
   const editTown = (plot: number, e: ThreeEvent<PointerEvent>) => {
-    if (useGame.getState().mode !== 'build' || e.button !== 0) return;
+    // 床・壁などを置いているときは、カメラの手前や奥の町の家を拾わない（手ぶらと削除のときだけ）
+    const { mode, tool } = useGame.getState();
+    if (mode !== 'build' || (tool !== 'select' && tool !== 'erase') || e.button !== 0) return;
     // 手前の自分の家や地面を押したときに、奥に見えている町の家を拾わない
     const ground = e.ray.direction.y < 0 ? -e.ray.origin.y / e.ray.direction.y : Infinity;
     if (e.intersections[0]?.object !== e.object || e.distance > ground + 0.05) return;

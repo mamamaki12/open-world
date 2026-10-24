@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // ルーレット（ヨーロピアン、0〜36）。台にチップを何か所でも置いて、ホイールに玉を投げる
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WHEEL_ORDER, rouletteBetName, rouletteColor, roulettePayout, spinRoulette } from '../../economy/casino';
@@ -213,7 +214,7 @@ export function Roulette() {
       </div>
 
       <div className="roulette-touch-tools">
-        <p className="scroll-hint">← 台を左右になぞると、残りの数字・賭け方を表示できます →</p>
+        <p className="scroll-hint">{iconText("← 台を左右になぞると、残りの数字・賭け方を表示できます →")}</p>
         <button className="btn small" aria-pressed={removing} disabled={spinning} onClick={() => setRemoving(v => !v)}>{removing ? 'チップを外す：ON（マスをタップ）' : 'チップを外すモード'}</button>
       </div>
       <div className="felt-scroll" tabIndex={0} aria-label="ルーレットの賭け台。左右にスクロールできます">
@@ -235,7 +236,7 @@ export function Roulette() {
                 disabled={spinning}
                 title={`${rouletteBetName(s.bet)}（×${payoutOf(s.bet)}）${amt ? `　${yen(amt)}` : ''}`}
               >
-                <span className="spot-label">{s.label}</span>
+                <span className="spot-label">{iconText(s.label)}</span>
                 {amt > 0 && <Chip value={amt} size={26} label={chipLabel(amt)} />}
               </button>
             );
@@ -250,7 +251,7 @@ export function Roulette() {
         <span className="tray-ops">
           <button className="btn small" disabled={spinning || placed.length === 0} onClick={() => setPlaced((ps) => ps.slice(0, -1))}>1つ戻す</button>
           <button className="btn small" disabled={spinning || placed.length === 0} onClick={() => setPlaced([])}>クリア</button>
-          <button className="btn small" disabled={spinning || placed.length === 0} onClick={() => setPlaced((ps) => [...ps, ...ps])}>×2</button>
+          <button className="btn small" disabled={spinning || placed.length === 0} onClick={() => setPlaced((ps) => [...ps, ...ps])}>{iconText("×2")}</button>
           <button className="btn small" disabled={spinning || lastPlaced.length === 0} onClick={() => { setResult(null); setPlaced(lastPlaced); }}>前回と同じ</button>
         </span>
       </div>
@@ -258,9 +259,7 @@ export function Roulette() {
       <button className="btn casino-go big-btn" disabled={spinning || total <= 0 || total > money} onClick={spin}>
         {spinning ? '回転中…' : `スピン（${yen(total)}）`}
       </button>
-      <p className="muted">
-        マスを押すと、持っているチップを置きます。「チップを外すモード」で外したいマスを押すと取り消せます。数字 ×36、列・ダース ×3、赤黒・奇数偶数・前半後半 ×2。0 が出ると 0 以外は負け。還元率 97.3%
-      </p>
+      <p className="muted">{iconText("マスを押すと、持っているチップを置きます。「チップを外すモード」で外したいマスを押すと取り消せます。数字 ×36、列・ダース ×3、赤黒・奇数偶数・前半後半 ×2。0 が出ると 0 以外は負け。還元率 97.3%")}</p>
     </div>
   );
 }

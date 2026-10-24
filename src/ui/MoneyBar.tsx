@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // 上のバーに出す所持金・日付・相場と、不動産屋の入り口・カジノへ行くボタン
 import { useEffect, useMemo } from 'react';
 import { yen } from '../economy/money';
@@ -23,15 +24,11 @@ export function MoneyBar() {
       <div className="money" title="所持金">
         <span className={`cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
         <span className="sub">
-          {day}日目 ・ 相場 <b className={trend}>{market.toFixed(2)}{trend === 'up' ? '▲' : trend === 'down' ? '▼' : ''}</b> ・ {clockLabel(climate)}
+          {day}日目 ・ 相場 <b className={trend}>{market.toFixed(2)}{iconText(trend === 'up' ? '▲' : trend === 'down' ? '▼' : '')}</b> ・ {iconText(clockLabel(climate))}
         </span>
       </div>
-      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">
-        🗺 地図
-      </button>
-      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('jobs'); }} title="バイトで働いてお金をかせぐ">
-        💼 バイト
-      </button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">{iconText("🗺 地図")}</button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('jobs'); }} title="バイトで働いてお金をかせぐ">{iconText("💼 バイト")}</button>
       <BuildChip />
     </div>
   );
@@ -57,14 +54,13 @@ export function BuildChip() {
     const c = lot.construction;
     const pct = Math.round((1 - c.remaining / c.total) * 100);
     return (
-      <span className="chip building" title="工事が終わるまで待つ間に、バイトやカジノができます">
-        🏗 工事中 {pct}%（あと{Math.ceil(c.remaining)}秒）
+      <span className="chip building" title="工事が終わるまで待つ間に、バイトやカジノができます">{iconText("🏗 工事中 ")}{pct}%（あと{Math.ceil(c.remaining)}秒）
       </span>
     );
   }
   if (!est || est.parts === 0) return null;
   return (
-    <span className="chip go" title="不動産屋の店舗で着工できます">🔨 設計変更あり（不動産屋で無料着工）</span>
+    <span className="chip go" title="不動産屋の店舗で着工できます">{iconText("🔨 設計変更あり（不動産屋で無料着工）")}</span>
   );
 }
 

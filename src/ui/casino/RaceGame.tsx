@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // 競馬・競輪・ボートレース：出走表（出馬表）を見て、実際と同じ券種・買い方で投票し、レースを観て払い戻しを受け取る
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { yen } from '../../economy/money';
@@ -202,14 +203,15 @@ function RaceCard({ race, probs }: { race: Race; probs: Probs }) {
                 <td className="mark">{r.mark}</td>
                 <td className="runner-name">
                   {r.name}
-                  {r.info['毛色'] && <small className="muted">（{r.info['毛色']}）</small>}
+                  {r.info['毛色'] && <small className="muted">（{iconText(r.info['毛色'])}）</small>}
                 </td>
                 <td className="num">{popularity[r.index]}</td>
                 {showWin && <td className="num">{comboOdds(race, probs, 'win', [r.index])?.toFixed(1)}</td>}
                 {race.kind === 'horse' && <td>{r.style}</td>}
                 {infoKeys.map((k) => (
-                  <td key={k}>{r.info[k]}</td>
+                  <td key={k}>{iconText(r.info[k])}</td>
                 ))}
+
               </tr>
             ))}
           </tbody>
@@ -292,10 +294,10 @@ function ResultBoard({
               const o = comboOdds(race, probs, w.type, w.combo) ?? 0;
               return (
                 <tr key={k}>
-                  <td>{cfg.betNames[w.type]}</td>
+                  <td>{iconText(cfg.betNames[w.type])}</td>
                   <td>{comboLabel(race, w.type, w.combo)}</td>
                   <td className="num">{payoutPer100(o).toLocaleString()}円</td>
-                  <td className="num muted">{ranks[k]}番人気</td>
+                  <td className="num muted">{iconText(ranks[k])}番人気</td>
                 </tr>
               );
             })}
@@ -315,6 +317,6 @@ export function RaceTickets({race,probs,tickets}:{race:Race;probs:Probs;tickets:
   if(!tickets.length)return <p>このレースの券は購入していません。</p>;
   return <><RaceMoney spent={tickets.reduce((s,t)=>s+t.stake,0)}/><PrintedTickets race={race} probs={probs} tickets={tickets}/>
     <details className="race-all-tickets"><summary>全ての買い目・金額（{tickets.length}通り）</summary><ul>
-    {tickets.map((t,i)=><li key={i}><b>{RACES[race.kind].betNames[t.type]}</b> {comboLabel(race,t.type,t.combo)} <span>{yen(t.stake)} · {comboOdds(race,probs,t.type,t.combo)?.toFixed(1)}倍</span></li>)}
+    {tickets.map((t,i)=><li key={i}><b>{iconText(RACES[race.kind].betNames[t.type])}</b> {comboLabel(race,t.type,t.combo)} <span>{yen(t.stake)} · {comboOdds(race,probs,t.type,t.combo)?.toFixed(1)}倍</span></li>)}
     </ul></details></>;
 }

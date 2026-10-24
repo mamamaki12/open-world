@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // 右のパネル：選んだパーツの種類・素材・色・寸法を変える
 import { FURNITURE, PANEL_COLORS, SASH_COLORS, furnitureDef, getFurniture, getOpening, openingsOf } from '../catalog';
 import { designOf, useDesigns } from '../catalog/designs';
@@ -96,7 +97,7 @@ export function Inspector() {
   return (
     <div className="panel inspector">
       <div className="panel-title">
-        <span>{title}</span>
+        <span>{iconText(title)}</span>
         <button className="btn danger small" onClick={deleteSelected} title="Delete キーでも消せます">
           削除
         </button>
@@ -121,10 +122,10 @@ function GroupMove() {
       <label><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> 同じ素材・色をまとめて移動</label>
       <p className="info">移動対象：{count}個。作成した時間に関係なく、同じ種類・仕上げをまとめます。壁の窓・ドアも一緒に動きます。</p>
       <div className="row">
-        <button className="btn" onClick={() => move(-1, 0)}>← 1マス</button>
-        <button className="btn" onClick={() => move(1, 0)}>→ 1マス</button>
-        <button className="btn" onClick={() => move(0, -1)}>↑ 1マス</button>
-        <button className="btn" onClick={() => move(0, 1)}>↓ 1マス</button>
+        <button className="btn" onClick={() => move(-1, 0)} aria-label="左へ 1マス">{iconText("← 1マス")}</button>
+        <button className="btn" onClick={() => move(1, 0)} aria-label="右へ 1マス">{iconText("→ 1マス")}</button>
+        <button className="btn" onClick={() => move(0, -1)} aria-label="上へ 1マス">{iconText("↑ 1マス")}</button>
+        <button className="btn" onClick={() => move(0, 1)} aria-label="下へ 1マス">{iconText("↓ 1マス")}</button>
       </div>
       <p className="info">選択したパーツをドラッグしても移動できます。{enabled && '一括移動中は長押しで消えません。'}素材・色の変更と削除は、最初に選んだ1個に適用します。</p>
     </div>
@@ -175,12 +176,8 @@ function OpeningInspector({ opening: o }: { opening: OpeningPart }) {
       <div className="field">
         <div className="field-label">位置（半マスずつ）</div>
         <div className="row">
-          <button className="btn" onClick={() => move(-GRID / 2)}>
-            ◀ 左へ
-          </button>
-          <button className="btn" onClick={() => move(GRID / 2)}>
-            右へ ▶
-          </button>
+          <button className="btn" onClick={() => move(-GRID / 2)}>{iconText("◀ 左へ")}</button>
+          <button className="btn" onClick={() => move(GRID / 2)}>{iconText("右へ ▶")}</button>
         </div>
       </div>
       {o.kind === 'window' && <SashPicker value={o.sash} color={o.sashColor} onChange={(sash) => patchPart('opening', o.id, { sash })} />}
@@ -290,14 +287,14 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
       {!f.wallMount && <div className="field">
         <div className="field-label">移動・回転</div>
         <div className="row">
-          <button className="btn" onClick={() => move(-0.05, 0)}>← 5cm</button>
-          <button className="btn" onClick={() => move(0.05, 0)}>→ 5cm</button>
-          <button className="btn" onClick={() => move(0, -0.05)}>↑ 5cm</button>
-          <button className="btn" onClick={() => move(0, 0.05)}>↓ 5cm</button>
+          <button className="btn" onClick={() => move(-0.05, 0)} aria-label="左へ 5cm">{iconText("← 5cm")}</button>
+          <button className="btn" onClick={() => move(0.05, 0)} aria-label="右へ 5cm">{iconText("→ 5cm")}</button>
+          <button className="btn" onClick={() => move(0, -0.05)} aria-label="上へ 5cm">{iconText("↑ 5cm")}</button>
+          <button className="btn" onClick={() => move(0, 0.05)} aria-label="下へ 5cm">{iconText("↓ 5cm")}</button>
         </div>
         <div className="row">
-          <button className="btn" onClick={() => rotate(90)}>⟲ 90°</button>
-          <button className="btn" onClick={() => rotate(-90)}>⟳ 90°</button>
+          <button className="btn" onClick={() => rotate(90)} aria-label="左回り 90度">{iconText("⟲ 90°")}</button>
+          <button className="btn" onClick={() => rotate(-90)} aria-label="右回り 90度">{iconText("⟳ 90°")}</button>
         </div>
       </div>}
       <div className="field">
@@ -326,10 +323,10 @@ function FurnitureInspector({ item: f }: { item: FurniturePart }) {
       {!f.wallMount && <div className="field">
         <div className="field-label">向き：{Math.round(f.rotation)}°</div>
         <div className="row">
-          <button className="btn" onClick={() => rotate(90)}>⟲ 90°</button>
-          <button className="btn" onClick={() => rotate(15)}>⟲ 15°</button>
-          <button className="btn" onClick={() => rotate(-15)}>⟳ 15°</button>
-          <button className="btn" onClick={() => rotate(-90)}>⟳ 90°</button>
+          <button className="btn" onClick={() => rotate(90)} aria-label="左回り 90度">{iconText("⟲ 90°")}</button>
+          <button className="btn" onClick={() => rotate(15)} aria-label="左回り 15度">{iconText("⟲ 15°")}</button>
+          <button className="btn" onClick={() => rotate(-15)} aria-label="右回り 15度">{iconText("⟳ 15°")}</button>
+          <button className="btn" onClick={() => rotate(-90)} aria-label="右回り 90度">{iconText("⟳ 90°")}</button>
         </div>
       </div>}
       {!f.wallMount && <p className="info">{def.ceiling?'天井に取り付けています。部屋の中でドラッグ、矢印キーで5cmずつ移動できます。':'ドラッグで移動、矢印キーで5cmずつ動かせます。'}</p>}
@@ -353,10 +350,10 @@ function NameplateMountControls({ item }: { item: FurniturePart }) {
   return <div className="field">
     <div className="field-label">壁への取付位置（高さ {Math.round(mount.height * 100)}cm）</div>
     <div className="row">
-      <button className="btn" onClick={() => change(-0.05, 0)}>← 5cm</button>
-      <button className="btn" onClick={() => change(0.05, 0)}>→ 5cm</button>
-      <button className="btn" onClick={() => change(0, 0.05)}>↑ 5cm</button>
-      <button className="btn" onClick={() => change(0, -0.05)}>↓ 5cm</button>
+      <button className="btn" onClick={() => change(-0.05, 0)} aria-label="左へ 5cm">{iconText("← 5cm")}</button>
+      <button className="btn" onClick={() => change(0.05, 0)} aria-label="右へ 5cm">{iconText("→ 5cm")}</button>
+      <button className="btn" onClick={() => change(0, 0.05)} aria-label="上へ 5cm">{iconText("↑ 5cm")}</button>
+      <button className="btn" onClick={() => change(0, -0.05)} aria-label="下へ 5cm">{iconText("↓ 5cm")}</button>
     </div>
     <p className="info">壁の手前側に固定しています。取り付ける位置や高さを調整できます。</p>
   </div>;

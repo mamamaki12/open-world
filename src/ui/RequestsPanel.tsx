@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // 仕事の依頼板：プレイヤーが報酬を預けて仕事を頼む・人を雇う。引き受けた人は、依頼主が完了を確認すると報酬を受け取る
 import './shop.css';
 import { useState } from 'react';
@@ -38,7 +39,7 @@ export function RequestsPanel() {
       <p className="shop-note">報酬は依頼したときに預かり、依頼した人が「完了」を押すと引き受けた人に渡ります。だれも引き受けていなければ取り下げて戻せます。</p>
       <div className="shop-items">
         {all.map(({ r, lot }) => <div key={r.id} className="shop-item card">
-          <b>{r.title}</b><span className="big">{yen(r.reward)}</span>
+          <b>{iconText(r.title)}</b><span className="big">{yen(r.reward)}</span>
           <span className="shop-note">{r.poster === me ? 'あなた' : r.posterName}さんの依頼 · {lot.name.replace(/（.*）$/, '')}{r.worker ? ` · ${r.worker === me ? 'あなた' : r.workerName}さんが引き受け中` : ' · 募集中'}</span>
           {r.description && <p>{r.description}</p>}
           <div>

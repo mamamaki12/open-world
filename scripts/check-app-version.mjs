@@ -73,7 +73,7 @@ try{
     await panel.scrollIntoViewIfNeeded();
     const bounds=await panel.boundingBox();assert.ok(bounds.x>=0&&bounds.x+bounds.width<=page.viewportSize().width+1,'version controls fit the viewport');
     await page.screenshot({path:'world-session-checks/version-save-'+(touch?'phone':'pc')+'.png'});
-    await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),panel.getByRole('button',{name:'🔄 最新版にする',exact:true}).click()]);
+    await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),panel.getByRole('button',{name:'最新版にする',exact:true}).click()]);
     await page.getByLabel('あなたの名前').waitFor();
     const after=await saved();assert.equal(after.profile.id,before.profile.id);assert.equal(after.profile.name,'版確認');assert.deepEqual(after.home.house,before.home.house);
     await context.close();console.log('Version display / uncached latest / update / invalid / stale / offline / save-preserving refresh passed',touch?'phone':'pc');

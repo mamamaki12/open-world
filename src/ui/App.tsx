@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { canPlaceStair } from '../building/rules';
 import { sampleHouse } from '../building/sample';
@@ -174,9 +175,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
 function MapButton() {
   const setOverlay = useGame((s) => s.setOverlay);
   return (
-    <button className="touch-map" onClick={() => setOverlay('map')} aria-label="町の地図">
-      🗺️
-    </button>
+    <button className="touch-map" onClick={() => setOverlay('map')} aria-label="町の地図">{iconText("🗺️")}</button>
   );
 }
 
@@ -193,21 +192,19 @@ function WalkMenu() {
   return (
     <div className="touch-hud walk-menu">
       <div className="touch-hud-row">
-        <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>
-          ☰
-        </button>
+        <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>{iconText("☰")}</button>
         <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
       </div>
       {open && (
         <div className="walk-menu-list">
-          <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>🏗️ 建築に戻る</button>
-          <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>👁 視点を切り替え</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}>👕 クローゼット</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>🙂 見た目を変える</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>⚙ 操作設定</button>
-          <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>↶ 取り消し</button>
+          <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>{iconText("🏗️ 建築に戻る")}</button>
+          <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>{iconText("👁 視点を切り替え")}</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}>{iconText("👕 クローゼット")}</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>{iconText("🙂 見た目を変える")}</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>{iconText("⚙ 操作設定")}</button>
+          <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>{iconText("↶ 取り消し")}</button>
           <SaveMenu />
-          <button className="walk-menu-item" onClick={pick(reloadLatest)}>🔄 最新版にする</button>
+          <button className="walk-menu-item" onClick={pick(reloadLatest)}>{iconText("🔄 最新版にする")}</button>
         </div>
       )}
     </div>
@@ -232,25 +229,21 @@ function TouchHud() {
   return (
     <div className="touch-hud walk-menu build-hud">
       <div className="touch-hud-row">
-        <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>
-          ☰
-        </button>
+        <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>{iconText("☰")}</button>
         <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
-        <button className={`tool icon${holding?' history-label':''}`} disabled={!canUndo} onClick={undo} aria-label="取り消し">
-          ↶{holding&&' 取り消す'}
+        <button className={`tool icon${holding?' history-label':''}`} disabled={!canUndo} onClick={undo} aria-label="取り消し">{iconText("↶")}{holding&&' 取り消す'}
         </button>
-        <button className={`tool icon${holding?' history-label':''}`} disabled={!canRedo} onClick={redo} aria-label="やり直し">
-          ↷{holding&&' やり直す'}
+        <button className={`tool icon${holding?' history-label':''}`} disabled={!canRedo} onClick={redo} aria-label="やり直し">{iconText("↷")}{holding&&' やり直す'}
         </button>
       </div>
       {open && (
         <div className="walk-menu-list">
           <div className="walk-menu-status"><BuildChip /></div>
-          <button className="walk-menu-item" onClick={pick(() => setMode('walk'))}>🚶 歩いてみる</button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>🗺 地図</button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}>💼 バイト</button>
+          <button className="walk-menu-item" onClick={pick(() => setMode('walk'))}>{iconText("🚶 歩いてみる")}</button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>{iconText("🗺 地図")}</button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}>{iconText("💼 バイト")}</button>
           <SaveMenu />
-          <button className="walk-menu-item" onClick={pick(reloadLatest)}>🔄 最新版にする</button>
+          <button className="walk-menu-item" onClick={pick(reloadLatest)}>{iconText("🔄 最新版にする")}</button>
         </div>
       )}
     </div>
@@ -343,14 +336,12 @@ function TopBar() {
         <button className="tool" disabled={!canUndo} onClick={(e) => {
             e.currentTarget.blur();
             undo();
-          }} title="Ctrl+Z">
-          ↶<span className="btn-label"> 取り消し</span>
+          }} title="Ctrl+Z">{iconText("↶")}<span className="btn-label"> 取り消し</span>
         </button>
         <button className="tool" disabled={!canRedo} onClick={(e) => {
             e.currentTarget.blur();
             redo();
-          }} title="Ctrl+Y">
-          ↷<span className="btn-label"> やり直し</span>
+          }} title="Ctrl+Y">{iconText("↷")}<span className="btn-label"> やり直し</span>
         </button>
       </div>
       <SaveMenu />
@@ -377,8 +368,7 @@ function SaveMenu() {
           setConfirmClear(false);
         }}
       >
-        セーブ<span className="btn-label"> / ロード</span> ▾
-      </button>
+        セーブ<span className="btn-label"> / ロード</span>{iconText(" ▾")}</button>
       {open && (
         <div className="save-menu">
           <p className="info">自動セーブされています。別の家を残したいときはスロットに保存します。</p>
@@ -503,7 +493,7 @@ function Toast() {
     return () => clearTimeout(t);
   }, [message]);
   if (!message || !visible) return null;
-  return <div className="toast">{message.text}</div>;
+  return <div className="toast">{iconText(message.text)}</div>;
 }
 
 function useAutosave() {

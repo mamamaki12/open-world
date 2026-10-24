@@ -1,3 +1,4 @@
+import { iconText } from '../AppIcon';
 // バイト：一覧から選んで1シフト働く。できた件数とミスで給料が決まる
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -72,7 +73,7 @@ export function JobsPanel() {
           <Game key={round} id={def.id} add={add} timeUp={timeUp} seconds={def.seconds} />
           {timeUp && (
             <div className="job-result card">
-              <p>おつかれさまでした。基本給 {yen(def.base)} ＋ 出来高 {score.ok}件 × {yen(def.perTask)} − ミス {score.miss}件 × {yen(def.penalty)}（最低 {yen(def.minPay)}）</p>
+              <p>おつかれさまでした。基本給 {yen(def.base)} ＋ 出来高 {score.ok}{iconText("件 × ")}{yen(def.perTask)} − ミス {score.miss}{iconText("件 × ")}{yen(def.penalty)}（最低 {yen(def.minPay)}）</p>
               <p className="job-pay">給料 <b>{yen(pay)}</b></p>
               {paid ? (
                 <>
@@ -94,7 +95,7 @@ function JobList({ onPick }: { onPick: (id: JobId) => void }) {
   return (
     <div className="job-list">
       <p className="muted">1シフト働くと、できた件数とミスの数で給料が決まります。</p>
-      <button className="btn" onClick={() => useGame.getState().setOverlay('requests')}>🤝 プレイヤーからの依頼を見る</button>
+      <button className="btn" onClick={() => useGame.getState().setOverlay('requests')}>{iconText("🤝 プレイヤーからの依頼を見る")}</button>
       {JOBS.map((j: JobDef) => (
         <button key={j.id} className="job-card" onClick={() => onPick(j.id)}>
           <span className="job-name">{j.name}</span>
@@ -172,7 +173,7 @@ function Register({ add, timeUp }: GameProps) {
           <div className="coin-row">
             {DENOMS.map((d) => (
               <button key={d} className={`coin${d >= 1000 ? ' bill' : ''}`} disabled={timeUp} onClick={() => setGiven((g) => ({ ...g, [d]: (g[d] ?? 0) + 1 }))}>
-                {d.toLocaleString()}円{given[d] ? <small>×{given[d]}</small> : null}
+                {d.toLocaleString()}円{given[d] ? <small>{iconText("×")}{iconText(given[d])}</small> : null}
               </button>
             ))}
           </div>
@@ -201,7 +202,7 @@ function Warehouse({ add, timeUp }: GameProps) {
         <div className="parcel-tag">
           <small>お届け先</small>
           <b>{p.address}</b>
-          <small>品名：{p.label}</small>
+          <small>品名：{iconText(p.label)}</small>
         </div>
       </div>
       <div className="bins">
@@ -312,14 +313,14 @@ function Traffic({ add, timeUp, seconds }: GameProps) {
         {VEHICLES.map((v) => (
           <button key={v} className="counter" disabled={timeUp} onClick={() => setCounted((c) => ({ ...c, [v]: c[v] + 1 }))}>
             <span className="swatch" style={{ background: VEHICLE_LOOK[v].color }} />
-            {v}<b>{counted[v]}</b>
+            {v}<b>{iconText(counted[v])}</b>
           </button>
         ))}
       </div>
       {timeUp && (
         <table className="ledger compact">
           <thead><tr><th>種類</th><th className="num">本当の台数</th><th className="num">数えた台数</th></tr></thead>
-          <tbody>{VEHICLES.map((v) => <tr key={v}><td>{v}</td><td className="num">{actual[v]}</td><td className="num">{counted[v]}</td></tr>)}</tbody>
+          <tbody>{VEHICLES.map((v) => <tr key={v}><td>{v}</td><td className="num">{iconText(actual[v])}</td><td className="num">{iconText(counted[v])}</td></tr>)}</tbody>
         </table>
       )}
     </div>

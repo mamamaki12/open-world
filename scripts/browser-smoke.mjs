@@ -39,7 +39,7 @@ try {
     await visit('casino',action);
     await page.getByRole('button',{name:new RegExp(label)}).waitFor();
     await page.keyboard.press('f');
-    await page.getByRole('button',{name:'← ゲーム選択に戻る',exact:true}).waitFor();
+    await page.getByRole('button',{name:'ゲーム選択に戻る',exact:true}).waitFor();
     await page.evaluate(()=>window.__ow.game.getState().setOverlay(null));
   }
   await visit('casino','lobby');await page.screenshot({path:'browser-checks/casino-interior.png'});

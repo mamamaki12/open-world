@@ -1,3 +1,4 @@
+import { iconText } from './AppIcon';
 // カジノ・競技場：スロット、ルーレット、ハイ＆ロー、競馬、競輪、ボートレース。賭け金の上限はなし
 import { useVenue } from '../state/venue';
 import { useEffect, useRef, useState } from 'react';
@@ -70,7 +71,7 @@ function MuteButton() {
       aria-pressed={muted}
       title={muted ? '効果音と声を出す' : '効果音と声を消す'}
     >
-      {muted ? '🔇' : '🔊'}
+      {iconText(muted ? '🔇' : '🔊')}
     </button>
   );
 }
@@ -88,7 +89,7 @@ function VoiceNotice() {
     // iPhone・iPad はマナーモードだと音が小さくなったり消えたりすることがある
     const ios = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
     if (!ios || isMuted()) return null;
-    return <div className="casino-voice-note subtle">🔈 実況の声が聞こえないときは、マナーモードを切って音量を上げてください。</div>;
+    return <div className="casino-voice-note subtle">{iconText("🔈 実況の声が聞こえないときは、マナーモードを切って音量を上げてください。")}</div>;
   }
   return (
     <div className="casino-voice-note" role="status">
@@ -116,8 +117,8 @@ export function CasinoPanel() {
       </div>
       {!tab ? <CasinoLobby onSelect={setTab} /> : <>
       <div className="casino-game-nav">
-        <button className="btn casino-back" onClick={() => setTab(null)}>← ゲーム選択に戻る</button>
-        <span>GRAND STRIP <i> / </i> {TABS.find(t => t.id === tab)!.label}</span>
+        <button className="btn casino-back" onClick={() => setTab(null)}>{iconText("← ゲーム選択に戻る")}</button>
+        <span>GRAND STRIP <i> / </i> {iconText(TABS.find(t => t.id === tab)!.label)}</span>
       </div>
       <VoiceNotice />
       <div className={race ? `casino-paper ${tab}` : 'casino-felt'}>
@@ -151,8 +152,8 @@ function CasinoLobby({ onSelect }: { onSelect: (game: Tab) => void }) {
     <div className="casino-game-grid">
       {TABS.map(game => { const detail = GAME_DETAILS[game.id]; return (
         <button key={game.id} className="casino-game-card" data-scene={detail.scene} onClick={() => onSelect(game.id)}>
-          <div className="casino-card-scene" aria-hidden="true"><span>{detail.icon}</span><i /><i /><i /></div>
-          <div className="casino-card-copy"><small>{detail.tag}</small><h2>{game.label}</h2><p>{detail.copy}</p><b>このゲームで遊ぶ <span>↗</span></b></div>
+          <div className="casino-card-scene" aria-hidden="true"><span>{iconText(detail.icon)}</span><i /><i /><i /></div>
+          <div className="casino-card-copy"><small>{detail.tag}</small><h2>{iconText(game.label)}</h2><p>{detail.copy}</p><b>このゲームで遊ぶ <span>{iconText("↗")}</span></b></div>
         </button>
       ); })}
     </div>

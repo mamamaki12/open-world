@@ -110,7 +110,7 @@ function extraSteps(size) {
   if (!size.touch) steps.push(['floor-tool', async (page, click) => { await click(page.locator('.save > .tool')); return click(page.getByRole('button', { name: '床', exact: true })); }, 'body']);
   else steps.push(['build-sheet', async (page, click) => { const m = page.getByRole('button', { name: 'メニュー', exact: true }); if (await m.getAttribute('aria-expanded') === 'true') await m.click(); return click(page.getByRole('button', { name: /建てる/ })); }, 'body']);
   steps.push(['walk', async (page, click) => {
-    if (size.touch) { const m = page.getByRole('button', { name: 'メニュー', exact: true }); if (await m.getAttribute('aria-expanded') !== 'true') await m.click(); return click(page.getByRole('button', { name: '🚶 歩いてみる' })); }
+    if (size.touch) { const m = page.getByRole('button', { name: 'メニュー', exact: true }); if (await m.getAttribute('aria-expanded') !== 'true') await m.click(); return click(page.getByRole('button', { name: '歩いてみる' })); }
     return click(page.getByRole('button', { name: /歩いてみる/ }));
   }, 'body']);
   steps.push(['walk-menu', async (page, click) => size.touch ? click(page.getByRole('button', { name: 'メニュー', exact: true })) : false, 'body']);
