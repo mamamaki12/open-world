@@ -16,7 +16,7 @@ try {
     const e = await import('/src/state/economy.ts'), { GRID, LOT_W, LOT_D } = await import('/src/building/dimensions.ts');
     const { townHouseAt } = await import('/src/building/townHouses.ts');
     e.useEconomy.setState({ tick: () => {} });
-    const g = window.__ow.game.getState(); g.setMode('build'); g.setOverlay(null);
+    const g = window.__ow.game.getState(); g.setMode('build'); g.setOverlay(null); g.setTool('select');
     const ox = e.plotOffset(plot), oz = e.plotOffsetZ(plot), cx = ox + LOT_W * GRID / 2, cz = oz + LOT_D * GRID / 2;
     const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
     const s = _roots.get(document.querySelector('canvas')).store.getState();
