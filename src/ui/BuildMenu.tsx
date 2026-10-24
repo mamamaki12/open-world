@@ -50,6 +50,18 @@ export function toolIcon(tool: Tool) {
   return <AppIcon name={ICONS[tool]} />;
 }
 
+/** 「建てる」ボタンの上に置く小さな削除ボタン。もう一度押すと削除を選ぶ前の道具に戻る */
+export function EraseButton() {
+  const on = useGame((s) => s.tool === 'erase');
+  return (
+    <button className={`erase-fab${on ? ' on' : ''}`} aria-pressed={on} aria-label={on ? '削除をやめる' : '1つ削除する'}
+      onClick={() => { const g = useGame.getState(); g.setTool(on ? g.eraseReturnTool : 'erase'); }}>
+      <AppIcon name="erase" />
+      <small>{on ? 'やめる' : '削除'}</small>
+    </button>
+  );
+}
+
 /** 画面の右上に出す、建築メニューを開くボタン。いま持っている道具も表示する */
 export function BuildButton({ label, onOpen }: { label: string; onOpen: () => void }) {
   const tool = useGame((s) => s.tool);

@@ -178,7 +178,7 @@ export function ToolOptions({ showHelp = true }: { showHelp?: boolean } = {}) {
   return (
     <div className="panel tool-options">
       {showHelp && <>
-      <p className="help">{touch && tool === 'erase' && !eraseMulti ? 'タップして消します。1本指でなぞると視点を回せます。範囲で消すときは「まとめて選ぶ」に切り替えてください。' : (touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
+      <p className="help">{touch && tool === 'erase' && !eraseMulti ? 'タップしたパーツを1つずつ消します。削除ボタンをもう一度押すと元に戻ります。1本指でなぞると視点を回せます。' : (touch ? TOUCH_TOOL_HELP : TOOL_HELP)[tool]}</p>
       {touch && (tool === 'wall' || tool === 'floor') && <p className="info">真上から指の位置に合わせて配置します。2本指で移動・ズームできます。</p>}
       {tool === 'furniture' && d.furnitureType === 'nameplate' && <p className="info">表示する文字を入力し、取り付けたい壁面をタップしてください。壁の手前側に固定します。</p>}
       {tool === 'furniture' && getFurniture(d.furnitureType).light && <p className="info">{getFurniture(d.furnitureType).mount ? '取り付けたい壁面をタップしてください。窓・ドアを避けて壁に固定し、配置後に高さを調整できます。' : getFurniture(d.furnitureType).ceiling ? '天井のある部屋の床を選ぶと、その真上の天井に取り付けます。上階でも使えます。' : '地面や床をタップして置けます。夜や室内を暖かい光で照らします。'}</p>}
@@ -201,24 +201,7 @@ export function NameplateInput({ value = '', onChange }: { value?: string; onCha
 }
 
 function EraseOptions() {
-  const multi = useGame((s) => s.eraseMulti);
-  const g = useGame.getState();
-  return (
-    <>
-      <div className="field">
-        <div className="field-label">消し方</div>
-        <div className="seg">
-          <button className={!multi ? 'on' : ''} onClick={() => g.setEraseMulti(false)}>
-            1つずつ
-          </button>
-          <button className={multi ? 'on' : ''} onClick={() => g.setEraseMulti(true)}>
-            まとめて選ぶ
-          </button>
-        </div>
-      </div>
-      {multi && <EraseSelectionActions />}
-    </>
-  );
+  return <p className="info">パーツを1つずつ選んで消します。削除ボタンをもう一度押すと元に戻ります。</p>;
 }
 
 /** 選んだ後も画面に残し、建築メニューを開き直さず確定できる。 */

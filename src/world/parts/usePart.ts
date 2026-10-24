@@ -2,7 +2,6 @@
 // （削除ツールの「まとめて選んで消す」では、クリックで選ぶ／外すだけ）
 import { useContext, useState } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
-import { removePart } from '../../building/rules';
 import type { PartRef } from '../../building/types';
 import { useAim } from '../../state/controls';
 import { aimBuilding } from '../aimMode';
@@ -48,8 +47,7 @@ export function usePart(ref: PartRef) {
           if (s.tool === 'erase' && s.eraseMulti) {
             s.toggleMark(ref);
           } else if (s.tool === 'erase') {
-            s.commit(removePart(s.house, ref));
-            if (s.selection?.id === ref.id) s.select(null);
+            s.eraseOne(ref);
           } else {
             s.select(ref);
           }

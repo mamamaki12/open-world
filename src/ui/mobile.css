@@ -360,6 +360,16 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* 歩きモードの右下：建てるボタン（ジャンプはスティックの2回タップ）。窓の前ではその上に「窓から出る」 */
 .touch:not(.driving) .touch-actions { display: flex; flex-direction: column; align-items: center; }
+/* 削除は「建てる」の上に小さく置く */
+.touch-build { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.erase-fab {
+  width: 52px; height: 52px; border: 0; border-radius: 16px; padding: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  font-weight: 800; font-size: 20px; line-height: 1;
+}
+.erase-fab > .app-icon { width: 1em; height: 1em; }
+.erase-fab small { font-size: 11px; }
+.touch-right .erase-fab { align-self: center; }
 .touch-build .build-fab { width: 76px; height: 76px; border-radius: 22px; }
 @media (orientation: landscape) and (max-height: 500px) {
   .touch-build .build-fab { width: 64px; height: 64px; border-radius: 18px; }
