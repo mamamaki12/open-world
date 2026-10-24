@@ -90,6 +90,8 @@ interface GameState {
   eraseMulti: boolean;
   /** まとめて消すために選んだパーツ */
   marked: PartRef[];
+  /** 削除を選ぶ前に持っていた道具。削除ボタンをもう一度押したらこれに戻す */
+  eraseReturnTool: Tool;
   defaults: Defaults;
   message: { text: string; at: number } | null;
   overlay: Overlay;
@@ -110,6 +112,8 @@ interface GameState {
   setLevel: (level: number) => void;
   select: (ref: PartRef | null) => void;
   deleteSelected: () => void;
+  /** 削除ツールで1つだけ消す（削除は持ったまま） */
+  eraseOne: (ref: PartRef) => void;
   setEraseMulti: (on: boolean) => void;
   /** クリックしたパーツを選ぶ／選んであれば外す */
   toggleMark: (ref: PartRef) => void;
@@ -146,6 +150,7 @@ export const useGame = create<GameState>((set, get) => ({
   },
   eraseMulti: false,
   marked: [],
+  eraseReturnTool: 'select',
   defaults: INITIAL_DEFAULTS,
   message: null,
   overlay: null,
@@ -198,7 +203,11 @@ export const useGame = create<GameState>((set, get) => ({
   // 歩きモードに入るときは手ぶら（選択ツール）から始める
   setMode: (mode) => set({ mode, selection: null, marked: [], boxSelect: false, tool: mode === 'walk' ? 'select' : get().tool }),
   toggleView: () => set({ view: get().view === 'third' ? 'first' : 'third' }),
-  setTool: (tool) => { if (tool !== get().tool) set({ tool, selection: tool === 'select' ? get().selection : null, marked: [], boxSelect: false }); },
+  setTool: (tool) => {
+    const prev = get().tool;
+    if (tool === prev) return;
+    set({ tool, selection: tool === 'select' ? get().selection : null, marked: [], boxSelect: false, ...(tool === 'erase' ? { eraseReturnTool: prev } : {}) });
+  },
   setLevel: (level) => {
     if (get().activeLevel !== level) set({ activeLevel: level });
   },
@@ -208,6 +217,11 @@ export const useGame = create<GameState>((set, get) => ({
     if (!selection) return;
     commit(removePart(house, selection));
     set({ selection: null });
+  },
+  eraseOne: (ref) => {
+    const { house, commit, selection } = get();
+    commit(removePart(house, ref));
+    if (selection?.kind === ref.kind && selection.id === ref.id) set({ selection: null });
   },
   setEraseMulti: (on) => { if (on !== get().eraseMulti) set({ eraseMulti: on, marked: [] }); },
   toggleMark: (ref) => {

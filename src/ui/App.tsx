@@ -29,7 +29,7 @@ import { EstatePanel } from './EstatePanel';
 import { MapPanel } from './MapPanel';
 import { BuildChip, MoneyBar, useEconomyClock } from './MoneyBar';
 import { JobsPanel } from './jobs/JobsPanel';
-import { BuildButton, BuildMenu } from './BuildMenu';
+import { BuildButton, BuildMenu, EraseButton } from './BuildMenu';
 import { DragMeasure } from './DragMeasure';
 import { yen } from '../economy/money';
 import { useEconomy } from '../state/economy';
@@ -145,6 +145,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
       {walking ? <WalkMenu /> : <TouchHud />}
       {!walking && (
         <div className="touch-right">
+          <EraseButton />
           <BuildButton label={label} onOpen={() => setMenu(true)} onPutAway={() => { useGame.getState().select(null); setTool('select'); }} />
           <TouchCameraPad />
         </div>
@@ -153,7 +154,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
         <>
           <WalkHud />
           <MapButton />
-          {!overlay && !menu && <TouchWalkControls build={<BuildButton label={label} onOpen={() => (tool === 'select' ? setMenu(true) : setTool('select'))} />} />}
+          {!overlay && !menu && <TouchWalkControls build={<><EraseButton /><BuildButton label={label} onOpen={() => (tool === 'select' ? setMenu(true) : setTool('select'))} /></>} />}
         </>
       ) : (
         <div className="touch-dock">
@@ -167,7 +168,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
       {!bare && <ControlsHelp />}
       {!walking && <DragMeasure />}
       {bulkErase && !overlay && !menu && <div className={`touch-dock bulk-erase-dock${walking ? ' walking' : ''}`}><div className="panel"><EraseSelectionActions /></div></div>}
-      {menu && <BuildMenu tools={TOOLS} walking={walking} onClose={closeMenu} />}
+      {menu && <BuildMenu tools={TOOLS.filter((t) => t.id !== 'erase')} walking={walking} onClose={closeMenu} />}
     </>
   );
 }
@@ -446,13 +447,10 @@ function ControlsHelp() {
   const walking = useGame((s) => s.mode === 'walk');
   const building = tool !== 'select' && tool !== 'erase';
   const touch = useTouchDevice();
-  const eraseMulti = useGame((s) => s.eraseMulti);
   let text: string;
   if (tool === 'erase' && !walking) {
-    const click = eraseMulti ? (touch ? 'タップ：選ぶ・外す' : 'クリック：選ぶ・外す') : touch ? 'タップ：消す' : 'クリック：消す';
-    text = touch
-      ? `${click}　${eraseMulti ? 'なぞる：範囲で選ぶ' : 'なぞる：回す'}　2本指：移動・ズーム`
-      : `${click}　ドラッグ：範囲で選ぶ　${eraseMulti ? 'Delete：まとめて削除　' : ''}右ドラッグ：回転`;
+    // 削除は1つずつ（範囲では消さない）
+    text = touch ? 'タップ：1つ消す　なぞる：回す　2本指：移動・ズーム' : 'クリック：1つ消す　右ドラッグ：回転';
   } else if (touch) {
     const place = tool === 'erase' ? 'タップ：消す' : tool === 'floor' || tool === 'roof' || tool === 'wall' ? 'なぞる：置く' : 'タップ：置く';
     if (walking) text = tool === 'select' ? 'スティック：歩く（端まで倒すと走る）　なぞる：見回す' : `${place}　${['floor', 'roof', 'wall'].includes(tool) ? '2本指：見回す' : 'なぞる：見回す'}`;
