@@ -13247,6 +13247,7 @@ function validSharedWorld(v) {
 }
 
 // server/relay.mjs
+var RELAY_VERSION = "2026-10-24 \u3060\u308C\u3067\u3082\u5EFA\u7BC9\u30FB\u753A\u306E\u5BB6";
 async function saveWorld(file, world) {
   if (!file) return;
   const tmp = file + ".tmp", handle = await open(tmp, "w");
@@ -13300,8 +13301,9 @@ function createRelay({ origins = [], graceMs = 3e4, worldFile = null, tickMs = 1
   }, tickMs);
   ticker.unref();
   const http = createServer((req, res) => {
-    res.writeHead(req.url === "/health" ? 200 : 404);
-    res.end(req.url === "/health" ? "ok" : "not found");
+    const body = req.url === "/health" ? "ok" : req.url === "/version" ? RELAY_VERSION : null;
+    res.writeHead(body === null ? 404 : 200);
+    res.end(body ?? "not found");
   });
   const wss = new import_websocket_server.default({
     server: http,
@@ -13560,6 +13562,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   relay.http.listen(Number(process.env.PORT || 8787), "0.0.0.0", () => console.log("World relay listening on", relay.http.address().port));
 }
 export {
+  RELAY_VERSION,
   createRelay
 };
 /*! Bundled license information:

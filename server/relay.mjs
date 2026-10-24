@@ -5,6 +5,8 @@ import { open, readFile, rename } from 'node:fs/promises';
 import { WebSocketServer, WebSocket } from 'ws';
 import { SHARED_LIMIT, applyCommand, initialSharedWorld, publicWorld, tickWorld, validSharedWorld, withAccount } from '../src/server/sharedWorld.ts';
 
+export const RELAY_VERSION = '2026-10-24 だれでも建築・町の家';
+
 // みんなのワールドの保存。書き終えてから差し替えるので、途中で落ちても前の保存が残る
 async function saveWorld(file, world) {
   if (!file) return;
@@ -43,7 +45,11 @@ export function createRelay({ origins = [], graceMs = 30000, worldFile = null, t
       if (++shared.beat % 2 === 0) sharedSend({ type: 'clock', clock: clockOf(shared.world) });
     }).catch(e => console.error('save failed', e));
   }, tickMs); ticker.unref();
-  const http = createServer((req, res) => { res.writeHead(req.url === '/health' ? 200 : 404); res.end(req.url === '/health' ? 'ok' : 'not found'); });
+  // /version で、EC2 で動いている中継がどの版か確かめられる（中継を変えたら日付と内容を書き換える）
+  const http = createServer((req, res) => {
+    const body = req.url === '/health' ? 'ok' : req.url === '/version' ? RELAY_VERSION : null;
+    res.writeHead(body === null ? 404 : 200); res.end(body ?? 'not found');
+  });
   const wss = new WebSocketServer({ server: http, maxPayload: 2 * 1024 * 1024,
     verifyClient: ({ origin }) => !origins.length || origins.includes(origin) });
   const send = (s, data) => { if (s?.readyState === WebSocket.OPEN) s.send(JSON.stringify(data)); };

@@ -37,19 +37,21 @@ PlaywrightのChromiumを入れるか`PLAYWRIGHT_CHROMIUM_EXECUTABLE`で実行フ
 
 中継は`npm run build:server`で依存（ws）ごと1ファイル`server/dist/relay.mjs`にまとめてある（CIで最新か確認）。町の正本は`WORLD_FILE`のJSONに保存され、建築や売買は保存が終わってから確定を返す。壊れた保存ファイルがあると上書きせずに起動を止める。旧方式の招待ルームもサーバー側で動き続ける。
 
-EC2 Instance Connectで次を実行する（PRのブランチ名は`claude/project-thread-p9vaed`。マージ後は`main`に読み替える）。
+EC2 Instance Connectで次を実行する。中継は**いつも main の `server/dist/relay.mjs`** を取り直す（古いPRのブランチ名のURLを使わない）。
 
 ```sh
 cd /home/ec2-user/open-world-relay
 cp relay.mjs relay.mjs.bak
-curl -fsSLo relay.mjs https://raw.githubusercontent.com/mamamaki12/open-world/claude/project-thread-p9vaed/server/dist/relay.mjs
-sudo mkdir -p /var/lib/open-world && sudo chown ec2-user /var/lib/open-world
-sudo systemctl edit open-world-relay   # [Service] に Environment=WORLD_FILE=/var/lib/open-world/shared-world.json を追加
+curl -fsSLo relay.mjs https://raw.githubusercontent.com/mamamaki12/open-world/main/server/dist/relay.mjs
 sudo systemctl restart open-world-relay
 curl -fsS https://shingo-open-world.duckdns.org/health
+curl -fsS https://shingo-open-world.duckdns.org/version
 ```
 
-戻すときは`cp relay.mjs.bak relay.mjs && sudo systemctl restart open-world-relay`。サーバー更新が済むまで新しいWeb（このPR）はmainへマージしない。
+`/version` に main の `server/relay.mjs` の `RELAY_VERSION` と同じ文字が出れば更新できている（2026-10-24 より前の中継は `/version` が `not found`）。
+初めて共有ワールドを置くときだけ、`sudo mkdir -p /var/lib/open-world && sudo chown ec2-user /var/lib/open-world` と `sudo systemctl edit open-world-relay`（`[Service]` に `Environment=WORLD_FILE=/var/lib/open-world/shared-world.json`）も行う。
+
+戻すときは`cp relay.mjs.bak relay.mjs && sudo systemctl restart open-world-relay`。
 
 ## 引き継ぎ時の注意
 
