@@ -2,13 +2,13 @@
 
 ## 現在の状態
 
-- 状態: 検証待ち
-- PR: 作成中
-- 公開: 未公開
-- 残作業: PRのCI確認・マージ後、公開版で「Web版 1.0.0」の表示を確認。
+- 状態: 完了
+- PR: [#128](https://github.com/mamamaki12/open-world/pull/128)（マージ済み）
+- 公開: Pages 成功（2026-10-24、12aecfc、Web版 1.0.0）
+- 残作業: なし。
 - 将来の拡張・追加確認: なし。
 - 確認根拠: vitest 725件成功、npm run build で version.json が 1.0.0、scripts/check-app-version.mjs（PC/スマホ・更新あり/オフライン）成功。
-- 最終更新: 2026-10-23
+- 最終更新: 2026-10-24
 
 - ブランチ: claude/project-thread-oa34x3
 - 依頼: しんご「バージョンは英数字の混合文字列ではなく 1.12.5 のような表示にしてほしい。番号の管理は任せる」。
@@ -25,3 +25,4 @@
 
 - 2026-10-23: 計画を作成。
 - 2026-10-23: scripts/app-version.mjs を追加し vite.config.ts の version を置き換え。package.json を 1.0.0 に。deploy.yml に fetch-depth: 0。docs/versioning.md・CLAUDE.md・AGENTS.md にルール。
+- 2026-10-24: CI の runner を ubuntu-24.04 に固定（ubuntu-latest=26.04 で Playwright 非対応）。#128 マージ、Deploy run 40049065494 成功。
