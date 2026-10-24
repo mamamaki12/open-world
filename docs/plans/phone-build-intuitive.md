@@ -2,10 +2,10 @@
 
 ## 現在の状態
 
-- 状態: 作業中
-- PR: なし（作成予定）
+- 状態: 完了
+- PR: [#138](https://github.com/mamamaki12/open-world/pull/138)（マージ済み）
 - ブランチ: `claude/project-thread-jqeszm`
-- 残作業: PR の CI 確認とマージ
+- 残作業: なし
 - 確認根拠: scripts/check-phone-build-ux.mjs（390x844 / 844x390、CI の build-controls と同じジョブ）。check-build-controls / check-build-menu-layout / check-aim-controls も手元で通過
 - 最終更新: 2026-10-24
 
@@ -32,4 +32,4 @@
 ## 進み具合
 
 - 済: 点検、計画、1〜5 の実装、確認スクリプト。#137（削除ボタンを建てるの上に）と合わせ、削除を持っているときは「しまう」を出さない（削除ボタンの「やめる」で戻る）
-- 次: PR のマージ
+- 次: なし
