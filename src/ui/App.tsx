@@ -30,6 +30,7 @@ import { MapPanel } from './MapPanel';
 import { BuildChip, MoneyBar, useEconomyClock } from './MoneyBar';
 import { JobsPanel } from './jobs/JobsPanel';
 import { BuildButton, BuildMenu, EraseButton } from './BuildMenu';
+import { DragMeasure } from './DragMeasure';
 import { yen } from '../economy/money';
 import { useEconomy } from '../state/economy';
 import { Sheet, TouchCameraPad, TouchWalkControls } from './TouchControls';
@@ -145,7 +146,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
       {!walking && (
         <div className="touch-right">
           <EraseButton />
-          <BuildButton label={label} onOpen={() => setMenu(true)} />
+          <BuildButton label={label} onOpen={() => setMenu(true)} onPutAway={() => { useGame.getState().select(null); setTool('select'); }} />
           <TouchCameraPad />
         </div>
       )}
@@ -165,6 +166,7 @@ function TouchLayout({ walking }: { walking: boolean }) {
         </div>
       )}
       {!bare && <ControlsHelp />}
+      {!walking && <DragMeasure />}
       {bulkErase && !overlay && !menu && <div className={`touch-dock bulk-erase-dock${walking ? ' walking' : ''}`}><div className="panel"><EraseSelectionActions /></div></div>}
       {menu && <BuildMenu tools={TOOLS.filter((t) => t.id !== 'erase')} walking={walking} onClose={closeMenu} />}
     </>
@@ -232,9 +234,9 @@ function TouchHud() {
       <div className="touch-hud-row">
         <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>{iconText("☰")}</button>
         <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
-        <button className={`tool icon${holding?' history-label':''}`} disabled={!canUndo} onClick={undo} aria-label="取り消し">{iconText("↶")}{holding&&' 取り消す'}
+        <button className={`tool icon${holding?' history-label':''}`} disabled={!canUndo} onClick={undo} aria-label="取り消し">{iconText("↶")}{holding&&<span className="history-text"> 取り消す</span>}
         </button>
-        <button className={`tool icon${holding?' history-label':''}`} disabled={!canRedo} onClick={redo} aria-label="やり直し">{iconText("↷")}{holding&&' やり直す'}
+        <button className={`tool icon${holding?' history-label':''}`} disabled={!canRedo} onClick={redo} aria-label="やり直し">{iconText("↷")}{holding&&<span className="history-text"> やり直す</span>}
         </button>
       </div>
       {open && (

@@ -1,4 +1,4 @@
-import { iconText } from './AppIcon';
+import { AppIcon, iconText } from './AppIcon';
 // スマホ・タブレット用の画面ボタン：歩きモードのスティックと動作ボタン、建築モードのカメラボタン
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
@@ -186,10 +186,10 @@ export function TouchCameraPad() {
   return (
     <div className="touch-camera">
       <HoldButton label="左に回る" onHold={(on) => (touchCamera.turn = on ? 1 : 0)}>
-        {iconText("⟲")}
+        <AppIcon name="orbitLeft" />
       </HoldButton>
       <HoldButton label="右に回る" onHold={(on) => (touchCamera.turn = on ? -1 : 0)}>
-        {iconText("⟳")}
+        <AppIcon name="orbitRight" />
       </HoldButton>
       <HoldButton label="寄る" onHold={(on) => (touchCamera.zoom = on ? 1 : 0)}>
         {iconText("＋")}
