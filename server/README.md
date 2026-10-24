@@ -37,16 +37,20 @@ PlaywrightのChromiumを入れるか`PLAYWRIGHT_CHROMIUM_EXECUTABLE`で実行フ
 
 中継は`npm run build:server`で依存（ws）ごと1ファイル`server/dist/relay.mjs`にまとめてある（CIで最新か確認）。町の正本は`WORLD_FILE`のJSONに保存され、建築や売買は保存が終わってから確定を返す。壊れた保存ファイルがあると上書きせずに起動を止める。旧方式の招待ルームもサーバー側で動き続ける。
 
-EC2 Instance Connectで次を実行する。中継は**いつも main の `server/dist/relay.mjs`** を取り直す（古いPRのブランチ名のURLを使わない）。
+### いちばん簡単な更新（1行）
+
+1. https://console.aws.amazon.com/ec2/ を開き、右上のリージョンを「アジアパシフィック (シドニー)」にする。
+2. 左のメニューの「インスタンス」を押し、open-world の中継のインスタンスにチェックを入れる。
+3. 上の「接続」ボタン →「EC2 Instance Connect」タブ → 右下の「接続」を押す。黒い画面が開く。
+4. 次の1行を貼り付けて Enter。
 
 ```sh
-cd /home/ec2-user/open-world-relay
-cp relay.mjs relay.mjs.bak
-curl -fsSLo relay.mjs https://raw.githubusercontent.com/mamamaki12/open-world/main/server/dist/relay.mjs
-sudo systemctl restart open-world-relay
-curl -fsS https://shingo-open-world.duckdns.org/health
-curl -fsS https://shingo-open-world.duckdns.org/version
+curl -fsSL https://raw.githubusercontent.com/mamamaki12/open-world/main/server/update-relay.sh | sh
 ```
+
+5. 最後に `更新できました` と `version: …` が出れば完了。黒い画面は閉じてよい。
+
+中身は `server/update-relay.sh`（バックアップ→main の `server/dist/relay.mjs` を取得→再起動→確認）。手で打つ場合も、取得先は必ず main にする。
 
 `/version` に main の `server/relay.mjs` の `RELAY_VERSION` と同じ文字が出れば更新できている（2026-10-24 より前の中継は `/version` が `not found`）。
 初めて共有ワールドを置くときだけ、`sudo mkdir -p /var/lib/open-world && sudo chown ec2-user /var/lib/open-world` と `sudo systemctl edit open-world-relay`（`[Service]` に `Environment=WORLD_FILE=/var/lib/open-world/shared-world.json`）も行う。
