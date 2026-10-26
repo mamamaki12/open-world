@@ -140,14 +140,10 @@ export function MapPanel() {
             <rect x={-4000} y={-4000} width={WIDTH + 8000} height={HEIGHT + 8000} fill="url(#map-forest)" />
             <rect x={14} y={14} width={WIDTH - 28} height={HEIGHT - 28} fill="url(#map-grass)" />
             {TREES.map(([x, y], i) => <Tree key={'t' + i} x={x} y={y} />)}
-            {TOWN_ROADS.map((road, i) => {
-              const x = sx(road.x0), y = sy(road.z0), w = (road.x1 - road.x0) * SCALE, h = (road.z1 - road.z0) * SCALE, tall = h > w;
-              return <g key={i}>
-                <rect x={x - 3} y={y - 3} width={w + 6} height={h + 6} fill={C.curb} />
-                <rect x={x} y={y} width={w} height={h} fill={C.road} />
-                <path d={tall ? `M${x + w / 2 - 1} ${y}v${h}` : `M${x} ${y + h / 2 - 1}h${w}`} stroke={C.line} strokeWidth={2} strokeDasharray="8 8" />
-              </g>;
-            })}
+            {ROADS.map((r, i) => <rect key={'curb' + i} x={r.x - 3} y={r.y - 3} width={r.w + 6} height={r.h + 6} fill={C.curb} />)}
+            {ROADS.map((r, i) => <rect key={'road' + i} x={r.x} y={r.y} width={r.w} height={r.h} fill={C.road} />)}
+            <path d={ROAD_LINES} stroke={C.line} strokeWidth={2} strokeDasharray="8 8" fill="none" />
+            <path d={CROSSWALKS} fill={C.line} />
             {SHOP_PATHS.map((p, i) => <rect key={'walk-' + i} x={sx(p.x0)} y={sy(p.z0)} width={(p.x1 - p.x0) * SCALE} height={(p.z1 - p.z0) * SCALE} fill="url(#map-walk)" />)}
           </g>
           {plots.map(plot => {
@@ -234,6 +230,30 @@ function fitLabel(name: string, room: number, base: number) {
   if (size >= 6) return { text: name, size };
   return { text: name.slice(0, Math.max(1, Math.floor(room / 6) - 1)) + '…', size: 6 };
 }
+
+/** 道（地図の座標）。交差点では中央線を切り、手前に横断歩道を描く */
+const ROADS = TOWN_ROADS.map(r => { const x = sx(r.x0), y = sy(r.z0), w = (r.x1 - r.x0) * SCALE, h = (r.z1 - r.z0) * SCALE; return { x, y, w, h, tall: h > w }; });
+const crossings = (r: (typeof ROADS)[number]) => ROADS.filter(o => o.tall !== r.tall && o.x < r.x + r.w && o.x + o.w > r.x && o.y < r.y + r.h && o.y + o.h > r.y);
+const ROAD_LINES = ROADS.map(r => {
+  // 道の向きに沿って、交差する道の幅（＋横断歩道ぶん）を除いた区間だけ線を引く
+  const [start, end] = r.tall ? [r.y, r.y + r.h] : [r.x, r.x + r.w];
+  const cuts = crossings(r).map(o => r.tall ? [o.y - 12, o.y + o.h + 12] : [o.x - 12, o.x + o.w + 12]).sort((p, q) => p[0] - q[0]);
+  let d = '', from = start;
+  for (const [c0, c1] of [...cuts, [end, end]]) {
+    if (c0 - from > 8) d += r.tall ? `M${r.x + r.w / 2} ${from}V${c0}` : `M${from} ${r.y + r.h / 2}H${c0}`;
+    from = Math.max(from, c1);
+  }
+  return d;
+}).join('');
+const CROSSWALKS = ROADS.map(r => crossings(r).map(o => {
+  // 交差点の手前（両側）に、道を横切る白い縞
+  const bands = r.tall ? [o.y - 10, o.y + o.h + 3] : [o.x - 10, o.x + o.w + 3];
+  return bands.filter(b => r.tall ? b >= r.y && b + 7 <= r.y + r.h : b >= r.x && b + 7 <= r.x + r.w).map(b => {
+    let d = '';
+    for (let t = 3; t < (r.tall ? r.w : r.h) - 3; t += 5) d += r.tall ? `M${r.x + t} ${b}h3v7h-3z` : `M${b} ${r.y + t}h7v3h-7z`;
+    return d;
+  }).join('');
+}).join('')).join('');
 
 /** 町の外まわりに並べる木（道・お店・区画にかからない所だけ） */
 const TREES: [number, number][] = (() => {
