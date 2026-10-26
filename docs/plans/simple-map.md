@@ -25,5 +25,7 @@
 
 ## 進み具合
 
-- 済: 計画
-- 次: MapPanel 作り直し
+- 済: MapPanel 作り直し（全画面・ピンチ/ドラッグ/ホイール・吹き出しワープ）、warpToPlot、地図用の古いCSSの削除、バージョン 1.3.0
+- 済: 確認スクリプトを新画面に合わせた（check-official-shop-warp / check-town-shops / check-gameplay-regressions / check-shared-readiness / check-large-text をローカルで通過）
+- 未: check-player-shop は地図より前の手順（店の値段入力欄が2つに増えた）で main でも止まる。CI には入っていない
+- 次: PR・マージ

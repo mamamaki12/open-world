@@ -419,7 +419,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 }
 
 /* 町の地図：画面いっぱいの地図と、タップで出る小さな吹き出し */
-.overlay.map-screen { padding: 0; display: block; background: var(--pocket-ink, #29392f); }
+#root .overlay.map-screen { padding: 0; display: block; background: #c4d39e; }
 .map-canvas { position: absolute; inset: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
 .map-canvas > svg { display: block; touch-action: none; cursor: grab; }
 .map-canvas > svg:active { cursor: grabbing; }

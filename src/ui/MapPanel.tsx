@@ -56,7 +56,9 @@ export function MapPanel() {
     };
     window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
   }, [close]);
-  // 開いたとき・画面の向きが変わったときは町全体が入る大きさにする
+  const mx = plotX(here) + (walking ? playerMemory.x : LOT_W * GRID / 2);
+  const mz = plotZ(here) + (walking ? playerMemory.z : LOT_D * GRID / 2);
+  // 開いたとき・画面の向きが変わったときは町全体が入る大きさにする（すぐどのお店でもタップできる）
   useLayoutEffect(() => {
     const el = box.current; if (!el) return;
     const measure = () => {
@@ -76,7 +78,7 @@ export function MapPanel() {
     return { k, x: cx - (cx - v.x) * f, y: cy - (cy - v.y) * f };
   });
   const onDown = (e: ReactPointerEvent<SVGSVGElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* 捕まえられないポインターはそのまま */ }
     const p = local(e); points.current.set(e.pointerId, p);
     tap.current = points.current.size === 1 ? { ...p, moved: false, target: (e.target as Element).closest('[data-pick]') } : null;
   };
@@ -116,8 +118,6 @@ export function MapPanel() {
   });
 
   const plots = Array.from({ length: LAST_PLOT - FIRST_PLOT + 1 }, (_, i) => FIRST_PLOT + i);
-  const mx = plotX(here) + (walking ? playerMemory.x : LOT_W * GRID / 2);
-  const mz = plotZ(here) + (walking ? playerMemory.z : LOT_D * GRID / 2);
 
   return <div className="overlay map-screen" role="dialog" aria-label="🗺 町の地図">
     <div ref={box} className="map-canvas">
