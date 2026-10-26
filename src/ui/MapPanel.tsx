@@ -41,6 +41,7 @@ export function MapPanel() {
   const currentId = useEconomy(s => s.currentLotId), here = useCurrentPlot(), today = useEconomy(s => s.day);
   const shops = listedShops(lots, today);
   const shared = useSession(s => s.shared);
+  const reconnecting = useSession(s => s.status === 'reconnecting'), networkMessage = useSession(s => s.message);
   const mine = (lot: (typeof lots)[number]) => !lot.town && (!shared || lot.owner === savedBundle().profile.id);
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -168,6 +169,7 @@ export function MapPanel() {
       </svg>
       {pick && <MapPopup pick={pick} view={view} size={size} lots={lots} offers={offers} market={market} currentId={currentId} today={today} mine={mine} shared={shared} onClose={() => setPick(null)} />}
     </div>
+    {reconnecting && <p className="modal-network-warning map-network-warning" role="status">{networkMessage}</p>}
     <button className="map-close" onClick={() => close(null)} aria-label="閉じる">{iconText('✕')}</button>
   </div>;
 }
