@@ -44,7 +44,7 @@ async function captureDesktop() {
   await page.locator('.save > .tool').first().click();
   await page.waitForTimeout(200);
   await page.keyboard.press('m');
-  await waitForAttached(page, '.map-modal');
+  await waitForAttached(page, '.map-screen');
   await page.waitForTimeout(400);
   await page.screenshot({ path: join(outDir, `${prefix}-map-desktop.png`), fullPage: false });
 

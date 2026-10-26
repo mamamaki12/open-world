@@ -1,38 +1,39 @@
+// 町の地図：画面いっぱいに地図だけを出す。家・お店をタップすると小さな吹き出しが出て、そこからワープする
 import { iconText } from './AppIcon';
-import { useEffect, useRef, useState } from 'react';
-import { EXCHANGE } from '../building/exchange';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { SHOP_PATHS } from '../building/shopPaths';
 import { SHOPPING_AREAS } from '../building/shopSites';
-import { getLocation } from '../economy/market';
 import { offerPrice } from '../state/economy';
 import { yen } from '../economy/money';
 import { TOWN_HOUSE_PLOTS, townHouseDesign } from '../building/townHouses';
-import { CIVIC_SITE, FIRST_PLOT, LAST_PLOT, TOWN_BOUNDS, TOWN_ROADS, blockOf, districtOf, plotX, plotZ } from '../economy/town';
+import { CIVIC_SITE, FIRST_PLOT, LAST_PLOT, TOWN_BOUNDS, TOWN_ROADS, plotX, plotZ } from '../economy/town';
 import { joinCandidate, lotCells, lotPlots, useCurrentPlot, useEconomy } from '../state/economy';
 import { useGame } from '../state/store';
-import { playerMemory, warpToLot, warpToVenue } from '../world/Player';
+import { playerMemory, warpToLot, warpToPlot, warpToVenue } from '../world/Player';
 import { VENUES, VENUE_KINDS } from '../building/venues';
+import type { Venue } from '../building/venues';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
-import { DEALER } from '../building/dealer';
-import { TUNER } from '../building/tuner';
-import { SALON } from '../building/salon';
-import { CASINO, ESTATE } from '../building/landmarks';
-import { BOUTIQUES, BOUTIQUE_IDS, BOUTIQUE_INFO } from '../building/boutiques';
+import { BOUTIQUE_IDS } from '../building/boutiques';
 import type { BoutiqueId } from '../building/boutiques';
-import { Modal } from './Modal';
 import { listedShops } from '../economy/shop';
 import type { Shop } from '../economy/shop';
 import { useSession } from '../session/session';
 import { savedBundle } from '../session/saves';
 
 /** イベントの日の書き方 */
-const eventLine = (shop: Shop, today: number) => shop.event && shop.event.day >= today ? `📅 ${shop.event.day === today ? '今日' : `${shop.event.day}日目`}「${shop.event.title}」${shop.event.note ? ` ${shop.event.note}` : ''}` : '';
+const eventLine = (shop: Shop, today: number) => shop.event && shop.event.day >= today ? `📅 ${shop.event.day === today ? '今日' : `${shop.event.day}日目`}「${shop.event.title}」` : '';
 
 const SCALE = 3.2, PAD = 28;
 const sx = (x: number) => PAD + (x - TOWN_BOUNDS.x0 + 12) * SCALE;
 const sy = (z: number) => PAD + (z - TOWN_BOUNDS.z0 + 28) * SCALE;
 const WIDTH = sx(TOWN_BOUNDS.x1 + 35) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 35) + PAD;
-type Pick = { kind: 'plot'; plot: number } | { kind: 'casino' | 'estate' | 'dealer' | 'tuner' | 'exchange' | 'salon' } | { kind: 'boutique'; id: BoutiqueId } | null;
+/** 地図に書く公式のお店の短い名前（服屋はまとめて「服」） */
+const SHORT: Partial<Record<Venue, string>> = { casino: 'CASINO', estate: '不動産屋', dealer: '車', tuner: 'カスタム', exchange: '証券', salon: '美容室' };
+const C = { grass: '#c4d39e', road: '#4f5d4c', curb: '#9aa883', walk: '#e2dfc4', lot: '#e8e8cd', mine: '#f5f0dc', town: '#dfe1c0', empty: '#d3dcae', ink: '#29392f', muted: '#59694f', red: '#9b4150', green: '#3e634c', gold: '#d4ac55', boutique: '#80566b' };
+
+type Pick = ({ kind: 'plot'; plot: number } | { kind: 'venue'; venue: Venue }) & { ax: number; ay: number };
+type View = { k: number; x: number; y: number };
 
 export function MapPanel() {
   const close = useGame(s => s.setOverlay), walking = useGame(s => s.mode === 'walk');
@@ -41,107 +42,168 @@ export function MapPanel() {
   const shops = listedShops(lots, today);
   const shared = useSession(s => s.shared);
   const mine = (lot: (typeof lots)[number]) => !lot.town && (!shared || lot.owner === savedBundle().profile.id);
-  const myLots = lots.filter(mine);
-  const map = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState(1);
-  const [pick, setPick] = useState<Pick>({ kind: 'plot', plot: here });
+  const box = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
+  const [pick, setPick] = useState<Pick | null>(null);
+  const fit = size.w ? Math.min(size.w / WIDTH, size.h / HEIGHT) : 1;
+  const clampK = useCallback((k: number) => Math.min(fit * 6, Math.max(fit * 0.8, k)), [fit]);
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.code === 'KeyM' && !(e.target instanceof HTMLInputElement)) close(null); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return;
+      if (e.code === 'KeyM' || e.key === 'Escape') close(null);
+    };
     window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
   }, [close]);
+  // 開いたとき・画面の向きが変わったときは町全体が入る大きさにする
+  useLayoutEffect(() => {
+    const el = box.current; if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth, h = el.clientHeight, k = Math.min(w / WIDTH, h / HEIGHT);
+      setSize({ w, h }); setView({ k, x: (w - WIDTH * k) / 2, y: (h - HEIGHT * k) / 2 });
+    };
+    measure();
+    const ro = new ResizeObserver(measure); ro.observe(el); return () => ro.disconnect();
+  }, []);
+
+  // 指1本で移動、2本でピンチ。動かさずに離したらタップ（その場所の家・お店を選ぶ）
+  const points = useRef(new Map<number, { x: number; y: number }>());
+  const tap = useRef<{ x: number; y: number; moved: boolean; target: Element | null } | null>(null);
+  const local = (e: { clientX: number; clientY: number }) => { const r = box.current!.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const zoomAt = (cx: number, cy: number, factor: number) => setView(v => {
+    const k = clampK(v.k * factor), f = k / v.k;
+    return { k, x: cx - (cx - v.x) * f, y: cy - (cy - v.y) * f };
+  });
+  const onDown = (e: ReactPointerEvent<SVGSVGElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const p = local(e); points.current.set(e.pointerId, p);
+    tap.current = points.current.size === 1 ? { ...p, moved: false, target: (e.target as Element).closest('[data-pick]') } : null;
+  };
+  const onMove = (e: ReactPointerEvent<SVGSVGElement>) => {
+    const prev = points.current.get(e.pointerId); if (!prev) return;
+    const p = local(e);
+    if (points.current.size >= 2) {
+      const other = [...points.current.entries()].find(([id]) => id !== e.pointerId)![1];
+      const d0 = Math.hypot(prev.x - other.x, prev.y - other.y), d1 = Math.hypot(p.x - other.x, p.y - other.y);
+      const m0 = { x: (prev.x + other.x) / 2, y: (prev.y + other.y) / 2 }, m1 = { x: (p.x + other.x) / 2, y: (p.y + other.y) / 2 };
+      setView(v => {
+        const k = clampK(v.k * (d0 > 0 ? d1 / d0 : 1)), f = k / v.k;
+        return { k, x: m1.x - (m0.x - v.x) * f, y: m1.y - (m0.y - v.y) * f };
+      });
+    } else {
+      const t = tap.current;
+      if (t && !t.moved && Math.hypot(p.x - t.x, p.y - t.y) > 6) t.moved = true;
+      if (!t || t.moved) setView(v => ({ ...v, x: v.x + p.x - prev.x, y: v.y + p.y - prev.y }));
+    }
+    points.current.set(e.pointerId, p);
+  };
+  const onUp = (e: ReactPointerEvent<SVGSVGElement>) => {
+    if (!points.current.delete(e.pointerId)) return;
+    const t = tap.current; tap.current = null;
+    if (e.type !== 'pointerup' || !t || t.moved) return;
+    choose(t.target);
+  };
+  const choose = (el: Element | null) => {
+    const key = el?.getAttribute('data-pick');
+    if (!key) { setPick(null); return; }
+    const [kind, id] = key.split(':'), ax = Number(el!.getAttribute('data-ax')), ay = Number(el!.getAttribute('data-ay'));
+    setPick(kind === 'plot' ? { kind, plot: Number(id), ax, ay } : { kind: 'venue', venue: id as Venue, ax, ay });
+  };
+  const pickable = (key: string, ax: number, ay: number, label: string) => ({
+    'data-pick': key, 'data-ax': ax, 'data-ay': ay, role: 'button', tabIndex: 0, 'aria-label': label,
+    onKeyDown: (e: React.KeyboardEvent<SVGGElement>) => { if (e.key === 'Enter') choose(e.currentTarget); },
+  });
+
   const plots = Array.from({ length: LAST_PLOT - FIRST_PLOT + 1 }, (_, i) => FIRST_PLOT + i);
-  const selectedLot = pick?.kind === 'plot' ? lots.find(l => lotPlots(l).includes(pick.plot)) : undefined;
-  const joinWith = selectedLot ? joinCandidate(lots, selectedLot.id) : null;
-  const selectedOffer = pick?.kind === 'plot' ? offers.find(o => o.plot === pick.plot) : undefined;
   const mx = plotX(here) + (walking ? playerMemory.x : LOT_W * GRID / 2);
   const mz = plotZ(here) + (walking ? playerMemory.z : LOT_D * GRID / 2);
-  const centerHere = () => {
-    setZoom(2);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const el = map.current, svg = el?.querySelector('svg');
-      if (!el || !svg) return;
-      const ratio = svg.getBoundingClientRect().width / WIDTH;
-      el.scrollTo({left: sx(mx) * ratio - el.clientWidth / 2, top: sy(mz) * ratio - el.clientHeight / 2, behavior: 'smooth'});
-    }));
-  };
-  return <Modal title="🗺 町の地図" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="map-modal">
-    <div className="map-legend"><span><i className="sw owned" />あなたの家・土地</span>{shared && <span><i className="sw" style={{ background: '#d9d6cf' }} />ほかの人の家・土地</span>}<span><i className="sw sale" />売り土地</span><span><i className="sw me" />現在地</span><span>{iconText("📍お店・イベント")}</span><button className="btn small" onClick={() => close('jobs')}>{iconText("💼 バイトをする")}</button><button className="btn small" onClick={() => close('requests')}>{iconText("🤝 依頼")}</button></div>
-    <p className="info">西の商店街には服屋・不動産屋・証券取引所・美容室、北側には2つの服屋があります。南側はカジノと車のお店が並びます。</p>
-    <div className="map-controls" aria-label="地図の表示">
-      <button className="btn" onClick={() => { setZoom(1); map.current?.scrollTo(0, 0); }}>全体</button>
-      <button className="btn" aria-label="地図を拡大" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, z + .5))}>{iconText("＋ 拡大")}</button>
-      <button className="btn" aria-label="地図を縮小" disabled={zoom <= 1} onClick={() => setZoom(z => Math.max(1, z - .5))}>{iconText("－ 縮小")}</button>
-      <button className="btn" onClick={centerHere}>現在地</button>
-    </div>
-    <p className="info">拡大すると指で上下左右に動かせます。家・売地・店舗をタップして詳細を表示します。</p>
-    <div ref={map} className="map-scroll" style={{ maxHeight: '55vh', overflow: 'auto' }}>
-      <svg width={`${zoom * 100}%`} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} style={{ minWidth: 0, maxWidth: 'none', display: 'block', background: '#e7ebdf', borderRadius: 10 }} role="img" aria-label="8ブロックに32区画が並ぶ町の地図">
-        {TOWN_ROADS.map((road, i) => <g key={i}>
-          <rect x={sx(road.x0 - 0.8)} y={sy(road.z0 - 0.8)} width={(road.x1 - road.x0 + 1.6) * SCALE} height={(road.z1 - road.z0 + 1.6) * SCALE} fill="#c1c6bd" />
-          <rect x={sx(road.x0)} y={sy(road.z0)} width={(road.x1 - road.x0) * SCALE} height={(road.z1 - road.z0) * SCALE} fill="#657075" />
-        </g>)}
-        {SHOP_PATHS.map((p, i) => <rect key={'walk-'+i} x={sx(p.x0)} y={sy(p.z0)} width={(p.x1-p.x0)*SCALE} height={(p.z1-p.z0)*SCALE} fill="#c9c3b7"/>)}
-        {SHOPPING_AREAS.map(a => <text key={a.name} x={sx(a.x)} y={sy(a.z)} textAnchor="middle" fontSize={8} fill="#526456">{a.name}</text>)}
-        {plots.map(plot => {
-          // つなげた土地は西の区画で2区画ぶんの幅に描き、東の区画は描かない
-          if (lots.some(l => l.joined === plot)) return null;
-          const lot = lots.find(l => l.plot === plot), offer = offers.find(o => o.plot === plot);
-          const owned = lot && mine(lot);
-          const w = lotCells(lot).w * GRID;
-          const picked = pick?.kind === 'plot' && pick.plot === plot;
-          const resident = !lot && !offer ? townHouseDesign(TOWN_HOUSE_PLOTS[plot] ?? '') : undefined;
-          const name = lot ? lot.name.replace(/（.*）$/, '') : offer ? '売地' : resident ? resident.name : '区画';
-          const district = districtOf(plot);
-          const label = fitLabel(name, w * SCALE - 6, lot ? 7 : 9);
-          return <g key={plot} role="button" aria-label={name} tabIndex={0} onClick={() => setPick({ kind: 'plot', plot })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind: 'plot', plot }); }} style={{ cursor: 'pointer' }}>
-            <rect x={sx(plotX(plot))} y={sy(plotZ(plot))} width={w * SCALE} height={LOT_D * GRID * SCALE} rx={3}
-              fill={owned ? '#e0e9f2' : lot ? '#d9d6cf' : offer ? '#fff4d8' : resident ? '#d9d6cf' : district?.color ?? '#dce2d5'} stroke={picked ? '#255db1' : owned ? '#7897ae' : '#bdc6b6'} strokeWidth={picked ? 3 : 1} />
-            {lot && <path d="M-9 0 L0 -8 L9 0 L7 0 L7 10 L-7 10 L-7 0 Z" transform={`translate(${sx(plotX(plot) + w / 2)},${sy(plotZ(plot) + 5)})`} fill="#457591" />}
-            <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + (lot ? 12 : 9))} textAnchor="middle" fontSize={label.size} fill={offer ? '#ac4c30' : '#3a5553'}>{label.text}</text>
-            <text x={sx(plotX(plot) + w / 2)} y={sy(plotZ(plot) + 16)} textAnchor="middle" fontSize={6} fill="#78877c">BLOCK {String(blockOf(plot) + 1).padStart(2, '0')} · {plot - FIRST_PLOT + 1}</text>
-          </g>;
-        })}
-        {[{ kind: 'casino' as const, box: CASINO, label: 'GRAND STRIP' }, { kind: 'estate' as const, box: ESTATE, label: '不動産屋' }, { kind: 'dealer' as const, box: DEALER, label: '車販売' }, { kind: 'tuner' as const, box: TUNER, label: 'カスタム' }, { kind: 'exchange' as const, box: EXCHANGE, label: '証券' }, { kind: 'salon' as const, box: SALON, label: '美容室' }].map(({ kind, box, label }) => <g key={kind} role="button" tabIndex={0} aria-label={label} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind }); }}>
-          <rect x={sx(CIVIC_SITE.x + box.x0)} y={sy(CIVIC_SITE.z + box.z0)} width={(box.x1 - box.x0) * SCALE} height={(box.z1 - box.z0) * SCALE} rx={3} fill={kind === 'casino' ? '#755743' : '#34777a'} stroke={pick?.kind === kind ? '#f6bf4d' : '#fff9'} strokeWidth={2} />
-          <text x={sx(CIVIC_SITE.x + (box.x0 + box.x1) / 2)} y={sy(CIVIC_SITE.z + (box.z0 + box.z1) / 2)} textAnchor="middle" fontSize={kind === 'casino' ? 8 : 7} fill="#fff">{label}</text>
-        </g>)}
-        {BOUTIQUE_IDS.map(id => { const box = BOUTIQUES[id]; const on = pick?.kind === 'boutique' && pick.id === id; return <g key={id} role="button" tabIndex={0} aria-label={BOUTIQUE_INFO[id].name} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind: 'boutique', id })} onKeyDown={e => { if (e.key === 'Enter') setPick({ kind: 'boutique', id }); }}>
-          <rect x={sx(CIVIC_SITE.x + box.x0)} y={sy(CIVIC_SITE.z + box.z0)} width={(box.x1 - box.x0) * SCALE} height={(box.z1 - box.z0) * SCALE} rx={3} fill="#a0567a" stroke={on ? '#f6bf4d' : '#fff9'} strokeWidth={2} />
-          <text x={sx(CIVIC_SITE.x + (box.x0 + box.x1) / 2)} y={sy(CIVIC_SITE.z + (box.z0 + box.z1) / 2)} textAnchor="middle" fontSize={6} fill="#fff">服</text>
-        </g>; })}
-        {shops.map(l => typeof l.plot === 'number' && <g key={`pin-${l.id}`} transform={`translate(${sx(plotX(l.plot) + 2)},${sy(plotZ(l.plot) + 2)})`} role="button" aria-label={`お店 ${l.shop.name}`} style={{ cursor: 'pointer' }} onClick={() => setPick({ kind: 'plot', plot: l.plot! })}>
-          <path d="M0 0 C-6 -8 -6 -14 0 -14 C6 -14 6 -8 0 0 Z" fill={l.shop.event && l.shop.event.day >= today ? '#d63a2f' : '#e07b1f'} stroke="#fff" strokeWidth={1.2} /><circle cy={-9.5} r={2.2} fill="#fff" />
-        </g>)}
-        <g transform={`translate(${sx(mx)},${sy(mz)})`}><circle r={6} fill="#2470dd" stroke="#fff" strokeWidth={2} /><circle r={11} fill="#2470dd22" /></g>
-        <text x={WIDTH - 30} y={28} textAnchor="end" fontSize={12} fill="#526456">{"N ↑"}</text>
+
+  return <div className="overlay map-screen" role="dialog" aria-label="🗺 町の地図">
+    <div ref={box} className="map-canvas">
+      <svg width="100%" height="100%" role="img" aria-label="8ブロックに32区画が並ぶ町の地図"
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        onWheel={e => { const p = local(e); zoomAt(p.x, p.y, e.deltaY < 0 ? 1.15 : 1 / 1.15); }}>
+        <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
+          <rect width={WIDTH} height={HEIGHT} rx={14} fill={C.grass} />
+          {TOWN_ROADS.map((road, i) => <g key={i}>
+            <rect x={sx(road.x0 - 0.8)} y={sy(road.z0 - 0.8)} width={(road.x1 - road.x0 + 1.6) * SCALE} height={(road.z1 - road.z0 + 1.6) * SCALE} fill={C.curb} />
+            <rect x={sx(road.x0)} y={sy(road.z0)} width={(road.x1 - road.x0) * SCALE} height={(road.z1 - road.z0) * SCALE} fill={C.road} />
+          </g>)}
+          {SHOP_PATHS.map((p, i) => <rect key={'walk-' + i} x={sx(p.x0)} y={sy(p.z0)} width={(p.x1 - p.x0) * SCALE} height={(p.z1 - p.z0) * SCALE} fill={C.walk} />)}
+          {SHOPPING_AREAS.map(a => <text key={a.name} x={sx(a.x)} y={sy(a.z)} textAnchor="middle" fontSize={8} fontWeight={700} fill={C.muted}>{a.name}</text>)}
+          {plots.map(plot => {
+            // つなげた土地は西の区画で2区画ぶんの幅に描き、東の区画は描かない
+            if (lots.some(l => l.joined === plot)) return null;
+            const lot = lots.find(l => l.plot === plot), offer = offers.find(o => o.plot === plot);
+            const owned = lot && mine(lot);
+            const w = lotCells(lot).w * GRID;
+            const picked = pick?.kind === 'plot' && (pick.plot === plot || (lot && lotPlots(lot).includes(pick.plot)));
+            const resident = !lot && !offer ? townHouseDesign(TOWN_HOUSE_PLOTS[plot] ?? '') : undefined;
+            const name = lot ? lot.name.replace(/（.*）$/, '') : offer ? '売地' : resident ? resident.name : '空き地';
+            const label = fitLabel(name, w * SCALE - 6, 8);
+            const cx = sx(plotX(plot) + w / 2), top = sy(plotZ(plot));
+            return <g key={plot} {...pickable(`plot:${plot}`, cx, top + 4, name)} style={{ cursor: 'pointer' }}>
+              <rect x={sx(plotX(plot))} y={top} width={w * SCALE} height={LOT_D * GRID * SCALE} rx={3}
+                fill={owned ? C.mine : lot ? C.lot : offer ? C.mine : resident ? C.town : C.empty}
+                stroke={picked ? C.gold : owned ? C.green : offer ? C.red : '#a9b48c'} strokeWidth={picked ? 3 : owned ? 2 : 1} strokeDasharray={offer && !picked ? '4 3' : undefined} />
+              {(lot || resident) && <path d="M-8 0 L0 -7 L8 0 L6 0 L6 8 L-6 8 L-6 0 Z" transform={`translate(${cx},${sy(plotZ(plot) + 6)})`} fill={owned ? C.green : C.muted} />}
+              <text x={cx} y={sy(plotZ(plot) + (lot || resident ? 13 : 9))} textAnchor="middle" fontSize={label.size} fill={offer ? C.red : C.ink}>{label.text}</text>
+            </g>;
+          })}
+          {VENUE_KINDS.map(kind => {
+            const v = VENUES[kind], boutique = BOUTIQUE_IDS.includes(kind as BoutiqueId), on = pick?.kind === 'venue' && pick.venue === kind;
+            const cx = sx(CIVIC_SITE.x + (v.x0 + v.x1) / 2), cy = sy(CIVIC_SITE.z + (v.z0 + v.z1) / 2);
+            return <g key={kind} {...pickable(`venue:${kind}`, cx, sy(CIVIC_SITE.z + v.z0), v.name)} style={{ cursor: 'pointer' }}>
+              <rect x={sx(CIVIC_SITE.x + v.x0)} y={sy(CIVIC_SITE.z + v.z0)} width={(v.x1 - v.x0) * SCALE} height={(v.z1 - v.z0) * SCALE} rx={3}
+                fill={kind === 'casino' ? C.red : boutique ? C.boutique : C.green} stroke={on ? C.gold : '#f5f0dc'} strokeWidth={on ? 3 : 1.5} />
+              <text x={cx} y={cy + 3} textAnchor="middle" fontSize={boutique ? 7 : 8} fontWeight={700} fill="#f5f0dc">{SHORT[kind] ?? '服'}</text>
+            </g>;
+          })}
+          {shops.map(l => typeof l.plot === 'number' && <g key={`pin-${l.id}`} {...pickable(`plot:${l.plot}`, sx(plotX(l.plot) + 2), sy(plotZ(l.plot) + 2) - 14, `お店 ${l.shop.name}`)} transform={`translate(${sx(plotX(l.plot) + 2)},${sy(plotZ(l.plot) + 2)})`} style={{ cursor: 'pointer' }}>
+            <path d="M0 0 C-6 -8 -6 -14 0 -14 C6 -14 6 -8 0 0 Z" fill={l.shop.event && l.shop.event.day >= today ? C.red : '#c9772e'} stroke="#fff" strokeWidth={1.2} /><circle cy={-9.5} r={2.2} fill="#fff" />
+          </g>)}
+          <g transform={`translate(${sx(mx)},${sy(mz)})`} pointerEvents="none"><circle r={12} fill="#2470dd33" /><circle r={6} fill="#2470dd" stroke="#fff" strokeWidth={2} /></g>
+        </g>
       </svg>
+      {pick && <MapPopup pick={pick} view={view} size={size} lots={lots} offers={offers} market={market} currentId={currentId} today={today} mine={mine} shared={shared} onClose={() => setPick(null)} />}
     </div>
-    <div className="map-detail card">
-      {selectedLot ? <><h3>{selectedLot.name}</h3><p className="muted">{getLocation(selectedLot.location).name}・{selectedLot.construction ? '工事中' : selectedLot.built ? '家あり' : '土地'}</p>{selectedLot.shop && <div className="map-shop"><b>{iconText("🏪 ")}{selectedLot.shop.name}</b>{selectedLot.shop.flyer && <p>{selectedLot.shop.flyer}</p>}{eventLine(selectedLot.shop, today) && <p>{iconText(eventLine(selectedLot.shop, today))}</p>}</div>}<button className="btn primary" onClick={() => warpToLot(selectedLot.id)}>{selectedLot.id === currentId ? 'この家の前に戻る' : selectedLot.shop ? 'このお店へワープ' : 'この家へワープ'}</button>
-        {typeof selectedLot.joined === 'number' && <p className="info">隣の区画とつなげた広い土地です。</p>}
-        {joinWith && <button className="btn" onClick={() => { const err = useEconomy.getState().joinLots(selectedLot.id); if (err) useGame.getState().notify(err); }}>{iconText("🔗 隣の「")}{joinWith.name.replace(/（.*）$/, '')}」とつなげる</button>}</>
-      : selectedOffer ? <><h3>売り土地：{selectedOffer.name}</h3><p>価格 {yen(offerPrice(selectedOffer, market))}</p><p className="info">看板の前でFを押すと、この土地を購入できます。不動産屋でも購入できます。</p></>
-      : pick?.kind === 'casino' || pick?.kind === 'estate' || pick?.kind === 'dealer' || pick?.kind === 'tuner' || pick?.kind === 'exchange' || pick?.kind === 'salon' ? <><h3>{pick.kind === 'casino' ? 'GRAND STRIP CASINO' : pick.kind === 'dealer' ? 'AVENUE MOTORS' : pick.kind === 'tuner' ? 'STANCE GARAGE（車のカスタム）' : pick.kind === 'exchange' ? 'まち証券取引所（実際の株価で売買）' : pick.kind === 'salon' ? 'HAIR SALON LUCE（美容室）' : 'まちの不動産'}</h3><p>地図に表示された店舗へ歩いて入れます。入口のドアは近づくと自動で開きます。</p><button className="btn primary" onClick={() => warpToVenue(pick.kind)}>このお店へワープ</button></>
-      : pick?.kind === 'boutique' ? <><h3>{BOUTIQUE_INFO[pick.id].name}</h3><p className="muted">服屋さん・{BOUTIQUE_INFO[pick.id].tier}</p><p>{pick.id === 'maison' ? '北のブティック通り' : pick.id === 'urban' ? '北東のストリートショップ' : '西の商店街'}にあります。中で服を選んで試着・購入できます。</p><button className="btn primary" onClick={() => warpToVenue(pick.id)}>このお店へワープ</button></>
-      : pick?.kind === 'plot' && townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot] ?? '') ? <><h3>{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.name}</h3><p className="muted">ほかの住人の家・{townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot])!.model}</p></>
-      : <p className="muted">地図の家・土地・店舗を選んでください。</p>}
-    </div>
-    <section className="map-mylots map-official"><div className="card-title">公式のお店（{VENUE_KINDS.length}）</div><ul>
-      {VENUE_KINDS.map(kind => <li key={kind}><button className="link-btn" onClick={() => setPick(BOUTIQUE_IDS.includes(kind as BoutiqueId) ? { kind: 'boutique', id: kind as BoutiqueId } : { kind: kind as 'casino' })}>{VENUES[kind].name}</button>
-        <button className="btn small" onClick={() => warpToVenue(kind)}>ワープ</button></li>)}
-    </ul></section>
-    {shops.length > 0 && <section className="map-mylots map-shops"><div className="card-title">お店・イベント（{shops.length}）</div><ul>
-      {shops.map(l => <li key={l.id}><button className="link-btn" onClick={() => setPick({ kind: 'plot', plot: l.plot ?? here })}>{iconText("🏪 ")}{l.shop.name}</button>
-        {(l.shop.flyer || eventLine(l.shop, today)) && <small className="muted">{eventLine(l.shop, today) || l.shop.flyer}</small>}
-        <button className="btn small" onClick={() => warpToLot(l.id)}>ワープ</button></li>)}
-    </ul></section>}
-    {shared && selectedLot && <p className="info">所有者：{mine(selectedLot) ? 'あなた' : selectedLot.ownerName || 'ほかのプレイヤー'}</p>}
-    <section className="map-mylots"><div className="card-title">あなたの家・土地（{myLots.length}）</div><ul>
-      {myLots.map(lot => <li key={lot.id}><button className="link-btn" onClick={() => setPick({ kind: 'plot', plot: lot.plot ?? here })}>{lot.name}</button><button className="btn small" onClick={() => warpToLot(lot.id)}>ワープ</button></li>)}
-    </ul></section>
-  </Modal>;
+    <button className="map-close" onClick={() => close(null)} aria-label="閉じる">{iconText('✕')}</button>
+  </div>;
 }
 
+type Eco = ReturnType<typeof useEconomy.getState>;
+function MapPopup({ pick, view, size, lots, offers, market, currentId, today, mine, shared, onClose }: {
+  pick: Pick; view: View; size: { w: number; h: number }; lots: Eco['lots']; offers: Eco['offers']; market: Eco['market'];
+  currentId: string | null; today: number; mine: (lot: Eco['lots'][number]) => boolean; shared: boolean; onClose: () => void;
+}) {
+  // 吹き出しは選んだ物の上に出す。画面の上や端にはみ出すときは下・内側にずらす
+  const px = view.x + pick.ax * view.k, py = view.y + pick.ay * view.k;
+  const left = Math.min(Math.max(px, 120), Math.max(120, size.w - 120)), below = py < 120;
+  let title = '', sub = '', warp: (() => void) | null = null, extra = null;
+  if (pick.kind === 'venue') {
+    title = VENUES[pick.venue].name; warp = () => warpToVenue(pick.venue);
+  } else {
+    const lot = lots.find(l => lotPlots(l).includes(pick.plot)), offer = offers.find(o => o.plot === pick.plot);
+    const resident = townHouseDesign(TOWN_HOUSE_PLOTS[pick.plot] ?? '');
+    if (lot) {
+      title = lot.shop ? lot.shop.name : lot.name.replace(/（.*）$/, '');
+      sub = lot.shop ? (eventLine(lot.shop, today) || lot.shop.flyer || '') : shared ? (mine(lot) ? 'あなたの家' : `持ち主：${lot.ownerName || 'ほかのプレイヤー'}`) : lot.id === currentId ? 'いまの家' : '';
+      warp = () => warpToLot(lot.id);
+      const joinWith = mine(lot) ? joinCandidate(lots, lot.id) : null;
+      if (joinWith) extra = <button className="btn small" onClick={() => { const err = useEconomy.getState().joinLots(lot.id); if (err) useGame.getState().notify(err); onClose(); }}>{iconText('🔗 隣とつなげる')}</button>;
+    } else if (offer) {
+      title = `売地：${offer.name}`; sub = yen(offerPrice(offer, market)); warp = () => warpToPlot(pick.plot, offer.name);
+    } else {
+      title = resident ? resident.name : '空き地'; warp = () => warpToPlot(pick.plot, title);
+    }
+  }
+  return <div className={`map-pop${below ? ' below' : ''}`} style={{ left, top: below ? py + 18 : py - 8 }} role="dialog" aria-label={title}>
+    <b>{title}</b>
+    {sub && <small>{iconText(sub)}</small>}
+    <div className="map-pop-actions">{extra}{warp && <button className="btn primary small" onClick={warp}>ワープ</button>}</div>
+  </div>;
+}
 
 /** 区画の名前を枠の幅に収める：文字を小さくし、それでも入らなければ末尾を「…」にする（和文1文字 ≒ 文字サイズ分の幅） */
 function fitLabel(name: string, room: number, base: number) {

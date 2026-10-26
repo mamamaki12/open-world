@@ -273,8 +273,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .touch-actions .view { grid-area: a; }
 .touch .touch-actions .reset { grid-area: b; }
 .touch .joystick-hint { white-space: nowrap; }
-.touch .map-controls { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
-.touch .map-scroll { touch-action: pan-x pan-y; }
 .touch .scroll-hint { font-size: 12px; margin: 4px 0; }
 .touch .dealer-models { max-height: 180px; }
 .touch .dealer-intro { font-size: 22px; margin-top: 0; }

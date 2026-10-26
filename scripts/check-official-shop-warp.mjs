@@ -1,4 +1,4 @@
-// 地図の「公式のお店」から各店の入口前へワープできる（PC・スマホ）
+// 地図で公式のお店をタップ→吹き出しの「ワープ」で各店の入口前へワープできる（PC・スマホ）
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -17,8 +17,8 @@ try {
     for (const kind of kinds) {
       await page.evaluate(() => window.__ow.game.getState().setOverlay('map'));
       const label = await page.evaluate(async k => (await import('/src/building/venues.ts')).VENUES[k].name, kind);
-      const row = page.locator('.map-official li').filter({ hasText: label });
-      await row.getByRole('button', { name: 'ワープ', exact: true }).click();
+      await page.locator('.map-canvas svg').getByRole('button', { name: label, exact: true }).click();
+      await page.locator('.map-pop').getByRole('button', { name: 'ワープ', exact: true }).click();
       const r = await page.evaluate(async k => {
         const { venueEntrance } = await import('/src/building/venues.ts');
         const o = (await import('/src/state/economy.ts')).civicOffset(), p = venueEntrance(k, 3), g = window.__ow.game.getState();
@@ -28,7 +28,8 @@ try {
       if (kind === 'casino' || kind === 'maison') { await page.waitForTimeout(1500); await page.screenshot({ path: `${out}/${name}-${kind}.png` }); }
     }
     await page.evaluate(() => window.__ow.game.getState().setOverlay('map'));
-    await page.getByRole('button', { name: 'まちの不動産', exact: true }).first().click();
+    await page.locator('.map-canvas svg').getByRole('button', { name: 'まちの不動産', exact: true }).click();
+    await page.locator('.map-pop').waitFor();
     await page.screenshot({ path: `${out}/${name}-map.png` });
     await page.close();
   }

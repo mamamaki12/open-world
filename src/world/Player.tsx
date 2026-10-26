@@ -152,6 +152,24 @@ export function warpToVenue(kind: Venue) {
   game.notify(`📍 ${VENUES[kind].name} の前にワープしました`);
 }
 
+/** 地図で選んだ区画（売地・町の家など）の前の道へワープする。いまの土地はそのままで、歩きモードにする */
+export function warpToPlot(plot: number, name: string) {
+  const game = useGame.getState();
+  const here = currentPlotOf(useEconomy.getState());
+  parkVehicle();
+  useVenue.setState({inside:null});
+  useSeating.setState({ seated: null, target: null, returnTo: null });
+  game.setOverlay(null);
+  if (game.mode !== 'walk') game.setMode('walk');
+  playerMemory.x = plotX(plot) - plotX(here) + (LOT_W * GRID) / 2;
+  playerMemory.y = 0;
+  playerMemory.z = plotZ(plot) - plotZ(here) + LOT_D * GRID + 0.9;
+  playerMemory.yaw = 0;
+  playerMemory.bodyYaw = 0;
+  playerMemory.pitch = game.view === 'first' ? 0 : THIRD_PITCH;
+  game.notify(`📍 ${name} の前にワープしました`);
+}
+
 /** 原点の土地の外にあるもの（カジノ・ほかの持っている家）にぶつかったら押し戻す */
 function resolveTown(p: { x: number; z: number }, feetY: number, height: number) {
   const s = useEconomy.getState();
