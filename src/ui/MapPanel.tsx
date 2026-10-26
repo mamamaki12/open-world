@@ -30,7 +30,9 @@ const sy = (z: number) => PAD + (z - TOWN_BOUNDS.z0 + 28) * SCALE;
 const WIDTH = sx(TOWN_BOUNDS.x1 + 35) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 35) + PAD;
 /** 地図に書く公式のお店の短い名前（服屋はまとめて「服」） */
 const SHORT: Partial<Record<Venue, string>> = { casino: 'CASINO', estate: '不動産屋', dealer: '車', tuner: 'カスタム', exchange: '証券', salon: '美容室' };
-const C = { grass: '#c4d39e', road: '#4f5d4c', curb: '#9aa883', walk: '#e2dfc4', lot: '#e8e8cd', mine: '#f5f0dc', town: '#dfe1c0', empty: '#d3dcae', ink: '#29392f', muted: '#59694f', red: '#9b4150', green: '#3e634c', gold: '#d4ac55', boutique: '#80566b' };
+// 携帯ゲーム機の画面に合わせた少ない色（くすんだ緑の濃淡＋紙色。赤と金は目印だけ）
+const C = { grass: '#c4d39e', tuft: '#a5ba80', yard: '#d5e0ad', road: '#4a5945', curb: '#8fa66e', line: '#e6e2c3', walk: '#e8e3c6', walkDot: '#cfc9a6',
+  paper: '#f5f0dc', ink: '#29392f', muted: '#59694f', dark: '#3e634c', mid: '#71806a', leaf: '#5f7d4f', leafHi: '#7f9a62', red: '#9b4150', gold: '#d4ac55', plum: '#80566b', roofMine: '#c08a3e' };
 
 type Pick = ({ kind: 'plot'; plot: number } | { kind: 'venue'; venue: Venue }) & { ax: number; ay: number };
 type View = { k: number; x: number; y: number };
@@ -118,6 +120,7 @@ export function MapPanel() {
     onKeyDown: (e: React.KeyboardEvent<SVGGElement>) => { if (e.key === 'Enter') choose(e.currentTarget); },
   });
 
+  const zoomed = view.k >= fit * 1.7;
   const plots = Array.from({ length: LAST_PLOT - FIRST_PLOT + 1 }, (_, i) => FIRST_PLOT + i);
 
   return <div className="overlay map-screen" role="dialog" aria-label="🗺 町の地図">
@@ -125,46 +128,64 @@ export function MapPanel() {
       <svg width="100%" height="100%" role="img" aria-label="8ブロックに32区画が並ぶ町の地図"
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
         onWheel={e => { const p = local(e); zoomAt(p.x, p.y, e.deltaY < 0 ? 1.15 : 1 / 1.15); }}>
-        <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
-          <rect width={WIDTH} height={HEIGHT} rx={14} fill={C.grass} />
-          {TOWN_ROADS.map((road, i) => <g key={i}>
-            <rect x={sx(road.x0 - 0.8)} y={sy(road.z0 - 0.8)} width={(road.x1 - road.x0 + 1.6) * SCALE} height={(road.z1 - road.z0 + 1.6) * SCALE} fill={C.curb} />
-            <rect x={sx(road.x0)} y={sy(road.z0)} width={(road.x1 - road.x0) * SCALE} height={(road.z1 - road.z0) * SCALE} fill={C.road} />
-          </g>)}
-          {SHOP_PATHS.map((p, i) => <rect key={'walk-' + i} x={sx(p.x0)} y={sy(p.z0)} width={(p.x1 - p.x0) * SCALE} height={(p.z1 - p.z0) * SCALE} fill={C.walk} />)}
-          {SHOPPING_AREAS.map(a => <text key={a.name} x={sx(a.x)} y={sy(a.z)} textAnchor="middle" fontSize={8} fontWeight={700} fill={C.muted}>{a.name}</text>)}
+        <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`} fontFamily="inherit">
+          <defs>
+            <pattern id="map-grass" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill={C.grass} /><path d="M2 3h1v1H2zM3 2h1v1H3zM4 3h1v1H4zM8 9h1v1H8zM9 8h1v1H9zM10 9h1v1h-1z" fill={C.tuft} /></pattern>
+            <pattern id="map-yard" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill={C.yard} /><rect x="1" y="1" width="1" height="1" fill={C.tuft} /></pattern>
+            <pattern id="map-forest" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill={C.grass} />
+              <g transform="translate(8 13) scale(1.8)"><path d="M-2 -6h4v1h1v1h1v3h-1v1h-1v1h-4v-1h-1v-1h-1v-3h1v-1h1z" fill={C.leaf} stroke={C.ink} strokeWidth={0.5} /><path d="M-1 -5h2v1h-2zM-2 -4h1v1h-1z" fill={C.leafHi} /></g></pattern>
+            <pattern id="map-walk" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill={C.walk} /><path d="M0 0h4v4H0zM4 4h4v4H4z" fill={C.walkDot} /></pattern>
+          </defs>
+          <g shapeRendering="crispEdges">
+            <rect x={-4000} y={-4000} width={WIDTH + 8000} height={HEIGHT + 8000} fill="url(#map-forest)" />
+            <rect x={14} y={14} width={WIDTH - 28} height={HEIGHT - 28} fill="url(#map-grass)" />
+            {TREES.map(([x, y], i) => <Tree key={'t' + i} x={x} y={y} />)}
+            {TOWN_ROADS.map((road, i) => {
+              const x = sx(road.x0), y = sy(road.z0), w = (road.x1 - road.x0) * SCALE, h = (road.z1 - road.z0) * SCALE, tall = h > w;
+              return <g key={i}>
+                <rect x={x - 3} y={y - 3} width={w + 6} height={h + 6} fill={C.curb} />
+                <rect x={x} y={y} width={w} height={h} fill={C.road} />
+                <path d={tall ? `M${x + w / 2 - 1} ${y}v${h}` : `M${x} ${y + h / 2 - 1}h${w}`} stroke={C.line} strokeWidth={2} strokeDasharray="8 8" />
+              </g>;
+            })}
+            {SHOP_PATHS.map((p, i) => <rect key={'walk-' + i} x={sx(p.x0)} y={sy(p.z0)} width={(p.x1 - p.x0) * SCALE} height={(p.z1 - p.z0) * SCALE} fill="url(#map-walk)" />)}
+          </g>
           {plots.map(plot => {
             // つなげた土地は西の区画で2区画ぶんの幅に描き、東の区画は描かない
             if (lots.some(l => l.joined === plot)) return null;
             const lot = lots.find(l => l.plot === plot), offer = offers.find(o => o.plot === plot);
-            const owned = lot && mine(lot);
-            const w = lotCells(lot).w * GRID;
+            const owned = !!lot && mine(lot);
+            const w = lotCells(lot).w * GRID * SCALE, h = LOT_D * GRID * SCALE;
             const picked = pick?.kind === 'plot' && (pick.plot === plot || (lot && lotPlots(lot).includes(pick.plot)));
             const resident = !lot && !offer ? townHouseDesign(TOWN_HOUSE_PLOTS[plot] ?? '') : undefined;
             const name = lot ? lot.name.replace(/（.*）$/, '') : offer ? '売地' : resident ? resident.name : '空き地';
-            const label = fitLabel(name, w * SCALE - 6, 8);
-            const cx = sx(plotX(plot) + w / 2), top = sy(plotZ(plot));
-            return <g key={plot} {...pickable(`plot:${plot}`, cx, top + 4, name)} style={{ cursor: 'pointer' }}>
-              <rect x={sx(plotX(plot))} y={top} width={w * SCALE} height={LOT_D * GRID * SCALE} rx={3}
-                fill={owned ? C.mine : lot ? C.lot : offer ? C.mine : resident ? C.town : C.empty}
-                stroke={picked ? C.gold : owned ? C.green : offer ? C.red : '#a9b48c'} strokeWidth={picked ? 3 : owned ? 2 : 1} strokeDasharray={offer && !picked ? '4 3' : undefined} />
-              {(lot || resident) && <path d="M-8 0 L0 -7 L8 0 L6 0 L6 8 L-6 8 L-6 0 Z" transform={`translate(${cx},${sy(plotZ(plot) + 6)})`} fill={owned ? C.green : C.muted} />}
-              <text x={cx} y={sy(plotZ(plot) + (lot || resident ? 13 : 9))} textAnchor="middle" fontSize={label.size} fill={offer ? C.red : C.ink}>{label.text}</text>
+            const x = sx(plotX(plot)), y = sy(plotZ(plot)), cx = x + w / 2;
+            const tall = !!resident && /マンション|アパート|レジデンス|ハイツ/.test(resident.name);
+            const label = fitLabel(name, w - 6, 7);
+            return <g key={plot} {...pickable(`plot:${plot}`, cx, y + 6, name)} style={{ cursor: 'pointer' }}>
+              <rect x={x} y={y} width={w} height={h} fill={lot || resident ? 'url(#map-yard)' : 'url(#map-grass)'} stroke={C.mid} strokeWidth={1} shapeRendering="crispEdges" />
+              {lot || resident ? (tall ? <Tower x={cx} y={y + h * 0.5} /> : <House x={cx} y={y + h * 0.52} roof={owned ? C.roofMine : lot ? C.red : C.dark} />)
+                : offer ? <SaleSign x={cx} y={y + h * 0.5} /> : <><Tree x={x + w * 0.3} y={y + h * 0.45} small /><Tree x={x + w * 0.68} y={y + h * 0.62} small /></>}
+              {owned && <Flag x={x + w - 12} y={y + 6} />}
+              {zoomed && !offer && <g pointerEvents="none"><rect x={cx - label.text.length * label.size / 2 - 3} y={y + h - 13} width={label.text.length * label.size + 6} height={label.size + 4} fill={C.paper} stroke={C.ink} strokeWidth={0.8} />
+                <text x={cx} y={y + h - 13 + label.size + 0.5} textAnchor="middle" fontSize={label.size} fill={offer ? C.red : C.ink}>{label.text}</text></g>}
+              {picked && <rect className="map-picked" x={x + 1.5} y={y + 1.5} width={w - 3} height={h - 3} fill="none" stroke={C.gold} strokeWidth={3} strokeDasharray="10 6" />}
             </g>;
           })}
+          {SHOPPING_AREAS.map(a => <Plate key={a.name} x={sx(a.x)} y={sy(a.z) + 5} text={a.name} size={6.5} />)}
           {VENUE_KINDS.map(kind => {
             const v = VENUES[kind], boutique = BOUTIQUE_IDS.includes(kind as BoutiqueId), on = pick?.kind === 'venue' && pick.venue === kind;
-            const cx = sx(CIVIC_SITE.x + (v.x0 + v.x1) / 2), cy = sy(CIVIC_SITE.z + (v.z0 + v.z1) / 2);
-            return <g key={kind} {...pickable(`venue:${kind}`, cx, sy(CIVIC_SITE.z + v.z0), v.name)} style={{ cursor: 'pointer' }}>
-              <rect x={sx(CIVIC_SITE.x + v.x0)} y={sy(CIVIC_SITE.z + v.z0)} width={(v.x1 - v.x0) * SCALE} height={(v.z1 - v.z0) * SCALE} rx={3}
-                fill={kind === 'casino' ? C.red : boutique ? C.boutique : C.green} stroke={on ? C.gold : '#f5f0dc'} strokeWidth={on ? 3 : 1.5} />
-              <text x={cx} y={cy + 3} textAnchor="middle" fontSize={boutique ? 7 : 8} fontWeight={700} fill="#f5f0dc">{SHORT[kind] ?? '服'}</text>
+            const x = sx(CIVIC_SITE.x + v.x0), y = sy(CIVIC_SITE.z + v.z0), w = (v.x1 - v.x0) * SCALE, h = (v.z1 - v.z0) * SCALE;
+            return <g key={kind} {...pickable(`venue:${kind}`, x + w / 2, y, v.name)} style={{ cursor: 'pointer' }}>
+              <Shop x={x} y={y} w={w} h={h} wall={kind === 'casino' ? C.red : boutique ? C.plum : C.dark} awning={kind === 'casino' ? C.gold : C.paper} label={SHORT[kind] ?? '服'} star={kind === 'casino'} />
+              {on && <rect className="map-picked" x={x - 3} y={y - 3} width={w + 6} height={h + 6} fill="none" stroke={C.gold} strokeWidth={3} strokeDasharray="10 6" />}
             </g>;
           })}
-          {shops.map(l => typeof l.plot === 'number' && <g key={`pin-${l.id}`} {...pickable(`plot:${l.plot}`, sx(plotX(l.plot) + 2), sy(plotZ(l.plot) + 2) - 14, `お店 ${l.shop.name}`)} transform={`translate(${sx(plotX(l.plot) + 2)},${sy(plotZ(l.plot) + 2)})`} style={{ cursor: 'pointer' }}>
-            <path d="M0 0 C-6 -8 -6 -14 0 -14 C6 -14 6 -8 0 0 Z" fill={l.shop.event && l.shop.event.day >= today ? C.red : '#c9772e'} stroke="#fff" strokeWidth={1.2} /><circle cy={-9.5} r={2.2} fill="#fff" />
+          {shops.map(l => typeof l.plot === 'number' && <g key={`pin-${l.id}`} {...pickable(`plot:${l.plot}`, sx(plotX(l.plot) + 3), sy(plotZ(l.plot) + 1), `お店 ${l.shop.name}`)} transform={`translate(${sx(plotX(l.plot) + 3)},${sy(plotZ(l.plot) + 1)})`} style={{ cursor: 'pointer' }} shapeRendering="crispEdges">
+            <rect x={-1} y={0} width={2} height={18} fill={C.ink} /><rect x={1} y={0} width={12} height={8} fill={l.shop.event && l.shop.event.day >= today ? C.red : C.gold} stroke={C.ink} strokeWidth={1} />
           </g>)}
-          <g transform={`translate(${sx(mx)},${sy(mz)})`} pointerEvents="none"><circle r={12} fill="#2470dd33" /><circle r={6} fill="#2470dd" stroke="#fff" strokeWidth={2} /></g>
+          <Compass x={34} y={34} />
+          <g transform={`translate(${sx(mx)},${sy(mz)})`} pointerEvents="none"><Me /></g>
         </g>
       </svg>
       {pick && <MapPopup pick={pick} view={view} size={size} lots={lots} offers={offers} market={market} currentId={currentId} today={today} mine={mine} shared={shared} onClose={() => setPick(null)} />}
@@ -212,4 +233,108 @@ function fitLabel(name: string, room: number, base: number) {
   const size = Math.min(base, room / name.length);
   if (size >= 6) return { text: name, size };
   return { text: name.slice(0, Math.max(1, Math.floor(room / 6) - 1)) + '…', size: 6 };
+}
+
+/** 町の外まわりに並べる木（道・お店・区画にかからない所だけ） */
+const TREES: [number, number][] = (() => {
+  const busy = [
+    ...TOWN_ROADS.map(r => [sx(r.x0) - 6, sy(r.z0) - 6, sx(r.x1) + 6, sy(r.z1) + 6]),
+    ...SHOP_PATHS.map(p => [sx(p.x0) - 4, sy(p.z0) - 4, sx(p.x1) + 4, sy(p.z1) + 4]),
+    ...VENUE_KINDS.map(k => { const v = VENUES[k]; return [sx(CIVIC_SITE.x + v.x0) - 8, sy(CIVIC_SITE.z + v.z0) - 14, sx(CIVIC_SITE.x + v.x1) + 8, sy(CIVIC_SITE.z + v.z1) + 8]; }),
+    ...SHOPPING_AREAS.map(a => [sx(a.x) - 50, sy(a.z) - 14, sx(a.x) + 50, sy(a.z) + 6]),
+    [0, 0, 60, 60],
+  ];
+  const out: [number, number][] = [];
+  for (let y = 26; y < HEIGHT - 16; y += 18) for (let x = 24 + ((y / 18) % 2) * 9; x < WIDTH - 16; x += 18) {
+    if ((x * 7 + y * 13) % 5 === 0) continue;
+    if (busy.some(([x0, y0, x1, y1]) => x > x0 - 8 && x < x1 + 8 && y > y0 - 10 && y < y1 + 6)) continue;
+    const inTown = x > sx(TOWN_BOUNDS.x0) && x < sx(TOWN_BOUNDS.x1) && y > sy(TOWN_BOUNDS.z0) && y < sy(TOWN_BOUNDS.z1);
+    if (!inTown) out.push([x, y]);
+  }
+  return out;
+})();
+
+function Tree({ x, y, small }: { x: number; y: number; small?: boolean }) {
+  const u = small ? 1.6 : 2;
+  return <g transform={`translate(${x} ${y}) scale(${u})`} shapeRendering="crispEdges" pointerEvents="none">
+    <path d="M-2 -6h4v1h1v1h1v3h-1v1h-1v1h-4v-1h-1v-1h-1v-3h1v-1h1z" fill={C.leaf} stroke={C.ink} strokeWidth={0.5} />
+    <path d="M-1 -5h2v1h-2zM-2 -4h1v1h-1z" fill={C.leafHi} />
+    <rect x={-0.5} y={-1} width={1} height={2} fill={C.ink} />
+  </g>;
+}
+
+function House({ x, y, roof }: { x: number; y: number; roof: string }) {
+  return <g transform={`translate(${x - 21} ${y - 18}) scale(3)`} shapeRendering="crispEdges" pointerEvents="none">
+    <rect x={1} y={11.5} width={12} height={1} fill={C.ink} opacity={0.25} />
+    <path d="M1 5h12v7H1z" fill={C.paper} stroke={C.ink} strokeWidth={0.5} />
+    <path d="M5 0h4v1h2v1h2v1h1v2H0V3h1V2h2V1h2z" fill={roof} stroke={C.ink} strokeWidth={0.5} />
+    <rect x={6} y={8} width={2} height={4} fill={C.ink} />
+    <rect x={2.5} y={6.5} width={2} height={2} fill={C.grass} stroke={C.ink} strokeWidth={0.3} />
+    <rect x={9.5} y={6.5} width={2} height={2} fill={C.grass} stroke={C.ink} strokeWidth={0.3} />
+  </g>;
+}
+
+function Tower({ x, y }: { x: number; y: number }) {
+  return <g transform={`translate(${x - 15} ${y - 22}) scale(3)`} shapeRendering="crispEdges" pointerEvents="none">
+    <rect x={0} y={0} width={10} height={14} fill={C.paper} stroke={C.ink} strokeWidth={0.5} />
+    <rect x={0} y={0} width={10} height={2} fill={C.mid} stroke={C.ink} strokeWidth={0.5} />
+    {[3, 6, 9].map(r => [1.5, 4.5, 7.5].map(c => <rect key={`${r}-${c}`} x={c} y={r} width={1.5} height={1.5} fill={C.dark} />))}
+    <rect x={4} y={11.5} width={2} height={2.5} fill={C.ink} />
+  </g>;
+}
+
+function SaleSign({ x, y }: { x: number; y: number }) {
+  return <g transform={`translate(${x} ${y})`} shapeRendering="crispEdges" pointerEvents="none">
+    <rect x={-1.5} y={-2} width={3} height={14} fill={C.ink} />
+    <rect x={-11} y={-14} width={22} height={14} fill={C.paper} stroke={C.red} strokeWidth={2} />
+    <text y={-3.5} textAnchor="middle" fontSize={9} fontWeight={700} fill={C.red}>売地</text>
+  </g>;
+}
+
+function Flag({ x, y }: { x: number; y: number }) {
+  return <g transform={`translate(${x} ${y})`} shapeRendering="crispEdges" pointerEvents="none">
+    <rect x={0} y={0} width={1.5} height={12} fill={C.ink} /><path d="M1.5 0h8v3h-2v1h2v3h-8z" fill={C.gold} stroke={C.ink} strokeWidth={0.6} />
+  </g>;
+}
+
+function Shop({ x, y, w, h, wall, awning, label, star }: { x: number; y: number; w: number; h: number; wall: string; awning: string; label: string; star?: boolean }) {
+  const stripes = Math.max(2, Math.round(w / 8));
+  return <g shapeRendering="crispEdges">
+    <rect x={x + 2} y={y + 3} width={w} height={h} fill={C.ink} opacity={0.3} />
+    <rect x={x} y={y} width={w} height={h} fill={wall} stroke={C.ink} strokeWidth={1.5} />
+    <rect x={x} y={y} width={w} height={Math.min(6, h / 4)} fill={C.ink} opacity={0.35} />
+    {Array.from({ length: stripes }, (_, i) => <rect key={i} x={x + (w / stripes) * i} y={y + h - 6} width={w / stripes} height={6} fill={i % 2 ? wall : awning} stroke={C.ink} strokeWidth={0.6} />)}
+    {star && [0.2, 0.8].map(f => <path key={f} transform={`translate(${x + w * f} ${y + h * 0.45})`} d="M-1 -4h2v3h3v2h-3v3h-2v-3h-3v-2h3z" fill={C.gold} />)}
+    <Plate x={x + w / 2} y={y + h / 2 - 1} text={label} size={label.length > 3 ? 6.5 : 8} />
+  </g>;
+}
+
+/** 看板（紙色の板に濃い緑の縁と文字） */
+function Plate({ x, y, text, size }: { x: number; y: number; text: string; size: number }) {
+  const w = [...text].reduce((n, ch) => n + (ch.charCodeAt(0) < 128 ? 0.62 : 1), 0) * size + 6;
+  return <g pointerEvents="none" shapeRendering="crispEdges">
+    <rect x={x - w / 2} y={y - size / 2 - 2.5} width={w} height={size + 5} fill={C.paper} stroke={C.ink} strokeWidth={1} />
+    <text x={x} y={y + size * 0.36} textAnchor="middle" fontSize={size} fontWeight={700} fill={C.ink}>{text}</text>
+  </g>;
+}
+
+function Compass({ x, y }: { x: number; y: number }) {
+  return <g transform={`translate(${x} ${y})`} shapeRendering="crispEdges" pointerEvents="none">
+    <rect x={-15} y={-15} width={30} height={30} fill={C.paper} stroke={C.ink} strokeWidth={1.5} />
+    <path d="M0 -11l4 9h-8z" fill={C.red} /><path d="M0 11l4 -9h-8z" fill={C.mid} />
+    <text y={4} textAnchor="middle" fontSize={8} fontWeight={700} fill={C.ink}>N</text>
+  </g>;
+}
+
+/** 現在地：点滅する輪と、ドット絵の人 */
+function Me() {
+  return <g shapeRendering="crispEdges">
+    <rect className="map-me-ring" x={-13} y={-13} width={26} height={26} fill="none" stroke={C.red} strokeWidth={2} strokeDasharray="6 4" />
+    <g transform="translate(-6 -9) scale(2)">
+      <path d="M2 0h2v1h1v2H1V1h1z" fill={C.ink} />
+      <rect x={1.5} y={2} width={3} height={2} fill={C.paper} stroke={C.ink} strokeWidth={0.4} />
+      <rect x={1} y={4} width={4} height={3} fill={C.red} stroke={C.ink} strokeWidth={0.4} />
+      <rect x={1.5} y={7} width={1.2} height={2} fill={C.ink} /><rect x={3.3} y={7} width={1.2} height={2} fill={C.ink} />
+    </g>
+  </g>;
 }
