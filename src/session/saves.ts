@@ -9,7 +9,7 @@ import { emptyHouse } from '../building/types';
 import { sessionGate, visitingWorld } from './gate';
 import { useDoors } from '../state/doors';
 import { cleanMods } from '../catalog/carMods';
-import { readSave, writeSave } from './database';
+import { clearSave, readSave, writeSave } from './database';
 import { validWallet } from './wallet';
 import type { WalletSync } from './wallet';
 import { restoreLooks, useLooks } from '../state/looks';
@@ -148,6 +148,17 @@ export function downloadBackup() {
   const a = document.createElement('a'); a.href = url; a.download = 'open-world-backup.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+/** 読み込めなかった保存データを、そのまま書き出す（消す前に手元へ残せるように）。データが無ければ false。 */
+export async function downloadRawSave(): Promise<boolean> {
+  const raw = await readSave<unknown>();
+  if (raw === undefined) return false;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(raw)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = 'open-world-save-raw.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+}
+/** 開始画面の復旧用：読み込めない保存を本人が選んだときだけ消す。 */
+export { clearSave };
 /** 所持金と服は共通。共有ワールドの車は個別ワールドへ持ち込まない。 */
 function personalProfile(): GuestProfile {
   const now = captureProfile(bundle.profile.id, bundle.profile.name);
