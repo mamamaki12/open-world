@@ -13183,6 +13183,8 @@ function applyCommand(w, sender, c, name = "\u30B2\u30B9\u30C8") {
     const done = applyAction(w, sender, name, c, c.action);
     if (typeof done === "string") return fail(done);
     const world = { ...done.world, receipts: { ...receipts, [c.id]: { sender, cost: done.cost } } };
+    if (!["money", "cars", "stocks"].includes(c.action.type) && JSON.stringify(world).length > 18e5)
+      return fail("\u3053\u306E\u753A\u306E\u4FDD\u5B58\u91CF\u304C\u4E0A\u9650\u306B\u9054\u3057\u305F\u305F\u3081\u3001\u3053\u306E\u64CD\u4F5C\u3092\u78BA\u5B9A\u3067\u304D\u307E\u305B\u3093");
     return { world, result: { id: c.id, ok: true, cost: done.cost, message: done.message }, changed: true };
   }
   try {
@@ -13247,7 +13249,7 @@ function validSharedWorld(v) {
 }
 
 // server/relay.mjs
-var RELAY_VERSION = "2026-10-24 \u3060\u308C\u3067\u3082\u5EFA\u7BC9\u30FB\u753A\u306E\u5BB6";
+var RELAY_VERSION = "2026-11-04 \u753A\u306E\u4FDD\u5B58\u91CF\u306B\u4E0A\u9650";
 async function saveWorld(file, world) {
   if (!file) return;
   const tmp = file + ".tmp", handle = await open(tmp, "w");

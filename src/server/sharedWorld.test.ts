@@ -85,6 +85,23 @@ describe('shared world', () => {
     const s = applyCommand(w, 'a', { id: 'c2', lot: lot.id, delta: [], reserved: 0, settle: true });
     expect(applyCommand(s.world, 'a', { id: 'c2', lot: lot.id, delta: addFloor(w, lot.id), reserved: 1e9 }).result.ok).toBe(false);
   });
+  it('refuses actions that would grow the shared town past the save-size ceiling', () => {
+    let w = withAccount(initialSharedWorld('w'), 'a', 'A');
+    w.accounts!.a.money = 1e13;
+    for (const offer of [...w.economy.offers]) w = ok(w, 'a', { id: 'buy-' + offer.id, lot: '', delta: [], reserved: 1e12, action: { type: 'buyLand', offer: offer.id } });
+    const lots = w.economy.lots.filter(l => l.owner === 'a');
+    const photo = 'data:image/jpeg;base64,' + 'A'.repeat(59000);
+    const items = Array.from({ length: 12 }, (_, k) => ({ id: 'it' + k, name: 'n' + k, price: 1000, description: '', photo }));
+    let rejected = 0;
+    for (const lot of lots) {
+      const r = applyCommand(w, 'a', { id: 'shop-' + lot.id, lot: lot.id, delta: [], reserved: 0, action: { type: 'shop', shop: { name: 'S', items } } }, 'a');
+      if (r.result.ok) w = r.world; else rejected++;
+    }
+    expect(rejected).toBeGreaterThan(0); // 全部は入らず、どこかで上限で止まる
+    expect(JSON.stringify(w).length).toBeLessThanOrEqual(1800000);
+    // 口座だけの更新は上限に関係なく通る
+    expect(applyCommand(w, 'a', { id: 'm1', lot: '', delta: [], reserved: 0, action: { type: 'money', delta: 1, label: 'x' } }, 'a').result.ok).toBe(true);
+  });
   it('advances days, the market and land offers', () => {
     const t = tickWorld(initialSharedWorld('w'), 61, Math.random);
     expect(t.newDay).toBe(true);
