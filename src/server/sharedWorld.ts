@@ -255,6 +255,10 @@ export function applyCommand(w: SharedWorld, sender: string, c: SharedCommand, n
     const done = applyAction(w, sender, name, c, c.action);
     if (typeof done === 'string') return fail(done);
     const world = { ...done.world, receipts: { ...receipts, [c.id]: { sender, cost: done.cost } } };
+    // 土地やお店を増やす操作は、町の正本（保存・全員へ配信）を無制限に太らせられる。建築と同じ上限で止める。
+    // 口座だけの更新（所持金・車・株）は上限に関係なく頻繁に起きるので、重いサイズ計算の対象から外す。
+    if (!['money', 'cars', 'stocks'].includes(c.action.type) && JSON.stringify(world).length > 1800000)
+      return fail('この町の保存量が上限に達したため、この操作を確定できません');
     return { world, result: { id: c.id, ok: true, cost: done.cost, message: done.message }, changed: true };
   }
   try {

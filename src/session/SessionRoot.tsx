@@ -7,13 +7,14 @@ import { useTouchDevice } from '../ui/useTouchDevice';
 import { VersionStatus } from '../ui/VersionStatus';
 import { useBuildMenu } from '../state/controls';
 import { PocketTitle } from '../ui/PocketTitle';
-import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave } from './saves';
+import { initializeSave, savedBundle, renameGuest, downloadBackup, importSave, downloadRawSave, clearSave } from './saves';
 import { allowBuilding, joinShared, currentEndpoint, enterOffline, leaveWorld, startSessionTimers, useSession } from './session';
 
 let initialization: Promise<void> | undefined;
 const initialRelay = () => new URLSearchParams(location.search).get('relay') || localStorage.getItem('open-world:relay') || import.meta.env.VITE_WORLD_RELAY || (import.meta.env.DEV ? 'ws://127.0.0.1:8787' : '');
 export function SessionRoot() {
   const [ready, setReady] = useState(false), [failure, setFailure] = useState('');
+  const [clearing, setClearing] = useState(false), [recover, setRecover] = useState('');
   const screen = useSession(s => s.screen);
   const replaced = useSession(s => s.replaced);
   useEffect(() => { let alive = true; initialization ??= initializeSave();
@@ -23,12 +24,24 @@ export function SessionRoot() {
   useEffect(() => { if (ready) return startSessionTimers(); }, [ready]);
   // Existing regression scripts deliberately bypass the launcher in development only.
   useEffect(() => { if (ready && import.meta.env.DEV && new URLSearchParams(location.search).get('play') === '1') void enterOffline(); }, [ready]);
-  if (!ready) return <main className="world-launch"><section className="world-card"><h1>OPEN WORLD</h1><p>{failure || 'ワールドを読み込んでいます…'}</p>{failure && <p>このブラウザの保存領域を利用できるか確認してください。既存セーブは削除していません。</p>}</section></main>;
+  // 保存データが読み込めないときは詰みになりやすいので、手元へ書き出す・消して始め直す復旧手段を出す。
+  const corrupt = !!failure && failure.includes('保存データを読み込めません');
+  if (!ready) return <main className="world-launch"><section className="world-card"><h1>OPEN WORLD</h1><p>{failure || 'ワールドを読み込んでいます…'}</p>{failure && <p>このブラウザの保存領域を利用できるか確認してください。既存セーブは削除していません。</p>}
+    {corrupt && <>
+      <div className="world-actions">
+        <button onClick={() => void downloadRawSave().then(got => setRecover(got ? '保存データを書き出しました。' : '書き出せる保存データが見つかりませんでした。')).catch(() => setRecover('書き出せませんでした。'))}>保存データを書き出す</button>
+        <button onClick={() => { if (!clearing) { setClearing(true); return; } void clearSave().then(() => location.reload()).catch(() => setRecover('消せませんでした。ブラウザのサイトデータから削除してください。')); }}>{clearing ? 'もう一度押すと消して始め直します' : 'このデータを消して始め直す'}</button>
+      </div>
+      <p className="world-note">まず「書き出す」で手元に残してから消すと安全です。消すと、この端末のワールド・所持金・見た目が最初の状態に戻ります（スロットに保存した家は残ります）。</p>
+      {recover && <p className="world-error" role="status">{recover}</p>}
+    </>}
+  </section></main>;
   return screen === 'menu' ? <Launcher/> : <>{!replaced && <App/>}<SessionHud/></>;
 }
 function Launcher() {
   const profile = savedBundle().profile, [name, setName] = useState(profile.name), [relay, setRelay] = useState(initialRelay);
   const [error, setError] = useState(''), [working, setWorking] = useState(false);
+  const [pendingImport, setPendingImport] = useState<{ name: string; text: string } | null>(null);
   const state = useSession();
   const run = async (action: () => Promise<void>) => { setWorking(true); setError(''); try { await renameGuest(name); localStorage.setItem('open-world:relay', relay); await action(); } catch (e) { setError(e instanceof Error ? e.message : '開始できませんでした'); } finally { setWorking(false); } };
   return <main className="world-launch">
@@ -55,8 +68,15 @@ function Launcher() {
         <label className="world-field">オンライン接続先<input value={relay} onChange={e => setRelay(e.target.value)} placeholder="wss://…" type="url"/></label>
         <div className="world-actions">
           <button onClick={downloadBackup}>バックアップを書き出す</button>
-          <label className="world-import">バックアップを読み込む<input type="file" accept="application/json,.json" onChange={e => { const f = e.target.files?.[0]; if (!f) return; if (f.size > 10e6) return setError('バックアップは10MBまでです'); void run(async () => { await importSave(await f.text()); setName(savedBundle().profile.name); }); }}/></label>
+          <label className="world-import">バックアップを読み込む<input type="file" accept="application/json,.json" onChange={e => { const f = e.target.files?.[0]; const input = e.currentTarget; if (!f) return; if (f.size > 10e6) { input.value = ''; return setError('バックアップは10MBまでです'); } setError(''); void f.text().then(text => setPendingImport({ name: f.name, text })).catch(() => setError('ファイルを読めませんでした')).finally(() => { input.value = ''; }); }}/></label>
         </div>
+        {pendingImport && <div className="world-import-confirm">
+          <p className="world-note">「{pendingImport.name}」を読み込むと、今このブラウザにあるワールド・所持金・見た目は上書きされます。</p>
+          <div className="world-actions">
+            <button className="world-primary" disabled={working} onClick={() => { const text = pendingImport.text; setPendingImport(null); void run(async () => { await importSave(text); setName(savedBundle().profile.name); }); }}>上書きして読み込む</button>
+            <button disabled={working} onClick={() => setPendingImport(null)}>やめる</button>
+          </div>
+        </div>}
       </details>
       <p className="world-note">ログイン不要。データはこのブラウザに保存されます。</p>
       {!!savedBundle().pending?.length && <p className="world-note">精算待ちの建築が{savedBundle().pending!.length}件あります。同じ町へ再参加するとホストの記録と照合して精算します。</p>}

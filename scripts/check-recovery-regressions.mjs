@@ -46,6 +46,10 @@ try {
   // Exercise the real backup file input, not just the import helper.
   await dest.getByText('接続・バックアップ設定', { exact: true }).click();
   await dest.locator('input[type=file]').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
+  // 読み込む前に上書きの確認が出る。確認するまでは今のデータのまま。
+  await dest.getByRole('button', { name: '上書きして読み込む', exact: true }).waitFor();
+  assert.notEqual(await dest.evaluate(async () => (await import('/src/state/looks.ts')).useLooks.getState().looks.sex), 'f', 'import waits for confirmation');
+  await dest.getByRole('button', { name: '上書きして読み込む', exact: true }).click();
   await until(dest, async () => (await import('/src/state/looks.ts')).useLooks.getState().looks.sex === 'f');
   const expected = await personal(page);
   assert.deepEqual(await personal(dest), expected);

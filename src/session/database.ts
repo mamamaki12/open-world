@@ -23,3 +23,12 @@ export async function writeSave(value: unknown): Promise<void> {
     tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error);
   }); } finally { db.close(); }
 }
+/** 読み込めなくなった保存を、本人が選んだときだけ消す（開始画面の復旧に使う）。 */
+export async function clearSave(): Promise<void> {
+  const db = await database();
+  try { await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('saves', 'readwrite');
+    tx.objectStore('saves').delete('current');
+    tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error);
+  }); } finally { db.close(); }
+}
