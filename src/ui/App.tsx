@@ -86,7 +86,7 @@ export function App() {
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('quests')}>依頼</button><button className="tool" onClick={()=>useGame.getState().setOverlay('blueprints')}>設計図</button><button className="tool" onClick={()=>usePhoto.getState().set({ on: true })}>写真</button><button className="tool" onClick={()=>useGame.getState().setOverlay('ranking')}>ランキング</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('ranking')}>ランキング</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
           <MoneyBar />
         </>
       )}

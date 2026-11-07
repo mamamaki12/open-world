@@ -1,3 +1,4 @@
+import { satisfaction } from '../economy/tenants';
 import { iconText } from './AppIcon';
 // 不動産屋：工事（着工・改築）、査定、売る・貸す、土地を買う、相場、家計簿
 import { useMemo, useState } from 'react';
@@ -176,6 +177,11 @@ function Appraisal({ lot }: { lot: Lot }) {
             <tr><td>固定資産税（1日）</td><td className="num minus">-{yen(n.bill.tax)}</td></tr>
           </tbody>
         </table>
+        {lot.built && (() => { const sat = satisfaction(lot.built); return <div className="info">
+          <b>住む人の満足度 {sat.score}点</b>（{sat.residents}人で住みます・家賃 ×{sat.rentFactor}）<br />
+          {sat.items.map((i) => <span key={i.label} style={{ marginRight: 8, opacity: i.ok ? 1 : 0.55 }}>{i.ok ? '✔' : '・'}{i.label}</span>)}
+          {lot.rented && <><br />住人は家の中で暮らしています。歩いて見に行けます。</>}
+        </div>; })()}
         <button
           className="btn"
           onClick={() => {

@@ -1,6 +1,7 @@
 // お金と不動産の状態（所持金、日付、相場、持っている土地と家、工事、家計簿）。
 // いま画面に出している土地の設計図は useGame の house。ほかの土地の設計図は lot.design に預けておく。
 import { likeFactor } from '../economy/likes';
+import { satisfaction } from '../economy/tenants';
 import { create } from 'zustand';
 import { visitingWorld, onlineWorld, sessionGate } from '../session/gate';
 import { emptyHouse } from '../building/types';
@@ -238,7 +239,7 @@ export function lotNumbers(lot: Lot, market: number) {
     landValue,
     landNow: landPrice(lot.location, lot.variance, market, density),
     sale: salePrice(appraisal, lot.location, lot.variance, market, density),
-    bill: dailyBill({ buildCost, appraisal, landValue, rented: lot.rented, market }),
+    bill: dailyBill({ buildCost, appraisal, landValue, rented: lot.rented, market, rentFactor: lot.built && lot.rented ? satisfaction(lot.built).rentFactor : 1 }),
   };
 }
 

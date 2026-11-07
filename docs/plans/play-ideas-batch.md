@@ -2,11 +2,12 @@
 
 ## 現在の状態
 
-- 状態: 作業中
-- PR: 未作成
+- 状態: 検証待ち（CI）
+- PR: 作成（A〜Eをまとめて1本）
 - 公開: 未公開
-- 残作業: A（ガイド・クエスト）から順に実装してPR
-- ブランチ: `claude/project-thread-1cui5c`（グループごとにPR→マージ→mainから作り直し）
+- 残作業: CI 緑でマージ／EC2 の中継を更新（いいね・設計図の販売に必要。RELAY_VERSION '2026-11-07 家へのいいね・設計図の販売'）
+- 確認根拠: tsc・vitest（739件）通過。Playwright でスマホ390x844・844x390・PC1280/1024 のガイド、依頼画面、設計図（保存・階コピー）、写真モード（夜に切替・撮影）、賃貸の住人表示を目視
+- ブランチ: `claude/project-thread-1cui5c`
 - 最終更新: 2026-11-07
 
 ## 目的
@@ -30,5 +31,14 @@
 - D: 中継の Lot に likes。RELAY_VERSION を上げ、EC2 の更新が必要。
 - E: `src/economy/tenants.ts`（満足度）、賃貸中の家に住人のアバターを置く。
 
+## 実装メモ
+- 7/9: `src/ui/GuideCard.tsx`（手順は設計と土地の状態から自動判定）、`src/state/guide.ts`（localStorage `open-world:guide:v1`、前から売ったことがある人はチュートリアル完了扱い）
+- 1: `src/economy/quests.ts`、`src/ui/QuestPanel.tsx`。条件は設計で表示、納品は完成した家で判定。納品＝土地ごと売却＋お礼。ひとりで遊ぶモードのみ
+- 2/8: `src/building/blueprints.ts`（コードは `OW1.`＋deflate-raw の base64）、`src/ui/BlueprintPanel.tsx`。お店の商品に `blueprint` を付けて販売（1店3つまで、`src/economy/shop.ts`）
+- 6: `src/ui/PhotoMode.tsx`、`src/state/photo.ts`（時間・天気は自分の画面だけ。`useClimate` が上書き）
+- 3: `src/economy/likes.ts`、中継のアクション `like`、`src/ui/RankingPanel.tsx`。いいね1つで建物査定+1%（最大+50%）
+- 5: `src/economy/tenants.ts`（満足度→家賃×0.6〜1.4）、`src/world/Tenants.tsx`（賃貸中の家に住人1〜4人、家具のそばで過ごす）、不動産屋の「貸す」に満足度
+
 ## 経過記録
+- 2026-11-07: A〜E を実装して push。
 - 2026-11-07: plan 作成。
