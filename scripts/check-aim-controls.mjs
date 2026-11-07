@@ -68,7 +68,11 @@ try {
   await page.getByRole('button',{name:'やり直す',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.floors.length),1);
   await page.screenshot({ path: 'control-checks/mobile-floor.png' });
-  await setup(); await tool(3); await place(); await swipe(130, 0); await place();
+  // 照準（画面中央）をタップしても始点・終点が決まる
+  const tapReticle = async () => { await page.locator('.aim-reticle.tappable').waitFor(); await page.waitForTimeout(200); const v = page.viewportSize(); await page.touchscreen.tap(v.width / 2, v.height / 2); };
+  await setup(); await tool(3); await tapReticle();
+  assert.match(await page.locator('.aim-place').innerText(), /終点/, 'tapping the reticle sets the start point');
+  await swipe(130, 0); await tapReticle();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.walls.length), 1);
   await setup(true); await tool(4); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.openings.length), 1);

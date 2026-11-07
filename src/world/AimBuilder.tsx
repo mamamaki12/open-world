@@ -12,6 +12,9 @@ import { aimBuilding } from './aimMode';
 import { aimFurnitureTarget } from './aimFurnitureTarget';
 import { centerIntersections } from './placementRay';
 
+/** スマホで照準をタップしたとみなす、画面中央からの距離(px) */
+const AIM_TAP_RADIUS=50;
+
 export function AimBuilder() {
   const { camera, gl, scene } = useThree();
   const anchor=useRef<Anchor|null>(null),point=useRef<AimPoint|null>(null),clock=useRef(0);
@@ -56,10 +59,23 @@ export function AimBuilder() {
       if(e.pointerType==='touch'||!aimBuilding()||document.pointerLockElement!==gl.domElement)return;
       if(e.button===0||e.button===2){e.preventDefault();aimActions.place();}
     };
+    // スマホ：照準（画面中央）を短くタップしたら「配置」と同じ。なぞったら見回すだけ。削除は誤操作を防ぐため長押しボタンのみ。
+    const taps=new Map<number,{x:number;y:number;t:number}>();
+    const touchDown=(e:PointerEvent)=>{
+      if(e.pointerType!=='touch')return;
+      if(taps.size>0||!aimBuilding()||useGame.getState().tool==='erase'){taps.clear();return;}
+      const r=gl.domElement.getBoundingClientRect();
+      if(Math.hypot(e.clientX-(r.left+r.width/2),e.clientY-(r.top+r.height/2))<=AIM_TAP_RADIUS)taps.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.timeStamp});
+    };
+    const touchMove=(e:PointerEvent)=>{const s=taps.get(e.pointerId);if(s&&Math.hypot(e.clientX-s.x,e.clientY-s.y)>12)taps.delete(e.pointerId);};
+    const touchUp=(e:PointerEvent)=>{
+      const s=taps.get(e.pointerId);taps.delete(e.pointerId);
+      if(e.type==='pointerup'&&s&&e.timeStamp-s.t<400&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<=12&&aimBuilding()&&useGame.getState().tool!=='erase')aimActions.place();
+    };
     const escape=(e:KeyboardEvent)=>{if(e.code==='Escape'){clear();if(document.pointerLockElement===gl.domElement)document.exitPointerLock();}};
     const unsub=useGame.subscribe((s,p)=>{if(s.tool!==p.tool||s.mode!==p.mode||s.view!==p.view||s.overlay!==p.overlay)clear();});
-    gl.domElement.addEventListener('pointerdown',down);window.addEventListener('keydown',escape);
-    return()=>{unsub();gl.domElement.removeEventListener('pointerdown',down);window.removeEventListener('keydown',escape);aimActions.place=()=>{};aimActions.cancel=()=>{};aimActions.rotate=()=>{};clear();};
+    gl.domElement.addEventListener('pointerdown',down);gl.domElement.addEventListener('pointerdown',touchDown);window.addEventListener('pointermove',touchMove);window.addEventListener('pointerup',touchUp);window.addEventListener('pointercancel',touchUp);window.addEventListener('keydown',escape);
+    return()=>{unsub();gl.domElement.removeEventListener('pointerdown',down);gl.domElement.removeEventListener('pointerdown',touchDown);window.removeEventListener('pointermove',touchMove);window.removeEventListener('pointerup',touchUp);window.removeEventListener('pointercancel',touchUp);window.removeEventListener('keydown',escape);aimActions.place=()=>{};aimActions.cancel=()=>{};aimActions.rotate=()=>{};clear();};
   },[camera,gl,scene]);
   useFrame((_,dt)=>{
     clock.current+=dt;if(clock.current<.08)return;clock.current=0;

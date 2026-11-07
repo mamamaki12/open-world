@@ -1,6 +1,6 @@
 # 照準をタップして配置（スマホ）
 
-状態: 実装中
+状態: 完了（PR待ち）
 ブランチ: `claude/project-thread-mj73sv`
 
 ## 目的
@@ -14,4 +14,4 @@
 
 ## 進み具合
 - 済: 計画
-- 次: 実装、Playwright確認（scripts/check-aim-controls.mjs に追加）
+- 済: 実装、scripts/check-aim-controls.mjs で照準タップによる壁の始点・終点を確認
