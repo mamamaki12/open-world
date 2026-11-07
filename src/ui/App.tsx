@@ -216,6 +216,7 @@ function WalkMenu() {
         <div className="walk-menu-list">
           <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>{iconText("🏗️ 建築に戻る")}</button>
           <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>{iconText("👁 視点を切り替え")}</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('jobs'))}>{iconText("💼 バイト")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('blueprints'))}>{iconText("📐 設計図・階のコピー")}</button>
           <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}>{iconText("📷 写真を撮る")}</button>
