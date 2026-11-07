@@ -34,3 +34,6 @@
 .photo-tip { margin: 2px 0 0; font-size: 11px; color: var(--muted); text-align: center; }
 .photo-preview img { display: block; max-width: min(520px, 100%); max-height: 50vh; border-radius: 8px; margin: 0 auto 6px; }
 .photo-flash { position: fixed; inset: 0; background: #fff; opacity: 0.8; pointer-events: none; }
+/* 画面が狭いとき（PCの拡大表示・スマホの文字拡大）は、ほかの操作ボタンに重ならないようガイドを出さない。依頼はメニューから開ける */
+@media (max-width: 1099px) { .app:not(.touch) .side .guide-card { display: none; } }
+@media (max-width: 340px), (max-height: 340px) { .touch .guide-card { display: none; } }
