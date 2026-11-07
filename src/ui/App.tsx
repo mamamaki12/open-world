@@ -22,6 +22,8 @@ import { useLooks } from '../state/looks';
 import { WorldActionHud, LandPurchasePanel } from './WorldActionHud';
 import { ShopPanel } from './ShopPanel';
 import { RequestsPanel } from './RequestsPanel';
+import { QuestPanel } from './QuestPanel';
+import { GuideCard } from './GuideCard';
 import { ArcadePanel } from './ArcadePanel';
 import { RidePanel } from './RidePanel';
 import { CasinoPanel } from './CasinoPanel';
@@ -79,13 +81,14 @@ export function App() {
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('quests')}>依頼</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
       {touch ? <TouchLayout walking={walking} /> : walking ? (
         <>
           <WalkHud />
+          <div className="side right"><GuideCard /></div>
           <ControlsHelp />
         </>
       ) : (
@@ -94,6 +97,7 @@ export function App() {
             <ToolOptions />
           </div>
           <div className="side right">
+            <GuideCard />
             {editingFurniture && <Inspector />}
           </div>
           <ControlsHelp />
@@ -115,6 +119,7 @@ export function App() {
       {overlay === 'land' && <LandPurchasePanel />}
       {overlay === 'shop' && <ShopPanel />}
       {overlay === 'requests' && <RequestsPanel />}
+      {overlay === 'quests' && <QuestPanel />}
       {overlay === 'arcade' && <ArcadePanel />}
       {overlay === 'ride' && <RidePanel />}
       {overlay === 'estate' && <EstatePanel />}
@@ -198,10 +203,12 @@ function WalkMenu() {
         <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>{iconText("☰")}</button>
         <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
       </div>
+      {!open && <GuideCard />}
       {open && (
         <div className="walk-menu-list">
           <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>{iconText("🏗️ 建築に戻る")}</button>
           <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>{iconText("👁 視点を切り替え")}</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}>{iconText("👕 クローゼット")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>{iconText("🙂 見た目を変える")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>{iconText("⚙ 操作設定")}</button>
@@ -239,12 +246,14 @@ function TouchHud() {
         <button className={`tool icon${holding?' history-label':''}`} disabled={!canRedo} onClick={redo} aria-label="やり直し">{iconText("↷")}{holding&&<span className="history-text"> やり直す</span>}
         </button>
       </div>
+      {!open && <GuideCard />}
       {open && (
         <div className="walk-menu-list">
           <div className="walk-menu-status"><BuildChip /></div>
           <button className="walk-menu-item" onClick={pick(() => setMode('walk'))}>{iconText("🚶 歩いてみる")}</button>
           <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>{iconText("🗺 地図")}</button>
           <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}>{iconText("💼 バイト")}</button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
           <SaveMenu />
           <button className="walk-menu-item" onClick={pick(reloadLatest)}>{iconText("🔄 最新版にする")}</button>
         </div>
