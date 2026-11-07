@@ -5,15 +5,10 @@ import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
-import { GRID, lotSize } from '../building/dimensions';
-import { touchGesture, reservesTouch } from '../state/gestures';
-import { aimBuilding } from './aimMode';
 import { touchCamera } from '../state/touch';
 import { useTouchDevice } from '../ui/useTouchDevice';
 import { currentPlotOf, useEconomy } from '../state/economy';
 import { TOWN_BOUNDS, plotX, plotZ } from '../economy/town';
-import { floorPointerLevel, pointerSurfaceLevel } from './placementSurface';
-import { placementPoint } from './placementRay';
 
 export const CAMERA_KEYS = {
   forward: ['KeyW', 'ArrowUp'],
@@ -31,8 +26,6 @@ const TURN_SPEED = 1.6;
 
 export function BuildCamera() {
   const camera = useThree((s) => s.camera);
-  const gl = useThree(s=>s.gl);
-  const scene = useThree(s=>s.scene);
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null;
   const keys = useRef(new Set<string>());
   const touch = useTouchDevice();
@@ -78,20 +71,7 @@ export function BuildCamera() {
     };
   }, []);
 
-  useEffect(()=>{
-    if(!controls)return;
-    const down=(event:PointerEvent)=>{
-      if(event.pointerType!=='touch')return;
-      const g=useGame.getState(),r=gl.domElement.getBoundingClientRect(),house=scene.getObjectByName('house');
-      const level=g.tool==='floor'?floorPointerLevel(g.house,camera,r,event.clientX,event.clientY,house)
-        :g.tool==='wall'&&g.defaults.wallHeight!=='fence'&&g.defaults.wallHeight!=='privacyFence'?pointerSurfaceLevel(camera,r,event.clientX,event.clientY,house):g.activeLevel;
-      const p=placementPoint(camera,r,event.clientX,event.clientY,level,g.tool==='wall'&&(g.defaults.wallHeight==='fence'||g.defaults.wallHeight==='privacyFence')?0:undefined);
-      touchGesture.reserved=!aimBuilding()&&reservesTouch(g.tool,g.mode,g.eraseMulti,!!p&&p.x>=0&&p.x<=lotSize.w*GRID&&p.z>=0&&p.z<=lotSize.d*GRID);
-      controls.touches.ONE=touchGesture.reserved?(-1 as THREE.TOUCH):THREE.TOUCH.ROTATE;
-    };
-    gl.domElement.addEventListener('pointerdown',down,true);
-    return()=>gl.domElement.removeEventListener('pointerdown',down,true);
-  },[camera,controls,gl,scene]);
+  // 1本指を置く・回すのどちらに使うかは PlacementController が決める（置く位置と同じ判定）
 
   const walking = useGame((s) => s.mode === 'walk');
 
