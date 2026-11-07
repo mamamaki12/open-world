@@ -202,6 +202,7 @@ function WalkMenu() {
         <div className="walk-menu-list">
           <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>{iconText("🏗️ 建築に戻る")}</button>
           <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>{iconText("👁 視点を切り替え")}</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('jobs'))}>{iconText("💼 バイト")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}>{iconText("👕 クローゼット")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>{iconText("🙂 見た目を変える")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>{iconText("⚙ 操作設定")}</button>
