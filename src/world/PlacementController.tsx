@@ -18,7 +18,8 @@ import {
 } from '../building/rules';
 import type { Rect } from '../building/rules';
 import type { House } from '../building/types';
-import { touchGesture } from '../state/gestures';
+import { touchGesture, reservesTouch } from '../state/gestures';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { snapFurniturePlacement } from '../building/furnitureSnap';
@@ -45,6 +46,9 @@ function wallBounds(house: House, level: number): Rect | null {
 
 export function PlacementController() {
   const { gl, camera, scene } = useThree();
+  const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null;
+  const controlsRef = useRef(controls);
+  controlsRef.current = controls;
   /** 歩きながら建てるとき、マウスを動かさなくても体の移動に合わせてプレビューを追従させる */
   const refresh = useRef<(() => void) | null>(null);
 
@@ -189,6 +193,26 @@ export function PlacementController() {
       }
     };
 
+    /**
+     * 1本指を「置く」に使うか「回す」に使うかを、指が触れた瞬間に決める。
+     * 置くときと同じ面・同じ点で土地の中かを見る（屋根は壁の上端で読むなど）。端から1マスは中とみなす。
+     * OrbitControls より先に決めるため、キャプチャで受ける。
+     */
+    const reserve = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      // 置いている途中に別の指が触れたときは、置く操作をやめるので回転は2本指の操作になる
+      if (dragStart || tap) return;
+      const g = useGame.getState();
+      let inside = false;
+      if (!aimBuilding()) {
+        const p = groundPoint(e, surfaceAt(e));
+        inside = !!p && p.x >= -GRID && p.x <= (lotSize.w + 1) * GRID && p.z >= -GRID && p.z <= (lotSize.d + 1) * GRID;
+      }
+      touchGesture.reserved = !aimBuilding() && reservesTouch(g.tool, g.mode, g.eraseMulti, inside);
+      const c = controlsRef.current;
+      if (c) c.touches.ONE = touchGesture.reserved ? (-1 as THREE.TOUCH) : THREE.TOUCH.ROTATE;
+    };
+
     const onDown = (e: PointerEvent) => {
       if (aimBuilding()) return;
       if (e.button !== 0) return;
@@ -204,7 +228,8 @@ export function PlacementController() {
       const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
-      if(e.pointerType==='touch' && ['floor','wall','roof'].includes(g.tool) && !touchGesture.reserved)return;
+      // 回す指（土地の外から触れた指）では青いプレビューを出さない
+      if(e.pointerType==='touch' && ['floor','wall','roof'].includes(g.tool) && !touchGesture.reserved){activeTouch=null;return;}
       if (g.tool === 'furniture' || (e.pointerType === 'touch' && g.tool === 'stair')) {
         tap = { x: e.clientX, y: e.clientY };
         updatePreview(e);
@@ -460,6 +485,7 @@ export function PlacementController() {
       if (s.tool !== prev.tool || s.mode !== prev.mode || s.overlay !== prev.overlay || s.eraseMulti !== prev.eraseMulti || s.boxSelect !== prev.boxSelect) cancel();
     });
 
+    el.addEventListener('pointerdown', reserve, true);
     el.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -469,6 +495,7 @@ export function PlacementController() {
     return () => {
       unsubscribe();
       window.removeEventListener('blur', cancel);
+      el.removeEventListener('pointerdown', reserve, true);
       el.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
