@@ -5,6 +5,7 @@ import { useEconomy, useCurrentLot } from '../state/economy';
 import { useGuide } from '../state/guide';
 import { checkQuest, missingText } from '../economy/quests';
 import { onlineWorld } from '../session/gate';
+import { useTouchDevice } from './useTouchDevice';
 import { iconText } from './AppIcon';
 import './guide.css';
 
@@ -20,6 +21,10 @@ export function tutorialSteps(s: { floors: number; walls: number; door: boolean;
 
 export function GuideCard() {
   const overlay = useGame((s) => s.overlay);
+  // スマホで道具を持って置いている間は、指でなぞる場所をふさがないよう隠す
+  const holding = useGame((s) => s.tool !== 'select');
+  const touch = useTouchDevice();
+  const placing = holding && touch;
   const house = useGame((s) => s.house);
   const lot = useCurrentLot();
   const sold = useEconomy((s) => s.ledger.some((t) => t.label.startsWith('売却')));
@@ -35,7 +40,7 @@ export function GuideCard() {
   const checks = useMemo(() => (quest ? checkQuest(quest, house, lot?.location ?? null) : []), [quest, house, lot?.location]);
   const stepIndex = steps.findIndex((s) => !s.ok);
   useEffect(() => { if (g.tutorial === 'active' && stepIndex < 0) useGuide.getState().finishTutorial('done'); }, [g.tutorial, stepIndex]);
-  if (overlay || onlineWorld()) return null;
+  if (overlay || placing || onlineWorld()) return null;
   const open = () => useGame.getState().setOverlay('quests');
 
   if (g.tutorial === 'active') {
