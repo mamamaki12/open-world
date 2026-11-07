@@ -6,6 +6,7 @@
 .quick-meta{display:flex;align-items:center;gap:6px;background:#18212ae6;border-radius:0 0 6px 6px;padding:3px 7px;font-size:12px;}
 .quick-meta>span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.quick-meta button{background:#35404c;border:1px solid #89929c;border-radius:4px;color:#fff;font-size:12px;min-height:30px;}
 .aim-reticle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;font:700 26px/1 monospace;color:#fff8;text-shadow:0 1px 3px #000;z-index:2;}.aim-reticle.valid{color:#ffe0a0;}
+.aim-reticle.tappable{width:56px;height:56px;display:flex;align-items:center;justify-content:center;border:2px solid #fff6;border-radius:50%;box-shadow:0 0 4px #0008;}.aim-reticle.tappable.valid{border-color:#ffe0a0cc;}
 .aim-message{position:absolute;top:calc(50% + 26px);left:50%;transform:translateX(-50%);max-width:80%;padding:3px 8px;background:#1b242bcc;color:#fff;border-radius:4px;font-size:11px;pointer-events:none;white-space:nowrap;}
 .aim-buttons{position:absolute;right:18px;bottom:120px;display:flex;flex-direction:column;gap:6px;z-index:5;}
 .aim-buttons button{min-width:90px;min-height:44px;border:1px solid #dbc58b;border-radius:10px;background:#f5e7bd;color:#2f2919;font-size:13px;font-weight:700;touch-action:none;}
