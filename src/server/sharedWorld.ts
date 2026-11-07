@@ -14,6 +14,7 @@ import type { WorldSave } from '../session/saves';
 import { cleanShop, recordPlay, recordSale, ARCADE_PLAY, RIDE_PLAY } from '../economy/shop';
 import { REQUEST_LIMITS, cleanRequests, requestError, stepRequest } from '../economy/requests';
 import type { RequestOp } from '../economy/requests';
+import { toggleLike } from '../economy/likes';
 
 /** 建築以外の操作。家・土地の代金は買った人の口座から売り手の口座へ直接移る（新しい土地だけは不動産屋へ払う） */
 export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'townHouse'; plot: number } | { type: 'list'; price: number | null } | { type: 'buyLot' }
@@ -21,6 +22,7 @@ export type SharedAction = { type: 'buyLand'; offer: string } | { type: 'townHou
   | { type: 'money'; delta: number; label: string } | { type: 'cars'; cars: unknown[] } | { type: 'stocks'; holdings: Record<string, unknown> }
   | { type: 'shop'; shop: unknown } | { type: 'purchase'; item: string; price: number; day?: number } | { type: 'play'; fee: number; kind?: 'arcade' | 'ride' }
   | { type: 'request'; title: string; description: string; reward: number } | { type: 'requestStep'; request: string; op: RequestOp }
+  | { type: 'like' }
 
 export interface SharedCommand { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string; action?: SharedAction }
 /** 共有側の口座。所持金は端末の個別ワールドと同期し、車や株は共有側だけに保存する。 */
@@ -183,6 +185,13 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     if (typeof held === 'string') return held;
     const next = held.economy.lots.map(l => l.id === lot.id ? { ...l, requests: [...list, req] } : l);
     return { world: { ...held, economy: { ...held.economy, lots: next } }, cost: a.reward, message: `「${req.title}」を依頼しました（報酬は預かりました）` };
+  }
+  if (a.type === 'like') {
+    // 家にいいねを付ける・外す（お金は動かない）
+    const likes = toggleLike(lot, sender);
+    if (typeof likes === 'string') return likes;
+    const on = likes.includes(sender);
+    return { world: withLots(lots.map(l => l.id === lot.id ? { ...l, likes: likes.length ? likes : undefined } : l)), cost: 0, message: on ? `${lot.name}にいいねしました` : 'いいねを外しました' };
   }
   if (a.type === 'requestStep') {
     const step = stepRequest(cleanRequests(lot.requests), String(a.request), a.op, sender, name);

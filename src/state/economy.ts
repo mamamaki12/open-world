@@ -1,5 +1,6 @@
 // お金と不動産の状態（所持金、日付、相場、持っている土地と家、工事、家計簿）。
 // いま画面に出している土地の設計図は useGame の house。ほかの土地の設計図は lot.design に預けておく。
+import { likeFactor } from '../economy/likes';
 import { create } from 'zustand';
 import { visitingWorld, onlineWorld, sessionGate } from '../session/gate';
 import { emptyHouse } from '../building/types';
@@ -68,6 +69,8 @@ export interface Lot {
   rentOffer?: { rent: number };
   tenant?: string;
   tenantName?: string;
+  /** みんなのワールドで、この家にいいねした人（ゲストID）。多いほど査定が上がる（src/economy/likes.ts） */
+  likes?: string[];
 }
 
 /** その土地が使っている区画（つなげていれば2つ） */
@@ -224,7 +227,7 @@ const notify = (text: string) => useGame.getState().notify(text);
 export function lotNumbers(lot: Lot, market: number) {
   const loc = getLocation(lot.location);
   const buildCost = lot.built ? estimateCost(lot.built).total : 0;
-  const appraisal = lot.built ? appraiseBuilding(lot.built, loc.factor) : 0;
+  const appraisal = lot.built ? Math.round(appraiseBuilding(lot.built, loc.factor) * likeFactor(lot.likes)) : 0;
   const density = typeof lot.plot === 'number' ? plotDensity(lot.plot) : 1;
   const landValue = Math.round(loc.land * lot.variance * density);
   return {

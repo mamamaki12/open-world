@@ -25,6 +25,7 @@ import { RequestsPanel } from './RequestsPanel';
 import { QuestPanel } from './QuestPanel';
 import { BlueprintPanel } from './BlueprintPanel';
 import { PhotoMode } from './PhotoMode';
+import { RankingPanel } from './RankingPanel';
 import { usePhoto } from '../state/photo';
 import { GuideCard } from './GuideCard';
 import { ArcadePanel } from './ArcadePanel';
@@ -85,7 +86,7 @@ export function App() {
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('quests')}>依頼</button><button className="tool" onClick={()=>useGame.getState().setOverlay('blueprints')}>設計図</button><button className="tool" onClick={()=>usePhoto.getState().set({ on: true })}>写真</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('quests')}>依頼</button><button className="tool" onClick={()=>useGame.getState().setOverlay('blueprints')}>設計図</button><button className="tool" onClick={()=>usePhoto.getState().set({ on: true })}>写真</button><button className="tool" onClick={()=>useGame.getState().setOverlay('ranking')}>ランキング</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
@@ -125,6 +126,7 @@ export function App() {
       {overlay === 'requests' && <RequestsPanel />}
       {overlay === 'quests' && <QuestPanel />}
       {overlay === 'blueprints' && <BlueprintPanel />}
+      {overlay === 'ranking' && <RankingPanel />}
       {overlay === 'arcade' && <ArcadePanel />}
       {overlay === 'ride' && <RidePanel />}
       {overlay === 'estate' && <EstatePanel />}
@@ -217,6 +219,7 @@ function WalkMenu() {
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('blueprints'))}>{iconText("📐 設計図・階のコピー")}</button>
           <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}>{iconText("📷 写真を撮る")}</button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('ranking'))}>{iconText("🏆 家のランキング")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}>{iconText("👕 クローゼット")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>{iconText("🙂 見た目を変える")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>{iconText("⚙ 操作設定")}</button>
