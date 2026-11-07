@@ -5,6 +5,7 @@ import { useEconomy, useCurrentLot } from '../state/economy';
 import { useGuide } from '../state/guide';
 import { checkQuest, missingText } from '../economy/quests';
 import { onlineWorld } from '../session/gate';
+import { iconText } from './AppIcon';
 import './guide.css';
 
 export function tutorialSteps(s: { floors: number; walls: number; door: boolean; built: boolean; sold: boolean }) {
@@ -40,11 +41,11 @@ export function GuideCard() {
   if (g.tutorial === 'active') {
     const i = stepIndex;
     if (i < 0) return null;
-    if (g.folded) return <button className="guide-card folded" onClick={() => g.setFolded(false)} aria-label="ガイドを開く">🔰 {i + 1}/{steps.length}</button>;
+    if (g.folded) return <button className="guide-card folded" onClick={() => g.setFolded(false)} aria-label="ガイドを開く">{iconText('🔰')} {i + 1}/{steps.length}</button>;
     return (
       <div className="guide-card" role="status">
         <div className="guide-head">
-          <b>🔰 はじめての家づくり {i + 1}/{steps.length}</b>
+          <b>{iconText('🔰')} はじめての家づくり {i + 1}/{steps.length}</b>
           <button className="guide-x" onClick={() => g.setFolded(true)} aria-label="ガイドをたたむ">–</button>
         </div>
         <div className="guide-step">{steps[i].label}</div>
@@ -54,11 +55,11 @@ export function GuideCard() {
       </div>
     );
   }
-  if (g.folded) return <button className="guide-card folded" onClick={() => g.setFolded(false)} aria-label="次にやることを開く">📋</button>;
+  if (g.folded) return <button className="guide-card folded" onClick={() => g.setFolded(false)} aria-label="次にやることを開く">{iconText('📋')}</button>;
   return (
     <div className="guide-card line" role="status">
       <button className="guide-line" onClick={open}>
-        {quest ? <>📋 <b>{quest.title}</b><span>{missingText(checks)}</span></> : <>📋 <b>建築の依頼</b><span>依頼を受けて家を建てると、お礼がもらえます</span></>}
+        {quest ? <><b>{iconText('📋')} {quest.title}</b><span>{missingText(checks)}</span></> : <><b>{iconText('📋')} 建築の依頼</b><span>依頼を受けて家を建てると、お礼がもらえます</span></>}
       </button>
       <button className="guide-x" onClick={() => g.setFolded(true)} aria-label="たたむ">–</button>
     </div>

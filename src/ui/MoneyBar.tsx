@@ -30,6 +30,7 @@ export function MoneyBar() {
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">{iconText("🗺 地図")}</button>
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('jobs'); }} title="バイトで働いてお金をかせぐ">{iconText("💼 バイト")}</button>
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('quests'); }} title="町の人からの建築の依頼">{iconText("📋 依頼")}</button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('blueprints'); }} title="設計図の保存・ほかの土地に建てる・階のコピー">{iconText("📐 設計図")}</button>
       <BuildChip />
     </div>
   );

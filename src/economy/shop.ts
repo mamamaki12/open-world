@@ -20,6 +20,8 @@ export interface ShopItem {
   description: string;
   /** その場のスクショ（data:image/jpeg） */
   photo?: string;
+  /** 設計図のコード（building/blueprints.ts）。買った人の設計図に入る */
+  blueprint?: string;
 }
 
 export interface ShopSale {
@@ -69,6 +71,10 @@ function typed(i: { kind?: unknown; days?: unknown }): Pick<ShopItem, 'kind' | '
   return kind === 'goods' ? {} : kind === 'membership' ? { kind, days: daysOf(i.days) } : { kind };
 }
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+/** 設計図つきの商品は1店に3つまで（町の保存量を守る） */
+export const BLUEPRINT_ITEMS = 3;
+const blueprint = (v: unknown) =>
+  typeof v === 'string' && v.length <= SHOP_LIMITS.photo && /^OW1\.[A-Za-z0-9+/=]+$/.test(v) ? v : undefined;
 const photo = (v: unknown) =>
   typeof v === 'string' && v.length <= SHOP_LIMITS.photo && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) ? v : undefined;
 
@@ -83,12 +89,14 @@ export function priceError(price: number): string | null {
 export function cleanShop(v: unknown): Shop | null {
   if (!v || typeof v !== 'object') return null;
   const s = v as Partial<Shop>;
+  let plans = 0;
   const items = (Array.isArray(s.items) ? s.items : []).slice(0, SHOP_LIMITS.items).flatMap((i): ShopItem[] => {
     if (!i || typeof i !== 'object' || typeof i.id !== 'string' || i.id.length > 80) return [];
     const name = str(i.name, SHOP_LIMITS.itemName);
     if (!name || priceError(i.price)) return [];
     const p = photo(i.photo);
-    return [{ id: i.id, name, price: i.price, description: str(i.description, SHOP_LIMITS.description), ...typed(i), ...(p ? { photo: p } : {}) }];
+    const b = blueprint(i.blueprint) && plans < BLUEPRINT_ITEMS ? (plans++, i.blueprint) : undefined;
+    return [{ id: i.id, name, price: i.price, description: str(i.description, SHOP_LIMITS.description), ...typed(i), ...(p ? { photo: p } : {}), ...(b ? { blueprint: b } : {}) }];
   });
   const sales = (Array.isArray(s.sales) ? s.sales : []).slice(-SHOP_LIMITS.sales).flatMap((x): ShopSale[] =>
     x && typeof x.id === 'string' && Number.isFinite(x.day) && Number.isSafeInteger(x.price)
@@ -132,7 +140,9 @@ export function upsertItem(shop: Shop, item: ShopItem): Shop | string {
   const exists = shop.items.some((i) => i.id === item.id);
   if (!exists && shop.items.length >= SHOP_LIMITS.items) return `商品は${SHOP_LIMITS.items}個までです`;
   const p = photo(item.photo);
-  const clean: ShopItem = { id: item.id, name, price: item.price, description: str(item.description, SHOP_LIMITS.description), ...typed(item), ...(p ? { photo: p } : {}) };
+  const b = blueprint(item.blueprint);
+  if (b && shop.items.filter((i) => i.blueprint && i.id !== item.id).length >= BLUEPRINT_ITEMS) return `設計図は1店に${BLUEPRINT_ITEMS}つまで売れます`;
+  const clean: ShopItem = { id: item.id, name, price: item.price, description: str(item.description, SHOP_LIMITS.description), ...typed(item), ...(p ? { photo: p } : {}), ...(b ? { blueprint: b } : {}) };
   return { ...shop, items: exists ? shop.items.map((i) => (i.id === item.id ? clean : i)) : [...shop.items, clean] };
 }
 

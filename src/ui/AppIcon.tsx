@@ -19,6 +19,7 @@ const legacy: Record<string, IconName> = {
   '🎰':'slots','🎡':'wheel','🃏':'cards','🎟':'ticket','🎫':'ticket','🔔':'bell','🍉':'watermelon','🍒':'cherry','🍋':'lemon',
   '★':'star','⭐':'star','📖':'book','♠':'spade','♥':'heart','♦':'diamond','♣':'club','♚':'crown','♛':'crown','♞':'horse','🎉':'celebration',
   '⛶':'fullscreen','🔊':'volume','🔈':'volume','🔇':'mute','🔑':'key','📈':'chart','📅':'calendar','🧰':'toolbox',
+  '📋':'book','📐':'house','🔰':'star','🏆':'crown','🧑':'face',
   '📣':'megaphone','📷':'camera','🎨':'palette','🔧':'wrench','☀':'sun','☁':'cloud','☂':'rain','❄':'snow','🔗':'link','🔄':'refresh',
   '⟲':'undo','⟳':'rotate','◉':'wheel','◆':'diamond','●':'bell','☰':'menu','↶':'undo','↷':'redo','↺':'undo','↻':'rotate','↗':'expand','◀':'left','▶':'right','←':'left','→':'right',
   '↑':'up','↓':'down','▲':'up','▼':'down','▴':'up','▾':'down','✕':'close','×':'close','✓':'check','✔':'check','💾':'save','⏰':'clock',
