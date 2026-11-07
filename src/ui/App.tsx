@@ -24,6 +24,8 @@ import { ShopPanel } from './ShopPanel';
 import { RequestsPanel } from './RequestsPanel';
 import { QuestPanel } from './QuestPanel';
 import { BlueprintPanel } from './BlueprintPanel';
+import { PhotoMode } from './PhotoMode';
+import { usePhoto } from '../state/photo';
 import { GuideCard } from './GuideCard';
 import { ArcadePanel } from './ArcadePanel';
 import { RidePanel } from './RidePanel';
@@ -72,17 +74,18 @@ export function App() {
   const walking = useGame((s) => s.mode === 'walk');
   const bulkErase = useGame((s) => s.tool === 'erase' && s.eraseMulti);
   const editingFurniture = useGame((s) => s.selection?.kind === 'furniture');
+  const photo = usePhoto((s) => s.on);
   const app = useRef<HTMLDivElement>(null);
   useTopBarHeight(app, touch, walking, driving);
   useNoPageZoom(touch);
   // 見た目をまだ作っていなければ、最初に作成画面を出す（前からのセーブも一度だけ）。自動テストのブラウザでは出さない
   useEffect(() => { if (!useLooks.getState().created && !navigator.webdriver) useGame.getState().setOverlay('looks'); }, []);
   return (
-    <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}${overlay ? ' has-overlay' : ''}`}>
+    <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}${overlay ? ' has-overlay' : ''}${photo ? ' photo-mode' : ''}`}>
       <Scene />
       {!touch && (
         <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('quests')}>依頼</button><button className="tool" onClick={()=>useGame.getState().setOverlay('blueprints')}>設計図</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
+          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('quests')}>依頼</button><button className="tool" onClick={()=>useGame.getState().setOverlay('blueprints')}>設計図</button><button className="tool" onClick={()=>usePhoto.getState().set({ on: true })}>写真</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
           <MoneyBar />
         </>
       )}
@@ -130,6 +133,7 @@ export function App() {
       {overlay === 'jobs' && <JobsPanel />}
       <FurnitureDesigner />
       <Toast />
+      {photo && <PhotoMode />}
     </div>
   );
 }
@@ -212,6 +216,7 @@ function WalkMenu() {
           <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>{iconText("👁 視点を切り替え")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('blueprints'))}>{iconText("📐 設計図・階のコピー")}</button>
+          <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}>{iconText("📷 写真を撮る")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}>{iconText("👕 クローゼット")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>{iconText("🙂 見た目を変える")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>{iconText("⚙ 操作設定")}</button>
@@ -258,6 +263,7 @@ function TouchHud() {
           <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}>{iconText("💼 バイト")}</button>
           <button className="walk-menu-item" onClick={pick(() => setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
           <button className="walk-menu-item" onClick={pick(() => setOverlay('blueprints'))}>{iconText("📐 設計図・階のコピー")}</button>
+          <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}>{iconText("📷 写真を撮る")}</button>
           <SaveMenu />
           <button className="walk-menu-item" onClick={pick(reloadLatest)}>{iconText("🔄 最新版にする")}</button>
         </div>
