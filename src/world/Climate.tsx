@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { climateAt, type Climate } from './climate';
+import { usePhoto } from '../state/photo';
 import { glassMaterial } from './materials';
 import { MAT as STREET } from './Streetscape';
 import { grassMaterial } from './Town';
@@ -15,6 +16,18 @@ const now = () => (AT ? AT + (Date.now() - START) : Date.now());
 
 /** 今の気候を返す（毎フレーム再描画しない） */
 export function useClimate(): Climate {
+  const real = useRealClimate();
+  const hour = usePhoto((s) => s.hour);
+  const weather = usePhoto((s) => s.weather);
+  return useMemo(() => {
+    if (hour === null && weather === null) return real;
+    const h = hour ?? real.hour;
+    const sun = Math.sin(((h - 6) / 24) * Math.PI * 2);
+    return { ...real, hour: h, sun, night: Math.min(1, Math.max(0, (0.15 - sun) / 0.3)), weather: weather ?? real.weather };
+  }, [real, hour, weather]);
+}
+
+function useRealClimate(): Climate {
   const [c, setC] = useState(() => climateAt(now()));
   useEffect(() => {
     // 再描画はゲーム内10分（実10秒）ごと、または天気・季節が変わったときだけ

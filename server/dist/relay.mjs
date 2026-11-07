@@ -12819,6 +12819,8 @@ function typed(i) {
   return kind === "goods" ? {} : kind === "membership" ? { kind, days: daysOf(i.days) } : { kind };
 }
 var str = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+var BLUEPRINT_ITEMS = 3;
+var blueprint = (v) => typeof v === "string" && v.length <= SHOP_LIMITS.photo && /^OW1\.[A-Za-z0-9+/=]+$/.test(v) ? v : void 0;
 var photo = (v) => typeof v === "string" && v.length <= SHOP_LIMITS.photo && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) ? v : void 0;
 function priceError(price) {
   if (!Number.isSafeInteger(price) || price < 1) return "\u5024\u6BB5\u306F1\u5186\u4EE5\u4E0A\u306E\u6574\u6570\u306B\u3057\u3066\u304F\u3060\u3055\u3044";
@@ -12828,12 +12830,14 @@ function priceError(price) {
 function cleanShop(v) {
   if (!v || typeof v !== "object") return null;
   const s = v;
+  let plans = 0;
   const items = (Array.isArray(s.items) ? s.items : []).slice(0, SHOP_LIMITS.items).flatMap((i) => {
     if (!i || typeof i !== "object" || typeof i.id !== "string" || i.id.length > 80) return [];
     const name = str(i.name, SHOP_LIMITS.itemName);
     if (!name || priceError(i.price)) return [];
     const p = photo(i.photo);
-    return [{ id: i.id, name, price: i.price, description: str(i.description, SHOP_LIMITS.description), ...typed(i), ...p ? { photo: p } : {} }];
+    const b = blueprint(i.blueprint) && plans < BLUEPRINT_ITEMS ? (plans++, i.blueprint) : void 0;
+    return [{ id: i.id, name, price: i.price, description: str(i.description, SHOP_LIMITS.description), ...typed(i), ...p ? { photo: p } : {}, ...b ? { blueprint: b } : {} }];
   });
   const sales = (Array.isArray(s.sales) ? s.sales : []).slice(-SHOP_LIMITS.sales).flatMap(
     (x) => x && typeof x.id === "string" && Number.isFinite(x.day) && Number.isSafeInteger(x.price) ? [{
@@ -12947,6 +12951,21 @@ function stepRequest(list, reqId, op, who, name) {
   }
   if (r.worker) return "\u5F15\u304D\u53D7\u3051\u305F\u4EBA\u304C\u3044\u308B\u9593\u306F\u53D6\u308A\u4E0B\u3052\u3089\u308C\u307E\u305B\u3093\uFF08\u5B8C\u4E86\u3092\u78BA\u8A8D\u3059\u308B\u304B\u3001\u76F8\u624B\u306B\u3084\u3081\u3066\u3082\u3089\u3063\u3066\u304F\u3060\u3055\u3044\uFF09";
   return { list: rest, pay: { to: r.poster, amount: r.reward, label: `\u4F9D\u983C\u306E\u53D6\u308A\u4E0B\u3052\uFF1A${r.title}` }, message: "\u4F9D\u983C\u3092\u53D6\u308A\u4E0B\u3052\u307E\u3057\u305F\uFF08\u5831\u916C\u306F\u623B\u308A\u307E\u3057\u305F\uFF09" };
+}
+
+// src/economy/likes.ts
+var LIKE_LIMIT = 500;
+function cleanLikes(v) {
+  return Array.isArray(v) ? [...new Set(v.filter((x) => typeof x === "string" && x.length > 0 && x.length <= 100))].slice(0, LIKE_LIMIT) : [];
+}
+function toggleLike(lot, who) {
+  if (lot.town) return "\u753A\u306E\u5BB6\u306B\u306F\u3044\u3044\u306D\u3067\u304D\u307E\u305B\u3093";
+  if (!lot.built) return "\u307E\u3060\u5BB6\u304C\u5EFA\u3063\u3066\u3044\u307E\u305B\u3093";
+  if (lot.owner === who) return "\u81EA\u5206\u306E\u5BB6\u306B\u306F\u3044\u3044\u306D\u3067\u304D\u307E\u305B\u3093";
+  const list = cleanLikes(lot.likes);
+  if (list.includes(who)) return list.filter((x) => x !== who);
+  if (list.length >= LIKE_LIMIT) return "\u3044\u3044\u306D\u304C\u3044\u3063\u3071\u3044\u3067\u3059";
+  return [...list, who];
 }
 
 // src/server/sharedWorld.ts
@@ -13113,6 +13132,12 @@ function applyAction(w, sender, name, c, a) {
     const next2 = held.economy.lots.map((l) => l.id === lot.id ? { ...l, requests: [...list, req] } : l);
     return { world: { ...held, economy: { ...held.economy, lots: next2 } }, cost: a.reward, message: `\u300C${req.title}\u300D\u3092\u4F9D\u983C\u3057\u307E\u3057\u305F\uFF08\u5831\u916C\u306F\u9810\u304B\u308A\u307E\u3057\u305F\uFF09` };
   }
+  if (a.type === "like") {
+    const likes = toggleLike(lot, sender);
+    if (typeof likes === "string") return likes;
+    const on = likes.includes(sender);
+    return { world: withLots(lots.map((l) => l.id === lot.id ? { ...l, likes: likes.length ? likes : void 0 } : l)), cost: 0, message: on ? `${lot.name}\u306B\u3044\u3044\u306D\u3057\u307E\u3057\u305F` : "\u3044\u3044\u306D\u3092\u5916\u3057\u307E\u3057\u305F" };
+  }
   if (a.type === "requestStep") {
     const step = stepRequest(cleanRequests(lot.requests), String(a.request), a.op, sender, name);
     if (typeof step === "string") return step;
@@ -13249,7 +13274,7 @@ function validSharedWorld(v) {
 }
 
 // server/relay.mjs
-var RELAY_VERSION = "2026-11-04 \u753A\u306E\u4FDD\u5B58\u91CF\u306B\u4E0A\u9650";
+var RELAY_VERSION = "2026-11-07 \u5BB6\u3078\u306E\u3044\u3044\u306D\u30FB\u8A2D\u8A08\u56F3\u306E\u8CA9\u58F2";
 async function saveWorld(file, world) {
   if (!file) return;
   const tmp = file + ".tmp", handle = await open(tmp, "w");

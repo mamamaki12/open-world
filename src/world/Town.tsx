@@ -1,3 +1,4 @@
+import { Tenants } from './Tenants';
 import { TunerBuilding } from './TunerBuilding';
 import { SHOP_PATHS } from '../building/shopPaths';
 import { SalonBuilding } from './SalonBuilding';
@@ -168,6 +169,7 @@ export function Town() {
                 </mesh>
               )}
               {!current && house && <BuildingDetail bounds={houseEnvelope(house).bounds}>{tier => tier === 'distant' ? <group onPointerDown={e => activate(l.id,e)}><DistantHouse house={house}/></group> : <HouseParts house={house} showRoofs={showRoofs} exteriorOnly={tier === 'exterior'} activate={(e, ref) => activate(l.id, e, ref)}/>}</BuildingDetail>}
+              {l.rented && l.built && !l.construction && !sessionGate.shared && <Tenants house={l.built} lotId={l.id} />}
               {l.shop ? <Signboard lines={shopSign(l.shop, today)} tone="shop" /> : <Signboard
                 lines={[l.town ? '町の家' : !sessionGate.shared || l.owner === savedBundle().profile.id ? 'あなたの土地' : l.owner ? `${l.ownerName || 'ほかの人'}の土地` : '共有の土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
                 tone="owned"

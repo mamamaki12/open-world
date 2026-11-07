@@ -8,6 +8,8 @@ import { useVehicles } from '../state/vehicles';
 import { useSession } from '../session/session';
 import { sessionGate } from '../session/gate';
 import { savedBundle } from '../session/saves';
+import { addBlueprint } from './BlueprintPanel';
+import { decodeBlueprint, encodeBlueprint, loadBlueprints } from '../building/blueprints';
 import { cleanPromo, cleanShop, newShop, passesOf, removeItem, upsertItem, ITEM_KINDS, RESERVE_AHEAD, SHOP_LIMITS } from '../economy/shop';
 import type { ItemKind, Shop, ShopItem, ShopSale } from '../economy/shop';
 import { yen } from '../economy/money';
@@ -56,7 +58,10 @@ export function ShopPanel() {
   const buy = (i: ShopItem) => {
     if (!lot) return;
     if (!shared) { setError('みんなのワールドで、ほかのプレイヤーのお店から買えます'); return; }
-    setError((sessionGate.act ? sessionGate.act(lot.id, { type: 'purchase', item: i.id, price: i.price, ...(i.kind === 'reservation' ? { day: reserveDay[i.id] ?? today } : {}) }, i.price) : '接続していません') ?? '');
+    const err = sessionGate.act ? sessionGate.act(lot.id, { type: 'purchase', item: i.id, price: i.price, ...(i.kind === 'reservation' ? { day: reserveDay[i.id] ?? today } : {}) }, i.price) : '接続していません';
+    setError(err ?? '');
+    // 設計図つきの商品は、買ったら自分の設計図に入る
+    if (!err && i.blueprint) void decodeBlueprint(i.blueprint).then((b) => b && setError(addBlueprint(i.name, b.house) ?? `設計図「${i.name}」を手に入れました（メニューの「設計図」から建てられます）`));
   };
   const onClose = () => close(null);
 
@@ -89,6 +94,7 @@ export function ShopPanel() {
       <div className="shop-items">
         {shop.items.map((i) => <div key={i.id} className="shop-item card">
           {i.photo ? <img src={i.photo} alt="" /> : <div className="shop-photo-empty">写真なし</div>}
+          {i.blueprint && <span className="shop-kind">📐 設計図</span>}
           {i.kind && <span className="shop-kind">{kindName(i.kind)}{i.kind === 'membership' ? `・${i.days}日間` : ''}</span>}
           <b>{i.name}</b><span className="big">{yen(i.price)}</span>
           {!owner && i.kind === 'reservation' && <label className="shop-note">予約する日 <select value={reserveDay[i.id] ?? today} onChange={(e) => setReserveDay({ ...reserveDay, [i.id]: Number(e.target.value) })}>
@@ -111,6 +117,17 @@ export function ShopPanel() {
         </div>
         <div className="field"><div className="field-label">値段（円・一回払い）</div><input type="text" inputMode="numeric" value={draft.price} onChange={(e) => setDraft({ ...draft, price: Number(e.target.value.replace(/[^0-9]/g, '')) })} /></div>
         <div className="field"><div className="field-label">説明</div><textarea maxLength={SHOP_LIMITS.description} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></div>
+        <div className="field"><div className="field-label">設計図を付ける（買った人がその家を建てられる）</div>
+          <select value={draft.blueprint ? 'keep' : ''} onChange={(e) => {
+            const b = loadBlueprints().find((x) => x.id === e.target.value);
+            if (!e.target.value) setDraft({ ...draft, blueprint: undefined });
+            else if (b) void encodeBlueprint(b.name, b.house).then((code) => code.length > SHOP_LIMITS.photo ? setError('この設計図は大きすぎて売れません') : setDraft((d) => d && { ...d, blueprint: code }));
+          }}>
+            <option value="">付けない</option>
+            {draft.blueprint && <option value="keep">付けている設計図</option>}
+            {loadBlueprints().map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </div>
         <div className="field"><div className="field-label">写真</div>
           {draft.photo && <img className="shop-preview" src={draft.photo} alt="" />}
           <button className="btn" onClick={() => setDraft({ ...draft, photo: snapPhoto() })}>{iconText("📷 いまの景色を写す")}</button>

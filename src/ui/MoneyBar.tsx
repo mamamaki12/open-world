@@ -1,3 +1,4 @@
+import { usePhoto } from '../state/photo';
 import { iconText } from './AppIcon';
 // 上のバーに出す所持金・日付・相場と、不動産屋の入り口・カジノへ行くボタン
 import { useEffect, useMemo } from 'react';
@@ -29,6 +30,9 @@ export function MoneyBar() {
       </div>
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('map'); }} title="町の地図（M キー）。持っている土地へワープできます">{iconText("🗺 地図")}</button>
       <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('jobs'); }} title="バイトで働いてお金をかせぐ">{iconText("💼 バイト")}</button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('quests'); }} title="町の人からの建築の依頼">{iconText("📋 依頼")}</button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); setOverlay('blueprints'); }} title="設計図の保存・ほかの土地に建てる・階のコピー">{iconText("📐 設計図")}</button>
+      <button className="tool" onClick={(e) => { e.currentTarget.blur(); usePhoto.getState().set({ on: true }); }} title="表示を消して景色の写真を撮る">{iconText("📷 写真")}</button>
       <BuildChip />
     </div>
   );

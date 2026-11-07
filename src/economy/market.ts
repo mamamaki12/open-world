@@ -85,10 +85,10 @@ export interface DailyBill {
   rent: number;
 }
 
-export function dailyBill(p: { buildCost: number; appraisal: number; landValue: number; rented: boolean; market: number }): DailyBill {
+export function dailyBill(p: { buildCost: number; appraisal: number; landValue: number; rented: boolean; market: number; rentFactor?: number }): DailyBill {
   return {
     upkeep: Math.round(p.buildCost * DAILY.upkeep),
     tax: Math.round((p.landValue + p.appraisal) * DAILY.tax),
-    rent: p.rented && p.buildCost > 0 ? Math.round((p.appraisal + p.landValue) * p.market * DAILY.rent) : 0,
+    rent: p.rented && p.buildCost > 0 ? Math.round((p.appraisal + p.landValue) * p.market * DAILY.rent * (p.rentFactor ?? 1)) : 0,
   };
 }
