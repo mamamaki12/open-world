@@ -1,4 +1,4 @@
-// スマホで床・壁・屋根を指でなぞって置いている間は、カメラが回らない（置く位置と同じ判定で「置く指」と決める）
+// スマホで床・壁・屋根・階段・家具を指でなぞって置いている間は、カメラが回らない（置く位置と同じ判定で「置く指」と決める）
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -38,5 +38,15 @@ try{
   const far={x:120,y:800};
   const b2=await cam();await drag(far,{x:far.x+120,y:far.y});const a2=await cam();
   assert.ok(Math.hypot(...b2.map((v,i)=>v-a2[i]))>0.05,'finger outside the lot still rotates');
+  // 階段・家具：土地の中で触れた指をずらしても回らず、離した場所に置く
+  for(const tool of ['stair','furniture']){
+    await page.evaluate(t=>{const g=window.__ow.game.getState();g.setTool(t);if(t==='furniture')g.setDefaults({furnitureType:'sofa'});},tool);await page.waitForTimeout(800);
+    const [a,b]=await page.evaluate(()=>{const G=0.91;return [window.__ow.project(11*G,0.5,4*G),window.__ow.project(13*G,0.5,9*G)];});
+    const count=()=>page.evaluate(t=>window.__ow.game.getState().house[t==='stair'?'stairs':'furniture'].length,tool);
+    const n=await count(),c0=await cam();await drag(a,b);const c1=await cam();
+    assert.ok(Math.hypot(...c0.map((v,i)=>v-c1[i]))<0.05,`camera rotated while dragging ${tool}`);
+    assert.equal(await count(),n+1,`${tool} placed at release point`);
+    await page.screenshot({path:`${out}/${tool}.png`});
+  }
   assert.deepEqual(errors,[]);console.log('touch place no-rotate passed');
 }catch(e){await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});throw e;}finally{await browser.close();}

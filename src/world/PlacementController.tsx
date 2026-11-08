@@ -208,7 +208,9 @@ export function PlacementController() {
         const p = groundPoint(e, surfaceAt(e));
         inside = !!p && p.x >= -GRID && p.x <= (lotSize.w + 1) * GRID && p.z >= -GRID && p.z <= (lotSize.d + 1) * GRID;
       }
-      touchGesture.reserved = !aimBuilding() && reservesTouch(g.tool, g.mode, g.eraseMulti, inside);
+      // 壁に付ける家具（表札など）は壁が受けるので、ここでは予約しない
+      const mounted = g.tool === 'furniture' && !!getFurniture(g.defaults.furnitureType).mount;
+      touchGesture.reserved = !aimBuilding() && !mounted && reservesTouch(g.tool, g.mode, g.eraseMulti, inside);
       const c = controlsRef.current;
       if (c) c.touches.ONE = touchGesture.reserved ? (-1 as THREE.TOUCH) : THREE.TOUCH.ROTATE;
     };
@@ -363,8 +365,8 @@ export function PlacementController() {
         if (!mine && !useInteraction.getState().furnitureDrag) return;
         activeTouch = null;
         if (tap) {
-          // 少しでも指を滑らせたら置かない（見回すつもりだったかもしれない）
-          const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
+          // 土地の中で触れた指は、ずらした先（離した場所）に置く。土地の外から触れた指は見回すつもりなので、滑らせたら置かない
+          const moved = !touchGesture.reserved && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
           tap = null;
           const surface = pickSurface(e);
           const p = groundPoint(e, surface);
