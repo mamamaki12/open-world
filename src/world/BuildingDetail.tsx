@@ -2,7 +2,7 @@ import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState }
 import type { ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useTouchDevice } from '../ui/useTouchDevice';
+import { useGraphicsSettings } from '../state/graphics';
 import { buildingTier, distanceToBuilding } from './buildingLod';
 import type { BuildingBounds, BuildingTier } from './buildingLod';
 const DesktopDetail=createContext(false);
@@ -13,15 +13,15 @@ export function BuildingDetailProvider({children}:{children:ReactNode}) {
   return <DesktopDetail.Provider value={!baseline}>{children}</DesktopDetail.Provider>;
 }
 export function BuildingDetail({bounds,forceFull=false,name,children}:{bounds:BuildingBounds;forceFull?:boolean;name?:string;children:(tier:BuildingTier)=>ReactNode}) {
-  const enabled=useContext(DesktopDetail),touch=useTouchDevice(),{camera}=useThree(),root=useRef<THREE.Group>(null),point=useMemo(()=>new THREE.Vector3(),[]);
+  const enabled=useContext(DesktopDetail),lod=useGraphicsSettings().lod,{camera}=useThree(),root=useRef<THREE.Group>(null),point=useMemo(()=>new THREE.Vector3(),[]);
   const [tier,setTier]=useState<BuildingTier>('distant'),current=useRef(tier),elapsed=useRef(0);
   const update=()=>{
     if(!root.current||!enabled||forceFull)return;
     root.current.updateWorldMatrix(true,false);camera.getWorldPosition(point);root.current.worldToLocal(point);
-    const next=buildingTier(distanceToBuilding(point,bounds),current.current,touch);
+    const next=buildingTier(distanceToBuilding(point,bounds),current.current,lod==='pc'?false:lod==='low'?'low':true);
     if(next!==current.current){current.current=next;setTier(next);}
   };
-  useLayoutEffect(update,[bounds,enabled,forceFull,camera]);
+  useLayoutEffect(update,[bounds,enabled,forceFull,camera,lod]);
   useFrame((_,dt)=>{if(!enabled||forceFull)return;elapsed.current+=dt;if(elapsed.current<.2)return;elapsed.current=0;update();});
   const effective=enabled&&!forceFull?tier:'near';
   return <group ref={root} name={name} userData={{buildingDetail:effective,desktopLOD:enabled}}>{children(effective)}</group>;

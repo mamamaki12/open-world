@@ -8,11 +8,10 @@ import { indoorSurface,roomLightReaches } from '../building/roomLighting';
 import { useGame } from '../state/store';
 
 /** Fixed global budget, shared by all homes. No lamp adds shadow maps or unbounded shader lights. */
-export function FurnitureLighting({ mobile }: { mobile: boolean }) {
+export function FurnitureLighting({ budget }: { budget: number }) {
   const pool = useRef<(THREE.PointLight | null)[]>([]), elapsed = useRef(1);
   const position = useRef(new THREE.Vector3());
   const localCamera=useRef(new THREE.Vector3()),localLight=useRef(new THREE.Vector3());
-  const budget = mobile ? 3 : 6;
   useFrame(({camera,scene}, dt) => {
     interiorShadeEnabled.value=useGame.getState().mode==='walk'?1:0;
     elapsed.current += dt; if (elapsed.current < .15) return; elapsed.current = 0;

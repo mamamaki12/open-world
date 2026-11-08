@@ -445,3 +445,12 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .map-pop-actions .btn { min-height: 34px; }
 @keyframes map-pop { from { opacity: 0; } to { opacity: 1; } }
 .map-network-warning { position: absolute; z-index: 2; margin: 0; top: calc(10px + env(safe-area-inset-top, 0px)); left: 12px; right: 66px; padding: 8px 10px; text-align: center; font-size: 13px; }
+
+/* 画質（高・中・低） */
+.graphics-picker { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.graphics-picker-label { font-weight: 600; font-size: 14px; margin-right: 4px; }
+.graphics-picker button { min-width: 48px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line, #ccc); background: #fff; color: #222; font: inherit; font-weight: 600; cursor: pointer; }
+.graphics-picker button.on { background: #2f5fb3; border-color: #2f5fb3; color: #fff; }
+.graphics-picker.compact { margin: 0; padding: 6px 8px 6px 12px; background: #fff; border-radius: 9px; }
+.graphics-picker.compact .graphics-picker-label { font-size: 15px; flex: 1; }
+.graphics-picker.compact button { min-width: 40px; padding: 5px 10px; }

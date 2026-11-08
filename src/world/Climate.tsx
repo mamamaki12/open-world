@@ -46,7 +46,7 @@ const GREY = new THREE.Color('#9aa3ad');
 const WHITE = new THREE.Color('#ffffff');
 const WINDOW_GLOW = new THREE.Color('#ffc978');
 
-export function ClimateLights({ center, shadowSize }: { center: [number, number, number]; shadowSize: number }) {
+export function ClimateLights({ center, shadowSize, precipitation = 1 }: { center: [number, number, number]; shadowSize: number; precipitation?: number }) {
   const c = useClimate();
   const scene = useThree((s) => s.scene);
   const fog = useMemo(() => new THREE.Fog('#dfeaff', 900, 2000), []);
@@ -100,8 +100,8 @@ export function ClimateLights({ center, shadowSize }: { center: [number, number,
         position={sunPos}
         intensity={c.sun >= 0 ? 0.2 + 2.4 * day * dim : 0.25}
         color={c.sun >= 0 ? (c.sun < 0.3 ? '#ffc58a' : '#fff3e2') : '#9db4ff'}
-        castShadow
-        shadow-mapSize={[shadowSize, shadowSize]}
+        castShadow={shadowSize > 0}
+        shadow-mapSize={[Math.max(shadowSize, 256), Math.max(shadowSize, 256)]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
         shadow-camera-left={-36}
@@ -113,7 +113,7 @@ export function ClimateLights({ center, shadowSize }: { center: [number, number,
       >
         <object3D attach="target" position={center} />
       </directionalLight>
-      {(c.weather === 'rain' || c.weather === 'snow') && <Precipitation snow={c.weather === 'snow'} />}
+      {(c.weather === 'rain' || c.weather === 'snow') && <Precipitation snow={c.weather === 'snow'} amount={precipitation} />}
     </>
   );
 }
@@ -143,7 +143,7 @@ function NightDome() {
   );
 }
 
-const DROPS = 2500;
+const BASE_DROPS = 2500;
 const BOX = 40;
 /** 雨粒の長さ（m） */
 const STREAK = 0.45;
@@ -183,7 +183,10 @@ uniform vec3 coverCam;`,
 }
 
 /** カメラの周りに雨・雪を降らせる。雨は細い線、雪は丸い粒。屋根・車の下には降らない */
-function Precipitation({ snow }: { snow: boolean }) {
+function Precipitation({ snow, amount }: { snow: boolean; amount: number }) {
+  const DROPS = Math.max(1, Math.round(BASE_DROPS * amount));
+  /** 屋根の下で雨を止めるための高さを測り直す間隔（フレーム）。粒が少ない画質では間を空けて軽くする */
+  const coverEvery = amount < 0.5 ? 9 : 3;
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
@@ -197,7 +200,7 @@ function Precipitation({ snow }: { snow: boolean }) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(p, 3));
     return g;
-  }, [per]);
+  }, [per, DROPS]);
   // 真上から見下ろすカメラで、いちばん上にある物（屋根・車の屋根・木など）の高さを測る
   const cover = useMemo(() => {
     const target = new THREE.WebGLRenderTarget(COVER_RES, COVER_RES, { depthBuffer: true });
@@ -223,7 +226,7 @@ function Precipitation({ snow }: { snow: boolean }) {
     if (!obj) return;
     obj.position.copy(camera.position);
     // 覆いの高さは数フレームごとに測り直す（車が動くので）
-    if (frame.current++ % 3 === 0) {
+    if (frame.current++ % coverEvery === 0) {
       cover.cam.position.set(camera.position.x, camera.position.y + COVER_UP, camera.position.z);
       cover.cam.updateMatrixWorld();
       const prevTarget = gl.getRenderTarget(), prevOverride = scene.overrideMaterial, prevShadow = gl.shadowMap.autoUpdate, prevFog = scene.fog;

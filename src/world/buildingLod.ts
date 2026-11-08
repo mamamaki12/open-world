@@ -9,11 +9,13 @@ export interface BuildingBounds {x0:number;x1:number;y0:number;y1:number;z0:numb
 export function distanceToBuilding(p:{x:number;y:number;z:number},b:BuildingBounds):number {
   return Math.hypot(Math.max(b.x0-p.x,0,p.x-b.x1),Math.max(b.y0-p.y,0,p.y-b.y1),Math.max(b.z0-p.z,0,p.z-b.z1));
 }
-export function buildingTier(distance:number,previous:BuildingTier,mobile=false):BuildingTier {
-  if(distance<=(mobile?20:36))return 'near';
-  if(previous==='near'&&distance<(mobile?28:46))return 'near';
-  if(distance>=(mobile?80:120))return 'distant';
-  if(previous==='distant'&&distance>(mobile?68:105))return 'distant';
+/** mobile：true＝スマホ（中）、'low'＝画質「低」（もっと近くだけ細かく描く） */
+export function buildingTier(distance:number,previous:BuildingTier,mobile:boolean|'low'=false):BuildingTier {
+  const [near,nearKeep,far,farKeep]=mobile==='low'?[12,17,50,42]:mobile?[20,28,80,68]:[36,46,120,105];
+  if(distance<=near)return 'near';
+  if(previous==='near'&&distance<nearKeep)return 'near';
+  if(distance>=far)return 'distant';
+  if(previous==='distant'&&distance>farKeep)return 'distant';
   return 'exterior';
 }
 const envelopes=new WeakMap<House,{bounds:BuildingBounds;outerWalls:Set<string>}>();

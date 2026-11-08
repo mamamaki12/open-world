@@ -1,3 +1,4 @@
+import { GraphicsPicker } from './GraphicsPicker';
 import { iconText } from './AppIcon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { canPlaceStair } from '../building/rules';
@@ -225,6 +226,7 @@ function WalkMenu() {
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>{iconText("🙂 見た目を変える")}</button>
           <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>{iconText("⚙ 操作設定")}</button>
           <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>{iconText("↶ 取り消し")}</button>
+          <GraphicsPicker compact />
           <SaveMenu />
           <button className="walk-menu-item" onClick={pick(reloadLatest)}>{iconText("🔄 最新版にする")}</button>
         </div>
@@ -268,6 +270,7 @@ function TouchHud() {
           <button className="walk-menu-item" onClick={pick(() => setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
           <button className="walk-menu-item" onClick={pick(() => setOverlay('blueprints'))}>{iconText("📐 設計図・階のコピー")}</button>
           <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}>{iconText("📷 写真を撮る")}</button>
+          <GraphicsPicker compact />
           <SaveMenu />
           <button className="walk-menu-item" onClick={pick(reloadLatest)}>{iconText("🔄 最新版にする")}</button>
         </div>
