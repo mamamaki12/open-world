@@ -10,10 +10,10 @@ import type { ThreeEvent } from '@react-three/fiber';
 import { bakeHouse } from './bakeHouse';
 import type { BakedHouse } from './bakeHouse';
 import { BuildingDetail, useDesktopBuildingDetail } from './BuildingDetail';
+import { useGraphicsSettings } from '../state/graphics';
 import { distanceToBuilding, houseEnvelope } from './buildingLod';
 import { DistantHouse } from './DistantHouse';
 import { useVehicles } from '../state/vehicles';
-import { useTouchDevice } from '../ui/useTouchDevice';
 import { furnitureDef } from '../catalog';
 import { furnitureBaseY } from '../building/rules';
 import { mountedTransform } from '../building/mounts';
@@ -34,7 +34,7 @@ function EditTarget({house,onDown}:{house:NonNullable<ReturnType<typeof townHous
 export function TownHouses({shiftX,shiftZ,skip,onEdit}:{shiftX:number;shiftZ:number;skip:Set<number>;onEdit:(plot:number,e:ThreeEvent<PointerEvent>)=>void}){
  const desktop=useDesktopBuildingDetail(),prefix=desktop?'pc:':'full:';
  const [,setVersion]=useState(0),visiting=useVisit(v=>v.plot),designs=useMemo(()=>[...new Set(Object.values(TOWN_HOUSE_PLOTS))],[]);
- const build=useGame(s=>s.mode==='build'),camera=useThree(s=>s.camera),touch=useTouchDevice(),inVehicle=useVehicles(s=>!!(s.driving||s.riding));
+ const build=useGame(s=>s.mode==='build'),camera=useThree(s=>s.camera),lod=useGraphicsSettings().lod,inVehicle=useVehicles(s=>!!(s.driving||s.riding));
  const [wanted,setWanted]=useState<string[]>(()=>desktop?[]:designs),elapsed=useRef(0),point=useMemo(()=>new THREE.Vector3(),[]);
  const refresh=()=>{
   if(!desktop){setWanted(old=>old===designs?old:designs);return;}
@@ -43,11 +43,11 @@ export function TownHouses({shiftX,shiftZ,skip,onEdit}:{shiftX:number;shiftZ:num
   for(const [p,id] of Object.entries(TOWN_HOUSE_PLOTS)){
    const plot=Number(p),house=townHouseAt(plot);if(skip.has(plot)||!house)continue;
    point.set(camera.position.x-plotX(plot)-shiftX,camera.position.y,camera.position.z-plotZ(plot)-shiftZ);
-   if(distanceToBuilding(point,houseEnvelope(house).bounds)<(touch?40:60))needed.add(id);
+   if(distanceToBuilding(point,houseEnvelope(house).bounds)<(lod==='pc'?60:lod==='low'?25:40))needed.add(id);
   }
   const ids=designs.filter(id=>needed.has(id));setWanted(old=>old.join('|')===ids.join('|')?old:ids);
  };
- useLayoutEffect(refresh,[camera,desktop,inVehicle,touch,shiftX,shiftZ,skip]);
+ useLayoutEffect(refresh,[camera,desktop,inVehicle,lod,shiftX,shiftZ,skip]);
  useFrame((_,dt)=>{elapsed.current+=dt;if(elapsed.current<.5)return;elapsed.current=0;refresh();});
  const next=!inVehicle?wanted.find(d=>!baked.has(prefix+d)):undefined;
  return <group name="town-houses" userData={{baking:!!next}}>

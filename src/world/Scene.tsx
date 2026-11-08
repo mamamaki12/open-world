@@ -1,11 +1,12 @@
 import { BuildingDetailProvider } from './BuildingDetail';
 import { RemotePlayers } from '../session/RemotePlayers';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
+import { useEffect } from 'react';
 import { Environment, Grid, Lightformer, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W, floorY } from '../building/dimensions';
 import { useGame } from '../state/store';
-import { useTouchDevice } from '../ui/useTouchDevice';
+import { useGraphicsSettings } from '../state/graphics';
 import { useInteraction } from '../state/interaction';
 import { BuildCamera } from './BuildCamera';
 import { DebugBridge } from './DebugBridge';
@@ -24,8 +25,7 @@ import { useLotCells } from '../state/economy';
 const CENTER: [number, number, number] = [(LOT_W * GRID) / 2, 0, (LOT_D * GRID) / 2];
 
 export function Scene() {
-  const touch=useTouchDevice();
-  const shadowSize=touch?1024:2048;
+  const gfx = useGraphicsSettings();
   const tool = useGame((s) => s.tool);
   const mode = useGame((s) => s.mode);
   const select = useGame((s) => s.select);
@@ -39,9 +39,9 @@ export function Scene() {
 
   return (
     <Canvas
-      shadows
-      dpr={touch ? [1,1.5] : [1,2]}
-      frameloop={paused ? 'never' : 'always'}
+      shadows={gfx.shadowSize > 0}
+      dpr={gfx.dpr}
+      frameloop={paused ? 'never' : gfx.maxFps ? 'demand' : 'always'}
       camera={{ position: [CENTER[0] + 13, 15, CENTER[2] + 19], fov: 45, near: 0.1, far: 700 }}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
       onCreated={({ gl }) => {
@@ -53,14 +53,15 @@ export function Scene() {
         if (e.button === 0 && useGame.getState().tool === 'select' && Date.now() >= useInteraction.getState().ignorePartClickUntil) select(null);
       }}
     >
-      <Environment resolution={touch?128:256}>
+      <Environment resolution={gfx.envResolution}>
         <Lightformer intensity={1.6} position={[0, 10, 0]} rotation-x={Math.PI / 2} scale={[40, 40, 1]} color="#dfe9f5" />
         <Lightformer intensity={0.8} position={[-20, 4, 0]} rotation-y={Math.PI / 2} scale={[40, 8, 1]} color="#f7efe2" />
         <Lightformer intensity={0.6} position={[20, 4, 0]} rotation-y={-Math.PI / 2} scale={[40, 8, 1]} color="#e3ecf7" />
         <Lightformer intensity={0.5} position={[0, -2, 0]} rotation-x={-Math.PI / 2} scale={[40, 40, 1]} color="#c9c3b4" />
       </Environment>
-      <ClimateLights center={CENTER} shadowSize={shadowSize} />
-      <FurnitureLighting mobile={touch} />
+      <ClimateLights center={CENTER} shadowSize={gfx.shadowSize} precipitation={gfx.precipitation} />
+      <FurnitureLighting budget={gfx.lights} />
+      {gfx.maxFps > 0 && !paused && <FrameCap fps={gfx.maxFps} />}
 
       <BuildingDetailProvider>
       <Ground />
@@ -105,6 +106,22 @@ export function Scene() {
       </BuildingDetailProvider>
     </Canvas>
   );
+}
+
+/** frameloop="demand" のとき、決まった間隔で次の1フレームを描かせる（画質「低」は 30fps まで） */
+function FrameCap({ fps }: { fps: number }) {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    let id = 0, last = 0;
+    const step = 1000 / fps;
+    const loop = (t: number) => {
+      id = requestAnimationFrame(loop);
+      if (t - last >= step - 2) { last = t; invalidate(); }
+    };
+    id = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(id);
+  }, [fps, invalidate]);
+  return null;
 }
 
 /** いま建てている土地（砂利敷き）。草地・道路・ほかの区画は Town が描く */

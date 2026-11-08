@@ -1,3 +1,4 @@
+import { GraphicsPicker } from './GraphicsPicker';
 import { iconText } from './AppIcon';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QUICK_TOOLS, aimActions, useAim, useControls } from '../state/controls';
@@ -67,6 +68,9 @@ export function InventoryPanel(){
 export function ControlsPanel(){
   const {sensitivity,invertY,aimBuild,update}=useControls(),view=useGame(s=>s.view);
   return <Modal title="⚙ 操作設定" onClose={()=>useGame.getState().setOverlay(null)} tabs={[]} tab="" onTab={()=>{}}>
+    <h3>画質</h3>
+    <GraphicsPicker />
+    <p>低にすると解像度・影・遠くの建物・雨や雪を減らして、動きを軽くします（30fps まで）。この端末に保存されます。</p>
     <h3>見回す操作</h3>
     <label className="field">視点感度：{sensitivity.toFixed(1)}倍<input aria-label="視点感度" type="range" min="0.3" max="2" step="0.1" value={sensitivity} onChange={e=>update({sensitivity:+e.target.value})}/></label>
     <label className="check"><input type="checkbox" checked={invertY} onChange={e=>update({invertY:e.target.checked})}/>上下の視点操作を反転</label>

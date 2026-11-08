@@ -7,12 +7,13 @@ import { useGame } from '../state/store';
 import { playerMemory, playerMotion } from './Player';
 
 export function DebugBridge() {
-  const { camera, size, scene } = useThree();
+  const { camera, size, scene, gl } = useThree();
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     (window as unknown as Record<string, unknown>).__ow = {
       camera,
       scene,
+      gl,
       game: useGame,
       economy: useEconomy,
       player: playerMemory,
@@ -22,6 +23,6 @@ export function DebugBridge() {
         return { x: ((v.x + 1) / 2) * size.width, y: ((1 - v.y) / 2) * size.height };
       },
     };
-  }, [camera, size, scene]);
+  }, [camera, size, scene, gl]);
   return null;
 }

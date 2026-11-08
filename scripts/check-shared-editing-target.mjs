@@ -32,7 +32,7 @@ try{
   assert.equal(await b.evaluate(()=>window.__ow.economy.getState().currentLotId),own,'re-entry must select my lot rather than the first player’s');
   console.log('reload / identity / own target passed');
   await b.evaluate(()=>{const g=window.__ow.game.getState();g.setMode('build');g.setTool('select');});
-  await b.getByRole('button',{name:'建築メニューを開く',exact:true}).click();await b.locator('[data-tool="floor"]').click();await b.getByRole('button',{name:'決定',exact:true}).click();
+  await b.getByRole('button',{name:'建築メニューを開く',exact:true}).click();await b.locator('[data-tool="floor"]').click({timeout:90000});/* CIのソフトウェア描画では道具を持った直後のシェーダー準備でクリックの応答が30秒を超えることがある（押した結果は失敗時の画面でも反映済み） */await b.getByRole('button',{name:'決定',exact:true}).click();
   await b.evaluate(async()=>{const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');const s=_roots.get(document.querySelector('canvas')).store.getState();s.controls.target.set(2.5,3.4,2.5);s.camera.position.set(25,14,28);s.controls.update();s.camera.updateMatrixWorld();s.scene.updateMatrixWorld(true);window.__ow.game.getState().setLevel(0);});await b.waitForTimeout(500);
   const project=(x,z)=>b.evaluate(({x,z})=>window.__ow.project(x*.91,3.4,z*.91),{x,z}),start=await project(2.2,1.2),end=await project(5.8,3.8),cdp=await context.newCDPSession(b);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[start]});for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:start.x+(end.x-start.x)*i/8,y:start.y+(end.y-start.y)*i/8}]});
