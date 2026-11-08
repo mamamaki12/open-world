@@ -102,7 +102,9 @@ try {
   console.log('customization and exit passed');
   await join();
   await wait(async () => (await import('/src/state/vehicles.ts')).useVehicles.getState().cars.length === 1);
-  assert.deepEqual(await position(), lastMove, 're-entry restores saved parking position');
+  // ログアウト中の車はワールドに出さないので、入り直すと土地がない人は車屋の横の駐車場に置き直す
+  const bay = await page.evaluate(async () => { const s = (await import('/src/world/carSpawn.ts')).dealerSpots()[0]; return { x: s.x, z: s.z }; });
+  assert.deepEqual(await position(), bay, 're-entry parks the car at the dealer lot');
   console.log('re-entry passed');
   assert.equal((await page.evaluate(async () => (await import('/src/state/vehicles.ts')).useVehicles.getState().cars[0])).id, carId);
   await page.evaluate(async () => { const e = (await import('/src/state/economy.ts')).useEconomy.getState(); const offer = e.offers.find(o => o.location === 'rural') || e.offers[0]; const err = e.buyLand(offer.id); if (err) throw Error(err); });
