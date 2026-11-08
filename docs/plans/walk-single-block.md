@@ -1,7 +1,7 @@
 # 歩く画面は1ブロックずつ、建築画面はドラッグで範囲配置
 
-- 状態：公開待ち
-- 残作業：PRのCIとマージ
+- 状態：完了（PR #153、2026-11-08 マージ）
+- 残作業：なし
 - 確認根拠：`scripts/check-block-vs-range.mjs`（スマホの建築画面で床・壁をドラッグ→広い範囲・長い壁、歩く画面の三人称でドラッグ→1ブロック）、`scripts/check-aim-controls.mjs`（照準のタップ・配置ボタン・PCの右クリックで1ブロック）。check-build-controls / check-phone-build-ux / check-touch-place-no-rotate / check-connected-floors / check-shared-floor-extension、vitest も通過
 - ブランチ：`claude/project-thread-e1ymqt`
 - 依頼：しんご 2026-11-08「歩く画面で建築するときは固定で1ブロックずつしか配置できないようにして、建築の画面ではドラッグで広い範囲をまとめて一括で配置できるようにして」
@@ -13,4 +13,4 @@
 
 ## 進捗
 - 済：計画、実装（`singleBlock.ts`、`aimBuild.ts` から始点・終点を削除、`PlacementController.tsx` の歩く画面は離した所に1ブロック）、確認スクリプトとCI
-- 次：PRのマージ
+- 済：PR #153 のマージ
