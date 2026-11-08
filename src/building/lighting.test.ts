@@ -32,13 +32,13 @@ describe('furniture lighting', () => {
   });
   it('uses the same mounting and preview in walking aim and preserves mounts through shared changes', () => {
     const defaults={...useGame.getState().defaults,furnitureType:'wall-sconce'};
-    const result=aimPlan(house,'furniture',defaults,{x:3*GRID,y:floorY(1)+1.6,z:2*GRID,ref:{kind:'wall',id:wall.id}},{x:3*GRID,z:0},0,null);
+    const result=aimPlan(house,'furniture',defaults,{x:3*GRID,y:floorY(1)+1.6,z:2*GRID,ref:{kind:'wall',id:wall.id}},{x:3*GRID,z:0},0);
     expect(result.error).toBeNull(); expect(result.preview).toMatchObject({kind:'nameplate',type:'wall-sconce'});
     const saved=JSON.parse(JSON.stringify(result.next!));
     const synced=applyChanges(house,changes(house,saved));
     expect(synced.furniture[0].wallMount?.wallId).toBe(wall.id);
     expect(removePart(synced,{kind:'wall',id:wall.id}).furniture).toEqual([]);
-    expect(aimPlan(house,'furniture',defaults,{x:3*GRID,y:floorY(1),z:4*GRID},{x:3*GRID,z:0},0,null)).toMatchObject({error:'取り付ける壁面を狙ってください'});
+    expect(aimPlan(house,'furniture',defaults,{x:3*GRID,y:floorY(1),z:4*GRID},{x:3*GRID,z:0},0)).toMatchObject({error:'取り付ける壁面を狙ってください'});
   });
   it('places indirect lighting on bare ground or the floor it stands on', () => {
     const f={level:0,type:'indirect-floor-light',x:GRID,z:GRID};

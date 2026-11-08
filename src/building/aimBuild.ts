@@ -1,27 +1,26 @@
 import { getFurniture, getOpening } from '../catalog';
 import { designOf } from '../catalog/designs';
 import { BASE_HEIGHT, GRID, lotSize, MAX_LEVEL, STORY_HEIGHT } from './dimensions';
-import { axisAlignedSegment, canPlaceOpening, canPlaceRoof, canPlaceStair, canPlaceWall, newId, normalizeRect, removePart, snapOpeningOffset, wallDir, wallLength } from './rules';
+import { canPlaceOpening, canPlaceRoof, canPlaceStair, canPlaceWall, newId, removePart, snapOpeningOffset, wallDir, wallLength } from './rules';
 import { floorPlacementPlan } from './floorPlacement';
 import { mountedTransform, nameplateMount } from './mounts';
 import { snapFurniturePlacement } from './furnitureSnap';
 import { hasRoomCeiling } from './roomLighting';
+import { blockCell, blockWallSegment } from './singleBlock';
 import type { Defaults, Tool } from '../state/store';
 import type { House, PartRef } from './types';
 import type { Preview } from '../state/interaction';
 
 export interface AimPoint { x:number; y:number; z:number; ref?:PartRef }
-export interface Anchor {x:number;z:number;level:number}
-export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number;z:number},rot:0|1|2|3,anchor:Anchor|null) {
+/** 歩く画面の照準で置く。床・屋根は1マス、壁は1マス分の辺1本を1回で置く（範囲はなし） */
+export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number;z:number},rot:0|1|2|3) {
   const level=Math.max(0,Math.min(tool==='roof'?MAX_LEVEL+1:MAX_LEVEL,Math.floor((p.y-BASE_HEIGHT+.15)/STORY_HEIGHT)));
-  const range=tool==='floor'||tool==='wall'||tool==='roof';
-  const point={x:Math.floor(p.x/GRID),z:Math.floor(p.z/GRID),level};
-  if(tool==='wall'){point.x=Math.round(p.x/GRID);point.z=Math.round(p.z/GRID);}
+  const point={...blockCell(p.x,p.z),level};
   if(p.x<0||p.z<0||p.x>lotSize.w*GRID||p.z>lotSize.d*GRID)return {error:'自分の土地の中を狙ってください'};
-  const a=anchor??point,l=anchor?.level??level;
+  const l=level;
   let next=h,error:string|null=null,preview:Preview|null=null;
   if(tool==='floor'||tool==='roof'){
-    const rect=normalizeRect({x0:a.x,z0:a.z,x1:point.x,z1:point.z});rect.x1++;rect.z1++;
+    const rect={x0:point.x,z0:point.z,x1:point.x+1,z1:point.z+1};
     const roofLevel=Math.max(0,l-1);
     const floorPlan=tool==='floor'?floorPlacementPlan(h,l,rect):null;
     error=floorPlan?floorPlan.error:canPlaceRoof(h,roofLevel,rect);
@@ -29,8 +28,8 @@ export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number
     if(tool==='floor')next={...h,floors:[...h.floors,...floorPlan!.rects.map(r=>({id:newId('floor'),level:l,...r,finish:d.floorKind==='terrace'?d.terrace:d.floor,...(d.floorKind==='terrace'?{kind:'terrace' as const}:{})}))]};
     else next={...h,roofs:[...h.roofs,{id:newId('roof'),level:roofLevel,...rect,type:d.roofType,axis:rect.x1-rect.x0>=rect.z1-rect.z0?'x':'z',flip:false,pitch:d.roofType==='flat'?0:d.roofPitch,overhang:d.roofType==='flat'?0:d.roofOverhang,finish:d.roofType==='flat'?{material:'sheet',color:'#8f9294'}:d.roofFinish,gableFinish:d.wallExterior}]};
   }else if(tool==='wall'){
-    const seg=axisAlignedSegment(a,point),base=d.wallHeight==='fence'||d.wallHeight==='privacyFence'?0:l;
-    error=seg.x0===seg.x1&&seg.z0===seg.z1?'終点に照準を合わせてください':canPlaceWall(h,{level:base,...seg});
+    const seg=blockWallSegment(p.x,p.z),base=d.wallHeight==='fence'||d.wallHeight==='privacyFence'?0:l;
+    error=canPlaceWall(h,{level:base,...seg});
     preview={kind:'wall',...seg,valid:!error};
     next={...h,walls:[...h.walls,{id:newId('wall'),level:base,...seg,exterior:d.wallExterior,interior:d.wallInterior,height:d.wallHeight}]};
   }else if(tool==='stair'){
@@ -59,5 +58,5 @@ export function aimPlan(h:House,tool:Tool,d:Defaults,p:AimPoint,viewer:{x:number
     if(!p.ref)return {error:'消すパーツを狙ってください'};
     next=removePart(h,p.ref);
   }
-  return {error,next,preview,point,range};
+  return {error,next,preview,point};
 }

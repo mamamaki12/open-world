@@ -48,8 +48,8 @@ describe('drawing an extension from an existing floor', () => {
     expect(applyChanges(base, changes(base, next))).toEqual(next);
   });
   it('uses the same clipping when building with the first-person crosshair', () => {
-    const result = aimPlan(base, 'floor', useGame.getState().defaults, { x: 5.5*.91, y: 3.4, z: 3.5*.91 }, { x: 1, z: 1 }, 0, { x: 3, z: 2, level: 1 });
+    const result = aimPlan(base, 'floor', useGame.getState().defaults, { x: 4.5*.91, y: 3.4, z: 2.5*.91 }, { x: 1, z: 1 }, 0);
     expect(result.error).toBeNull(); expect(result.next?.floors).toHaveLength(2);
-    expect(result.next?.floors[1]).toMatchObject({ level: 1, x0: 4, x1: 6 });
+    expect(result.next?.floors[1]).toMatchObject({ level: 1, x0: 4, x1: 5, z0: 2, z1: 3 });
   });
 });
