@@ -18,7 +18,7 @@ import {
 } from '../building/rules';
 import type { Rect } from '../building/rules';
 import type { House } from '../building/types';
-import { touchGesture, reservesTouch } from '../state/gestures';
+import { touchGesture, reservesTouch, placingTool } from '../state/gestures';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useGame } from '../state/store';
 import { useInteraction } from '../state/interaction';
@@ -204,11 +204,20 @@ export function PlacementController() {
       if (dragStart || tap) return;
       const g = useGame.getState();
       let inside = false;
-      if (!aimBuilding()) {
+      // ドア・窓・壁に付ける家具は、壁に触れた指を予約する（壁の上でずらして位置を決める）
+      const onWallTool = g.tool === 'door' || g.tool === 'window' || (g.tool === 'furniture' && !!getFurniture(g.defaults.furnitureType).mount);
+      if (onWallTool) {
+        const house = scene.getObjectByName('house');
+        const r = el.getBoundingClientRect();
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera);
+        inside = !!house && ray.intersectObject(house, true).some((h) => (h.object.userData.partRef as { kind?: string } | undefined)?.kind === 'wall');
+      } else if (!aimBuilding()) {
         const p = groundPoint(e, surfaceAt(e));
         inside = !!p && p.x >= -GRID && p.x <= (lotSize.w + 1) * GRID && p.z >= -GRID && p.z <= (lotSize.d + 1) * GRID;
       }
       touchGesture.reserved = !aimBuilding() && reservesTouch(g.tool, g.mode, g.eraseMulti, inside);
+      touchGesture.placeable = touchGesture.reserved && inside;
       const c = controlsRef.current;
       if (c) c.touches.ONE = touchGesture.reserved ? (-1 as THREE.TOUCH) : THREE.TOUCH.ROTATE;
     };
@@ -229,7 +238,8 @@ export function PlacementController() {
       const p = groundPoint(e, surface);
       if (!p) return;
       // 回す指（土地の外から触れた指）では青いプレビューを出さない
-      if(e.pointerType==='touch' && ['floor','wall','roof'].includes(g.tool) && !touchGesture.reserved){activeTouch=null;return;}
+      // 土地の外から触れた指では置かない（画面も回さない）
+      if(e.pointerType==='touch' && placingTool(g.tool) && !touchGesture.placeable){activeTouch=null;return;}
       if (g.tool === 'furniture' || (e.pointerType === 'touch' && g.tool === 'stair')) {
         tap = { x: e.clientX, y: e.clientY };
         updatePreview(e);
@@ -363,8 +373,8 @@ export function PlacementController() {
         if (!mine && !useInteraction.getState().furnitureDrag) return;
         activeTouch = null;
         if (tap) {
-          // 少しでも指を滑らせたら置かない（見回すつもりだったかもしれない）
-          const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
+          // 土地の中で触れた指は、ずらした先（離した場所）に置く。土地の外から触れた指は見回すつもりなので、滑らせたら置かない
+          const moved = !touchGesture.placeable && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
           tap = null;
           const surface = pickSurface(e);
           const p = groundPoint(e, surface);
