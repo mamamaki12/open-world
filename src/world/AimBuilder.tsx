@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { aimPlan } from '../building/aimBuild';
-import type { AimPoint, Anchor } from '../building/aimBuild';
+import type { AimPoint } from '../building/aimBuild';
 import type { PartRef } from '../building/types';
 import { aimActions, AIM_REACH, useAim } from '../state/controls';
 import { useGame } from '../state/store';
@@ -17,7 +17,7 @@ const AIM_TAP_RADIUS=50;
 
 export function AimBuilder() {
   const { camera, gl, scene } = useThree();
-  const anchor=useRef<Anchor|null>(null),point=useRef<AimPoint|null>(null),clock=useRef(0);
+  const point=useRef<AimPoint|null>(null),clock=useRef(0);
   const ray=useRef(new THREE.Raycaster());
   const pick=()=>{
     const objects=['house','ground','casino','estate','dealer','tuner','exchange','salon','boutiques','venue-interior','neighbors','vehicles'].map(n=>scene.getObjectByName(n)).filter((o):o is THREE.Object3D=>!!o);
@@ -35,7 +35,7 @@ export function AimBuilder() {
     while(o){ref??=o.userData.partRef;if(o.name==='house'||o.name==='ground')editable=true;o=o.parent;}
     return editable?{...hit.point,ref}:null;
   };
-  const clear=()=>{anchor.current=null;point.current=null;useInteraction.getState().setPreview(null);useAim.setState({label:'',range:false,target:null,valid:false});};
+  const clear=()=>{point.current=null;useInteraction.getState().setPreview(null);useAim.setState({label:'',range:false,target:null,valid:false});};
   useEffect(()=>{
     aimActions.cancel=clear;
     aimActions.rotate=()=>{const g=useGame.getState();if(g.tool==='stair'){const ui=useInteraction.getState();ui.setStairRot(((ui.stairRot+1)%4) as 0|1|2|3);}else if(g.tool==='furniture')g.setDefaults({furnitureRotation:(g.defaults.furnitureRotation+90)%360});};
@@ -48,10 +48,10 @@ export function AimBuilder() {
         else g.notify('選ぶパーツを狙ってください');
         return;
       }
-      const plan=aimPlan(g.house,g.tool,g.defaults,p,camera.position,useInteraction.getState().stairRot,anchor.current);
-      if(plan.range&&!anchor.current&&plan.point){anchor.current=plan.point;useAim.setState({range:true});return;}
+      // 歩く画面は1回で1ブロック（床・屋根は1マス、壁は1マス分）。始点・終点はない
+      const plan=aimPlan(g.house,g.tool,g.defaults,p,camera.position,useInteraction.getState().stairRot);
       if(plan.error)return g.notify(plan.error);
-      if(plan.next){g.commit(plan.next);anchor.current=null;useAim.setState({range:false});
+      if(plan.next){g.commit(plan.next);
         if(g.tool==='furniture'){g.setTool('select');g.select({kind:'furniture',id:plan.next.furniture[plan.next.furniture.length-1].id});}
       }
     };
@@ -59,7 +59,7 @@ export function AimBuilder() {
       if(e.pointerType==='touch'||!aimBuilding()||document.pointerLockElement!==gl.domElement)return;
       if(e.button===0||e.button===2){e.preventDefault();aimActions.place();}
     };
-    // スマホ：照準（画面中央）を短くタップしたら「配置」と同じ。なぞったら見回すだけ。削除は誤操作を防ぐため長押しボタンのみ。
+    // スマホ：照準（画面中央）を短くタップしたら「配置」と同じ（1ブロック置く）。なぞったら見回すだけ。削除は誤操作を防ぐため長押しボタンのみ。
     const taps=new Map<number,{x:number;y:number;t:number}>();
     const touchDown=(e:PointerEvent)=>{
       if(e.pointerType!=='touch')return;
@@ -79,13 +79,12 @@ export function AimBuilder() {
   },[camera,gl,scene]);
   useFrame((_,dt)=>{
     clock.current+=dt;if(clock.current<.08)return;clock.current=0;
-    if(!aimBuilding()){if(point.current||anchor.current)clear();return;}
+    if(!aimBuilding()){if(point.current)clear();return;}
     const p=useVenue.getState().inside?null:pick();point.current=p;
     if(!p){useAim.setState({valid:false,label:`${AIM_REACH}m以内の自分の土地を狙う`,target:null});useInteraction.getState().setPreview(null);return;}
-    const g=useGame.getState(),plan=aimPlan(g.house,g.tool,g.defaults,p,camera.position,useInteraction.getState().stairRot,anchor.current);
-    const starting=!!plan.range&&!anchor.current;
-    useAim.setState({valid:starting||!plan.error,label:starting?'始点を決める':plan.error??(plan.range?'終点に配置する':g.tool==='erase'?(g.eraseMulti?'狙ったパーツを選ぶ・外す':'狙ったパーツを消す'):'狙った場所に配置する'),target:p.ref??null,range:!!anchor.current});
-    g.setLevel(plan.point ? (g.tool==='roof'?Math.max(0,(anchor.current?.level??plan.point.level)-1):anchor.current?.level??plan.point.level) : g.activeLevel);
+    const g=useGame.getState(),plan=aimPlan(g.house,g.tool,g.defaults,p,camera.position,useInteraction.getState().stairRot);
+    useAim.setState({valid:!plan.error,label:plan.error??(g.tool==='erase'?(g.eraseMulti?'狙ったパーツを選ぶ・外す':'狙ったパーツを消す'):g.tool==='floor'||g.tool==='wall'||g.tool==='roof'?'1ブロック置く':'狙った場所に配置する'),target:p.ref??null,range:false});
+    g.setLevel(plan.point ? (g.tool==='roof'?Math.max(0,plan.point.level-1):plan.point.level) : g.activeLevel);
     useInteraction.getState().setPreview(plan.preview??null);
   });
   return null;

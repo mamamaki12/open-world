@@ -29,8 +29,14 @@ import { placementPoint } from './placementRay';
 import { floorPlacementPlan } from '../building/floorPlacement';
 import { hasRoomCeiling } from '../building/roomLighting';
 import { floorPointerLevel, pointerSurfaceLevel } from './placementSurface';
+import { blockWallSegment } from '../building/singleBlock';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+/** 歩く画面では床・壁・屋根を1ブロックずつ置く（範囲のドラッグは建築の画面だけ） */
+const singleBlock = () => {
+  const g = useGame.getState();
+  return g.mode === 'walk' && (g.tool === 'floor' || g.tool === 'wall' || g.tool === 'roof');
+};
 
 /** その階の（高さのある）壁が囲む範囲。壁がなければ null */
 function wallBounds(house: House, level: number): Rect | null {
@@ -105,6 +111,12 @@ export function PlacementController() {
       const r = normalizeRect({ x0: a.x, z0: a.z, x1: b.x, z1: b.z });
       return { ...r, x1: r.x1 + 1, z1: r.z1 + 1 };
     };
+    /** 1マス分の壁の線（土地の中に寄せる） */
+    const blockWall = (p: THREE.Vector3) => {
+      const s = blockWallSegment(p.x, p.z);
+      const dx = clamp(s.x0, 0, lotSize.w - (s.x1 - s.x0)) - s.x0, dz = clamp(s.z0, 0, lotSize.d - (s.z1 - s.z0)) - s.z0;
+      return { x0: s.x0 + dx, z0: s.z0 + dz, x1: s.x1 + dx, z1: s.z1 + dz };
+    };
 
     /**
      * 屋根は壁の上端に載るので、カーソルは地面や床ではなく壁の上端の高さの面で読む
@@ -173,8 +185,9 @@ export function PlacementController() {
         case 'wall': {
           g.setLevel(surface);
           const q = pointAt(p);
-          const seg = dragStart ? axisAlignedSegment(dragStart, q) : { x0: q.x, z0: q.z, x1: q.x, z1: q.z };
-          const valid = !dragStart || canPlaceWall(g.house, { level: surface, ...seg }) === null;
+          const single = singleBlock();
+          const seg = single ? blockWall(p) : dragStart ? axisAlignedSegment(dragStart, q) : { x0: q.x, z0: q.z, x1: q.x, z1: q.z };
+          const valid = !(dragStart || single) || canPlaceWall(g.house, { level: surface, ...seg }) === null;
           ui.setPreview({ kind: 'wall', ...seg, valid });
           break;
         }
@@ -240,12 +253,62 @@ export function PlacementController() {
       // 回す指（土地の外から触れた指）では青いプレビューを出さない
       // 土地の外から触れた指では置かない（画面も回さない）
       if(e.pointerType==='touch' && placingTool(g.tool) && !touchGesture.placeable){activeTouch=null;return;}
-      if (g.tool === 'furniture' || (e.pointerType === 'touch' && g.tool === 'stair')) {
+      if (g.tool === 'furniture' || (e.pointerType === 'touch' && g.tool === 'stair') || singleBlock()) {
         tap = { x: e.clientX, y: e.clientY };
         updatePreview(e);
         return;
       }
       place(e, p, surface);
+    };
+
+    /** 床・屋根を範囲に置く。屋根は、読んだ壁の上端（surface）に載る */
+    const commitRect = (tool: 'floor' | 'roof', surface: number, rect: Rect) => {
+      const g = useGame.getState();
+      if (tool === 'floor') {
+        const level = surface;
+        const plan = floorPlacementPlan(g.house, level, rect);
+        if (plan.error) return g.notify(plan.error);
+        const terrace = g.defaults.floorKind === 'terrace';
+        const floors = plan.rects.map(r => ({ id: newId('floor'), level, ...r, finish: terrace ? g.defaults.terrace : g.defaults.floor, ...(terrace ? { kind: 'terrace' as const } : {}) }));
+        g.commit({ ...g.house, floors: [...g.house.floors, ...floors] });
+        return;
+      }
+      const level = surface - 1;
+      const err = canPlaceRoof(g.house, level, rect);
+      if (err) return g.notify(err);
+      const d = g.defaults;
+      const axis = rect.x1 - rect.x0 >= rect.z1 - rect.z0 ? 'x' : 'z';
+      g.commit({
+        ...g.house,
+        roofs: [
+          ...g.house.roofs,
+          {
+            id: newId('roof'),
+            level,
+            ...rect,
+            type: d.roofType,
+            axis,
+            flip: false,
+            pitch: d.roofType === 'flat' ? 0 : d.roofPitch,
+            overhang: d.roofType === 'flat' ? 0 : d.roofOverhang,
+            finish: d.roofType === 'flat' ? { material: 'sheet', color: '#8f9294' } : d.roofFinish,
+            gableFinish: d.wallExterior,
+          },
+        ],
+      });
+    };
+    const commitWall = (surface: number, seg: { x0: number; z0: number; x1: number; z1: number }) => {
+      const g = useGame.getState();
+      if (seg.x0 === seg.x1 && seg.z0 === seg.z1) return;
+      const err = canPlaceWall(g.house, { level: surface, ...seg });
+      if (err) return g.notify(err);
+      g.commit({
+        ...g.house,
+        walls: [
+          ...g.house.walls,
+          { id: newId('wall'), level: surface, ...seg, exterior: g.defaults.wallExterior, interior: g.defaults.wallInterior, height: g.defaults.wallHeight },
+        ],
+      });
     };
 
     const place = (e: PointerEvent, p: THREE.Vector3, surface: number) => {
@@ -257,11 +320,22 @@ export function PlacementController() {
           break;
         case 'floor':
         case 'roof':
+          if (singleBlock()) {
+            const c = cellAt(p);
+            commitRect(g.tool, surface, cellRect(c, c));
+            updatePreview(e);
+            break;
+          }
           dragStart = cellAt(p);
           dragSurface = surface;
           updatePreview(e);
           break;
         case 'wall':
+          if (singleBlock()) {
+            commitWall(surface, blockWall(p));
+            updatePreview(e);
+            break;
+          }
           dragStart = pointAt(p);
           dragSurface = surface;
           updatePreview(e);
@@ -362,7 +436,7 @@ export function PlacementController() {
       if (e.pointerType !== 'touch' && tap) {
         const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
         tap = null;
-        const surface = pickSurface(e);
+        const surface = singleBlock() ? surfaceAt(e) : pickSurface(e);
         const p = groundPoint(e, surface);
         if (!moved && p) place(e, p, surface);
         return;
@@ -376,7 +450,7 @@ export function PlacementController() {
           // 土地の中で触れた指は、ずらした先（離した場所）に置く。土地の外から触れた指は見回すつもりなので、滑らせたら置かない
           const moved = !touchGesture.placeable && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12;
           tap = null;
-          const surface = pickSurface(e);
+          const surface = singleBlock() ? surfaceAt(e) : pickSurface(e);
           const p = groundPoint(e, surface);
           if (!moved && p) place(e, p, surface);
           return;
@@ -428,54 +502,8 @@ export function PlacementController() {
         return;
       }
       if (!p) return;
-      if (g.tool === 'floor' || g.tool === 'roof') {
-        const rect = cellRect(start, cellAt(p));
-        if (g.tool === 'floor') {
-          const level = surface;
-          const plan = floorPlacementPlan(g.house, level, rect);
-          if (plan.error) return g.notify(plan.error);
-          const terrace = g.defaults.floorKind === 'terrace';
-          const floors = plan.rects.map(r => ({ id: newId('floor'), level, ...r, finish: terrace ? g.defaults.terrace : g.defaults.floor, ...(terrace ? { kind: 'terrace' as const } : {}) }));
-          g.commit({ ...g.house, floors: [...g.house.floors, ...floors] });
-        } else {
-          // 屋根は、ドラッグを始めたときにカーソルが読んでいた壁の上端に載る
-          const level = surface - 1;
-          const err = canPlaceRoof(g.house, level, rect);
-          if (err) return g.notify(err);
-          const d = g.defaults;
-          const axis = rect.x1 - rect.x0 >= rect.z1 - rect.z0 ? 'x' : 'z';
-          g.commit({
-            ...g.house,
-            roofs: [
-              ...g.house.roofs,
-              {
-                id: newId('roof'),
-                level,
-                ...rect,
-                type: d.roofType,
-                axis,
-                flip: false,
-                pitch: d.roofType === 'flat' ? 0 : d.roofPitch,
-                overhang: d.roofType === 'flat' ? 0 : d.roofOverhang,
-                finish: d.roofType === 'flat' ? { material: 'sheet', color: '#8f9294' } : d.roofFinish,
-                gableFinish: d.wallExterior,
-              },
-            ],
-          });
-        }
-      } else if (g.tool === 'wall') {
-        const seg = axisAlignedSegment(start, pointAt(p));
-        if (seg.x0 === seg.x1 && seg.z0 === seg.z1) return;
-        const err = canPlaceWall(g.house, { level: surface, ...seg });
-        if (err) return g.notify(err);
-        g.commit({
-          ...g.house,
-          walls: [
-            ...g.house.walls,
-            { id: newId('wall'), level: surface, ...seg, exterior: g.defaults.wallExterior, interior: g.defaults.wallInterior, height: g.defaults.wallHeight },
-          ],
-        });
-      }
+      if (g.tool === 'floor' || g.tool === 'roof') commitRect(g.tool, surface, cellRect(start, cellAt(p)));
+      else if (g.tool === 'wall') commitWall(surface, axisAlignedSegment(start, pointAt(p)));
       updatePreview(e);
     };
 

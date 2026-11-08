@@ -56,24 +56,26 @@ const swipe = async (dx, dy) => {
 const place = async () => { await page.locator('.aim-place').waitFor(); await page.waitForTimeout(200); await page.locator('.aim-place').tap(); };
 try {
   const mobile = await open(true, { width: 390, height: 844 });
+  // 歩く画面は1回で1ブロック（始点・終点はない）
   await tool(2); await place();
-  assert.match(await page.locator('.aim-place').innerText(), /終点/);
+  const floor = await page.evaluate(() => window.__ow.game.getState().house.floors);
+  assert.equal(floor.length, 1, 'one tap places a floor');
+  assert.equal((floor[0].x1 - floor[0].x0) * (floor[0].z1 - floor[0].z0), 1, 'walk mode floor is one block');
+  assert.doesNotMatch(await page.locator('.aim-place').innerText(), /終点|始点/);
   const yaw = await page.evaluate(() => window.__ow.player.yaw);
   await swipe(115, 0);
-  assert.ok(Math.abs(await page.evaluate(() => window.__ow.player.yaw) - yaw) > .2, 'one-finger look while holding a range tool');
-  await place();
-  assert.equal(await page.evaluate(() => window.__ow.game.getState().house.floors.length), 1);
+  assert.ok(Math.abs(await page.evaluate(() => window.__ow.player.yaw) - yaw) > .2, 'one-finger look while holding a block tool');
   await page.getByRole('button',{name:'取り消す',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.floors.length),0);
   await page.getByRole('button',{name:'やり直す',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.floors.length),1);
   await page.screenshot({ path: 'control-checks/mobile-floor.png' });
-  // 照準（画面中央）をタップしても始点・終点が決まる
+  // 照準（画面中央）をタップしても1ブロック置ける
   const tapReticle = async () => { await page.locator('.aim-reticle.tappable').waitFor(); await page.waitForTimeout(200); const v = page.viewportSize(); await page.touchscreen.tap(v.width / 2, v.height / 2); };
   await setup(); await tool(3); await tapReticle();
-  assert.match(await page.locator('.aim-place').innerText(), /終点/, 'tapping the reticle sets the start point');
-  await swipe(130, 0); await tapReticle();
-  assert.equal(await page.evaluate(() => window.__ow.game.getState().house.walls.length), 1);
+  const walls = await page.evaluate(() => window.__ow.game.getState().house.walls);
+  assert.equal(walls.length, 1, 'tapping the reticle places a wall');
+  assert.equal(Math.abs(walls[0].x1 - walls[0].x0) + Math.abs(walls[0].z1 - walls[0].z0), 1, 'walk mode wall is one block long');
   await setup(true); await tool(4); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.openings.length), 1);
   await page.evaluate(() => { window.__ow.player.x = 5.2; });
@@ -184,9 +186,8 @@ try {
     g.scene.updateMatrixWorld(true);
     c.position.set(8,1.6,12);c.lookAt(8,0,10);c.updateMatrixWorld(true);
     canvas.dispatchEvent(new PointerEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true,bubbles:true}));
-    canvas.dispatchEvent(new PointerEvent('pointerdown',{button:2,pointerType:'mouse',isPrimary:true,bubbles:true}));
   });
-  assert.equal(await page.evaluate(() => window.__ow.game.getState().house.floors.length), 1, 'mouse places at central aim');
+  assert.equal(await page.evaluate(() => window.__ow.game.getState().house.floors.length), 1, 'one click places one block at central aim');
   assert.ok(await page.evaluate(() => !!document.pointerLockElement), 'switching tools keeps pointer lock');
   await page.mouse.wheel(0, 120); await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => window.__ow.game.getState().tool), 'wall', 'wheel switches hotbar');

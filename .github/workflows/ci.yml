@@ -106,6 +106,7 @@ jobs:
           node scripts/check-build-controls.mjs
           node scripts/check-phone-build-ux.mjs
           node scripts/check-touch-place-no-rotate.mjs
+          node scripts/check-block-vs-range.mjs
           node scripts/check-connected-floors.mjs
           node scripts/check-shared-floor-extension.mjs
       - uses: actions/upload-artifact@v4
