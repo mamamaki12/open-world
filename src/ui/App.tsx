@@ -43,6 +43,7 @@ import { useEconomy } from '../state/economy';
 import { Sheet, TouchCameraPad, TouchWalkControls } from './TouchControls';
 import { useTouchDevice } from './useTouchDevice';
 import { walkActions } from '../state/touch';
+import { aimActions } from '../state/controls';
 import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
 import { reloadLatest } from './reload';
 import { FurnitureDesigner } from './FurnitureDesigner';
@@ -191,9 +192,17 @@ function TouchLayout({ walking }: { walking: boolean }) {
 /** 歩いているときの右上の丸い地図ボタン */
 function MapButton() {
   const setOverlay = useGame((s) => s.setOverlay);
-  return (
+  const undo = useGame((s) => s.undo), redo = useGame((s) => s.redo);
+  const canUndo = useGame((s) => s.past.length > 0), canRedo = useGame((s) => s.future.length > 0);
+  const holding = useGame((s) => s.tool !== 'select');
+  return (<>
+    {/* 道具を持っている間だけ、地図ボタンの左に小さなアイコンで取り消し・やり直し（画面の中央には出さない） */}
+    {holding && <div className="touch-history" role="group" aria-label="建築の取り消し・やり直し">
+      <button disabled={!canUndo} onClick={() => { aimActions.cancel(); undo(); }} aria-label="取り消し">{iconText("↶")}</button>
+      <button disabled={!canRedo} onClick={() => { aimActions.cancel(); redo(); }} aria-label="やり直し">{iconText("↷")}</button>
+    </div>}
     <button className="touch-map" onClick={() => setOverlay('map')} aria-label="町の地図">{iconText("🗺️")}</button>
-  );
+  </>);
 }
 
 function WalkMenu() {

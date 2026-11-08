@@ -35,7 +35,8 @@ export function QuickBar(){
     <div ref={bar} className="quick-tools" aria-label="道具のホットバー">
       {/* スマホでは道具の選択バーを出さず、右下の「建てる」ボタンから選ぶ */}
       {!touch&&<div className="quick-slots" ref={slots}>{QUICK_TOOLS.map((t,i)=><button key={t} aria-label={`${i+1}: ${NAMES[t]}`} aria-pressed={t===tool} onClick={()=>setTool(t)}><kbd>{i+1}</kbd><span>{toolIcon(t)}</span><small>{iconText(NAMES[t])}</small></button>)}</div>}
-      {tool!=='select'&&<BuildHistory/>}
+      {/* スマホは左上の所持金の横に小さな ↶↷ を出す */}
+      {tool!=='select'&&!touch&&<BuildHistory/>}
       {!touch&&<div className="quick-meta"><span>{name}<small className="quick-swipe-hint"> · 左右スワイプで道具</small></span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>{iconText("⚙")}</button></div>}
       {touch&&tool==='select'&&selectedFurniture&&<div className="furniture-edit-hint">青い家具をドラッグで移動・タップで45°回転</div>}
     </div>
@@ -48,10 +49,9 @@ export function QuickBar(){
           e.currentTarget.setPointerCapture(e.pointerId);setPressing(true);
           hold.current=setTimeout(()=>{aimActions.place();setPressing(false);},400);
         }} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onClick={()=>{if(tool!=='erase')aimActions.place();}}>
-          {tool==='erase'?'長押しで削除':target.range?'終点に配置':tool==='floor'||tool==='wall'||tool==='roof'?'始点を決める':'配置'}
+          {tool==='erase'?'長押しで削除':'配置'}
         </button>
         {(tool==='furniture'||tool==='stair')&&<button onClick={()=>aimActions.rotate()}>{iconText("↻ 回転")}</button>}
-        {target.range&&<button onClick={()=>aimActions.cancel()}>範囲を取消</button>}
       </div>
       {!touch&&<div className="aim-mouse-help">画面クリックで視点操作 · 左/右クリックで配置 · ホイールで持替 · Escで解除</div>}
     </>}
@@ -75,7 +75,7 @@ export function ControlsPanel(){
     <label className="field">視点感度：{sensitivity.toFixed(1)}倍<input aria-label="視点感度" type="range" min="0.3" max="2" step="0.1" value={sensitivity} onChange={e=>update({sensitivity:+e.target.value})}/></label>
     <label className="check"><input type="checkbox" checked={invertY} onChange={e=>update({invertY:e.target.checked})}/>上下の視点操作を反転</label>
     <label className="check"><input type="checkbox" checked={aimBuild} onChange={e=>update({aimBuild:e.target.checked})}/>一人称で中央照準を使って建てる</label>
-    <p>{iconText("中央を狙い「配置」（スマホは照準をタップでも可）。床・壁・屋根は始点→終点の2回で範囲を指定します。届く距離は7m。消すときは削除ツールを選びます。スマホの削除は長押しです。")}</p>
+    <p>{iconText("中央を狙い「配置」（スマホは照準をタップでも可）。歩く画面では床・壁・屋根は1回で1ブロックずつ置けます（広い範囲は建築の画面でドラッグ）。届く距離は7m。消すときは削除ツールを選びます。スマホの削除は長押しです。")}</p>
     <button className="btn" onClick={()=>walkActions.toggleView()}>{view==='first'?'三人称にする':'一人称にする'}</button>
     <p>PC：WASDで移動、Ctrl / ShiftまたはWを2回押して走る、Spaceでジャンプ（押し続けると連続）、1〜9・ホイールで道具を持替、Fで開閉・座る、Qで視点切替。</p>
     <p>スマホ：左スティックで移動、端まで倒すと走る。スティックを2回タップするとジャンプ。画面を指一本でなぞって見回します。建築モードでは指で直接範囲を描けます。</p>

@@ -28,8 +28,8 @@ describe('room lighting',()=>{
       expect(Math.max(...def.parts.map(p=>p.pos[1]+p.size[1]/2))).toBeLessThanOrEqual(.001);
       expect(Math.min(...def.parts.map(p=>p.pos[1]-p.size[1]/2))).toBeGreaterThan(-.8);
       const defaults={...useGame.getState().defaults,furnitureType:def.id};
-      expect(aimPlan(room,'furniture',defaults,{x:4,y:.5,z:4},{x:4,z:6},0,null).error).toBeNull();
-      expect(aimPlan(emptyHouse(),'furniture',defaults,{x:4,y:0,z:4},{x:4,z:6},0,null).error).toContain('天井');
+      expect(aimPlan(room,'furniture',defaults,{x:4,y:.5,z:4},{x:4,z:6},0).error).toBeNull();
+      expect(aimPlan(emptyHouse(),'furniture',defaults,{x:4,y:0,z:4},{x:4,z:6},0).error).toContain('天井');
     }
   });
   it('lights each default building without touching saved houses, keeps stable IDs and valid ceiling coverage',()=>{
