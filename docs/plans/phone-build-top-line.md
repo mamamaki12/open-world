@@ -1,6 +1,6 @@
 # スマホ建築中の上部の緑の線を消す
 
-状態：進行中
+状態：完了（PR作成・CI待ち）
 ブランチ：claude/project-thread-34gjyb
 依頼：しんご 2026-11-08「スマホの画面で建てるで床とか選択したときに画面上部に緑の横線が表示される」
 
@@ -14,4 +14,5 @@
 
 ## 進み具合
 - 済：原因の特定
-- 次：CSS修正、390x844 / 844x390 / 693x320 でスクショ確認
+- 済：CSS修正（src/ui/game-ui.css・src/ui/quickbar.css）
+- 済：確認スクリプト scripts/check-phone-build-top.mjs（CI build-controls ジョブ）。693x320・844x390・390x844・375x667 で枠線なし・重なりなし。修正前のCSSでは失敗することも確認
