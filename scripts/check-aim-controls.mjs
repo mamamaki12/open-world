@@ -65,9 +65,9 @@ try {
   const yaw = await page.evaluate(() => window.__ow.player.yaw);
   await swipe(115, 0);
   assert.ok(Math.abs(await page.evaluate(() => window.__ow.player.yaw) - yaw) > .2, 'one-finger look while holding a block tool');
-  await page.getByRole('button',{name:'取り消す',exact:true}).tap();
+  await page.getByRole('button',{name:'取り消し',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.floors.length),0);
-  await page.getByRole('button',{name:'やり直す',exact:true}).tap();
+  await page.getByRole('button',{name:'やり直し',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.floors.length),1);
   await page.screenshot({ path: 'control-checks/mobile-floor.png' });
   // 照準（画面中央）をタップしても1ブロック置ける
@@ -126,7 +126,7 @@ try {
     await page.setViewportSize(viewport); await page.waitForTimeout(250);
     assert.equal(await page.locator('body').evaluate(e => e.scrollWidth), viewport.width, 'no horizontal page overflow');
     const action = await page.locator('.aim-place').boundingBox(), bar = await page.locator('.quick-tools').boundingBox();
-    assert.ok(bar.y + bar.height < viewport.height / 2, 'hotbar leaves central view clear');
+    assert.ok(!bar || bar.y + bar.height < viewport.height / 2, 'hotbar leaves central view clear');
     assert.ok(action.x >= 0 && action.x + action.width <= viewport.width, 'action stays on screen');
     await page.screenshot({ path: `control-checks/mobile-${viewport.width}.png` });
   }

@@ -164,6 +164,8 @@
 #root .controls-help summary { color: var(--pocket-selected); }
 #root .quick-slots { background: var(--pocket-panel); }
 #root .quick-tools:empty { display: none; }
+/* スマホは道具バーが無いので、上の帯そのものは枠を描かない（中身が無いと緑の横線だけが残る） */
+#root .app.touch .quick-tools { background: transparent; border: 0; box-shadow: none; width: max-content; max-width: calc(100% - 16px); }
 #root .quick-meta { border-color: var(--pocket-line); border-radius: 0; }
 #root .quick-meta span { color: var(--pocket-ink); }
 #root .app.walk:not(.touch) .door-prompts { bottom: calc(var(--quick-tools-h,104px) + 22px); }

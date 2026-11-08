@@ -105,6 +105,7 @@ jobs:
           node scripts/check-app-icons.mjs
           node scripts/check-build-controls.mjs
           node scripts/check-phone-build-ux.mjs
+          node scripts/check-phone-build-top.mjs
           node scripts/check-touch-place-no-rotate.mjs
           node scripts/check-block-vs-range.mjs
           node scripts/check-connected-floors.mjs
