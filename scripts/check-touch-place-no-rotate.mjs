@@ -1,4 +1,4 @@
-// スマホで床・壁・屋根・階段・家具を指でなぞって置いている間は、カメラが回らない（置く位置と同じ判定で「置く指」と決める）
+// スマホで置く道具（床・壁・屋根・階段・家具・窓・表札）を持っている間は、1本指でカメラが回らない。指でずらして離した場所に置く
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -34,10 +34,6 @@ try{
   const moved=Math.hypot(...before.map((v,i)=>v-after[i]));
   assert.ok(moved<0.05,`camera rotated while placing roof (moved ${moved.toFixed(2)})`);
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.roofs.length),1,'roof placed');
-  // 土地の外（手前の道）から触れた指は、今までどおり回す
-  const far={x:120,y:800};
-  const b2=await cam();await drag(far,{x:far.x+120,y:far.y});const a2=await cam();
-  assert.ok(Math.hypot(...b2.map((v,i)=>v-a2[i]))>0.05,'finger outside the lot still rotates');
   // 階段・家具：土地の中で触れた指をずらしても回らず、離した場所に置く
   for(const tool of ['stair','furniture']){
     await page.evaluate(t=>{const g=window.__ow.game.getState();g.setTool(t);if(t==='furniture')g.setDefaults({furnitureType:'sofa'});},tool);await page.waitForTimeout(800);
@@ -48,5 +44,25 @@ try{
     assert.equal(await count(),n+1,`${tool} placed at release point`);
     await page.screenshot({path:`${out}/${tool}.png`});
   }
+  // 窓・表札：壁に触れた指を壁の上でずらしても回らず、離した場所に置く
+  for(const [tool,type,count] of [['window',null,'openings'],['furniture','nameplate','furniture']]){
+    await page.evaluate(([t,f])=>{const g=window.__ow.game.getState();g.select(null);g.setTool(t);if(f)g.setDefaults({furnitureType:f});},[tool,type]);await page.waitForTimeout(800);
+    const [a,b]=await page.evaluate(()=>{const G=0.91;return [window.__ow.project(3.2*G,1.8,2*G),window.__ow.project(6.2*G,1.8,2*G)];});
+    const n=await page.evaluate(k=>window.__ow.game.getState().house[k].length,count),c0=await cam();await drag(a,b);const c1=await cam();
+    assert.ok(Math.hypot(...c0.map((v,i)=>v-c1[i]))<0.05,`camera rotated while dragging ${type??tool} on a wall`);
+    assert.equal(await page.evaluate(k=>window.__ow.game.getState().house[k].length,count),n+1,`${type??tool} placed on the wall`);
+    await page.screenshot({path:`${out}/${type??tool}.png`});
+  }
+  await page.evaluate(()=>{const g=window.__ow.game.getState();g.select(null);g.setTool('roof');});await page.waitForTimeout(800);
+  // 置く道具を持っている間は、土地の外（手前の道）から触れた1本指でも回らず、何も置かない
+  const far={x:120,y:800};
+  const roofs=await page.evaluate(()=>window.__ow.game.getState().house.roofs.length);
+  const b2=await cam();await drag(far,{x:far.x+120,y:far.y});const a2=await cam();
+  assert.ok(Math.hypot(...b2.map((v,i)=>v-a2[i]))<0.05,'one finger outside the lot must not rotate while holding a tool');
+  assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.roofs.length),roofs,'nothing placed from outside the lot');
+  // 手ぶらなら1本指で回る
+  await page.evaluate(()=>window.__ow.game.getState().setTool('select'));await page.waitForTimeout(500);
+  const b3=await cam();await drag(far,{x:far.x+120,y:far.y});const a3=await cam();
+  assert.ok(Math.hypot(...b3.map((v,i)=>v-a3[i]))>0.05,'bare hands: one finger rotates');
   assert.deepEqual(errors,[]);console.log('touch place no-rotate passed');
 }catch(e){await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});throw e;}finally{await browser.close();}

@@ -4,7 +4,6 @@ import { floorY, GRID, lotSize } from '../building/dimensions';
 import { emptyHouse } from '../building/types';
 import { placementPoint } from './placementRay';
 import { floorPointerLevel, pointerSurfaceLevel } from './placementSurface';
-import { reservesTouch } from '../state/gestures';
 
 it.each([[844,390],[390,844]])('reserves upper-floor touches at an oblique lot edge (%s×%s)', (width,height) => {
   const bounds={left:0,top:0,width,height};
@@ -19,10 +18,10 @@ it.each([[844,390],[390,844]])('reserves upper-floor touches at an oblique lot e
   const x=(projected.x+1)*width/2,y=(1-projected.y)*height/2;
   const inside=(p:THREE.Vector3|null)=>!!p&&p.x>=0&&p.z>=0&&p.x<=lotSize.w*GRID&&p.z<=lotSize.d*GRID;
   // The old check used the stale activeLevel=0, outside the lot despite touching the visible slab.
-  expect(reservesTouch('floor','build',false,inside(placementPoint(camera,bounds,x,y,0)))).toBe(false);
+  expect(inside(placementPoint(camera,bounds,x,y,0))).toBe(false);
   const level=floorPointerLevel(house,camera,bounds,x,y,object);
   expect(level).toBe(1);
-  expect(reservesTouch('floor','build',false,inside(placementPoint(camera,bounds,x,y,level)))).toBe(true);
+  expect(inside(placementPoint(camera,bounds,x,y,level))).toBe(true);
   slab.geometry.dispose();
 });
 

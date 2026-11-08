@@ -9,6 +9,18 @@ import { useInteraction } from '../../state/interaction';
 import { finishMaterial } from '../materials';
 import { wallGeometry } from '../geometry';
 import { aimBuilding } from '../aimMode';
+import { touchGesture } from '../../state/gestures';
+
+/** 指で壁の上をずらして離したときに置いた時刻（そのあとに来るクリックで二重に置かない） */
+let touchPlacedAt = 0;
+const touchPlaced = () => Date.now() - touchPlacedAt < 600;
+/** 指を壁の上で離したとき：壁に触れて予約した指なら、離した場所に置く */
+const placeOnTouchUp = (e: ThreeEvent<PointerEvent>, place: (e: ThreeEvent<PointerEvent>) => void) => {
+  if (e.pointerType !== 'touch' || !touchGesture.placeable || aimBuilding()) return;
+  e.stopPropagation();
+  touchPlacedAt = Date.now();
+  place(e);
+};
 import { usePart } from './usePart';
 import { Opening } from './Opening';
 import { nameplateMount, mountedTransform } from '../../building/mounts';
@@ -86,10 +98,16 @@ export function Wall({ wall, openings, outside }: Props) {
           const p = useInteraction.getState().preview;
           if (p?.kind === 'opening' && p.wallId === wall.id) useInteraction.getState().setPreview(null);
         },
+        onPointerUp: (e: ThreeEvent<PointerEvent>) => placeOnTouchUp(e, placeOpening),
         onClick: (e: ThreeEvent<MouseEvent>) => {
           if (aimBuilding()) return;
           e.stopPropagation();
-          if (e.delta > 8) return; // カメラを動かしたドラッグの終わり
+          if (e.delta > 8 || touchPlaced()) return; // カメラを動かしたドラッグの終わり・指で置いた直後
+          placeOpening(e);
+        },
+      }
+    : {};
+  function placeOpening(e: ThreeEvent<PointerEvent | MouseEvent>) {
           // 指でタップしたときは、事前にカーソルを当てていないので、ここで位置を決める
           const p = previewAt(e.point);
           const s = useGame.getState();
@@ -102,7 +120,7 @@ export function Wall({ wall, openings, outside }: Props) {
           const opening: OpeningPart = {
             id: newId('opening'),
             wallId: wall.id,
-            kind: tool,
+            kind: tool as OpeningPart["kind"],
             type,
             offset: p.offset,
             sashColor: s.defaults.sashColor,
@@ -111,9 +129,7 @@ export function Wall({ wall, openings, outside }: Props) {
           };
           s.commit({ ...s.house, openings: [...s.house.openings, opening] });
           useInteraction.getState().setPreview({ ...p, valid: false });
-        },
-      }
-    : {};
+  }
 
   const previewNameplate = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
     const game = useGame.getState();
@@ -128,10 +144,15 @@ export function Wall({ wall, openings, outside }: Props) {
       const p = useInteraction.getState().preview;
       if (p?.kind === 'nameplate' && p.mount.wallId === wall.id) useInteraction.getState().setPreview(null);
     },
+    onPointerUp: (e: ThreeEvent<PointerEvent>) => placeOnTouchUp(e, placeNameplate),
     onClick: (e: ThreeEvent<MouseEvent>) => {
           if (aimBuilding()) return;
       e.stopPropagation();
-      if (e.delta > 12) return;
+      if (e.delta > 12 || touchPlaced()) return;
+      placeNameplate(e);
+    },
+  } : {};
+  function placeNameplate(e: ThreeEvent<PointerEvent | MouseEvent>) {
       const game = useGame.getState();
       const wallMount = previewNameplate(e);
       if (!wallMount) return game.notify('窓・ドアを避けて壁面に取り付けてください');
@@ -142,8 +163,7 @@ export function Wall({ wall, openings, outside }: Props) {
       useInteraction.setState({ ignorePartClickUntil: Date.now() + 100 });
       game.setTool('select'); game.select({ kind: 'furniture', id: item.id });
       useInteraction.getState().setPreview(null);
-    },
-  } : {};
+  }
 
   return (
     <group position={[wall.x0 * GRID, wallBaseY(wall), wall.z0 * GRID]} rotation={[0, angle, 0]}>
