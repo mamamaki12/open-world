@@ -22,6 +22,7 @@ import type { WorldSave } from './saves';
 import type { Outfit } from '../catalog/clothes';
 import type { OwnedCar } from '../state/vehicles';
 import { cleanMods } from '../catalog/carMods';
+import { spawnCars } from '../world/carSpawn';
 import { useDesigns } from '../catalog/designs';
 import { useStocks, homeHoldings } from '../state/stocks';
 import type { Holding } from '../economy/stocks';
@@ -198,9 +199,11 @@ function showAccount() {
     const money = wallet ? walletMoney(wallet) : useEconomy.getState().money;
     useEconomy.setState({ money, ledger: account.ledger });
     // 車の操作元は本人。入場時だけ復元し、口座の古い座標で走行中の車を戻さない。
+    // ログアウト中の車はワールドに出ないので、入場時は自分の土地の前の道路か車屋の駐車場に置き直す。
     if (!carsLoaded) {
-      const cars = account.cars.filter(validCar).map(c => ({ ...c, speed: 0, steer: 0, wheelSpin: 0, braking: false,
-        slipAngle: 0, reverseHold: 0, drifting: false, handbraking: false, mods: cleanMods(c.mods) }));
+      const me = sessionGate.selfId(), lots = (remoteWorld?.economy.lots ?? useEconomy.getState().lots).filter(l => !l.town && l.owner === me);
+      const cars = spawnCars(account.cars.filter(validCar).map(c => ({ ...c, speed: 0, steer: 0, wheelSpin: 0, braking: false,
+        slipAngle: 0, reverseHold: 0, drifting: false, handbraking: false, mods: cleanMods(c.mods) })), lots, sessionGate.remoteCars().map(r => r.car));
       useVehicles.setState({ cars }); carsLoaded = true;
     }
     const stocks = account.stocks ?? {};

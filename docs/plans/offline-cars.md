@@ -1,6 +1,7 @@
 # ログアウト中の車を消し、入り直したら決まった場所に置く
 
-状態: 実装中
+状態: 完了（PR待ち）
+確認根拠: `npx vitest run src/world/carSpawn.test.ts`、`node scripts/check-offline-cars.mjs`（2人で入り、A が出ると B から車が消え、入り直すと駐車場／土地の前に置かれる）
 ブランチ: `claude/project-thread-d8pxgt`
 
 ## 目的
@@ -16,5 +17,5 @@
 - 中継サーバーは変えない（EC2 の更新はいらない）。
 
 ## 進み具合
-- 済：計画
-- 次：spawnCars とテスト、showAccount から呼ぶ、ブラウザーで確認
+- 済：計画、`src/world/carSpawn.ts`（spawnCars）とテスト、`showAccount` から呼ぶ、ブラウザーで確認
+- 残作業：なし
