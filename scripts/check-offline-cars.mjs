@@ -60,13 +60,15 @@ w.economy.lots.push(lot);
   }, lot.plot);
   console.log('土地の前:', JSON.stringify(front));
   assert.ok(Math.hypot(front.car.x - front.spot.x, front.car.z - front.spot.z) < .01, '自分の土地の前の道路に置く');
-  // 車の横に立って見る
+  // 車の横に立って見る（CI のソフトウェア描画では撮影が遅いので、SCREENSHOT=1 のときだけ）
+  if (process.env.SCREENSHOT) {
   await a.evaluate(async () => {
     const { useVehicles } = await import('/src/state/vehicles.ts'); const { currentPlotOf, useEconomy } = await import('/src/state/economy.ts'); const { plotX, plotZ } = await import('/src/economy/town.ts');
     const c = useVehicles.getState().cars[0], p = currentPlotOf(useEconomy.getState()); window.__ow.game.getState().setMode('walk');
     Object.assign(window.__ow.player, { x: c.x - plotX(p) - 10, z: c.z - plotZ(p) + 4, y: 0, yaw: -Math.PI / 2 + .3, bodyYaw: -Math.PI / 2 + .3, pitch: -.15 });
   });
   await a.waitForTimeout(2500); await a.screenshot({ path: 'browser-checks/offline-cars-lot.png' });
+  }
 }
 assert.deepEqual(errors, []);
 console.log('ok'); await browser.close(); relay.close(); process.exit(0);
