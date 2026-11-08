@@ -34,7 +34,8 @@ export function QuickBar(){
     <div ref={bar} className="quick-tools" aria-label="道具のホットバー">
       {/* スマホでは道具の選択バーを出さず、右下の「建てる」ボタンから選ぶ */}
       {!touch&&<div className="quick-slots" ref={slots}>{QUICK_TOOLS.map((t,i)=><button key={t} aria-label={`${i+1}: ${NAMES[t]}`} aria-pressed={t===tool} onClick={()=>setTool(t)}><kbd>{i+1}</kbd><span>{toolIcon(t)}</span><small>{iconText(NAMES[t])}</small></button>)}</div>}
-      {tool!=='select'&&<BuildHistory/>}
+      {/* スマホは左上の所持金の横に小さな ↶↷ を出す */}
+      {tool!=='select'&&!touch&&<BuildHistory/>}
       {!touch&&<div className="quick-meta"><span>{name}<small className="quick-swipe-hint"> · 左右スワイプで道具</small></span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>{iconText("⚙")}</button></div>}
       {touch&&tool==='select'&&selectedFurniture&&<div className="furniture-edit-hint">青い家具をドラッグで移動・タップで45°回転</div>}
     </div>

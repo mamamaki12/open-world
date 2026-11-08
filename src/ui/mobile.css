@@ -384,8 +384,14 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 }
 .touch-map:active { transform: scale(0.94); }
 .touch.driving .touch-map { display: none; }
+/* 道具を持っているときだけ地図の左に出す、小さな取り消し・やり直し（アイコンだけ・控えめ） */
+.touch-history { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(68px + var(--safe-r)); z-index: 3; display: flex; gap: 4px; }
+.touch-history button { width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,0.7); background: rgba(255,255,255,0.6); color: #29392f; font-size: 18px; display: grid; place-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.touch-history button:disabled { opacity: .4; }
+.touch.driving .touch-history { display: none; }
 @media (orientation: landscape) and (max-height: 500px) {
   .touch-map { width: 44px; height: 44px; font-size: 22px; }
+  .touch-history { top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(60px + var(--safe-r)); }
 }
 
 /* 運転は左右と2つのペダル。両手の同時押しで曲がりながら加速できる。 */
