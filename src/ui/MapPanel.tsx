@@ -32,7 +32,7 @@ const WIDTH = sx(TOWN_BOUNDS.x1 + 35) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 35) + 
 const SHORT: Partial<Record<Venue, string>> = { casino: 'CASINO', estate: '不動産屋', dealer: '車', tuner: 'カスタム', exchange: '証券', salon: '美容室' };
 // 携帯ゲーム機の画面に合わせた少ない色（くすんだ緑の濃淡＋紙色。赤と金は目印だけ）
 const C = { grass: '#c4d39e', tuft: '#a5ba80', yard: '#d5e0ad', road: '#4a5945', curb: '#8fa66e', line: '#e6e2c3', walk: '#e8e3c6', walkDot: '#cfc9a6',
-  paper: '#f5f0dc', ink: '#29392f', muted: '#59694f', dark: '#3e634c', mid: '#71806a', leaf: '#5f7d4f', leafHi: '#7f9a62', red: '#9b4150', gold: '#d4ac55', plum: '#80566b', roofMine: '#c08a3e' };
+  paper: '#f5f0dc', ink: '#29392f', muted: '#59694f', dark: '#3e634c', mid: '#71806a', leaf: '#5f7d4f', leafHi: '#7f9a62', red: '#9b4150', gold: '#d4ac55', plum: '#80566b', roofMine: '#c08a3e', mineYard: '#ecd48e', mineDot: '#d4ac55' };
 
 type Pick = ({ kind: 'plot'; plot: number } | { kind: 'venue'; venue: Venue }) & { ax: number; ay: number };
 type View = { k: number; x: number; y: number };
@@ -134,6 +134,7 @@ export function MapPanel() {
             <pattern id="map-yard" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill={C.yard} /><rect x="1" y="1" width="1" height="1" fill={C.tuft} /></pattern>
             <pattern id="map-forest" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill={C.grass} />
               <g transform="translate(8 13) scale(1.8)"><path d="M-2 -6h4v1h1v1h1v3h-1v1h-1v1h-4v-1h-1v-1h-1v-3h1v-1h1z" fill={C.leaf} stroke={C.ink} strokeWidth={0.5} /><path d="M-1 -5h2v1h-2zM-2 -4h1v1h-1z" fill={C.leafHi} /></g></pattern>
+            <pattern id="map-mine" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill={C.mineYard} /><rect x="1" y="1" width="1" height="1" fill={C.mineDot} /><rect x="4" y="4" width="1" height="1" fill={C.mineDot} /></pattern>
             <pattern id="map-walk" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill={C.walk} /><path d="M0 0h4v4H0zM4 4h4v4H4z" fill={C.walkDot} /></pattern>
           </defs>
           <g shapeRendering="crispEdges">
@@ -159,7 +160,8 @@ export function MapPanel() {
             const tall = !!resident && /マンション|アパート|レジデンス|ハイツ/.test(resident.name);
             const label = fitLabel(name, w - 6, 7);
             return <g key={plot} {...pickable(`plot:${plot}`, cx, y + 6, name)} style={{ cursor: 'pointer' }}>
-              <rect x={x} y={y} width={w} height={h} fill={lot || resident ? 'url(#map-yard)' : 'url(#map-grass)'} stroke={C.mid} strokeWidth={1} shapeRendering="crispEdges" />
+              <rect x={x} y={y} width={w} height={h} fill={owned ? 'url(#map-mine)' : lot || resident ? 'url(#map-yard)' : 'url(#map-grass)'} stroke={owned ? C.ink : C.mid} strokeWidth={owned ? 2.5 : 1} shapeRendering="crispEdges" />
+              {owned && <rect className="map-mine" x={x + 2.5} y={y + 2.5} width={w - 5} height={h - 5} fill="none" stroke={C.gold} strokeWidth={3} shapeRendering="crispEdges" pointerEvents="none" />}
               {lot || resident ? (tall ? <Tower x={cx} y={y + h * 0.5} /> : <House x={cx} y={y + h * 0.52} roof={owned ? C.roofMine : lot ? C.red : C.dark} />)
                 : offer ? <SaleSign x={cx} y={y + h * 0.5} /> : <><Tree x={x + w * 0.3} y={y + h * 0.45} small /><Tree x={x + w * 0.68} y={y + h * 0.62} small /></>}
               {owned && <Flag x={x + w - 12} y={y + 6} />}
@@ -167,6 +169,11 @@ export function MapPanel() {
                 <text x={cx} y={y + h - 13 + label.size + 0.5} textAnchor="middle" fontSize={label.size} fill={offer ? C.red : C.ink}>{label.text}</text></g>}
               {picked && <rect className="map-picked" x={x + 1.5} y={y + 1.5} width={w - 3} height={h - 3} fill="none" stroke={C.gold} strokeWidth={3} strokeDasharray="10 6" />}
             </g>;
+          })}
+          {/* 自分の土地の札は、ズームしていなくても常に出す（ほかの区画より上に描き、タップは下に通す） */}
+          {lots.filter(l => typeof l.plot === 'number' && mine(l)).map(l => {
+            const x = sx(plotX(l.plot as number)), w = lotCells(l).w * GRID * SCALE;
+            return <Plate key={`mine-${l.id}`} x={x + w / 2} y={sy(plotZ(l.plot as number)) - 2} text="あなたの土地" size={Math.min(w / 6.4, Math.max(7, 12 / view.k))} fill={C.gold} />;
           })}
           {SHOPPING_AREAS.map(a => <Plate key={a.name} x={sx(a.x)} y={sy(a.z) + 5} text={a.name} size={6.5} />)}
           {VENUE_KINDS.map(kind => {
@@ -330,10 +337,10 @@ function Shop({ x, y, w, h, wall, awning, label, star }: { x: number; y: number;
 }
 
 /** 看板（紙色の板に濃い緑の縁と文字） */
-function Plate({ x, y, text, size }: { x: number; y: number; text: string; size: number }) {
+function Plate({ x, y, text, size, fill = C.paper }: { x: number; y: number; text: string; size: number; fill?: string }) {
   const w = [...text].reduce((n, ch) => n + (ch.charCodeAt(0) < 128 ? 0.62 : 1), 0) * size + 6;
   return <g pointerEvents="none" shapeRendering="crispEdges">
-    <rect x={x - w / 2} y={y - size / 2 - 2.5} width={w} height={size + 5} fill={C.paper} stroke={C.ink} strokeWidth={1} />
+    <rect x={x - w / 2} y={y - size / 2 - 2.5} width={w} height={size + 5} fill={fill} stroke={C.ink} strokeWidth={1} />
     <text x={x} y={y + size * 0.36} textAnchor="middle" fontSize={size} fontWeight={700} fill={C.ink}>{text}</text>
   </g>;
 }
