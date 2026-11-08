@@ -2,6 +2,8 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { createRelay } from '../server/dist/relay.mjs';
+import { mkdirSync } from 'node:fs';
+mkdirSync('browser-checks', { recursive: true });
 const relay = createRelay(); await relay.ready;
 await new Promise(r => relay.http.listen(0, '127.0.0.1', r));
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], headless: true });

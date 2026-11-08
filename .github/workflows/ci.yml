@@ -364,6 +364,7 @@ jobs:
           node scripts/check-shared-doors.mjs
           node scripts/check-shared-wallet.mjs
           node scripts/check-gameplay-regressions.mjs
+          node scripts/check-offline-cars.mjs
           node scripts/check-recovery-regressions.mjs
           node scripts/check-shared-readiness.mjs
           node scripts/check-town-shops.mjs
