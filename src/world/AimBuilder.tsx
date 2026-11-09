@@ -103,7 +103,7 @@ export function AimBuilder() {
     clock.current+=dt;if(clock.current<.08)return;clock.current=0;
     if(!aimBuilding()){if(point.current)clear();return;}
     const p=useVenue.getState().inside?null:pick();point.current=p;
-    if(!p){useAim.setState({valid:false,label:`${AIM_REACH}m以内を狙う`,target:null});useInteraction.getState().setPreview(null);return;}
+    if(!p){useAim.setState({valid:false,label:'',target:null});useInteraction.getState().setPreview(null);return;}
     if(p.target.kind!=='current'){useAim.setState({valid:p.target.kind!=='blocked',label:targetLabel(p.target),target:null,range:false});useInteraction.getState().setPreview(null);return;}
     const g=useGame.getState(),plan=aimPlan(g.house,g.tool,g.defaults,p,camera.position,useInteraction.getState().stairRot);
     useAim.setState({valid:!plan.error,label:plan.error??(g.tool==='erase'?(g.eraseMulti?'狙ったパーツを選ぶ・外す':'狙ったパーツを消す'):g.tool==='floor'||g.tool==='wall'||g.tool==='roof'?'1ブロック置く':'狙った場所に配置する'),target:p.ref??null,range:false});
