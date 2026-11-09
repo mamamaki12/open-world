@@ -53,7 +53,8 @@ const swipe = async (dx, dy) => {
   }
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await cdp.detach();
 };
-const place = async () => { await page.locator('.aim-place').waitFor(); await page.waitForTimeout(200); await page.locator('.aim-place').tap(); };
+// 配置ボタンは無い：画面中央の十字をタップして置く
+const place = async () => { await page.locator('.aim-reticle').waitFor(); await page.waitForTimeout(200); const r=await page.locator('canvas').first().boundingBox();await page.touchscreen.tap(r.x+r.width/2,r.y+r.height/2); };
 try {
   const mobile = await open(true, { width: 390, height: 844 });
   // 歩く画面は1回で1ブロック（始点・終点はない）
@@ -61,7 +62,7 @@ try {
   const floor = await page.evaluate(() => window.__ow.game.getState().house.floors);
   assert.equal(floor.length, 1, 'one tap places a floor');
   assert.equal((floor[0].x1 - floor[0].x0) * (floor[0].z1 - floor[0].z0), 1, 'walk mode floor is one block');
-  assert.doesNotMatch(await page.locator('.aim-place').innerText(), /終点|始点/);
+  assert.equal(await page.locator('.aim-place').count(), 0, 'no place button while holding a block tool');
   const yaw = await page.evaluate(() => window.__ow.player.yaw);
   await swipe(115, 0);
   assert.ok(Math.abs(await page.evaluate(() => window.__ow.player.yaw) - yaw) > .2, 'one-finger look while holding a block tool');

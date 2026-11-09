@@ -509,6 +509,11 @@
   padding: 9px 12px;
 }
 
+/* PCで画面が狭い（文字の拡大など）と、右下のチップが下の道具バーに重なるので、その上に出す */
+@media (max-width: 900px) {
+  .app:not(.touch)~.world-session { bottom: calc(var(--quick-tools-h, 0px) + 16px + env(safe-area-inset-bottom)); }
+}
+
 .app.touch~.world-session .world-session-panel {
   right: 0;
   bottom: auto;

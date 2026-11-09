@@ -59,7 +59,7 @@ export function AimBuilder() {
       if(e.pointerType==='touch'||!aimBuilding()||document.pointerLockElement!==gl.domElement)return;
       if(e.button===0||e.button===2){e.preventDefault();aimActions.place();}
     };
-    // スマホ：照準（画面中央）を短くタップしたら「配置」と同じ（1ブロック置く）。なぞったら見回すだけ。削除は誤操作を防ぐため長押しボタンのみ。
+    // スマホ：照準（画面中央）を短くタップしたら置く（配置ボタンは無い）。なぞったら見回すだけ。削除は誤操作を防ぐため長押しボタンのみ。
     const taps=new Map<number,{x:number;y:number;t:number}>();
     const touchDown=(e:PointerEvent)=>{
       if(e.pointerType!=='touch')return;

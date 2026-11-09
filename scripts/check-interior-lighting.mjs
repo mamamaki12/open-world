@@ -31,7 +31,7 @@ try{for(const touch of [false,true]){
     if(touch){
       await page.evaluate(()=>{const g=window.__ow.game.getState();g.setDefaults({furnitureType:'ceiling-disc-light'});g.setTool('furniture');window.__ow.player.pitch=-.8;});
       await until(page,async()=>{const {useAim}=await import('/src/state/controls.ts');return useAim.getState().valid;});
-      await page.locator('.aim-place').tap();
+      {const r=await page.locator('canvas').first().boundingBox();await page.touchscreen.tap(r.x+r.width/2,r.y+r.height/2);}
     }else{
       await page.evaluate(async()=>{const g=window.__ow.game.getState();g.setMode('build');g.setTool('furniture');g.setDefaults({furnitureType:'ceiling-disc-light'});});
       await page.getByRole('button',{name:'丸型シーリングライト',exact:true}).click();
