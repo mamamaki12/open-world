@@ -127,7 +127,7 @@ jobs:
 
   large-text:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -146,11 +146,14 @@ jobs:
             sleep 1
           done
           node scripts/check-large-text.mjs
+          node scripts/check-hud-overlap.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: large-text-checks
-          path: browser-checks/large-text/
+          path: |
+            browser-checks/large-text/
+            browser-checks/hud-overlap/
           if-no-files-found: ignore
 
   handheld-ui:

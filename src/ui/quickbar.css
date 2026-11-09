@@ -8,10 +8,10 @@
 .aim-reticle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;font:700 26px/1 monospace;color:#fff8;text-shadow:0 1px 3px #000;z-index:2;}.aim-reticle.valid{color:#ffe0a0;}
 .aim-reticle.tappable{width:56px;height:56px;display:flex;align-items:center;justify-content:center;border:2px solid #fff6;border-radius:50%;box-shadow:0 0 4px #0008;}.aim-reticle.tappable.valid{border-color:#ffe0a0cc;}
 .aim-message{position:absolute;top:calc(50% + 26px);left:50%;transform:translateX(-50%);max-width:80%;padding:3px 8px;background:#1b242bcc;color:#fff;border-radius:4px;font-size:11px;pointer-events:none;white-space:nowrap;}
-.aim-buttons{position:absolute;right:18px;bottom:120px;display:flex;flex-direction:column;gap:6px;z-index:5;}
+.aim-buttons{position:absolute;right:18px;bottom:calc(var(--quick-tools-h,98px) + 22px);display:flex;flex-direction:column;gap:6px;z-index:5;}
 .aim-buttons button{min-width:90px;min-height:44px;border:1px solid #dbc58b;border-radius:10px;background:#f5e7bd;color:#2f2919;font-size:13px;font-weight:700;touch-action:none;}
 .aim-place.pressing{animation:aim-break .4s linear forwards;}@keyframes aim-break{to{background:#db695d;box-shadow:inset 0 0 0 5px #fff7;}}
-.aim-mouse-help{position:absolute;bottom:calc(var(--quick-tools-h,100px) + 12px);left:50%;transform:translateX(-50%);color:white;background:#17202acc;border-radius:6px;padding:4px 8px;font-size:11px;pointer-events:none;}
+.aim-mouse-help{position:absolute;bottom:calc(var(--quick-tools-h,100px) + 22px);left:50%;transform:translateX(-50%);color:white;background:#17202acc;border-radius:6px;padding:4px 8px;font-size:11px;pointer-events:none;}
 .inventory-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}.inventory-tools .tool{min-height:44px;}
 .touch .quick-tools{top:calc(50px + env(safe-area-inset-top,0px));bottom:auto;width:min(460px,calc(100% - 16px - var(--safe-l) - var(--safe-r)));}
 .touch .quick-slots{padding:4px;}.touch .quick-slots button{flex:1 0 44px;min-height:46px;}.touch .quick-slots kbd{display:none;}.touch .quick-meta{font-size:11px;}.touch .quick-meta button{min-height:36px;}
@@ -36,3 +36,6 @@
 
 /* 幅の狭いスマホ縦：照準の下の説明が右の「回転」などに届くので、照準の上に出す */
 @media(max-width:360px){.touch .aim-message{top:auto;bottom:calc(50% + 34px);}}
+/* PCで縦が狭い（1280x720を文字200%など）：歩きモードの説明・マウス操作の説明・取り消しの行を隠して道具バーと照準まわりを空ける（Ctrl+Z / Ctrl+Y は使える） */
+@media(max-height:480px){.app.walk:not(.touch) :is(.walk-hud,.aim-mouse-help,.build-history){display:none;}}
+@media(max-width:700px){.app:not(.touch) .quick-tools{width:min(510px,calc(100% - 160px));}}

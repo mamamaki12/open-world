@@ -12,6 +12,7 @@ export function scan(rootSel) {
   const els = [];
   for (const root of roots) for (const e of root.querySelectorAll('button,input,select,textarea,a,summary,label,h1,h2,h3,h4,p,span,strong,b,small,em,div,li,td,th')) {
     if (!visible(e) || e.closest('[aria-hidden="true"]')) continue;
+    if (e.closest('.toast')) continue; // 2.5秒で消え、押す操作を素通りさせるお知らせ（日付が変わった等）は重なりの対象外
     if (e.closest('details:not([open])') && !e.closest('summary')) continue; // 閉じた折りたたみの中身
     const ctrl = /^(BUTTON|INPUT|SELECT|TEXTAREA|A|SUMMARY)$/.test(e.tagName);
     const ownText = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());

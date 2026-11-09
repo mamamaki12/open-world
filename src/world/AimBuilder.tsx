@@ -70,7 +70,10 @@ export function AimBuilder() {
     const touchMove=(e:PointerEvent)=>{const s=taps.get(e.pointerId);if(s&&Math.hypot(e.clientX-s.x,e.clientY-s.y)>12)taps.delete(e.pointerId);};
     const touchUp=(e:PointerEvent)=>{
       const s=taps.get(e.pointerId);taps.delete(e.pointerId);
-      if(e.type==='pointerup'&&s&&e.timeStamp-s.t<400&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<=12&&aimBuilding()&&useGame.getState().tool!=='erase')aimActions.place();
+      if(e.type==='pointerup'&&s&&e.timeStamp-s.t<400&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<=12&&aimBuilding()&&useGame.getState().tool!=='erase'){
+        // 置いた直後の同じタップのクリックで、選択した家具（表札など）がすぐ外れないようにする
+        useInteraction.setState({ignorePartClickUntil:Date.now()+300});aimActions.place();
+      }
     };
     const escape=(e:KeyboardEvent)=>{if(e.code==='Escape'){clear();if(document.pointerLockElement===gl.domElement)document.exitPointerLock();}};
     const unsub=useGame.subscribe((s,p)=>{if(s.tool!==p.tool||s.mode!==p.mode||s.view!==p.view||s.overlay!==p.overlay)clear();});

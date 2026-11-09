@@ -40,7 +40,7 @@ try {
       await page.waitForTimeout(1500);
       for (const st of states) {
         await page.evaluate(({ mode, tool }) => { const g = window.__ow.game.getState(); g.setOverlay(null); g.setMode(mode); g.setTool(tool); }, st);
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(900);
         const bad = await page.evaluate(scan, 'body');
         const step = `${st.mode}-${st.tool}`;
         if (bad.length) { failed++; console.log('NG', size.name, step, '\n  ' + bad.join('\n  ')); await page.screenshot({ path: `${out}/${size.name}-${step}.png` }); }

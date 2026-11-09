@@ -54,7 +54,7 @@ const swipe = async (dx, dy) => {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await cdp.detach();
 };
 // 配置ボタンは無い：画面中央の十字をタップして置く
-const place = async () => { await page.locator('.aim-reticle').waitFor(); await page.waitForTimeout(200); const r=await page.locator('canvas').first().boundingBox();await page.touchscreen.tap(r.x+r.width/2,r.y+r.height/2); };
+const place = async () => { await page.locator('.aim-reticle').waitFor(); await page.waitForTimeout(200); const r=await page.locator('canvas').first().boundingBox();await page.touchscreen.tap(r.x+r.width/2,r.y+r.height/2); await page.waitForTimeout(400); };
 try {
   const mobile = await open(true, { width: 390, height: 844 });
   // 歩く画面は1回で1ブロック（始点・終点はない）
@@ -83,7 +83,7 @@ try {
   await openBuildMenu('furniture');
   await page.getByRole('button', { name: '表札（壁付け）', exact: true }).tap();
   await page.getByRole('textbox', { name: '表札に表示する文字' }).fill('MY HOME');
-  await page.getByRole('button', { name: '決定', exact: true }).tap(); await place();
+  await page.getByRole('button', { name: '決定', exact: true }).tap();  await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture[0]?.label), 'MY HOME');
   assert.equal(await page.evaluate(() => window.__ow.game.getState().tool), 'select');
   const platePoint=await page.evaluate(async()=>{const {mountedTransform}=await import('/src/building/mounts.ts');const g=window.__ow.game.getState(),f=g.house.furniture[0],t=mountedTransform(g.house,f.wallMount);return window.__ow.project(t.x,t.y+1.6,t.z);});
