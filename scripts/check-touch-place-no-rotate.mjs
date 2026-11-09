@@ -1,4 +1,4 @@
-// スマホで置く道具（床・壁・屋根・階段・家具・窓・表札）を持っている間は、1本指でカメラが回らない。指でずらして離した場所に置く
+// スマホで置く道具（床・壁・屋根・階段・家具・窓・表札）を持っていて、置き始められる場所に触れた1本指ではカメラが回らない。指でずらして離した場所に置く。置けない場所（土地の外）から触れた指は回る
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -8,7 +8,8 @@ const browser=await chromium.launch({headless:true,executablePath:process.env.PL
 const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,deviceScaleFactor:1});
 const page=await context.newPage();page.setDefaultTimeout(60000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
 const cdp=await context.newCDPSession(page);
-const cam=()=>page.evaluate(()=>window.__ow.camera.position.toArray());
+// 真上から見ているときは回しても位置がほとんど変わらないので、向きも比べる
+const cam=()=>page.evaluate(()=>[...window.__ow.camera.position.toArray(),...window.__ow.camera.quaternion.toArray().map(v=>v*10)]);
 const drag=async(a,b)=>{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[a]});
   for(let i=1;i<=8;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:a.x+(b.x-a.x)*i/8,y:a.y+(b.y-a.y)*i/8}]});await page.waitForTimeout(60);}
@@ -54,12 +55,24 @@ try{
     await page.screenshot({path:`${out}/${type??tool}.png`});
   }
   await page.evaluate(()=>{const g=window.__ow.game.getState();g.select(null);g.setTool('roof');});await page.waitForTimeout(800);
-  // 置く道具を持っている間は、土地の外（手前の道）から触れた1本指でも回らず、何も置かない
+  // 置く道具を持っていても、置き始められない場所（土地の外の手前の道）から触れた1本指では回り、何も置かない
   const far={x:120,y:800};
-  const roofs=await page.evaluate(()=>window.__ow.game.getState().house.roofs.length);
-  const b2=await cam();await drag(far,{x:far.x+120,y:far.y});const a2=await cam();
-  assert.ok(Math.hypot(...b2.map((v,i)=>v-a2[i]))<0.05,'one finger outside the lot must not rotate while holding a tool');
-  assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.roofs.length),roofs,'nothing placed from outside the lot');
+  for(const tool of ['roof','floor']){
+    await page.evaluate(t=>window.__ow.game.getState().setTool(t),tool);await page.waitForTimeout(500);
+    const parts=()=>page.evaluate(t=>window.__ow.game.getState().house[t==='roof'?'roofs':'floors'].length,tool);
+    const n=await parts();
+    // 床は真上から見るので、土地の端から1マス（置ける範囲）より外の、画面のいちばん下を使う
+    const from=tool==='floor'?{x:120,y:838}:far;
+    const b2=await cam();await drag(from,{x:from.x+120,y:from.y});const a2=await cam();
+    assert.ok(Math.hypot(...b2.map((v,i)=>v-a2[i]))>0.05,`one finger outside the lot rotates while holding ${tool}`);
+    assert.equal(await parts(),n,`nothing placed from outside the lot (${tool})`);
+  }
+  // 土地の中で床をなぞると回らず置ける
+  const fp=await page.evaluate(()=>{const G=0.91;return [window.__ow.project(10*G,0,10*G),window.__ow.project(13*G,0,12*G)];});
+  const nf=await page.evaluate(()=>window.__ow.game.getState().house.floors.length),b4=await cam();await drag(fp[0],fp[1]);const a4=await cam();
+  assert.ok(Math.hypot(...b4.map((v,i)=>v-a4[i]))<0.05,'camera rotated while placing floor');
+  assert.ok(await page.evaluate(()=>window.__ow.game.getState().house.floors.length)>nf,'floor placed');
+  await page.screenshot({path:`${out}/floor.png`});
   // 手ぶらなら1本指で回る
   await page.evaluate(()=>window.__ow.game.getState().setTool('select'));await page.waitForTimeout(500);
   const b3=await cam();await drag(far,{x:far.x+120,y:far.y});const a3=await cam();
