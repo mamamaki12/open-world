@@ -5,7 +5,7 @@ import { open, readFile, rename } from 'node:fs/promises';
 import { WebSocketServer, WebSocket } from 'ws';
 import { SHARED_LIMIT, applyCommand, initialSharedWorld, publicWorld, tickWorld, validSharedWorld, withAccount } from '../src/server/sharedWorld.ts';
 
-export const RELAY_VERSION = '2026-11-07 家へのいいね・設計図の販売';
+export const RELAY_VERSION = '2026-11-09 空き区画にもだれでも建てられる';
 
 // みんなのワールドの保存。書き終えてから差し替えるので、途中で落ちても前の保存が残る
 async function saveWorld(file, world) {

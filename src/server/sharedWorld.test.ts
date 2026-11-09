@@ -57,7 +57,20 @@ describe('shared world', () => {
     const built = ok(claimed, 'a', { id: 't3', lot: lot.id, delta: addFloor(claimed, lot.id), reserved: 0 });
     expect(built.economy.lots.find(l => l.id === lot.id)!.built?.floors.some(f => f.id === 'f-test')).toBe(true);
     expect(applyCommand(built, 'a', { id: 't4', lot: lot.id, delta: [], reserved: 0, action: { type: 'list', price: 1000 } }).result.ok).toBe(false);
-    expect(applyCommand(w, 'a', { id: 't5', lot: '', delta: [], reserved: 0, action: { type: 'townHouse', plot: 0 } }).result.ok).toBe(false);
+    expect(applyCommand(w, 'a', { id: 't5', lot: '', delta: [], reserved: 0, action: { type: 'townHouse', plot: 999 } }).result.ok).toBe(false);
+  });
+  it('lets anyone build on an empty plot that is not for sale, but not on land for sale', () => {
+    const { w } = town();
+    const sale = w.economy.offers[0].plot!;
+    expect(applyCommand(w, 'b', { id: 'v1', lot: '', delta: [], reserved: 0, action: { type: 'townHouse', plot: sale } }).result.message).toContain('売地');
+    const used = new Set([...w.economy.lots.map(l => l.plot), ...w.economy.offers.map(o => o.plot)]);
+    const vacant = Array.from({ length: 32 }, (_, i) => i - 9).find(p => !TOWN_HOUSE_PLOTS[p] && !used.has(p))!;
+    expect(vacant).toBeTypeOf('number');
+    const claimed = ok(w, 'b', { id: 'v2', lot: '', delta: [], reserved: 0, action: { type: 'townHouse', plot: vacant } });
+    const lot = claimed.economy.lots.find(l => l.plot === vacant)!;
+    expect(lot).toMatchObject({ id: 'town-' + vacant, town: true, name: 'みんなの土地', built: null });
+    const built = ok(claimed, 'a', { id: 'v3', lot: lot.id, delta: addFloor(claimed, lot.id), reserved: 0 });
+    expect(built.economy.lots.find(l => l.id === lot.id)!.built?.floors).toHaveLength(1);
   });
   it('keeps someone else’s shop editable only by its owner', () => {
     const { w, lot } = town();

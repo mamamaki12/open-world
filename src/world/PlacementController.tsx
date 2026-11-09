@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { getFurniture } from '../catalog';
 import { designOf } from '../catalog/designs';
 import { GRID, lotSize, MAX_LEVEL } from '../building/dimensions';
+import { editTargetAt, switchEditTarget, targetLabel } from '../state/editAnywhere';
 import {
   axisAlignedSegment,
   canPlaceRoof,
@@ -250,6 +251,16 @@ export function PlacementController() {
       const surface = surfaceAt(e);
       const p = groundPoint(e, surface);
       if (!p) return;
+      // ほかの区画（他人の土地・町の家・空き区画）を押したら、そこを編集先にする（次のタップから置ける）
+      if (placingTool(g.tool) && (p.x < -GRID || p.z < -GRID || p.x > (lotSize.w + 1) * GRID || p.z > (lotSize.d + 1) * GRID)) {
+        const target = editTargetAt(p.x, p.z);
+        if (target.kind === 'lot' || target.kind === 'plot') {
+          if (e.pointerType === 'touch') cancelTouch();
+          const err = switchEditTarget(target, () => useGame.getState().notify(`${targetLabel(target).replace(/に置く$/, '')}に切り替えました。もう一度タップして置いてください`));
+          if (err) g.notify(err);
+          return;
+        }
+      }
       // 回す指（土地の外から触れた指）では青いプレビューを出さない
       // 土地の外から触れた指では置かない（画面も回さない）
       if(e.pointerType==='touch' && placingTool(g.tool) && !touchGesture.placeable){activeTouch=null;return;}

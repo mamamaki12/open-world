@@ -12106,6 +12106,25 @@ function townHouseLot(plot) {
     town: true
   };
 }
+function plotLot(plot) {
+  const town = townHouseLot(plot);
+  if (town) return town;
+  const district = districtOf(plot);
+  if (!district || TOWN_HOUSE_PLOTS[plot]) return null;
+  return {
+    id: townLotId(plot),
+    name: "\u307F\u3093\u306A\u306E\u571F\u5730",
+    location: district.location,
+    variance: 1,
+    built: null,
+    design: null,
+    construction: null,
+    rented: false,
+    invested: 0,
+    plot,
+    town: true
+  };
+}
 
 // src/building/shopSites.ts
 function shopSite(x, z, width, depth) {
@@ -13057,10 +13076,11 @@ function applyAction(w, sender, name, c, a) {
     return { world: { ...paid2, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter((o) => o.id !== offer.id) } }, cost: price2, message: bought.name + "\u3092\u8CB7\u3044\u307E\u3057\u305F" };
   }
   if (a.type === "townHouse") {
-    const town = Number.isSafeInteger(a.plot) ? townHouseLot(a.plot) : null;
+    const town = Number.isSafeInteger(a.plot) ? plotLot(a.plot) : null;
     if (!town) return "\u305D\u306E\u5BB6\u306F\u7DE8\u96C6\u3067\u304D\u307E\u305B\u3093";
     if (lots.some((l) => l.id === town.id)) return { world: w, cost: 0, message: "" };
     if (plotsOfLots(lots).includes(a.plot)) return "\u305D\u306E\u533A\u753B\u306F\u3082\u3046\u4F7F\u308F\u308C\u3066\u3044\u307E\u3059";
+    if (w.economy.offers.some((o) => o.plot === a.plot)) return "\u58F2\u5730\u306F\u8CB7\u3046\u3068\u5EFA\u3066\u3089\u308C\u307E\u3059";
     if (lots.length >= 90) return "\u3053\u306E\u753A\u306B\u306F\u3082\u3046\u571F\u5730\u3092\u5897\u3084\u305B\u307E\u305B\u3093";
     return { world: withLots([...lots, town]), cost: 0, message: "" };
   }
@@ -13274,7 +13294,7 @@ function validSharedWorld(v) {
 }
 
 // server/relay.mjs
-var RELAY_VERSION = "2026-11-07 \u5BB6\u3078\u306E\u3044\u3044\u306D\u30FB\u8A2D\u8A08\u56F3\u306E\u8CA9\u58F2";
+var RELAY_VERSION = "2026-11-09 \u7A7A\u304D\u533A\u753B\u306B\u3082\u3060\u308C\u3067\u3082\u5EFA\u3066\u3089\u308C\u308B";
 async function saveWorld(file, world) {
   if (!file) return;
   const tmp = file + ".tmp", handle = await open(tmp, "w");

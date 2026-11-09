@@ -11,15 +11,21 @@ import { useVenue } from '../state/venue';
 import { aimBuilding } from './aimMode';
 import { aimFurnitureTarget } from './aimFurnitureTarget';
 import { centerIntersections } from './placementRay';
+import { editTargetAt, switchEditTarget, targetLabel } from '../state/editAnywhere';
+import type { EditTarget } from '../state/editAnywhere';
+
+type Aimed = AimPoint & { target: EditTarget };
 
 /** スマホで照準をタップしたとみなす、画面中央からの距離(px) */
 const AIM_TAP_RADIUS=50;
 
 export function AimBuilder() {
   const { camera, gl, scene } = useThree();
-  const point=useRef<AimPoint|null>(null),clock=useRef(0);
+  const point=useRef<Aimed|null>(null),clock=useRef(0);
+  /** ほかの土地に切り替えたあと、何フレーム後にもう一度置くか（0 なら待っていない） */
+  const retry=useRef(0);
   const ray=useRef(new THREE.Raycaster());
-  const pick=()=>{
+  const pick=():Aimed|null=>{
     const objects=['house','ground','casino','estate','dealer','tuner','exchange','salon','boutiques','venue-interior','neighbors','vehicles'].map(n=>scene.getObjectByName(n)).filter((o):o is THREE.Object3D=>!!o);
     let hit:THREE.Intersection|undefined=centerIntersections(ray.current,camera,objects,AIM_REACH).find(h=>{
       const mat=(h.object as THREE.Mesh).material,m=Array.isArray(mat)?mat[h.face?.materialIndex??0]:mat;
@@ -30,10 +36,19 @@ export function AimBuilder() {
       const furniture=aimFurnitureTarget(scene.getObjectByName('house'),ray.current.ray,Math.min(AIM_REACH,hit?.distance??AIM_REACH));
       if(furniture)hit=furniture;
     }
-    if(!hit)return null;
-    let o:THREE.Object3D|null=hit.object,ref:PartRef|undefined,editable=false;
-    while(o){ref??=o.userData.partRef;if(o.name==='house'||o.name==='ground')editable=true;o=o.parent;}
-    return editable?{...hit.point,ref}:null;
+    if(!hit){
+      // 何にも当たらなければ地面（y=0）。空き区画や町の芝生もここで拾う
+      const r=ray.current.ray,t=r.direction.y<0?-r.origin.y/r.direction.y:Infinity;
+      if(t>AIM_REACH)return null;
+      const p=r.at(t,new THREE.Vector3());
+      return {x:p.x,y:0,z:p.z,target:editTargetAt(p.x,p.z)};
+    }
+    let o:THREE.Object3D|null=hit.object,ref:PartRef|undefined,current=false,neighbor=false;
+    while(o){ref??=o.userData.partRef;if(o.name==='house'||o.name==='ground')current=true;if(o.name==='neighbors')neighbor=true;o=o.parent;}
+    if(current)return {...hit.point,ref,target:{kind:'current'}};
+    // ほかの土地・町の家：その区画を編集先にしてから置く。公式のお店や車には置かない
+    if(neighbor)return {...hit.point,ref,target:editTargetAt(hit.point.x,hit.point.z)};
+    return {...hit.point,target:{kind:'blocked',reason:'お店や車には置けません'}};
   };
   const clear=()=>{point.current=null;useInteraction.getState().setPreview(null);useAim.setState({label:'',range:false,target:null,valid:false});};
   useEffect(()=>{
@@ -42,7 +57,13 @@ export function AimBuilder() {
     aimActions.place=()=>{
       if(!aimBuilding()||useVenue.getState().inside)return;
       const p=pick(),g=useGame.getState();
-      if(!p)return g.notify(`届く場所を狙ってください（${AIM_REACH}m以内・自分の土地）`);
+      if(!p)return g.notify(`届く場所を狙ってください（${AIM_REACH}m以内）`);
+      if(p.target.kind!=='current'){
+        // 狙った土地を編集先に切り替え、家が描き直されたら同じ所にもう一度置く
+        const err=switchEditTarget(p.target,()=>{retry.current=3;});
+        if(err)g.notify(err);
+        return;
+      }
       if(g.tool==='erase' && g.eraseMulti) {
         if(p.ref) g.toggleMark(p.ref);
         else g.notify('選ぶパーツを狙ってください');
@@ -78,10 +99,12 @@ export function AimBuilder() {
     return()=>{unsub();gl.domElement.removeEventListener('pointerdown',down);gl.domElement.removeEventListener('pointerdown',touchDown);window.removeEventListener('pointermove',touchMove);window.removeEventListener('pointerup',touchUp);window.removeEventListener('pointercancel',touchUp);window.removeEventListener('keydown',escape);aimActions.place=()=>{};aimActions.cancel=()=>{};aimActions.rotate=()=>{};clear();};
   },[camera,gl,scene]);
   useFrame((_,dt)=>{
+    if(retry.current>0&&--retry.current===0&&aimBuilding()){const p=pick();if(p?.target.kind==='current')aimActions.place();}
     clock.current+=dt;if(clock.current<.08)return;clock.current=0;
     if(!aimBuilding()){if(point.current)clear();return;}
     const p=useVenue.getState().inside?null:pick();point.current=p;
-    if(!p){useAim.setState({valid:false,label:`${AIM_REACH}m以内の自分の土地を狙う`,target:null});useInteraction.getState().setPreview(null);return;}
+    if(!p){useAim.setState({valid:false,label:`${AIM_REACH}m以内を狙う`,target:null});useInteraction.getState().setPreview(null);return;}
+    if(p.target.kind!=='current'){useAim.setState({valid:p.target.kind!=='blocked',label:targetLabel(p.target),target:null,range:false});useInteraction.getState().setPreview(null);return;}
     const g=useGame.getState(),plan=aimPlan(g.house,g.tool,g.defaults,p,camera.position,useInteraction.getState().stairRot);
     useAim.setState({valid:!plan.error,label:plan.error??(g.tool==='erase'?(g.eraseMulti?'狙ったパーツを選ぶ・外す':'狙ったパーツを消す'):g.tool==='floor'||g.tool==='wall'||g.tool==='roof'?'1ブロック置く':'狙った場所に配置する'),target:p.ref??null,range:false});
     g.setLevel(plan.point ? (g.tool==='roof'?Math.max(0,plan.point.level-1):plan.point.level) : g.activeLevel);
