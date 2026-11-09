@@ -1,8 +1,8 @@
 # 置けない場所に触れた指では画面を回す
 
-- 状態：作業中
-- 残作業：実装・確認・PR
-- 確認根拠：（あとで書く）
+- 状態：公開待ち
+- 残作業：PRのCIとマージ
+- 確認根拠：`scripts/check-touch-place-no-rotate.mjs`（床・屋根を持って土地の外から1本指で触れると回り何も置かない／土地の中で床をなぞると回らず置ける）。修正前のコードでは失敗を確認。check-phone-build-ux / check-block-vs-range / check-build-controls も通過
 - ブランチ：`claude/project-thread-tnjprg`
 - 依頼：しんご 2026-11-09「床を置こうとして青くなり始めたら回転をなくす。青くならない場所（床以外の範囲）をタップしたときは視点切り替えをオンにして」
 
@@ -16,5 +16,5 @@
 - `scripts/check-touch-place-no-rotate.mjs` の「土地の外から触れても回らない」を「回る・何も置かない」に変える。
 
 ## 進捗
-- 済：計画
-- 次：実装
+- 済：計画、実装（`reservesTouch`・`PlacementController` の区画切り替えを指を離したときに）、確認スクリプト更新
+- 次：PRのマージ

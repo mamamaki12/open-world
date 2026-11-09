@@ -72,7 +72,14 @@ export function PlacementController() {
     let activeTouch: number | null = null;
     /** 指でタップして置くもの（階段・家具）は、離したときに置く */
     let tap: { x: number; y: number } | null = null;
+    /** 指でほかの区画に触れたとき、離すまで切り替えを待つ（滑らせたら画面を回しただけなので切り替えない） */
+    let switchTap: { x: number; y: number; id: number; target: ReturnType<typeof editTargetAt> } | null = null;
+    const switchTo = (target: ReturnType<typeof editTargetAt>) => {
+      const err = switchEditTarget(target, () => useGame.getState().notify(`${targetLabel(target).replace(/に置く$/, '')}に切り替えました。もう一度タップして置いてください`));
+      if (err) useGame.getState().notify(err);
+    };
     const cancelTouch = () => {
+      switchTap = null;
       dragStart = null;
       eraseFrom = null;
       tap = null;
@@ -255,9 +262,12 @@ export function PlacementController() {
       if (placingTool(g.tool) && (p.x < -GRID || p.z < -GRID || p.x > (lotSize.w + 1) * GRID || p.z > (lotSize.d + 1) * GRID)) {
         const target = editTargetAt(p.x, p.z);
         if (target.kind === 'lot' || target.kind === 'plot') {
-          if (e.pointerType === 'touch') cancelTouch();
-          const err = switchEditTarget(target, () => useGame.getState().notify(`${targetLabel(target).replace(/に置く$/, '')}に切り替えました。もう一度タップして置いてください`));
-          if (err) g.notify(err);
+          if (e.pointerType === 'touch') {
+            cancelTouch();
+            switchTap = { x: e.clientX, y: e.clientY, id: e.pointerId, target };
+            return;
+          }
+          switchTo(target);
           return;
         }
       }
@@ -452,6 +462,13 @@ export function PlacementController() {
         if (!moved && p) place(e, p, surface);
         return;
       }
+      if (e.pointerType === 'touch' && switchTap?.id === e.pointerId) {
+        const st = switchTap;
+        switchTap = null;
+        touches.delete(e.pointerId);
+        if (Math.hypot(e.clientX - st.x, e.clientY - st.y) <= 12) switchTo(st.target);
+        return;
+      }
       if (e.pointerType === 'touch') {
         const mine = activeTouch === e.pointerId;
         touches.delete(e.pointerId);
@@ -526,6 +543,7 @@ export function PlacementController() {
     const onCancel = (e: PointerEvent) => {
       useInteraction.setState({ pendingErase: null });
       touches.delete(e.pointerId);
+      if (switchTap?.id === e.pointerId) switchTap = null;
       if (activeTouch === e.pointerId || dragStart || useInteraction.getState().buildingDrag || useInteraction.getState().furnitureDrag) cancelTouch();
     };
 

@@ -3,9 +3,9 @@ import type { Mode, Tool } from './store';
 export function placingTool(tool:Tool){
   return tool==='floor'||tool==='wall'||tool==='roof'||tool==='stair'||tool==='furniture'||tool==='door'||tool==='window';
 }
-/** 1本指のスワイプを予約するか（画面を回さない）。置く道具はいつも、範囲で選ぶ削除・選択は土地の中で触れたときだけ */
+/** 1本指のスワイプを予約するか（画面を回さない）。置き始められる場所（土地の中・ドア窓は壁の上）で触れたときだけ。それ以外は1本指で回す */
 export function reservesTouch(tool:Tool,mode:Mode,eraseMulti:boolean,insideLot:boolean,boxSelect=false){
-  return placingTool(tool) || insideLot && ((tool==='erase'&&eraseMulti&&mode==='build')||(tool==='select'&&boxSelect&&mode==='build'));
+  return insideLot && (placingTool(tool) || (tool==='erase'&&eraseMulti&&mode==='build')||(tool==='select'&&boxSelect&&mode==='build'));
 }
 /** reserved = 1本指で回さない。placeable = その指で置ける（土地の中・ドア窓などは壁の上で触れた） */
 export const touchGesture={reserved:false,placeable:false};
