@@ -37,3 +37,20 @@ export function nearestSeat(house: House, x: number, y: number, z: number, isOpe
   }
   return best;
 }
+
+/** 近くのクローゼット収納（正面に立つと「クローゼットを開ける」で着替えの画面を出す） */
+export function nearestWardrobe(house: House, x: number, y: number, z: number): string | null {
+  let best: { id: string; d: number } | null = null;
+  for (const f of house.furniture) {
+    if (f.type !== 'wardrobe') continue;
+    if (Math.abs(furnitureBaseY(house, f) - y) > 0.6) continue;
+    const a = f.rotation * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    // 扉の側（家具の前）に立っているときだけ。奥行き0.6mの前面から少し手前を基準にする
+    const fx = f.x + 0.6 * s, fz = f.z + 0.6 * c;
+    if ((x - f.x) * s + (z - f.z) * c < 0.2) continue;
+    const d = Math.hypot(x - fx, z - fz);
+    if (d > 1.3 || (best && best.d <= d)) continue;
+    best = { id: f.id, d };
+  }
+  return best?.id ?? null;
+}

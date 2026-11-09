@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nearestSeat } from './seating';
+import { nearestSeat, nearestWardrobe } from './seating';
 import { emptyHouse } from './types';
 import { GRID } from './dimensions';
 
@@ -25,5 +25,11 @@ describe('seating', () => {
     const seat = nearestSeat({ ...emptyHouse(), furniture: [{ ...chair, type: 'sofa', rotation: 90 }] }, 5, 0, 3.4);
     expect(seat?.z).toBeCloseTo(3.4);
     expect(seat?.x).toBeCloseTo(4.08);
+  });
+  it('finds a wardrobe only from its front side', () => {
+    const house = { ...emptyHouse(), furniture: [{ id: 'wr', type: 'wardrobe', level: 0, x: 4, z: 4, rotation: 0, color: '#ffffff' }] };
+    expect(nearestWardrobe(house, 4, 0, 5)).toBe('wr');
+    expect(nearestWardrobe(house, 4, 0, 3)).toBeNull();
+    expect(nearestWardrobe(house, 4, 0, 7)).toBeNull();
   });
 });
