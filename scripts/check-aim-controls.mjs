@@ -91,8 +91,8 @@ try {
   assert.equal(await page.evaluate(()=>window.__ow.game.getState().house.furniture[0].rotation),(plateRotation+45)%360,'mounted sign tap rotates 45 degrees');
   await setup();
   await openBuildMenu('furniture');
-  await page.getByRole('button', { name: 'チェア', exact: true }).tap();
-  await page.getByRole('button', { name: '決定', exact: true }).tap(); await place();
+  await page.getByRole('button', { name: 'チェア', exact: true }).tap(); // 家具は選んだだけで決定（メニューが閉じる）
+  await page.locator('.build-menu').waitFor({ state: 'detached' }); await place();
   assert.equal(await page.evaluate(() => window.__ow.game.getState().house.furniture.length), 1);
   const chairBefore=await page.evaluate(()=>({...window.__ow.game.getState().house.furniture[0]}));
   const chairPoint=await page.evaluate(async()=>{
