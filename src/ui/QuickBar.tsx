@@ -42,7 +42,7 @@ export function QuickBar(){
     </div>
     {centered&&<>
       <div className={`aim-reticle${target.valid?' valid':''}${touch&&tool!=='erase'?' tappable':''}`} aria-hidden="true">＋</div>
-      <div className="aim-message">{iconText(target.label)}</div>
+      {target.label&&<div className="aim-message">{iconText(target.label)}</div>}
       <div className="aim-buttons">
         <button className={`aim-place${pressing?' pressing':''}`} disabled={!target.valid} onPointerDown={e=>{
           if(tool!=='erase')return;

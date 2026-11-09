@@ -23,7 +23,7 @@ import { playerMemory } from './Player';
 import { GRID, LOT_D, LOT_W } from '../building/dimensions';
 import { getLocation } from '../economy/market';
 import { yen } from '../economy/money';
-import { FIRST_PLOT, LAST_PLOT, PLOT_PITCH, TOWN_BOUNDS, TOWN_ROADS, CIVIC_SITE, districtOf, plotX, plotZ } from '../economy/town';
+import { TOWN_HOUSE_PLOTS, FIRST_PLOT, LAST_PLOT, PLOT_PITCH, TOWN_BOUNDS, TOWN_ROADS, CIVIC_SITE, districtOf, plotX, plotZ } from '../economy/town';
 import { lotCells, lotHouse, offerPrice, originShift, useCurrentPlot, useEconomy } from '../state/economy';
 import { CasinoBuilding } from './CasinoBuilding';
 import { Streetscape } from './Streetscape';
@@ -171,7 +171,7 @@ export function Town() {
               {!current && house && <BuildingDetail bounds={houseEnvelope(house).bounds}>{tier => tier === 'distant' ? <group onPointerDown={e => activate(l.id,e)}><DistantHouse house={house}/></group> : <HouseParts house={house} showRoofs={showRoofs} exteriorOnly={tier === 'exterior'} activate={(e, ref) => activate(l.id, e, ref)}/>}</BuildingDetail>}
               {l.rented && l.built && !l.construction && !sessionGate.shared && <Tenants house={l.built} lotId={l.id} />}
               {l.shop ? <Signboard lines={shopSign(l.shop, today)} tone="shop" /> : <Signboard
-                lines={[l.town ? '町の家' : !sessionGate.shared || l.owner === savedBundle().profile.id ? 'あなたの土地' : l.owner ? `${l.ownerName || 'ほかの人'}の土地` : '共有の土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
+                lines={[l.town ? (TOWN_HOUSE_PLOTS[l.plot] ? '町の家' : 'みんなの土地') : !sessionGate.shared || l.owner === savedBundle().profile.id ? 'あなたの土地' : l.owner ? `${l.ownerName || 'ほかの人'}の土地` : '共有の土地', l.name.replace(/（.*）$/, ''), l.construction ? '工事中' : l.rented ? '貸し出し中' : typeof l.joined === 'number' ? '2区画つなげた土地' : '']}
                 tone="owned"
               />}
             </group>

@@ -1,7 +1,7 @@
 import { useEconomy, plotOffset, plotOffsetZ, saveEconomy } from './economy';
 import { sessionGate } from '../session/gate';
 import { savedBundle } from '../session/saves';
-import { townHouseLot, townLotId } from '../building/townHouses';
+import { plotLot, townLotId } from '../building/townHouses';
 import { useGame } from './store';
 
 /** UIに家の選択モードを持たせず、触れた所有物のデータへ操作を振り分ける。 */
@@ -21,7 +21,7 @@ export function editBlocked(id: string): string | null {
   return lot?.shop && lot.owner && sessionGate.shared && lot.owner !== savedBundle().profile.id ? 'お店は持ち主しか変えられません' : null;
 }
 
-/** 町に最初から建っている家を、編集できる土地にする。土地ができたら onReady を呼ぶ（みんなのワールドではサーバーの確定を待つ） */
+/** 町に最初から建っている家・空き区画を、編集できる土地にする。土地ができたら onReady を呼ぶ（みんなのワールドではサーバーの確定を待つ） */
 export function claimTownHouse(plot: number, onReady: (id: string) => void): string | null {
   const id = townLotId(plot);
   const ready = () => useEconomy.getState().lots.some(l => l.id === id);
@@ -33,7 +33,8 @@ export function claimTownHouse(plot: number, onReady: (id: string) => void): str
     const timer = setTimeout(stop, 15000);
     return null;
   }
-  const lot = townHouseLot(plot);
+  if (useEconomy.getState().offers.some(o => o.plot === plot)) return '売地は買うと建てられます';
+  const lot = plotLot(plot);
   if (!lot) return 'その家は編集できません';
   useEconomy.setState(s => ({ lots: [...s.lots, lot] }));
   saveEconomy();

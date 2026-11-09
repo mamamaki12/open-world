@@ -700,4 +700,14 @@ export function townHouseLot(plot: number): Lot | null {
     built: JSON.parse(JSON.stringify(house)) as House, design: null, construction: null, rented: false, invested: 0, plot, town: true };
 }
 
+/** 家も売地もない空き区画を、だれでも建てられる土地（みんなの土地）にする。町の家の区画なら町の家 */
+export function plotLot(plot: number): Lot | null {
+  const town = townHouseLot(plot);
+  if (town) return town;
+  const district = districtOf(plot);
+  if (!district || TOWN_HOUSE_PLOTS[plot]) return null;
+  return { id: townLotId(plot), name: 'みんなの土地', location: district.location, variance: 1,
+    built: null, design: null, construction: null, rented: false, invested: 0, plot, town: true };
+}
+
 export { TOWN_HOUSE_PLOTS };

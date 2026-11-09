@@ -5,7 +5,7 @@ import { LOT_D, LOT_W, lotSize } from '../building/dimensions';
 import { DAY_SECONDS, landOffers, landPrice, stepMarket, getLocation } from '../economy/market';
 import type { LandOffer } from '../economy/market';
 import { JOINED_W, freePlot } from '../economy/town';
-import { townHouseLot } from '../building/townHouses';
+import { plotLot } from '../building/townHouses';
 import { lotsDensity } from '../economy/neighborhood';
 import { applyChanges } from '../session/edits';
 import type { Change } from '../session/edits';
@@ -106,11 +106,12 @@ function applyAction(w: SharedWorld, sender: string, name: string, c: SharedComm
     return { world: { ...paid, economy: { ...w.economy, lots: [...lots, bought], currentLotId: current, offers: w.economy.offers.filter(o => o.id !== offer.id) } }, cost: price, message: bought.name + 'を買いました' };
   }
   if (a.type === 'townHouse') {
-    // 町に最初から建っている家を、だれでも編集できる土地にする（持ち主なし・売買や賃貸はできない）
-    const town = Number.isSafeInteger(a.plot) ? townHouseLot(a.plot) : null;
+    // 町に最初から建っている家・空き区画を、だれでも編集できる土地にする（持ち主なし・売買や賃貸はできない）
+    const town = Number.isSafeInteger(a.plot) ? plotLot(a.plot) : null;
     if (!town) return 'その家は編集できません';
     if (lots.some(l => l.id === town.id)) return { world: w, cost: 0, message: '' };
     if (plotsOfLots(lots).includes(a.plot)) return 'その区画はもう使われています';
+    if (w.economy.offers.some(o => o.plot === a.plot)) return '売地は買うと建てられます';
     if (lots.length >= 90) return 'この町にはもう土地を増やせません';
     return { world: withLots([...lots, town]), cost: 0, message: '' };
   }
