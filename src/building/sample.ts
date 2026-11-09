@@ -28,11 +28,11 @@ export function sampleHouse(): House {
   const f1Inner = wall(0, 12, 6, 12, 14);
   open(f1Front, 'window', 'patio', 1.365);
   open(f1Front, 'window', 'patio', 3.64);
-  open(f1Front, 'door', 'entrance', 7.735);
+  open(f1Front, 'door', 'entrance', 6.825);
   open(f1Back, 'window', 'sliding-small', 2.73);
   open(f1Back, 'window', 'high', 4.55);
   open(f1Left, 'window', 'sliding', 3.64);
-  open(f1Right, 'window', 'casement', 5.46);
+  open(f1Right, 'window', 'casement', 1.82);
   open(f1Inner, 'door', 'door', 6.37, '#efedea');
 
   // 2階
@@ -58,7 +58,8 @@ export function sampleHouse(): House {
     ],
     walls,
     openings,
-    stairs: [{ id: newId('stair'), level: 0, x: 14, z: 7, rot: 0, finish: { material: 'oak', color: '#a77b52' } }],
+    // 階段はホールの右の壁ぞい。上り口は玄関の横で、玄関から奥まで通路を空ける
+    stairs: [{ id: newId('stair'), level: 0, x: 15, z: 12, rot: 2, finish: { material: 'oak', color: '#a77b52' } }],
     roofs: [
       {
         id: newId('roof'),

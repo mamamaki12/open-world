@@ -6,4 +6,6 @@ export const useSeating = create<{
   target: Seat | null;
   seated: Seat | null;
   returnTo: { x: number; y: number; z: number } | null;
-}>(() => ({ target: null, seated: null, returnTo: null }));
+  /** 近くのクローゼット収納（家具のid） */
+  wardrobe: string | null;
+}>(() => ({ target: null, seated: null, returnTo: null, wardrobe: null }));
