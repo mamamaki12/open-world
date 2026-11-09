@@ -40,6 +40,8 @@ export function QuickBar(){
       {/* スマホは左上の所持金の横に小さな ↶↷ を出す */}
       {tool!=='select'&&!touch&&<BuildHistory/>}
       {!touch&&<div className="quick-meta"><span>{name}<small className="quick-swipe-hint"> · 左右スワイプで道具</small></span><button onClick={()=>useGame.getState().setOverlay('inventory')}>種類・素材</button><button aria-label="操作設定" onClick={()=>useGame.getState().setOverlay('controls')}>{iconText("⚙")}</button></div>}
+      {/* 道具バーの中に置き、バーの上端のすぐ上に出す（高さを測らなくても重ならない） */}
+      {!touch&&centered&&<div className="aim-mouse-help">画面クリックで視点操作 · 左/右クリックで配置 · ホイールで持替 · Escで解除</div>}
       {touch&&tool==='select'&&selectedFurniture&&<div className="furniture-edit-hint">青い家具をドラッグで移動・タップで45°回転</div>}
     </div>
     {centered&&<>
@@ -53,7 +55,6 @@ export function QuickBar(){
         }} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release}>長押しで削除</button>}
         {(tool==='furniture'||tool==='stair')&&<button onClick={()=>aimActions.rotate()}>{iconText("↻ 回転")}</button>}
       </div>
-      {!touch&&<div className="aim-mouse-help">画面クリックで視点操作 · 左/右クリックで配置 · ホイールで持替 · Escで解除</div>}
     </>}
   </>;
 }
