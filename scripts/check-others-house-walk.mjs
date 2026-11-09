@@ -25,7 +25,7 @@ try {
       window.__ow.game.setState({ house: emptyHouse(), overlay: null });
       window.__ow.game.getState().setMode('walk');
       const ox = e.plotOffset(1), oz = e.plotOffsetZ(1);
-      Object.assign(window.__ow.player, { x: ox + 6 * GRID + 7.735 + 0.4, z: oz + 14 * GRID + 0.7, y: 0 });
+      Object.assign(window.__ow.player, { x: ox + 6 * GRID + 6.825 + 0.4, z: oz + 14 * GRID + 0.7, y: 0 });
       return { id: house.openings.find(o => o.type === 'entrance').id, ox, oz, GRID };
     });
     const doors = '/src/state/doors.ts';
