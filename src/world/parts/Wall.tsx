@@ -100,7 +100,8 @@ export function Wall({ wall, openings, outside }: Props) {
         },
         onPointerUp: (e: ThreeEvent<PointerEvent>) => placeOnTouchUp(e, placeOpening),
         onClick: (e: ThreeEvent<MouseEvent>) => {
-          if (aimBuilding()) return;
+          // 照準タップで置いた直後のクリック（置いて道具が手ぶらに変わった後）で二重に置かない
+          if (aimBuilding() || Date.now() < useInteraction.getState().ignorePartClickUntil) return;
           e.stopPropagation();
           if (e.delta > 8 || touchPlaced()) return; // カメラを動かしたドラッグの終わり・指で置いた直後
           placeOpening(e);
@@ -146,7 +147,7 @@ export function Wall({ wall, openings, outside }: Props) {
     },
     onPointerUp: (e: ThreeEvent<PointerEvent>) => placeOnTouchUp(e, placeNameplate),
     onClick: (e: ThreeEvent<MouseEvent>) => {
-          if (aimBuilding()) return;
+          if (aimBuilding() || Date.now() < useInteraction.getState().ignorePartClickUntil) return;
       e.stopPropagation();
       if (e.delta > 12 || touchPlaced()) return;
       placeNameplate(e);

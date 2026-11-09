@@ -509,6 +509,16 @@
   padding: 9px 12px;
 }
 
+/* PCで画面が狭い（文字の拡大など）と、右下のチップが下の道具バーに重なるので、その上に出す */
+/* PCで画面が狭い（文字の拡大など）と、右下のチップが下の道具バーに重なるので、短い「👥 N」にする */
+.world-session .session-short { display: none; }
+@media (max-width: 900px) {
+  .world-session .session-long { display: none; }
+  .world-session .session-short { display: inline; }
+  /* 建築画面は下に操作の説明が横いっぱいに出るので、その上に */
+  .app:not(.touch):not(.walk)~.world-session { bottom: calc(52px + env(safe-area-inset-bottom)); }
+}
+
 .app.touch~.world-session .world-session-panel {
   right: 0;
   bottom: auto;
