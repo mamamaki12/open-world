@@ -300,3 +300,9 @@
   #root .pocket-town { height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) { #root :is(button,.choice,.tool) { transition: none; } }
+
+/* スマホ：ドアを開ける・座る・クローゼットなどのボタンは右手の親指で押せるよう、右下の 削除・建てる の列のすぐ左に置く（しんご 2026-11-09） */
+#root .app.touch.walk .door-prompts { left: auto; right: calc(104px + var(--safe-r)); transform: none; bottom: calc(96px + var(--safe-b)); flex-direction: column; align-items: flex-end; }
+/* 縦持ちは横に余裕がないので、削除・建てる の列の真上に置く（スティックにも重ならない） */
+@media (orientation: portrait) { #root .app.touch.walk .door-prompts { right: calc(16px + var(--safe-r)); bottom: calc(164px + var(--safe-b)); } }
+@media (orientation: portrait) { #root .app.touch.walk:has(.aim-buttons button) .door-prompts { bottom: calc(226px + var(--safe-b)); } }
