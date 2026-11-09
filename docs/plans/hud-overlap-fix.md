@@ -1,9 +1,9 @@
 # 画面の要素が重なる不具合をなくす
 
-状態: 作業中
+状態: 完了（PR待ち）
 ブランチ: `claude/project-thread-9usabv`
-残作業: 洗い出し → 修正 → 検査スクリプト
-確認根拠: （未）
+残作業: なし
+確認根拠: check-hud-overlap（10サイズ×10画面）・check-large-text・check-aim-controls・check-furniture-lighting・check-interior-lighting がローカルで通過
 
 ## 目的
 しんご 2026-11-09「要素が重なる不具合を無くしてほしい」。スマホ横画面の歩く画面で、家具を持つと右側の「配置」ボタンに 👥人数チップが重なっていた（スクショ）。スマホ縦横・PC（文字200%）でHUDの重なりを洗い出して直す。
@@ -23,6 +23,9 @@
 - PC：照準の操作説明（aim-mouse-help）× 道具バー → 道具バーの高さ（--quick-tools-h）の上に
 - PC 幅900px以下（文字200%）：右下の👥チップ × 道具バー → 道具バーの上に
 
+- PC 縦が狭い（480px以下）：歩きモードの説明・マウス操作の説明・取り消しの行を隠す。幅900px以下は👥チップを「👥 N」に、建築画面では下の操作説明の上に
+- 日付が変わった等のお知らせ（toast）：2.5秒で消えるので重なり検査の対象外にし、下のボタンを押せるよう指・クリックを素通りさせる
+- 十字タップで表札を置くと、同じタップのクリックで壁がもう1枚置いていた → 置いた直後のクリックを無視
+
 ## 進み具合
-- 済：計画、洗い出しスクリプト scripts/check-hud-overlap.mjs（重なり判定は scripts/layout-scan.mjs に切り出し、large-text と共用）、上の直し
-- 次：再スキャン、既存の検査（aim-controls・furniture/interior-lighting）を十字タップに直したので通るか確認、CIに追加
+- 済：すべて。CI の large-text ジョブで check-hud-overlap.mjs も走る
