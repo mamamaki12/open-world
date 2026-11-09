@@ -36,7 +36,11 @@ const TOUCH_TOOL_HELP: Record<Tool, string> = {
   erase: 'タップしたパーツを消します。なぞって範囲を囲むと、その中のものをまとめて選んで一度に消せます（視点は2本指）。',
 };
 
-export function ToolOptions({ showHelp = true }: { showHelp?: boolean } = {}) {
+/**
+ * onPicked：スマホの建築メニューで、選んだだけで決まるもの（家具）を選んだときに呼ぶ。メニューを閉じて決定にする。
+ * 床・壁・屋根・階段・ドア・窓は色や素材も選ぶので呼ばない（決定ボタンで閉じる）。
+ */
+export function ToolOptions({ showHelp = true, onPicked }: { showHelp?: boolean; onPicked?: () => void } = {}) {
   const touch = useTouchDevice();
   const tool = useGame((s) => s.tool);
   const d = useGame((s) => s.defaults);
@@ -44,6 +48,12 @@ export function ToolOptions({ showHelp = true }: { showHelp?: boolean } = {}) {
   const eraseMulti = useGame(s => s.eraseMulti);
   const designs = useDesigns((s) => s.designs);
   const stairRot = useInteraction((s) => s.stairRot);
+
+  // 家具を選んだらすぐ決定。表札は文字を入れるので閉じない
+  const pickFurniture = (furnitureType: string) => {
+    set({ furnitureType });
+    if (!getFurniture(furnitureType).label) onPicked?.();
+  };
 
   let body = null;
   switch (tool) {
@@ -141,7 +151,7 @@ export function ToolOptions({ showHelp = true }: { showHelp?: boolean } = {}) {
             <div className="field-label">自分でデザインした家具</div>
             <div className="choice-list">
               {designs.map((f) => (
-                <button key={f.id} className={`choice${f.id === d.furnitureType ? ' on' : ''}`} onClick={() => set({ furnitureType: f.id })}>
+                <button key={f.id} className={`choice${f.id === d.furnitureType ? ' on' : ''}`} onClick={() => pickFurniture(f.id)}>
                   <span>{f.name}</span>
                   <small onClick={(e) => { e.stopPropagation(); openDesigner(f); }}>編集</small>
                 </button>
@@ -160,7 +170,7 @@ export function ToolOptions({ showHelp = true }: { showHelp?: boolean } = {}) {
               <div className="field-label">{iconText(label)}</div>
               <div className="choice-list">
                 {items.map((f) => (
-                  <button key={f.id} className={`choice${f.id === d.furnitureType ? ' on' : ''}`} onClick={() => set({ furnitureType: f.id })}>
+                  <button key={f.id} className={`choice${f.id === d.furnitureType ? ' on' : ''}`} onClick={() => pickFurniture(f.id)}>
                     <span>{f.name}</span>
                   </button>
                 ))}
