@@ -24,11 +24,11 @@ describe('足もとの高さ', () => {
   });
 
   it('階段は上るほど高くなり、上りきると2階の床の高さ', () => {
-    // サンプルの階段：x=14, z=7 から +z へ4マス
-    const x = 14.5 * GRID;
-    const mid = surfaceHeight(house, x, 9 * GRID, floorY(0) + 1.4);
+    // サンプルの階段：x=15、z=13 の上り口から -z へ4マス（z=9 で上りきる）
+    const x = 15.5 * GRID;
+    const mid = surfaceHeight(house, x, 11 * GRID, floorY(0) + 1.4);
     expect(mid).toBeCloseTo(floorY(0) + STORY_HEIGHT / 2, 1);
-    expect(surfaceHeight(house, x, 11 * GRID - 0.01, floorY(1) - 0.05)).toBeCloseTo(floorY(1), 1);
+    expect(surfaceHeight(house, x, 9 * GRID + 0.01, floorY(1) - 0.05)).toBeCloseTo(floorY(1), 1);
   });
 });
 
@@ -40,21 +40,21 @@ describe('壁と家具の当たり判定', () => {
   });
 
   it('玄関ドアのところは通れる', () => {
-    // 玄関：正面の壁の始点 (6,14) から 7.735m
-    const doorX = 6 * GRID + 7.735;
+    // 玄関：正面の壁の始点 (6,14) から 6.825m
+    const doorX = 6 * GRID + 6.825;
     const p = resolveCollisions(house, { x: doorX, z: 14 * GRID }, floorY(0), PLAYER.height);
     expect(p.x).toBeCloseTo(doorX);
     expect(p.z).toBeCloseTo(14 * GRID);
   });
 
   it('閉じた玄関ドアは通れない', () => {
-    const doorX = 6 * GRID + 7.735;
+    const doorX = 6 * GRID + 6.825;
     const p = resolveCollisions(house, { x: doorX, z: 14 * GRID }, floorY(0), PLAYER.height, () => false);
     expect(Math.abs(p.z - 14 * GRID)).toBeGreaterThan(0.3);
   });
 
   it('近くのドアと、プレイヤーが壁のどちら側にいるかがわかる', () => {
-    const doorX = 6 * GRID + 7.735;
+    const doorX = 6 * GRID + 6.825;
     const outside = nearestDoor(house, doorX, 14 * GRID + 0.8, 0);
     const inside = nearestDoor(house, doorX, 14 * GRID - 0.8, floorY(0));
     expect(outside?.id).toBe(inside?.id);
@@ -183,7 +183,7 @@ describe('屋根の当たり判定', () => {
 
   it('1階でジャンプすると2階の床の下でつかえる。吹き抜け（階段）の上はつかえない', () => {
     expect(ceilingHeight(house, 9 * GRID, 9 * GRID, floorY(0) + PLAYER.height)).toBeCloseTo(floorY(1) - 0.25);
-    expect(ceilingHeight(house, 14.5 * GRID, 9 * GRID, floorY(0) + PLAYER.height)).toBeGreaterThan(floorY(1) + 2.9);
+    expect(ceilingHeight(house, 15.5 * GRID, 11 * GRID, floorY(0) + PLAYER.height)).toBeGreaterThan(floorY(1) + 2.9);
   });
 
   it('屋根の上で斜面を歩いて上るのは止めない。屋根の高さの空中から斜面に横から突っ込むと止まる', () => {

@@ -256,7 +256,7 @@ describe('まとめて消す', () => {
   it('範囲の外のパーツは選ばない', () => {
     const h = sampleHouse();
     expect(partsInRect(h, { x0: 0, z0: 0, x1: 2, z1: 2 })).toEqual([]);
-    const some = partsInRect(h, { x0: 14, z0: 7, x1: 15, z1: 8 });
+    const some = partsInRect(h, { x0: 15, z0: 10, x1: 16, z1: 11 });
     expect(some.some((r) => r.kind === 'stair')).toBe(true);
     expect(some.length).toBeLessThan(partsInRect(h, { x0: 0, z0: 0, x1: 24, z1: 20 }).length);
   });
