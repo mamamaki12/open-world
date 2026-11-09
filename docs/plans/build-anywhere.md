@@ -2,12 +2,12 @@
 
 ## 現在の状態
 
-- 状態: 作業中
+- 状態: 検証待ち
 - PR: 未作成
 - 公開: 未公開
-- 残作業: 下の方針 1〜4 を実装、テスト、PR。relay 変更があるのでマージ後に EC2 の relay 更新。
+- 残作業: PR の CI、マージ後に EC2 の relay 更新（空き区画の受け付け。古い relay だと共有ワールドの空き区画は「その家は編集できません」になる）。
 - 将来の拡張・追加確認: 道路・広場など区画の外に建てる（保存先が無いので別の仕組みが必要）。
-- 確認根拠: 未確認
+- 確認根拠: vitest（src/state/editAnywhere.test.ts、sharedWorld.test.ts）、scripts/check-build-anywhere.mjs（PC・照準で空き区画と町の家に床を置く）
 - 最終更新: 2026-11-09
 
 - ブランチ: claude/project-thread-iihv7c
@@ -28,3 +28,4 @@
 ## 経過記録
 
 - 2026-11-09: 計画。
+- 2026-11-09: 実装。AimBuilder はほかの区画を狙うと「〇〇に置く」と出し、タップで切り替えて3フレーム後に置き直す。PlacementController（建築画面・三人称）は、ほかの区画を押すと切り替えだけ行い「もう一度タップ」と表示。空き区画は plotLot（src/building/townHouses.ts）で「みんなの土地」。版 1.9.0。
