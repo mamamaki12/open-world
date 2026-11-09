@@ -131,7 +131,7 @@ export function BuildMenu({
           </div>
           </div>
           {tool !== 'select' && <div className="build-menu-options">
-            <ToolOptions showHelp={false} />
+            <ToolOptions showHelp={false} onPicked={onClose} />
           </div>}
         </div>
       </div>
