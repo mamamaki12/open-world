@@ -37,6 +37,7 @@ function loadShowKeys() {
 export function WalkHud() {
   const seat = useSeating((s) => s.target);
   const seated = useSeating((s) => s.seated);
+  const wardrobe = useSeating((s) => s.wardrobe);
   const view = useGame((s) => s.view);
   const toggleView = useGame((s) => s.toggleView);
   const target = useDoors((s) => s.target);
@@ -69,7 +70,7 @@ export function WalkHud() {
   return (
     <>
       {view === 'first' && !holding && <div className="crosshair" />}
-      {(target || seat || seated) && !climbing && (
+      {(target || seat || seated || wardrobe) && !climbing && (
         <div className="door-prompts">
           <button
             className="door-prompt"
@@ -79,7 +80,7 @@ export function WalkHud() {
             }}
           >
             <kbd>F</kbd>
-            {seated ? '立つ' : seat ? '座る' : targetOpen ? `${noun}を閉める` : `${noun}を開ける`}
+            {seated ? '立つ' : seat ? '座る' : !target && wardrobe ? 'クローゼットを開ける' : targetOpen ? `${noun}を閉める` : `${noun}を開ける`}
           </button>
           {climb === 'ok' && !touch && (
             <div className="door-prompt passive">

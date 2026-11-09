@@ -6,7 +6,7 @@ import { buildCameraPose } from './buildCameraPose';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GRID, LOT_D, LOT_W, lotSize } from '../building/dimensions';
-import { nearestSeat } from '../building/seating';
+import { nearestSeat, nearestWardrobe } from '../building/seating';
 import { touchGesture } from '../state/gestures';
 import { DoubleTap } from '../state/doubleTap';
 import { useInteraction } from '../state/interaction';
@@ -110,6 +110,8 @@ export function interact() {
     Object.assign(playerMemory, { x: current.x, y: current.y, z: current.z, yaw: current.yaw, bodyYaw: current.yaw });
     return;
   }
+  // クローゼット収納の前では着替えの画面を開く（ドアが近いときはドアが先）
+  if (seating.wardrobe && !useDoors.getState().target) { useGame.getState().setOverlay('closet'); return; }
   toggleTargetDoor();
 }
 
@@ -680,6 +682,8 @@ export function Player() {
       const targetSeat = seatCloser ? seat : null;
       if (useSeating.getState().target?.id !== targetSeat?.id) useSeating.setState({ target: targetSeat });
       doors.setTarget(seatCloser ? null : spot?.id ?? null);
+      const wardrobe = !seated && !seat && !spot && st.grounded ? nearestWardrobe(wh, playerMemory.x, playerMemory.y, playerMemory.z) : null;
+      if (useSeating.getState().wardrobe !== wardrobe) useSeating.setState({ wardrobe });
       let climb: 'ok' | 'narrow' | 'high' | null = null;
       if (spot?.kind === 'window' && isDoorOpen(spot.id)) {
         const o = wh.openings.find((p) => p.id === spot.id);
