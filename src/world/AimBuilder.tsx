@@ -61,6 +61,14 @@ export function AimBuilder() {
     };
     // スマホ：照準（画面中央）を短くタップしたら置く（配置ボタンは無い）。なぞったら見回すだけ。削除は誤操作を防ぐため長押しボタンのみ。
     const taps=new Map<number,{x:number;y:number;t:number}>();
+    let unswallow=()=>{};
+    const swallowCanvasClick=()=>{
+      unswallow();
+      const h=(ev:MouseEvent)=>{if(ev.target!==gl.domElement)return;ev.stopPropagation();ev.preventDefault();unswallow();};
+      const t=setTimeout(()=>unswallow(),1500);
+      window.addEventListener('click',h,true);
+      unswallow=()=>{window.removeEventListener('click',h,true);clearTimeout(t);unswallow=()=>{};};
+    };
     const touchDown=(e:PointerEvent)=>{
       if(e.pointerType!=='touch')return;
       if(taps.size>0||!aimBuilding()||useGame.getState().tool==='erase'){taps.clear();return;}
@@ -71,14 +79,15 @@ export function AimBuilder() {
     const touchUp=(e:PointerEvent)=>{
       const s=taps.get(e.pointerId);taps.delete(e.pointerId);
       if(e.type==='pointerup'&&s&&e.timeStamp-s.t<400&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<=12&&aimBuilding()&&useGame.getState().tool!=='erase'){
-        // 置いた直後の同じタップのクリックで、選択した家具（表札など）がすぐ外れないようにする
-        useInteraction.setState({ignorePartClickUntil:Date.now()+300});aimActions.place();
+        // 同じタップの後から来るクリック（遅い端末では数百ms後）で、手ぶらに変わった後の壁などが
+        // もう一度置いたり選択を外したりしないよう、キャンバスへの次のクリックを1回だけ飲み込む
+        swallowCanvasClick();aimActions.place();
       }
     };
     const escape=(e:KeyboardEvent)=>{if(e.code==='Escape'){clear();if(document.pointerLockElement===gl.domElement)document.exitPointerLock();}};
     const unsub=useGame.subscribe((s,p)=>{if(s.tool!==p.tool||s.mode!==p.mode||s.view!==p.view||s.overlay!==p.overlay)clear();});
     gl.domElement.addEventListener('pointerdown',down);gl.domElement.addEventListener('pointerdown',touchDown);window.addEventListener('pointermove',touchMove);window.addEventListener('pointerup',touchUp);window.addEventListener('pointercancel',touchUp);window.addEventListener('keydown',escape);
-    return()=>{unsub();gl.domElement.removeEventListener('pointerdown',down);gl.domElement.removeEventListener('pointerdown',touchDown);window.removeEventListener('pointermove',touchMove);window.removeEventListener('pointerup',touchUp);window.removeEventListener('pointercancel',touchUp);window.removeEventListener('keydown',escape);aimActions.place=()=>{};aimActions.cancel=()=>{};aimActions.rotate=()=>{};clear();};
+    return()=>{unswallow();unsub();gl.domElement.removeEventListener('pointerdown',down);gl.domElement.removeEventListener('pointerdown',touchDown);window.removeEventListener('pointermove',touchMove);window.removeEventListener('pointerup',touchUp);window.removeEventListener('pointercancel',touchUp);window.removeEventListener('keydown',escape);aimActions.place=()=>{};aimActions.cancel=()=>{};aimActions.rotate=()=>{};clear();};
   },[camera,gl,scene]);
   useFrame((_,dt)=>{
     clock.current+=dt;if(clock.current<.08)return;clock.current=0;
