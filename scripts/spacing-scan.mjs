@@ -61,3 +61,16 @@ export function spacingScan(rootSel) {
   }
   return out;
 }
+
+// アイコンだけのボタンにも名前（読み上げ・長押しで分かる文字）があるか。名前のない押せる要素を返す（2026-11-10 アイコン化）
+export function unnamedScan(rootSel) {
+  const out = [];
+  for (const root of document.querySelectorAll(rootSel)) for (const e of root.querySelectorAll('button,a[href],summary,[role=button]')) {
+    if (!e.getClientRects().length || e.closest('[aria-hidden="true"]')) continue;
+    const s = getComputedStyle(e); if (s.visibility === 'hidden' || s.display === 'none') continue;
+    const by = e.getAttribute('aria-labelledby');
+    const name = (e.getAttribute('aria-label') || (by && document.getElementById(by)?.textContent) || e.textContent || e.getAttribute('title') || '').trim();
+    if (!name) out.push(`${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]} ${e.outerHTML.slice(0, 80)}`);
+  }
+  return out;
+}

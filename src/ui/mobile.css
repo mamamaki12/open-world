@@ -514,3 +514,27 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .touch .photo-row:not(.main) > span { flex-basis: 100%; text-align: center; margin: 0; }
   .touch .photo-row .tool { padding: 4px 7px; }
 }
+
+/* ===== スマホは文字のボタンをアイコンに（2026-11-10「文字じゃなくてアイコンに変えれるとこはどんどん」）=====
+   文字は IconLabel（AppIcon.tsx）で読み上げ用に残す。押せる範囲 44px・すき間 8px は崩さない */
+/* ☰ のメニュー：アイコンの上に短い名前の札を3列（横向きは4列）に並べる */
+.touch .walk-menu-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(300px, calc(100vw - 24px)); min-width: 0; box-sizing: border-box; }
+.touch .walk-menu-list > :not(.walk-menu-item) { grid-column: 1 / -1; }
+.touch .walk-menu-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; padding: 6px 2px; text-align: center; font-size: 13px; }
+.touch .walk-menu-item .app-icon { width: 24px; height: 24px; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .walk-menu-list { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(380px, calc(100vw - 24px)); }
+  .touch .walk-menu-item { min-height: 54px; padding: 4px 2px; font-size: 12px; }
+}
+/* パネルの「閉じる」・建築メニューの「決定」はアイコンだけ。押せる範囲は 44px 四方 */
+.touch .modal-head .tool.close { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; }
+.touch .modal-head .tool.close .app-icon, .touch .build-menu-done .app-icon { width: 22px; height: 22px; }
+.touch .build-menu-done { min-width: 64px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.touch .build-menu-head .btn { min-height: 44px; display: inline-flex; align-items: center; }
+/* 写真モードの天気はアイコンだけ */
+.touch .photo-row .tool .app-icon { width: 20px; height: 20px; }
+.touch .photo-row .tool { min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
+/* 歩きながら建てるときの 取り消す・やり直す はアイコンだけ */
+.touch .build-history { gap: 8px; }
+.touch .build-history button { min-width: 56px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.touch .build-history button .app-icon { width: 22px; height: 22px; }

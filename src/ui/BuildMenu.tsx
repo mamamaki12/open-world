@@ -1,4 +1,4 @@
-import { AppIcon, iconText, type IconName } from './AppIcon';
+import { AppIcon, IconLabel, iconText, type IconName } from './AppIcon';
 // スマホ用の建築メニュー：「建てる」ボタンから開き、道具を大きなカードで選び、その下で種類・素材・色を選ぶ
 import { useEffect, useRef } from 'react';
 import './build-menu.css';
@@ -113,9 +113,9 @@ export function BuildMenu({
       <div className="build-menu" role="dialog" aria-label="建築メニュー">
         <div className="build-menu-head">
           <span className="build-menu-title">{iconText("🔨 建てる")}</span>
-          <button className="btn" onClick={() => { useGame.getState().select(null); setTool('select'); onClose(); }}>道具をしまう</button>
-          <button className="btn primary build-menu-done" onClick={onClose}>
-            決定
+          <button className="btn" title="道具をしまう" onClick={() => { useGame.getState().select(null); setTool('select'); onClose(); }}><IconLabel icon="hand" text="道具をしまう" short="しまう" /></button>
+          <button className="btn primary build-menu-done" title="決定" onClick={onClose}>
+            <IconLabel icon="check" text="決定" />
           </button>
         </div>
         <div className={`build-menu-body${tool === 'select' ? ' catalog-only' : ''}`}>

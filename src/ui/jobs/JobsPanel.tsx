@@ -1,4 +1,4 @@
-import { iconText } from '../AppIcon';
+import { IconLabel, iconText } from '../AppIcon';
 // バイト：一覧から選んで1シフト働く。できた件数とミスで給料が決まる
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -77,8 +77,8 @@ export function JobsPanel() {
               <p className="job-pay">給料 <b>{yen(pay)}</b></p>
               {paid ? (
                 <>
-                  <button className="btn primary" onClick={() => start(def.id)}>もう1シフト働く</button>{' '}
-                  <button className="btn" onClick={() => setJob(null)}>ほかのバイトを見る</button>
+                  <button className="btn primary" onClick={() => start(def.id)} title="もう1シフト働く"><IconLabel icon="refresh" text="もう1シフト働く" short="もう1回" /></button>{' '}
+                  <button className="btn" onClick={() => setJob(null)} title="ほかのバイトを見る"><IconLabel icon="left" text="ほかのバイトを見る" short="一覧" /></button>
                 </>
               ) : (
                 <button className="btn primary" onClick={settle}>給料を受け取る</button>

@@ -1,4 +1,4 @@
-import { iconText } from '../AppIcon';
+import { IconLabel, iconText } from '../AppIcon';
 // 初心者向けの遊び方。ルール・賭け方・配当の目安・コツを、ゲームの上にたためる形で出す。
 // 倍率や確率はゲームの設定から計算するので、設定を変えても説明がずれない
 import { useEffect, useState } from 'react';
@@ -288,7 +288,7 @@ export function Guide({ game }: { game: GuideGame }) {
   return (
     <div className={`guide${open ? ' open' : ''}${fresh ? ' fresh' : ''}`}>
       <button className="guide-toggle" onClick={toggle} aria-expanded={open}>
-        <span>{iconText("📖 ")}{iconText(TITLES[game])}（はじめての方へ）</span>
+        <span><IconLabel icon="book" text={`${TITLES[game]}（はじめての方へ）`} pcIcon short="遊び方" /></span>
         <span className="guide-arrow">{iconText(open ? '閉じる ▲' : '開く ▼')}</span>
       </button>
       {open && (

@@ -14,7 +14,7 @@ import { playerMemory } from '../world/Player';
 import { Modal } from './Modal';
 import './vehicles.css';
 import './car-catalog.css';
-import { AppIcon } from './AppIcon';
+import { IconLabel, AppIcon } from './AppIcon';
 const COLOR_NAMES:Record<string,string>={'#eceeea':'パールホワイト','#222a32':'ブラック','#9ca8b3':'シルバー','#b52734':'レッド','#204f7b':'ブルー','#d5ab45':'ゴールド','#46624e':'グリーン','#e27830':'オレンジ'};
 const GROUPS = ['すべて','軽・コンパクト','セダン・ワゴン','SUV・ピックアップ','ミニバン','スポーツ','電気自動車'];
 function groupOf(car:CarDef){
@@ -62,7 +62,7 @@ export function DealerPanel(){
         <label>並び順<select aria-label="並び順" value={sort} onChange={e=>setSort(e.target.value)}><option value="recommended">標準の並び順</option><option value="low">価格が安い順</option><option value="high">価格が高い順</option></select></label>
         <label className="catalog-budget"><input type="checkbox" checked={budget} onChange={e=>setBudget(e.target.checked)}/>予算内の車だけ</label>
       </div>
-      </details><div className="catalog-results"><p role="status"><b>{filtered.length}</b> / {CARS.length}車種</p><button className="tool" onClick={reset}>条件をリセット</button></div>
+      </details><div className="catalog-results"><p role="status"><b>{filtered.length}</b> / {CARS.length}車種</p><button className="tool" onClick={reset} title="条件をリセット"><IconLabel icon="refresh" text="条件をリセット" short="リセット" /></button></div>
       <nav className="catalog-grid" aria-label="車種">{filtered.map(c=><button id={'catalog-'+c.id} key={c.id} className="cat-card" onClick={()=>select(c)} aria-label={`${c.name} ${yen(c.price)} 詳細を見る`}>
         <img src={`${import.meta.env.BASE_URL}cars/${c.id}.png`} width="640" height="360" alt="" loading="lazy"/>
         <span className="catalog-card-copy"><small>{c.category}</small><b>{c.name}</b><span className="cat-price">{yen(c.price)}</span><span className="cat-mini">{c.seats}人乗り · {c.id==='volt'?'電気自動車':`${c.economy.toFixed(1)} km/L`}</span><span className="catalog-card-link">詳しく見る <AppIcon name="right"/></span></span>
@@ -70,7 +70,7 @@ export function DealerPanel(){
       {!filtered.length&&<div className="catalog-empty"><h3>条件に合う車がありません</h3><p>キーワードやボディタイプ、予算の条件を変更してください。</p><button className="btn" onClick={reset}>すべての車を見る</button></div>}
       <p className="catalog-footnote">掲載車はゲーム内のオリジナルモデルです。価格・性能はゲーム内の設定です。</p>
     </>:<>
-      <button className="tool catalog-back" onClick={back}><AppIcon name="left"/> 車種一覧に戻る</button>
+      <button className="tool catalog-back" onClick={back} title="車種一覧に戻る"><IconLabel icon="left" text="車種一覧に戻る" pcIcon short="一覧" /></button>
       <header className="catalog-model-head"><div><small>{model.category}</small><h2 ref={title} tabIndex={-1}>{model.name}</h2><p>{model.note}</p></div><span className="catalog-seat-tag">{model.seats}人乗り{ev?' · EV':''}</span></header>
       <div className="catalog-detail-grid">
         <section className="catalog-visual" aria-label="車の外観">

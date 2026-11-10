@@ -6,7 +6,7 @@ import { useGuide } from '../state/guide';
 import { checkQuest, missingText } from '../economy/quests';
 import { onlineWorld } from '../session/gate';
 import { useTouchDevice } from './useTouchDevice';
-import { iconText } from './AppIcon';
+import { IconLabel, iconText } from './AppIcon';
 import './guide.css';
 
 export function tutorialSteps(s: { floors: number; walls: number; door: boolean; built: boolean; sold: boolean }) {
@@ -56,7 +56,7 @@ export function GuideCard() {
         <div className="guide-step">{steps[i].label}</div>
         <div className="guide-hint">{steps[i].hint}</div>
         <div className="guide-dots">{steps.map((s, k) => <span key={k} className={s.ok ? 'on' : k === i ? 'now' : ''} />)}</div>
-        <button className="guide-skip" onClick={() => g.finishTutorial('skipped')}>ガイドを終わる</button>
+        <button className="guide-skip" onClick={() => g.finishTutorial('skipped')} title="ガイドを終わる"><IconLabel icon="close" text="ガイドを終わる" short="終わる" /></button>
       </div>
     );
   }

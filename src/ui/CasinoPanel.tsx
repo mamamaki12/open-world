@@ -1,4 +1,4 @@
-import { iconText } from './AppIcon';
+import { IconLabel, iconText } from './AppIcon';
 // カジノ・競技場：スロット、ルーレット、ハイ＆ロー、競馬、競輪、ボートレース。賭け金の上限はなし
 import { useVenue } from '../state/venue';
 import { useEffect, useRef, useState } from 'react';
@@ -117,7 +117,7 @@ export function CasinoPanel() {
       </div>
       {!tab ? <CasinoLobby onSelect={setTab} /> : <>
       <div className="casino-game-nav">
-        <button className="btn casino-back" onClick={() => setTab(null)}>{iconText("← ゲーム選択に戻る")}</button>
+        <button className="btn casino-back" onClick={() => setTab(null)} title="ゲーム選択に戻る"><IconLabel icon="left" text="ゲーム選択に戻る" pcIcon short="戻る" /></button>
         <span>GRAND STRIP <i> / </i> {iconText(TABS.find(t => t.id === tab)!.label)}</span>
       </div>
       <VoiceNotice />

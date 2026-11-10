@@ -12,6 +12,21 @@ export function AppIcon({ name, className = '' }: { name: IconName; className?: 
   </svg>;
 }
 
+/**
+ * スマホでは文字のボタンをアイコンにする（2026-11-10「文字じゃなくてアイコンに変えれるとこはどんどん」）。
+ * PC は今までどおり文字を出す。スマホ（.touch または幅640px以下）では
+ * - short なし：アイコンだけ。文字は見えないが読み上げられる形で残す（ボタンの名前になる）
+ * - short あり：アイコン＋短い文字。元の文字は読み上げ用に残し、短い文字は読み上げない
+ * PC で前は文字だけだったボタンは、PC ではアイコンも出さない（pcIcon で出す）
+ */
+export function IconLabel({ icon, text, short, pcIcon = false }: { icon: IconName; text: string; short?: string; /** PC でもアイコンを出す（前から出していたもの） */ pcIcon?: boolean }) {
+  return <>
+    <AppIcon name={icon} className={pcIcon ? '' : 'ph-icon'} />
+    <span className={short ? 'ph-long' : 'ph-hide'}>{text}</span>
+    {short && <span className="ph-short" aria-hidden="true">{short}</span>}
+  </>;
+}
+
 const legacy: Record<string, IconName> = {
   '⬜':'floor','🧱':'wall','🚪':'door','🪟':'window','🪜':'stair','🏠':'house','🛋':'furniture','🗑':'erase','🔨':'hammer','🏗':'hammer','👆':'hand',
   '🏪':'store','🏮':'stall','⛺':'tent','🗺':'map','📍':'pin','💼':'briefcase','👥':'people','🤝':'handshake','⚙':'settings','👁':'eye',

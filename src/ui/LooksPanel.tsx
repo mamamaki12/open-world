@@ -51,8 +51,8 @@ export function LooksPanel({ mode }: { mode: Mode }) {
     else useLooks.getState().set(hairFree ? draft : { ...draft, hair: now.hair, hairColor: now.hairColor });
     void finish();
   };
-  const pick = <T,>(v: T, cur: T, on: () => void, label: React.ReactNode, extra = '') =>
-    <button className={`looks-chip${extra}`} aria-pressed={v === cur} onClick={on}>{iconText(label)}</button>;
+  const pick = <T,>(v: T, cur: T, on: () => void, label: React.ReactNode, extra = '', name?: string) =>
+    <button className={`looks-chip${extra}`} aria-pressed={v === cur} onClick={on} aria-label={name} title={name}>{iconText(label)}</button>;
   return <Modal title={salon ? '💇 HAIR SALON LUCE' : mode === 'create' ? '🙂 あなたの見た目をつくる' : '🙂 見た目を変える'} onClose={close} tabs={[]} tab="" onTab={() => {}} className="looks-modal">
     <div className="looks-layout">
       <Preview looks={draft} close={salon} />
@@ -60,7 +60,7 @@ export function LooksPanel({ mode }: { mode: Mode }) {
         {!salon && <>
           <Row label="性別">{(['m', 'f'] as Sex[]).map(s => <span key={s}>{pick(s, draft.sex, () => put({ sex: s, ...(mode === 'create' ? { hair: s === 'f' ? 'bob' : 'short' } : {}) }), SEX_NAMES[s])}</span>)}</Row>
           <Row label="体型">{BUILDS.map(b => <span key={b.id}>{pick(b.id, draft.build, () => put({ build: b.id }), b.name)}</span>)}</Row>
-          <Row label="肌の色">{SKIN_TONES.map((c, i) => <span key={c}>{pick(i, draft.skin, () => put({ skin: i }), <i style={{ background: c }} />, ' looks-swatch')}</span>)}</Row>
+          <Row label="肌の色">{SKIN_TONES.map((c, i) => <span key={c}>{pick(i, draft.skin, () => put({ skin: i }), <i style={{ background: c }} />, ' looks-swatch', `肌の色 ${i + 1}`)}</span>)}</Row>
           <Row label="顔">{FACES.map((f, i) => <span key={f.name}>{pick(i, draft.face, () => put({ face: i }), f.name)}</span>)}</Row>
         </>}
         {(hairFree || salon) ? <>

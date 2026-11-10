@@ -1,10 +1,11 @@
 // スマホ縦・横・小さいスマホで、開ける画面を全部たどり、ボタンどうしが近すぎて押し分けにくいところがないか調べる
 // （しんご 2026-11-10「ボタンとボタンの距離が異様に近いとこなども修正してね」）。判定は spacing-scan.mjs。
 // 道順は check-ui-overlap-all.mjs と同じ（開始画面・歩く・建築・メニュー・全パネルとタブ・カジノの各ゲーム・バイトの各仕事・運転中・写真モード）。
+// アイコンだけのボタンに名前（aria-label・隠した文字・title）があるかも見る。
 // SIZES=phone-390x844 OVERLAYS=casino SHOTS=1 で絞り込み・画面写真。PC はレイアウトが壊れていないかを重なり検査で見るので対象外。
 import fs from 'node:fs';
 import { chromium } from 'playwright';
-import { spacingScan } from './spacing-scan.mjs';
+import { spacingScan, unnamedScan } from './spacing-scan.mjs';
 
 const base = process.env.UI_SNAPSHOT_URL || `http://127.0.0.1:${process.env.QA_PORT || 5173}/`;
 const out = process.env.OUT || 'browser-checks/ui-spacing'; fs.mkdirSync(out, { recursive: true });
@@ -29,6 +30,8 @@ for (const size of sizes) {
     await page.waitForTimeout(450);
     const all = await page.evaluate(spacingScan, root);
     const bad = all.filter(x => x.sev !== 'low');
+    // 名前のないボタン（アイコンだけで読み上げの名前もない）も失敗にする
+    for (const u of await page.evaluate(unnamedScan, root)) bad.push({ sev: 'noname', gap: 0, a: u, b: '' });
     screens.push(size.name + ' ' + step);
     report[size.name + ' ' + step] = all;
     for (const x of all.filter(x => x.sev === 'low')) lows.add(`${size.name}  ${x.gap}px  ${x.a}  ×  ${x.b}`);
