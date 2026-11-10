@@ -1,12 +1,12 @@
 // 画面のすみの小さなガイド。はじめはチュートリアルの手順、終わったら「次にやること」（引き受けた依頼の足りない条件）を1行で出す
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../state/store';
 import { useEconomy, useCurrentLot } from '../state/economy';
 import { useGuide } from '../state/guide';
 import { checkQuest, missingText } from '../economy/quests';
 import { onlineWorld } from '../session/gate';
 import { useTouchDevice } from './useTouchDevice';
-import { IconLabel, iconText } from './AppIcon';
+import { AppIcon, IconLabel, iconText } from './AppIcon';
 import './guide.css';
 
 export function tutorialSteps(s: { floors: number; walls: number; door: boolean; built: boolean; sold: boolean }) {
@@ -29,6 +29,10 @@ export function GuideCard() {
   const lot = useCurrentLot();
   const sold = useEconomy((s) => s.ledger.some((t) => t.label.startsWith('売却')));
   const g = useGuide();
+  // スマホでは最初は「今やること」の1行にたたみ、押すと開く（保存しない。出し直すと1行に戻る）。PC は保存した folded に従う
+  const [touchOpen, setTouchOpen] = useState(false);
+  const folded = touch ? !touchOpen : g.folded;
+  const setFolded = (v: boolean) => (touch ? setTouchOpen(!v) : g.setFolded(v));
   const quest = g.activeQuest();
   const steps = useMemo(() => tutorialSteps({
     floors: house.floors.length,
@@ -46,17 +50,25 @@ export function GuideCard() {
   if (g.tutorial === 'active') {
     const i = stepIndex;
     if (i < 0) return null;
-    if (g.folded) return <button className="guide-card folded" onClick={() => g.setFolded(false)} aria-label="ガイドを開く">{iconText('🔰')} {i + 1}/{steps.length}</button>;
+    if (folded) {
+      return (
+        <button className="guide-card mini" onClick={() => setFolded(false)} aria-expanded={false} title="ガイドを開く">
+          <AppIcon name="star" /><span className="guide-vh">ガイド：</span><span className="guide-count">{i + 1}/{steps.length}</span><span className="guide-now">{steps[i].label}</span><AppIcon name="more" className="guide-caret" />
+        </button>
+      );
+    }
     return (
-      <div className="guide-card" role="status">
+      <div className="guide-card open" role="status">
         <div className="guide-head">
-          <b>{iconText('🔰')} はじめての家づくり {i + 1}/{steps.length}</b>
-          <button className="guide-x" onClick={() => g.setFolded(true)} aria-label="ガイドをたたむ">–</button>
+          <b><AppIcon name="star" /> はじめての家づくり {i + 1}/{steps.length}</b>
+          <button className="tool close guide-close" onClick={() => setFolded(true)} aria-label="ガイドを閉じる" aria-expanded title="閉じる"><AppIcon name="close" /></button>
         </div>
-        <div className="guide-step">{steps[i].label}</div>
-        <div className="guide-hint">{steps[i].hint}</div>
-        <div className="guide-dots">{steps.map((s, k) => <span key={k} className={s.ok ? 'on' : k === i ? 'now' : ''} />)}</div>
-        <button className="guide-skip" onClick={() => g.finishTutorial('skipped')} title="ガイドを終わる"><IconLabel icon="close" text="ガイドを終わる" short="終わる" /></button>
+        <div className="guide-body">
+          <div className="guide-step">{steps[i].label}</div>
+          <div className="guide-hint">{steps[i].hint}</div>
+          <div className="guide-dots">{steps.map((s, k) => <span key={k} className={s.ok ? 'on' : k === i ? 'now' : ''} />)}</div>
+          <button className="guide-skip" onClick={() => g.finishTutorial('skipped')} title="ガイドを終わる"><IconLabel icon="close" text="ガイドを終わる" short="終わる" /></button>
+        </div>
       </div>
     );
   }

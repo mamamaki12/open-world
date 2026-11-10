@@ -2,12 +2,12 @@
 
 ## 現在の状態
 
-- 状態: 作業中
+- 状態: 公開待ち
 - PR: 未作成
 - 公開: 未公開
-- 残作業: GuideCard.tsx と guide.css の実装、スマホ縦・横・320px・PC で前後を撮る、check-ui-overlap-all・check-large-text・check-hud-overlap・check-ui-spacing を流す。
+- 残作業: PR 作成とマージ後の公開確認（スマホ縦で、最初はガイドが1行で、押すと開くこと）。
 - 将来の拡張・追加確認: なし。
-- 確認根拠: 未確認。
+- 確認根拠: typecheck・vitest（750件）・vite build・check-ui-overlap-all（7サイズ）・check-large-text・check-hud-overlap・check-ui-spacing（3サイズ×78画面、名前のないボタン0、ガイドまわりの近い組0）・check-phone-top-hud・check-phone-build-top・check-phone-build-ux・check-handheld-ui・check-app-icons・check-appearance-onboarding がローカルで通過（2026-11-10）。ガイドを開いた状態と依頼の1行の状態も、390×844・844×390・320×568・1024×768・PC 1280×800 の歩く・建築・運転で重なり・すき間を測って0件。
 - 最終更新: 2026-11-10
 
 - ブランチ: claude/pensive-davinci-6ppi2e
@@ -21,8 +21,11 @@
 - PC は今までどおり最初から開いておき、たたむ（保存される `folded`）と1行になる。見た目は同じにそろえる。
 - 依頼（チュートリアルのあと）の1行は、見た目だけそろえる。
 - 道具を持っている間・パネルを開いている間・メニューを開いている間に隠す決まりは変えない。手順の中身・判定は変えない。
+- 幅320pxのスマホでは今までガイドを出していなかった（`max-width: 340px` で隠す）。1行なら収まるので出す。高さ340px以下（横向きの小さいスマホ）は今までどおり出さない。
 - 改善なので version は変えない（docs/versioning.md）。
 
 ## 経過記録
 
 - 2026-11-10: plan を作成。
+- 2026-11-10: `GuideCard.tsx` で、スマホは最初「☆ 4/5 着工する ⌄」の1行（1つのボタン、高さ44px）にし、押すと開くようにした（PC は保存した `folded` のまま）。開いたときは見出しの帯と ✕（44px、1行に戻す）、下に「✕ 終わる」。`game-ui.css` のパネル・見出しの一覧に `.guide-card`・`.guide-head` を足し、`iconPaths.ts` に開く印 `more` を足した。ガイドの高さは 390×844 で 131px → 44px（開くと 177px）。
+- 2026-11-10: 依頼の1行の「–」をスマホで 40px に。幅320pxで ☰・取り消しとガイドのすき間が 5px だったので、左上の列の中のガイドに上 3px を足して 8px にした。検証は上の確認根拠のとおり。
