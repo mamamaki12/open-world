@@ -62,6 +62,18 @@ for (const size of sizes) {
       const m = page.getByRole('button', { name: 'メニュー', exact: true });
       if (await m.count()) { await m.first().click(); await check('walk-menu'); await m.first().click(); }
     }
+    // 建築画面と、スマホの建築メニュー（建てる）を開いたところ
+    await game(() => window.__ow.game.getState().setMode('build')); await page.waitForTimeout(800);
+    await check('build');
+    if (size.touch) {
+      const b = page.locator('.touch-right .build-button, .touch-right button', { hasText: '建てる' });
+      if (await b.count()) { await b.first().click(); await check('build-menu'); await page.keyboard.press('Escape'); }
+    }
+    await game(() => { const g = window.__ow.game.getState(); g.setTool('select'); g.setMode('walk'); }); await page.waitForTimeout(600);
+    if (size.touch) {
+      const b = page.getByRole('button', { name: /建てる/ });
+      if (await b.count()) { await b.first().click(); await check('walk-build-menu'); await page.keyboard.press('Escape'); await game(() => window.__ow.game.getState().setTool('select')); }
+    }
     for (const o of overlays) {
       if (onlyOv && !onlyOv.includes(o)) continue;
       try {
