@@ -470,3 +470,17 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (orientation: landscape) and (max-height: 500px) and (max-width: 720px) {
   .touch .controls-help { display: none; }
 }
+
+/* 縦向きの建築画面：左上のガイド（はじめての家づくり）と重ならないよう、操作の説明は画面の下に出す（2026-11-10） */
+@media (orientation: portrait) {
+  .touch.build .controls-help { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 24px); }
+}
+
+/* 幅320pxほどの小さいスマホ：左上の ☰・所持金・取り消し・やり直しが2行に折り返して建物に重ならないよう、少し小さくして1行に収める */
+@media (max-width: 360px) {
+  .touch-hud-row { gap: 3px; }
+  .touch-hud-row .touch-cash { font-size: 12px; padding: 5px 6px; }
+  .touch-hud-row .tool.icon { min-width: 32px; padding: 3px 5px; font-size: 15px; }
+}
+/* 1行に収まる幅（300〜360px）だけ折り返さない。もっと狭い（文字拡大など）ときは折り返して右上の削除ボタンを避ける */
+@media (min-width: 300px) and (max-width: 360px) { .touch-hud-row { flex-wrap: nowrap; } }
