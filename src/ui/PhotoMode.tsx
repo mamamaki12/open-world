@@ -1,15 +1,16 @@
 // 写真モード：画面の表示を全部消し、時間帯・天気を選んで景色を撮る。撮った写真は保存・共有できる
 import { useEffect, useState } from 'react';
 import { usePhoto } from '../state/photo';
-import { iconText } from './AppIcon';
+import { IconLabel, iconText, type IconName } from './AppIcon';
 import type { Weather } from '../world/climate';
 import './guide.css';
 
 const HOURS: { label: string; hour: number | null }[] = [
   { label: 'いま', hour: null }, { label: '朝', hour: 7 }, { label: '昼', hour: 12 }, { label: '夕方', hour: 17.6 }, { label: '夜', hour: 21 },
 ];
-const WEATHERS: { label: string; weather: Weather | null }[] = [
-  { label: 'いま', weather: null }, { label: '晴れ', weather: 'clear' }, { label: 'くもり', weather: 'cloudy' }, { label: '雨', weather: 'rain' }, { label: '雪', weather: 'snow' },
+/** 天気は絵で分かるのでスマホはアイコンだけ（いまは時計） */
+const WEATHERS: { label: string; weather: Weather | null; icon: IconName }[] = [
+  { label: 'いま', weather: null, icon: 'clock' }, { label: '晴れ', weather: 'clear', icon: 'sun' }, { label: 'くもり', weather: 'cloudy', icon: 'cloud' }, { label: '雨', weather: 'rain', icon: 'rain' }, { label: '雪', weather: 'snow', icon: 'snow' },
 ];
 
 function capture(): string | null {
@@ -49,20 +50,20 @@ export function PhotoMode() {
         <div className="photo-preview">
           <img src={shot} alt="撮った写真" />
           <div className="photo-row">
-            <button className="btn primary" onClick={() => share(shot)}>{iconText('💾 保存・共有')}</button>
-            <button className="btn" onClick={() => setShot(null)}>もう一枚</button>
+            <button className="btn primary" onClick={() => share(shot)} title="保存・共有"><IconLabel icon="save" text="保存・共有" pcIcon short="保存" /></button>
+            <button className="btn" onClick={() => setShot(null)} title="もう一枚"><IconLabel icon="camera" text="もう一枚" /></button>
           </div>
         </div>
       ) : (
         <div className="photo-controls">
           {panel && <>
             <div className="photo-row"><span>時間</span>{HOURS.map((h) => <button key={h.label} className={`tool${hour === h.hour ? ' on' : ''}`} onClick={() => set({ hour: h.hour })}>{h.label}</button>)}</div>
-            <div className="photo-row"><span>天気</span>{WEATHERS.map((w) => <button key={w.label} className={`tool${weather === w.weather ? ' on' : ''}`} onClick={() => set({ weather: w.weather })}>{w.label}</button>)}</div>
+            <div className="photo-row"><span>天気</span>{WEATHERS.map((w) => <button key={w.label} className={`tool${weather === w.weather ? ' on' : ''}`} onClick={() => set({ weather: w.weather })} title={w.label}><IconLabel icon={w.icon} text={w.label} /></button>)}</div>
           </>}
           <div className="photo-row main">
-            <button className="tool" onClick={() => setPanel(!panel)}>{panel ? '設定をしまう' : '設定'}</button>
+            <button className="tool" onClick={() => setPanel(!panel)} title={panel ? '設定をしまう' : '設定'} aria-expanded={panel}><IconLabel icon="settings" text={panel ? '設定をしまう' : '設定'} short={panel ? 'しまう' : undefined} /></button>
             <button className="photo-shutter" onClick={take} aria-label="撮る">{iconText('📷')}</button>
-            <button className="tool" onClick={() => set({ on: false })}>{iconText('✕ 終わる')}</button>
+            <button className="tool" onClick={() => set({ on: false })} title="写真モードを終わる"><IconLabel icon="close" text="終わる" pcIcon short="終わる" /></button>
           </div>
           <p className="photo-tip">ドラッグで向きを変えてから撮ります。時間と天気はあなたの画面だけ変わります。</p>
         </div>

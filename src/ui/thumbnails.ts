@@ -1,5 +1,7 @@
 // 素材とサッシの見本画像。3Dと同じ模様の絵に色を掛けて、小さな画像（data URL）にする。
 import { getMaterial, getSashType } from '../catalog';
+import type { FurnitureDef } from '../catalog';
+import { PAINT } from '../catalog/paints';
 import { patternCanvas, patternMeters } from '../world/textures';
 
 /** 見本1枚が表す実寸（m）。模様の大きさが実物どうしで比べられるように全素材で同じにする */
@@ -105,6 +107,64 @@ export function sashThumb(sashId: string, color: string, px = 96): string {
     g.moveTo(inset + t + d * 0.6, inset + t + d);
     g.lineTo(inset + t + d * 0.6 + px * 0.12, inset + t + d - px * 0.12);
     g.stroke();
+  }
+  const url = c.toDataURL();
+  cache.set(key, url);
+  return url;
+}
+
+/** 色を明るく（f>0）・暗く（f<0）する */
+function shadeHex(hex: string, f: number) {
+  const n = parseInt(hex.slice(1, 7).padEnd(6, '0'), 16);
+  const ch = (v: number) => Math.round(f >= 0 ? v + (255 - v) * f : v * (1 + f));
+  return `rgb(${ch((n >> 16) & 255)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
+}
+
+/**
+ * 家具の見本：部品（箱・円柱・球）を、斜め上の手前から見た絵にする（建築メニューの家具の一覧で使う）。
+ * 奥の部品から順に、正面・上・右の面を描く。
+ */
+export function furnitureThumb(def: FurnitureDef, px = 96): string {
+  const color = def.colors[0] ?? '#cccccc';
+  const key = `f|${def.id}|${color}|${def.parts.length}|${px}`;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const { c, g } = makeCanvas(px);
+  const K = 0.42; // 奥行きを右上へずらす量
+  const proj = (x: number, y: number, z: number) => [x - z * K, y - z * K] as const; // +Z が手前
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const p of def.parts) {
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+      const [X, Y] = proj(p.pos[0] + (sx * p.size[0]) / 2, p.pos[1] + (sy * p.size[1]) / 2, p.pos[2] + (sz * p.size[2]) / 2);
+      minX = Math.min(minX, X); maxX = Math.max(maxX, X); minY = Math.min(minY, Y); maxY = Math.max(maxY, Y);
+    }
+  }
+  const scale = (px * 0.86) / Math.max(maxX - minX, maxY - minY, 0.01);
+  const ox = px / 2 - ((minX + maxX) / 2) * scale, oy = px / 2 + ((minY + maxY) / 2) * scale;
+  const pt = (x: number, y: number, z: number) => { const [X, Y] = proj(x, y, z); return [ox + X * scale, oy - Y * scale] as const; };
+  const poly = (pts: (readonly [number, number])[], fill: string) => {
+    g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath();
+    g.fillStyle = fill; g.fill(); g.strokeStyle = 'rgba(41,57,47,0.55)'; g.lineWidth = Math.max(0.6, px / 120); g.stroke();
+  };
+  // 奥（z が小さい）・下の部品から描く
+  const parts = [...def.parts].sort((a, b) => (a.pos[2] + a.size[2] / 2) - (b.pos[2] + b.size[2] / 2) || a.pos[1] - b.pos[1]);
+  for (const p of parts) {
+    const base = p.glow ? '#ffe7b0' : p.paint === 'main' ? color : PAINT[p.paint].color;
+    const [x0, x1] = [p.pos[0] - p.size[0] / 2, p.pos[0] + p.size[0] / 2];
+    const [y0, y1] = [p.pos[1] - p.size[1] / 2, p.pos[1] + p.size[1] / 2];
+    const [z0, z1] = [p.pos[2] - p.size[2] / 2, p.pos[2] + p.size[2] / 2];
+    if (p.shape === 'sphere') {
+      const [cx, cy] = pt(p.pos[0], p.pos[1], p.pos[2]);
+      const r = (Math.max(p.size[0], p.size[1]) / 2) * scale;
+      const grad = g.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
+      grad.addColorStop(0, shadeHex(base, 0.35)); grad.addColorStop(1, shadeHex(base, -0.2));
+      g.beginPath(); g.arc(cx, cy, Math.max(r, 0.5), 0, Math.PI * 2); g.fillStyle = grad; g.fill();
+      g.strokeStyle = 'rgba(41,57,47,0.55)'; g.lineWidth = Math.max(0.6, px / 120); g.stroke();
+      continue;
+    }
+    poly([pt(x0, y1, z1), pt(x1, y1, z1), pt(x1, y1, z0), pt(x0, y1, z0)], shadeHex(base, 0.25)); // 上
+    poly([pt(x1, y0, z1), pt(x1, y0, z0), pt(x1, y1, z0), pt(x1, y1, z1)], shadeHex(base, -0.22)); // 右
+    poly([pt(x0, y0, z1), pt(x1, y0, z1), pt(x1, y1, z1), pt(x0, y1, z1)], base); // 正面
   }
   const url = c.toDataURL();
   cache.set(key, url);

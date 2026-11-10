@@ -1,5 +1,5 @@
 import { GraphicsPicker } from './GraphicsPicker';
-import { iconText } from './AppIcon';
+import { IconLabel, iconText } from './AppIcon';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { QUICK_TOOLS, aimActions, useAim, useControls } from '../state/controls';
 import { useGame } from '../state/store';
@@ -63,7 +63,7 @@ export function InventoryPanel(){
   const g=useGame(),tool=g.tool;
   return <Modal title="🧰 道具・素材" onClose={()=>g.setOverlay(null)} tabs={[]} tab="" onTab={()=>{}}>
     <div className="inventory-tools">{QUICK_TOOLS.map(t=><button className={`tool${tool===t?' on':''}`} key={t} onClick={()=>g.setTool(t)}>{toolIcon(t)} {iconText(NAMES[t])}</button>)}</div>
-    <ToolOptions/><button className="btn primary big-btn" onClick={()=>g.setOverlay(null)}>この道具で戻る</button>
+    <ToolOptions/><button className="btn primary big-btn" onClick={()=>g.setOverlay(null)} title="この道具で戻る"><IconLabel icon="check" text="この道具で戻る" short="この道具で" /></button>
   </Modal>;
 }
 export function ControlsPanel(){
@@ -77,10 +77,10 @@ export function ControlsPanel(){
     <label className="check"><input type="checkbox" checked={invertY} onChange={e=>update({invertY:e.target.checked})}/>上下の視点操作を反転</label>
     <label className="check"><input type="checkbox" checked={aimBuild} onChange={e=>update({aimBuild:e.target.checked})}/>一人称で中央照準を使って建てる</label>
     <p>{iconText("中央の十字を狙い、スマホは十字をタップ・PCはクリックで置きます。歩く画面では床・壁・屋根は1回で1ブロックずつ置けます（広い範囲は建築の画面でドラッグ）。届く距離は7m。消すときは削除ツールを選びます。スマホの削除は長押しです。")}</p>
-    <button className="btn" onClick={()=>walkActions.toggleView()}>{view==='first'?'三人称にする':'一人称にする'}</button>
+    <button className="btn" onClick={()=>walkActions.toggleView()} title={view==='first'?'三人称にする':'一人称にする'}><IconLabel icon="eye" text={view==='first'?'三人称にする':'一人称にする'} short={view==='first'?'三人称':'一人称'} /></button>
     <p>PC：WASDで移動、Ctrl / ShiftまたはWを2回押して走る、Spaceでジャンプ（押し続けると連続）、1〜9・ホイールで道具を持替、Fで開閉・座る、Qで視点切替。</p>
     <p>スマホ：左スティックで移動、端まで倒すと走る。スティックを2回タップするとジャンプ。画面を指一本でなぞって見回します。建築モードでは指で直接範囲を描けます。</p>
-    <button className="btn" onClick={()=>update({sensitivity:1,invertY:false,aimBuild:true})}>操作設定を初期値に戻す</button>
+    <button className="btn" onClick={()=>update({sensitivity:1,invertY:false,aimBuild:true})} title="操作設定を初期値に戻す"><IconLabel icon="refresh" text="操作設定を初期値に戻す" short="初期値に" /></button>
   </Modal>;
 }
 
@@ -89,7 +89,7 @@ function BuildHistory(){
   const undo=useGame(s=>s.undo),redo=useGame(s=>s.redo);
   const canUndo=useGame(s=>s.past.length>0),canRedo=useGame(s=>s.future.length>0);
   return <div className="build-history" role="group" aria-label="建築の取り消し・やり直し">
-    <button disabled={!canUndo} onClick={()=>{aimActions.cancel();undo();}}>{iconText("↶ 取り消す")}</button>
-    <button disabled={!canRedo} onClick={()=>{aimActions.cancel();redo();}}>{iconText("↷ やり直す")}</button>
+    <button disabled={!canUndo} onClick={()=>{aimActions.cancel();undo();}} title="取り消す"><IconLabel icon="undo" text="取り消す" pcIcon /></button>
+    <button disabled={!canRedo} onClick={()=>{aimActions.cancel();redo();}} title="やり直す"><IconLabel icon="redo" text="やり直す" pcIcon /></button>
   </div>;
 }

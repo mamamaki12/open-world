@@ -22,31 +22,33 @@ export function FinishPicker({ label, category, value, onChange }: {
   const thumbColor = (m: MaterialDef) => (m.colors.some((c) => c.toLowerCase() === value.color.toLowerCase()) ? value.color : m.colors[0]);
   const pick = (m: MaterialDef) => onChange({ material: m.id, color: m.colors.includes(value.color) ? value.color : m.colors[0] });
   return (
-    <div className="field">
+    <div className="field finish-picker">
       <div className="field-label">{iconText(label)}</div>
-      <button className={`mat-current${open ? ' open' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open}>
+      <div className={`mat-current${open ? ' open' : ''}`}>
         <img className="mat-thumb" src={materialThumb(current.id, value.color)} alt="" />
         <span className="mat-text">
           <span className="mat-name">{current.name}</span>
           {current.note && <small className="mat-note">{current.note}</small>}
-          <span className="mat-foot">
-            <small className="mat-price">{yen(materialPrice(current.id))}/m²</small>
-            <span className="mat-toggle">{iconText(open ? '閉じる ▴' : `${mats.length}種から選ぶ ▾`)}</span>
-          </span>
+          <small className="mat-price">{yen(materialPrice(current.id))}/m²</small>
         </span>
+      </div>
+      {/* 素材の一覧を開くボタン。指で押しやすい大きさの本物のボタンにする */}
+      <button className="mat-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
+        {iconText(open ? '一覧を閉じる ▴' : `ほかの${label}を選ぶ（${mats.length}種）▾`)}
       </button>
       {open && (
         <div className="mat-grid">
           {mats.map((m) => (
-            <button key={m.id} className={`mat-tile${m.id === current.id ? ' on' : ''}`} title={m.note ? `${m.name}：${m.note}` : m.name} onClick={() => pick(m)}>
-              <img src={materialThumb(m.id, thumbColor(m), 72)} alt="" />
+            <button key={m.id} className={`mat-tile${m.id === current.id ? ' on' : ''}`} aria-pressed={m.id === current.id} title={m.note ? `${m.name}：${m.note}` : m.name} onClick={() => pick(m)}>
+              <img src={materialThumb(m.id, thumbColor(m), 96)} alt="" />
               <span className="mat-tile-name">{m.name}</span>
-              <small>{yen(materialPrice(m.id))}</small>
+              <small>{yen(materialPrice(m.id))}/m²</small>
             </button>
           ))}
         </div>
       )}
-      <Swatches colors={current.colors} value={value.color} onChange={(color) => onChange({ ...value, color })} thumb={(hex) => materialThumb(current.id, hex, 40)} />
+      <div className="swatch-label">色</div>
+      <Swatches colors={current.colors} value={value.color} onChange={(color) => onChange({ ...value, color })} thumb={(hex) => materialThumb(current.id, hex, 56)} />
     </div>
   );
 }
@@ -59,8 +61,8 @@ export function SashPicker({ value, color, onChange }: { value: string | undefin
       <div className="field-label">サッシの種類</div>
       <div className="mat-grid">
         {SASH_TYPES.map((t) => (
-          <button key={t.id} className={`mat-tile${t.id === current.id ? ' on' : ''}`} title={`${t.name}：${t.note}`} onClick={() => onChange(t.id)}>
-            <img src={sashThumb(t.id, color, 72)} alt="" />
+          <button key={t.id} className={`mat-tile${t.id === current.id ? ' on' : ''}`} aria-pressed={t.id === current.id} title={`${t.name}：${t.note}`} onClick={() => onChange(t.id)}>
+            <img src={sashThumb(t.id, color, 96)} alt="" />
             <span className="mat-tile-name">{t.name}</span>
             <small>{iconText(t.priceRate === 1 ? '標準' : `値段×${t.priceRate}`)}</small>
           </button>
@@ -89,12 +91,17 @@ export function Swatches({ colors, value, onChange, thumb }: {
             className={`swatch${hex.toLowerCase() === value.toLowerCase() ? ' on' : ''}`}
             style={thumb ? { background: `${hex} url(${thumb(hex)}) center / cover` } : { background: hex }}
             title={name}
+            aria-label={`色 ${name}`}
+            aria-pressed={hex.toLowerCase() === value.toLowerCase()}
             onClick={() => onChange(hex)}
           />
         );
       })}
-      <label className="swatch custom" title="好きな色">
-        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
+      {/* 一覧にない色：虹色の見本に「色を選ぶ」と書いて、何のボタンか分かるようにする */}
+      <label className={`swatch custom${colors.some((c) => (typeof c === 'string' ? c : c.hex).toLowerCase() === value.toLowerCase()) ? '' : ' on'}`} title="好きな色">
+        <span className="swatch-rainbow" aria-hidden="true" />
+        <span className="swatch-custom-text">色を選ぶ</span>
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} aria-label="好きな色を選ぶ" />
       </label>
     </div>
   );

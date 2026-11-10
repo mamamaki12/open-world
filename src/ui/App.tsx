@@ -1,5 +1,5 @@
 import { GraphicsPicker } from './GraphicsPicker';
-import { iconText } from './AppIcon';
+import { AppIcon, IconLabel, iconText } from './AppIcon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { canPlaceStair } from '../building/rules';
 import { sampleHouse } from '../building/sample';
@@ -224,20 +224,20 @@ function WalkMenu() {
       {!open && <GuideCard />}
       {open && (
         <div className="walk-menu-list">
-          <button className="walk-menu-item" onClick={pick(() => setMode('build'))}>{iconText("🏗️ 建築に戻る")}</button>
-          <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}>{iconText("👁 視点を切り替え")}</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('jobs'))}>{iconText("💼 バイト")}</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('blueprints'))}>{iconText("📐 設計図・階のコピー")}</button>
-          <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}>{iconText("📷 写真を撮る")}</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('ranking'))}>{iconText("🏆 家のランキング")}</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}>{iconText("👕 クローゼット")}</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}>{iconText("🙂 見た目を変える")}</button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}>{iconText("⚙ 操作設定")}</button>
-          <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}>{iconText("↶ 取り消し")}</button>
+          <button className="walk-menu-item" onClick={pick(() => setMode('build'))}><IconLabel icon="hammer" text="建築に戻る" short="建築" /></button>
+          <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}><IconLabel icon="eye" text="視点を切り替え" short="視点" /></button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('jobs'))}><IconLabel icon="briefcase" text="バイト" short="バイト" /></button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('quests'))}><IconLabel icon="book" text="建築の依頼" short="依頼" /></button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('blueprints'))}><IconLabel icon="house" text="設計図・階のコピー" short="設計図" /></button>
+          <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}><IconLabel icon="camera" text="写真を撮る" short="写真" /></button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('ranking'))}><IconLabel icon="crown" text="家のランキング" short="順位" /></button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}><IconLabel icon="shirt" text="クローゼット" short="服" /></button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}><IconLabel icon="face" text="見た目を変える" short="見た目" /></button>
+          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}><IconLabel icon="settings" text="操作設定" short="設定" /></button>
+          <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}><IconLabel icon="undo" text="取り消し" short="戻す" /></button>
           <GraphicsPicker compact />
           <SaveMenu />
-          <button className="walk-menu-item" onClick={pick(reloadLatest)}>{iconText("🔄 最新版にする")}</button>
+          <button className="walk-menu-item" onClick={pick(reloadLatest)}><IconLabel icon="refresh" text="最新版にする" pcIcon short="更新" /></button>
         </div>
       )}
     </div>
@@ -273,15 +273,15 @@ function TouchHud() {
       {open && (
         <div className="walk-menu-list">
           <div className="walk-menu-status"><BuildChip /></div>
-          <button className="walk-menu-item" onClick={pick(() => setMode('walk'))}>{iconText("🚶 歩いてみる")}</button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}>{iconText("🗺 地図")}</button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}>{iconText("💼 バイト")}</button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('quests'))}>{iconText("📋 建築の依頼")}</button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('blueprints'))}>{iconText("📐 設計図・階のコピー")}</button>
-          <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}>{iconText("📷 写真を撮る")}</button>
+          <button className="walk-menu-item" onClick={pick(() => setMode('walk'))}><IconLabel icon="walk" text="歩いてみる" short="歩く" /></button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}><IconLabel icon="map" text="地図" short="地図" /></button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}><IconLabel icon="briefcase" text="バイト" short="バイト" /></button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('quests'))}><IconLabel icon="book" text="建築の依頼" short="依頼" /></button>
+          <button className="walk-menu-item" onClick={pick(() => setOverlay('blueprints'))}><IconLabel icon="house" text="設計図・階のコピー" short="設計図" /></button>
+          <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}><IconLabel icon="camera" text="写真を撮る" short="写真" /></button>
           <GraphicsPicker compact />
           <SaveMenu />
-          <button className="walk-menu-item" onClick={pick(reloadLatest)}>{iconText("🔄 最新版にする")}</button>
+          <button className="walk-menu-item" onClick={pick(reloadLatest)}><IconLabel icon="refresh" text="最新版にする" pcIcon short="更新" /></button>
         </div>
       )}
     </div>
@@ -406,7 +406,7 @@ function SaveMenu() {
           setConfirmClear(false);
         }}
       >
-        セーブ<span className="btn-label"> / ロード</span>{iconText(" ▾")}</button>
+        <AppIcon name="save" className="ph-icon" /> セーブ<span className="btn-label"> / ロード</span>{iconText(" ▾")}</button>
       {open && (
         <div className="save-menu">
           <p className="info">自動セーブされています。別の家を残したいときはスロットに保存します。</p>
@@ -449,7 +449,7 @@ function SaveMenu() {
                 setOpen(false);
               }}
             >
-              サンプルの家
+              <IconLabel icon="house" text="サンプルの家" short="見本の家" />
             </button>
             <button
               className="btn danger"
@@ -466,8 +466,8 @@ function SaveMenu() {
             </button>
           </div>
           <div className="row">
-            <button className="btn" onClick={downloadBackup}>バックアップ</button>
-            <button className="btn" disabled={busy} onClick={() => void leaveWorld()}>保存して開始画面へ</button>
+            <button className="btn" onClick={downloadBackup} title="バックアップ（ファイルに書き出す）"><IconLabel icon="save" text="バックアップ" short="書き出し" /></button>
+            <button className="btn" disabled={busy} onClick={() => void leaveWorld()} title="保存して開始画面へ"><IconLabel icon="left" text="保存して開始画面へ" short="開始画面" /></button>
           </div>
           {sessionMessage && <p className="info" role="status">{sessionMessage}</p>}
           <VersionStatus />

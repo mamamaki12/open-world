@@ -19,8 +19,11 @@ try {
       await page.locator('.world-session-toggle').waitFor({state:'hidden'});
       const fits=async()=>assert.deepEqual(await dialog.evaluate((el,landscape)=>{
         const errors=[],body=el.querySelector('.build-menu-body'),catalog=el.querySelector('.build-menu-catalog'),options=el.querySelector('.build-menu-options');
-        for(const node of [el,body,catalog,options].filter(Boolean))if(node.scrollWidth>node.clientWidth+2)errors.push('horizontal overflow: '+node.className);
+        // 道具を選んだあとの縦画面では、道具が横にスクロールする1列の帯になる（2026-11-10 資材選びを見やすく）。帯だけは横にはみ出してよい
+        const strip=options&&!landscape;
+        for(const node of [el,body,strip?null:catalog,options].filter(Boolean))if(node.scrollWidth>node.clientWidth+2)errors.push('horizontal overflow: '+node.className);
         const left=catalog.getBoundingClientRect();
+        if(strip){if(getComputedStyle(catalog).overflowX!=='auto')errors.push('tool strip must scroll sideways');if(options.getBoundingClientRect().top<left.bottom-1)errors.push('settings must be below the tool strip');}
         if(options){const style=getComputedStyle(options.querySelector(".tool-options"));if(parseFloat(style.paddingLeft)<10||parseFloat(style.paddingRight)<10)errors.push('settings need inner side spacing');const right=options.getBoundingClientRect();if(landscape&&(right.width<240||right.left<left.right||right.right>innerWidth))errors.push('compressed settings column');}
         else {const style=getComputedStyle(body),available=body.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);if(left.width<available-2)errors.push('empty settings column still reserves space');}
         if(el.querySelectorAll('.tool-card-icon > svg[data-icon]').length!==el.querySelectorAll('.tool-card-icon').length)errors.push('catalog must use original SVG icons');
@@ -38,6 +41,8 @@ try {
       assert.equal(await dialog.locator('[data-tool="erase"]').count(),0,'erase lives above the build button, not in the menu');
       for(const tool of ['floor','wall','door','window','stair','roof','furniture']){
         await dialog.locator('[data-tool="'+tool+'"]').click();await fits();
+        // 選んだ道具は帯の中に見えている
+        assert.ok(await dialog.evaluate(el=>{const c=el.querySelector('.build-menu-catalog').getBoundingClientRect(),s=el.querySelector('.tool-card.on').getBoundingClientRect();return s.left>=c.left-1&&s.right<=c.right+1&&s.top>=c.top-1&&s.bottom<=c.bottom+1;}),name+' '+tool+': selected tool visible');
         if(tool==='floor'||tool==='furniture')await page.screenshot({path:out+'/'+name+'-'+tool+'.png'});
       }
       const last=dialog.locator('.build-menu-prefabs button').last();await last.scrollIntoViewIfNeeded();await fits();

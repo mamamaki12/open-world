@@ -165,9 +165,11 @@ export function Slots() {
         )}
       </div>
       <BetInput value={bet} onChange={setBet} disabled={spinning} />
-      <button className="btn casino-go big-btn" disabled={spinning || bet <= 0} onClick={spin}>
-        {spinning ? '回転中…' : 'レバーを引く'}
-      </button>
+      <div className="casino-go-bar">
+        <button className="btn casino-go big-btn" disabled={spinning || bet <= 0} onClick={spin}>
+          {spinning ? '回転中…' : 'レバーを引く'}
+        </button>
+      </div>
       <div className="paytable-board">
         {(Object.keys(SLOT_PAYS) as (keyof typeof SLOT_PAYS)[]).map((s) => (
           <div key={s} className="pay-row">

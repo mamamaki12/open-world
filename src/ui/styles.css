@@ -55,9 +55,11 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 }
 .swatch.on { box-shadow: 0 0 0 2px var(--accent); }
 .swatch.custom {
-  position: relative; display: inline-block; cursor: pointer;
-  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+  position: relative; display: inline-flex; align-items: center; gap: 4px; width: auto; cursor: pointer;
+  padding: 0 8px 0 2px; border-radius: 13px; background: #fff; font-size: 12px; font-weight: 600; color: var(--ink);
 }
+.swatch-rainbow { flex: none; width: 20px; height: 20px; border-radius: 50%; background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); }
+.swatch-custom-text { white-space: nowrap; }
 .swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 
 .choice-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
@@ -102,7 +104,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
   max-height: calc(100dvh - var(--top-h) - 12px); overflow-y: auto;
   background: #fff; border-radius: 10px; padding: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
-.slot { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.slot { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .slot span { flex: 1; font-size: 14px; display: flex; flex-direction: column; }
 .slot small { color: var(--muted); font-size: 11px; }
 .save-menu .row.update { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e6e8eb; align-items: center; }
@@ -348,7 +350,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 
 /* 素材の見本 */
 .mat-current {
-  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; text-align: left;
   border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px;
 }
 .mat-current.open { border-color: var(--accent); }
@@ -358,7 +360,13 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .mat-note { font-size: 11px; color: var(--muted); line-height: 1.35; }
 .mat-price { font-size: 11px; color: var(--ink); }
 .mat-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-top: 1px; }
-.mat-toggle { flex: none; font-size: 11px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.mat-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; min-height: 32px; margin-top: 6px;
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--pocket-ink, var(--ink)); background: var(--pocket-paper, #fff);
+  border: 2px solid var(--pocket-line, var(--line)); border-radius: 3px; box-shadow: 0 3px 0 var(--pocket-line, var(--line)); cursor: pointer;
+}
+.mat-toggle[aria-expanded="true"] { border-color: var(--pocket-ink, var(--accent)); }
+.swatch-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 8px; }
 .mat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 5px; margin-top: 6px; }
 .mat-tile {
   display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 3px;
@@ -370,6 +378,23 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
   font-size: 10.5px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em;
 }
 .mat-tile small { font-size: 10px; color: var(--muted); }
+.mat-tile.on, .swatch.on, .furniture-item.on { position: relative; }
+/* 選んだ見本・家具の右上のチェック */
+.mat-tile.on::after, .furniture-item.on::after {
+  content: ''; position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--pocket-selected, var(--accent)) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.2 6.4l2.4 2.4L9.8 3.6' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 13px no-repeat;
+  box-shadow: 0 0 0 2px #fffbed; pointer-events: none;
+}
+/* 家具：分類の札と、絵つきの一覧 */
+.furniture-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.furniture-group { font: inherit; font-size: 13px; font-weight: 600; padding: 4px 10px; min-height: 30px; border: 2px solid var(--pocket-line, var(--line)); border-radius: 3px; background: var(--pocket-paper, #fff); color: var(--pocket-ink, var(--ink)); cursor: pointer; }
+.furniture-group.on { background: var(--pocket-selected, var(--accent)); border-color: var(--pocket-ink, var(--accent)); color: #faf7de; }
+.choice-list.furniture-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+.choice.furniture-item, .choice.furniture-new { flex-direction: column; justify-content: flex-start; align-items: stretch; gap: 4px; padding: 5px; text-align: center; min-width: 0; }
+.choice.furniture-new { grid-column: 1 / -1; justify-content: center; flex-direction: row; align-items: center; min-height: 40px; }
+.furniture-thumb { order: -1; display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #fffdf4; border-radius: 2px; }
+.furniture-name { font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; }
+.furniture-edit { font-size: 12px; text-decoration: underline; }
 
 /* ---- 町の地図 ---- */
 .town-map { display: block; font-family: inherit; }
@@ -407,7 +432,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .designer-view { position: relative; min-height: 260px; }
 .designer-view-actions { position: absolute; left: 10px; bottom: 10px; }
 .designer-controls { overflow-y: auto; padding: 12px 14px; border-left: 1px solid var(--line); font-size: 13px; }
-.designer-controls .row.wrap, .designer-parts { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.designer-controls .row.wrap, .designer-parts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .designer-slider { display: grid; grid-template-columns: 3.5em 1fr 4.5em 2em; gap: 6px; align-items: center; margin: 2px 0; }
 .designer-slider input[type=number] { width: 100%; }
 .designer-check { display: flex; gap: 6px; align-items: center; }
@@ -449,7 +474,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .map-network-warning { position: absolute; z-index: 2; margin: 0; top: calc(10px + env(safe-area-inset-top, 0px)); left: 12px; right: 66px; padding: 8px 10px; text-align: center; font-size: 13px; }
 
 /* 画質（高・中・低） */
-.graphics-picker { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.graphics-picker { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
 .graphics-picker-label { font-weight: 600; font-size: 14px; margin-right: 4px; }
 .graphics-picker button { min-width: 48px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line, #ccc); background: #fff; color: #222; font: inherit; font-weight: 600; cursor: pointer; }
 .graphics-picker button.on { background: #2f5fb3; border-color: #2f5fb3; color: #fff; }

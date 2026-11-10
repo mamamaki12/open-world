@@ -256,9 +256,11 @@ export function Roulette() {
         </span>
       </div>
       {total > money && <p className="warn">所持金（{yen(money)}）より多くは賭けられません。</p>}
-      <button className="btn casino-go big-btn" disabled={spinning || total <= 0 || total > money} onClick={spin}>
-        {spinning ? '回転中…' : `スピン（${yen(total)}）`}
-      </button>
+      <div className="casino-go-bar">
+        <button className="btn casino-go big-btn" disabled={spinning || total <= 0 || total > money} onClick={spin}>
+          {spinning ? '回転中…' : `スピン（${yen(total)}）`}
+        </button>
+      </div>
       <p className="muted">{iconText("マスを押すと、持っているチップを置きます。「チップを外すモード」で外したいマスを押すと取り消せます。数字 ×36、列・ダース ×3、赤黒・奇数偶数・前半後半 ×2。0 が出ると 0 以外は負け。還元率 97.3%")}</p>
     </div>
   );

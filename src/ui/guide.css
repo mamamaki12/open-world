@@ -26,7 +26,7 @@
 .app.photo-mode > *:not(.photo-bar):not(:has(canvas)) { display: none !important; }
 .photo-bar { position: absolute; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; pointer-events: none; z-index: 20; }
 .photo-controls, .photo-preview { pointer-events: auto; background: rgba(255,255,255,0.88); border-radius: 12px; padding: 8px 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.2); max-width: calc(100% - 20px); box-sizing: border-box; }
-.photo-row { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; margin: 3px 0; font-size: 12px; }
+.photo-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; font-size: 12px; }
 .photo-row > span { font-weight: 700; margin-right: 4px; }
 .photo-row .tool { padding: 4px 9px; font-size: 12px; }
 .photo-row.main { gap: 14px; }

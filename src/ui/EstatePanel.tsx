@@ -1,5 +1,5 @@
 import { satisfaction } from '../economy/tenants';
-import { iconText } from './AppIcon';
+import { IconLabel, iconText, type IconName } from './AppIcon';
 // 不動産屋：工事（着工・改築）、査定、売る・貸す、土地を買う、相場、家計簿
 import { useMemo, useState } from 'react';
 import { DAILY, DAY_SECONDS, getLocation } from '../economy/market';
@@ -16,12 +16,12 @@ import { sessionGate } from '../session/gate';
 import { savedBundle } from '../session/saves';
 
 type Tab = 'lot' | 'lots' | 'land' | 'market' | 'ledger';
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'lot', label: 'この土地の家' },
-  { id: 'lots', label: '持っている土地' },
-  { id: 'land', label: '土地を買う' },
-  { id: 'market', label: '相場' },
-  { id: 'ledger', label: '家計簿・バイト' },
+const TABS: { id: Tab; label: string; icon: IconName; short: string }[] = [
+  { id: 'lot', label: 'この土地の家', icon: 'house', short: 'この家' },
+  { id: 'lots', label: '持っている土地', icon: 'key', short: '所有' },
+  { id: 'land', label: '土地を買う', icon: 'pin', short: '土地' },
+  { id: 'market', label: '相場', icon: 'chart', short: '相場' },
+  { id: 'ledger', label: '家計簿・バイト', icon: 'book', short: '家計簿' },
 ];
 
 export function EstatePanel() {
@@ -268,7 +268,7 @@ function LotList() {
                 {l.id === current ? (
                   <span className="muted">表示中</span>
                 ) : (
-                  <button className="btn small" onClick={() => warpToLot(l.id)}>この土地へ行く</button>
+                  <button className="btn small" onClick={() => warpToLot(l.id)} title="この土地へ行く"><IconLabel icon="pin" text="この土地へ行く" short="行く" /></button>
                 )}
               </td>
             </tr>
