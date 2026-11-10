@@ -287,7 +287,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .card-face span { font-size: 28px; }
 .card-face b { font-size: 40px; }
 
-.race-head { font-size: 15px; }
+.race-head { font-size: 15px; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.8em; } /* 狭い画面では会場名と距離を2行に分け、文字が重ならないようにする */
 .badge {
   display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 3px; border-radius: 4px; flex: none;
   font-size: 12px; font-weight: 800; border: 1px solid rgba(0,0,0,0.3); vertical-align: middle;

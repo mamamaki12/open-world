@@ -120,7 +120,7 @@ function RaceHeader({ race }: { race: Race }) {
         {race.venue} 第{race.no}レース　{race.name}
       </b>
       <span className="muted">
-        　{race.surface ?? ''}
+        {race.surface ?? ''}
         {race.distance}m{race.laps ? `（${race.laps}周）` : ''}　{race.runners.length}
         {cfg.unit}立て　{race.kind === 'horse' ? `馬場：${race.condition}` : race.condition}
       </span>
