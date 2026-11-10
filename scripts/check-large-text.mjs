@@ -56,17 +56,18 @@ console.log(failed ? `${failed} screens with layout problems` : 'all screens ok'
 process.exitCode = failed ? 1 : 0;
 
 function extraSteps(size) {
-  const menu = async (page, click) => size.touch ? click(page.getByRole('button', { name: 'メニュー', exact: true })) : click(page.locator('.save > .tool'));
+  // メニュー（スマホは ☰、PC は上のバーの「メニュー ▾」）。PC はセーブの中身も開いて見る
+  const menu = async (page, click) => { if (!(await click(page.getByRole('button', { name: 'メニュー', exact: true })))) return false; return size.touch ? true : click(page.locator('.game-menu .save > button')); };
   const overlay = (name) => async (page) => { await page.evaluate(async (o) => { const { useGame } = await import('/src/state/store.ts'); useGame.getState().setOverlay(o); }, name); await page.waitForTimeout(600); return await page.locator('.overlay').count() > 0; };
   const close = async (page) => { await page.evaluate(async () => { const { useGame } = await import('/src/state/store.ts'); useGame.getState().setOverlay(null); }); };
   const steps = [['menu', menu, 'body']];
-  if (!size.touch) steps.push(['floor-tool', async (page, click) => { await click(page.locator('.save > .tool')); return click(page.getByRole('button', { name: '床', exact: true })); }, 'body']);
+  if (!size.touch) steps.push(['floor-tool', async (page, click) => { await click(page.getByRole('button', { name: 'メニュー', exact: true })); return click(page.getByRole('button', { name: '床', exact: true })); }, 'body']);
   else steps.push(['build-sheet', async (page, click) => { const m = page.getByRole('button', { name: 'メニュー', exact: true }); if (await m.getAttribute('aria-expanded') === 'true') await m.click(); return click(page.getByRole('button', { name: /建てる/ })); }, 'body']);
   steps.push(['walk', async (page, click) => {
     if (size.touch) { const m = page.getByRole('button', { name: 'メニュー', exact: true }); if (await m.getAttribute('aria-expanded') !== 'true') await m.click(); return click(page.getByRole('button', { name: '歩いてみる' })); }
     return click(page.getByRole('button', { name: /歩いてみる/ }));
   }, 'body']);
-  steps.push(['walk-menu', async (page, click) => size.touch ? click(page.getByRole('button', { name: 'メニュー', exact: true })) : false, 'body']);
+  steps.push(['walk-menu', async (page, click) => click(page.getByRole('button', { name: 'メニュー', exact: true })), 'body']);
   for (const o of ['estate', 'casino', 'map', 'jobs', 'dealer', 'exchange', 'closet', 'looks-edit', 'salon', 'controls', 'inventory']) steps.push([o, async (page) => { await close(page); return overlay(o)(page); }, '.overlay']);
   return steps;
 }

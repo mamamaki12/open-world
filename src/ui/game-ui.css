@@ -33,7 +33,7 @@
 }
 
 /* Physical panels: hard edges, double rims and small, stationary shadows. */
-#root :is(.topbar,.moneybar,.panel,.modal,.save-menu,.controls-help,.levelbar,
+#root :is(.topbar,.panel,.modal,.save-menu,.controls-help,.levelbar,
   .toast,.sheet,.build-menu,.walk-menu-list,.world-session-panel,.world-session-toggle,
   .drive-hud,.vehicle-roster,.touch-cash,.walk-cash,.quick-tools,.world-network-warning,
   .furniture-edit-hint,.modal-network-warning,.guide-card) {
@@ -157,7 +157,7 @@
 #root .seg { border-radius: 2px; }
 
 /* In-game readouts: keep the scene clear; only the HUD has an LCD surface. */
-#root :is(.moneybar,.touch-cash,.walk-cash,.drive-hud,.quick-meta,.levelbar) { background: var(--pocket-lcd); }
+#root :is(.topbar .money,.touch-cash,.walk-cash,.drive-hud,.quick-meta,.levelbar) { background: var(--pocket-lcd); }
 #root :is(.chip.building,.tool.chip.go) { background: #e7d592; color: var(--pocket-ink); border-color: #947944; }
 #root .tool.chip.warn { background: #f2d3b3; color: var(--pocket-red); }
 #root .controls-help { background: var(--pocket-paper); }

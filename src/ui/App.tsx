@@ -1,5 +1,5 @@
-import { GraphicsPicker } from './GraphicsPicker';
-import { AppIcon, IconLabel, iconText } from './AppIcon';
+import { IconLabel, iconText } from './AppIcon';
+import type { IconName } from './AppIcon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { canPlaceStair } from '../building/rules';
 import { sampleHouse } from '../building/sample';
@@ -7,7 +7,7 @@ import { emptyHouse } from '../building/types';
 import { autosave, loadAutosave, loadSlot, saveSlot, slotInfos } from '../save/storage';
 import { useVehicles } from '../state/vehicles';
 import { useGame } from '../state/store';
-import type { Tool } from '../state/store';
+import type { Overlay, Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { Scene } from '../world/Scene';
 import { Inspector } from './Inspector';
@@ -34,7 +34,7 @@ import { RidePanel } from './RidePanel';
 import { CasinoPanel } from './CasinoPanel';
 import { EstatePanel } from './EstatePanel';
 import { MapPanel } from './MapPanel';
-import { BuildChip, MoneyBar, useEconomyClock } from './MoneyBar';
+import { BuildChip, MoneyStatus, useEconomyClock } from './MoneyBar';
 import { JobsPanel } from './jobs/JobsPanel';
 import { BuildButton, BuildMenu, EraseButton } from './BuildMenu';
 import { DragMeasure } from './DragMeasure';
@@ -45,7 +45,6 @@ import { useTouchDevice } from './useTouchDevice';
 import { walkActions } from '../state/touch';
 import { aimActions } from '../state/controls';
 import { QuickBar, ControlsPanel, InventoryPanel } from './QuickBar';
-import { reloadLatest } from './reload';
 import { FurnitureDesigner } from './FurnitureDesigner';
 import './game-ui.css';
 import { leaveWorld, useSession } from '../session/session';
@@ -86,16 +85,11 @@ export function App() {
   return (
     <div ref={app} className={`app ${walking ? 'walk' : 'build'}${touch ? ' touch' : ''}${driving ? ' driving' : ''}${overlay ? ' has-overlay' : ''}${photo ? ' photo-mode' : ''}`}>
       <Scene />
-      {!touch && (
-        <>
-          {walking ? <div className="topbar walk-toolbar"><ModeButton/><button className="tool" onClick={()=>useGame.getState().setOverlay('jobs')}>バイト</button><button className="tool" onClick={()=>useGame.getState().setOverlay('ranking')}>ランキング</button><button className="tool" onClick={()=>useGame.getState().setOverlay('closet')}>クローゼット</button><button className="tool" onClick={()=>useGame.getState().setOverlay('looks-edit')}>見た目</button><button className="tool" onClick={()=>useGame.getState().setOverlay('controls')}>操作設定</button><SaveMenu/></div> : <TopBar />}
-          <MoneyBar />
-        </>
-      )}
+      {!touch && <TopBar walking={walking} />}
       {touch ? <TouchLayout walking={walking} /> : walking ? (
         <>
           <WalkHud />
-          <div className="side right"><GuideCard /></div>
+          <div className="side right"><BuildStatus /><GuideCard /></div>
           <ControlsHelp />
         </>
       ) : (
@@ -104,6 +98,7 @@ export function App() {
             <ToolOptions />
           </div>
           <div className="side right">
+            <BuildStatus />
             <GuideCard />
             {editingFurniture && <Inspector />}
           </div>
@@ -188,7 +183,6 @@ function TouchLayout({ walking }: { walking: boolean }) {
   );
 }
 
-/** 歩いているときの左上：メニューボタンと所持金だけ。建築に戻る・建てる・地図・取り消し・セーブはメニューの中 */
 /** 歩いているときの右上の丸い地図ボタン */
 function MapButton() {
   const setOverlay = useGame((s) => s.setOverlay);
@@ -207,60 +201,36 @@ function MapButton() {
 
 function WalkMenu() {
   const [open, setOpen] = useState(false);
-  const setMode = useGame((s) => s.setMode);
-  const undo = useGame((s) => s.undo);
-  const canUndo = useGame((s) => s.past.length > 0);
+  const close = useCallback(() => setOpen(false), []);
   const money = useEconomy((s) => s.money);
-  const pick = (f: () => void) => () => {
-    setOpen(false);
-    f();
-  };
+  const ref = useRef<HTMLDivElement>(null);
+  useCloseOutside(open, close, ref);
   return (
-    <div className="touch-hud walk-menu">
+    <div className="touch-hud walk-menu" ref={ref}>
       <div className="touch-hud-row">
         <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>{iconText("☰")}</button>
         <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
       </div>
       {!open && <GuideCard />}
-      {open && (
-        <div className="walk-menu-list">
-          <button className="walk-menu-item" onClick={pick(() => setMode('build'))}><IconLabel icon="hammer" text="建築に戻る" short="建築" /></button>
-          <button className="walk-menu-item" onClick={pick(() => walkActions.toggleView())}><IconLabel icon="eye" text="視点を切り替え" short="視点" /></button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('jobs'))}><IconLabel icon="briefcase" text="バイト" short="バイト" /></button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('quests'))}><IconLabel icon="book" text="建築の依頼" short="依頼" /></button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('blueprints'))}><IconLabel icon="house" text="設計図・階のコピー" short="設計図" /></button>
-          <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}><IconLabel icon="camera" text="写真を撮る" short="写真" /></button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('ranking'))}><IconLabel icon="crown" text="家のランキング" short="順位" /></button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('closet'))}><IconLabel icon="shirt" text="クローゼット" short="服" /></button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('looks-edit'))}><IconLabel icon="face" text="見た目を変える" short="見た目" /></button>
-          <button className="walk-menu-item" onClick={pick(() => useGame.getState().setOverlay('controls'))}><IconLabel icon="settings" text="操作設定" short="設定" /></button>
-          <button className="walk-menu-item" disabled={!canUndo} onClick={pick(undo)}><IconLabel icon="undo" text="取り消し" short="戻す" /></button>
-          <GraphicsPicker compact />
-          <SaveMenu />
-          <button className="walk-menu-item" onClick={pick(reloadLatest)}><IconLabel icon="refresh" text="最新版にする" pcIcon short="更新" /></button>
-        </div>
-      )}
+      {open && <GameMenu walking close={close} />}
     </div>
   );
 }
 
-/** スマホ建築画面の左上：メニューボタン・所持金・取り消し/やり直しだけ。歩いてみる・地図・バイト・建築状況・セーブはメニューの中（歩き画面と同じ） */
+/** スマホ建築画面の左上：メニューボタン・所持金・取り消し/やり直しだけ。ほかはメニューの中（歩き画面と同じ並び） */
 function TouchHud() {
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
   const holding=useGame(s=>s.tool!=='select');
   const undo = useGame((s) => s.undo);
   const redo = useGame((s) => s.redo);
   const canUndo = useGame((s) => s.past.length > 0);
   const canRedo = useGame((s) => s.future.length > 0);
-  const setOverlay = useGame((s) => s.setOverlay);
-  const setMode = useGame((s) => s.setMode);
   const money = useEconomy((s) => s.money);
-  const pick = (f: () => void) => () => {
-    setOpen(false);
-    f();
-  };
+  const ref = useRef<HTMLDivElement>(null);
+  useCloseOutside(open, close, ref);
   return (
-    <div className="touch-hud walk-menu build-hud">
+    <div className="touch-hud walk-menu build-hud" ref={ref}>
       <div className="touch-hud-row">
         <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>{iconText("☰")}</button>
         <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
@@ -270,20 +240,74 @@ function TouchHud() {
         </button>
       </div>
       {!open && <GuideCard />}
-      {open && (
-        <div className="walk-menu-list">
-          <div className="walk-menu-status"><BuildChip /></div>
-          <button className="walk-menu-item" onClick={pick(() => setMode('walk'))}><IconLabel icon="walk" text="歩いてみる" short="歩く" /></button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('map'))}><IconLabel icon="map" text="地図" short="地図" /></button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('jobs'))}><IconLabel icon="briefcase" text="バイト" short="バイト" /></button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('quests'))}><IconLabel icon="book" text="建築の依頼" short="依頼" /></button>
-          <button className="walk-menu-item" onClick={pick(() => setOverlay('blueprints'))}><IconLabel icon="house" text="設計図・階のコピー" short="設計図" /></button>
-          <button className="walk-menu-item" onClick={pick(() => usePhoto.getState().set({ on: true }))}><IconLabel icon="camera" text="写真を撮る" short="写真" /></button>
-          <GraphicsPicker compact />
-          <SaveMenu />
-          <button className="walk-menu-item" onClick={pick(reloadLatest)}><IconLabel icon="refresh" text="最新版にする" pcIcon short="更新" /></button>
-        </div>
-      )}
+      {open && <GameMenu walking={false} close={close} />}
+    </div>
+  );
+}
+
+/** 開いたメニューは、外を押すか Esc でも閉じる */
+function useCloseOutside(open: boolean, close: () => void, ref: React.RefObject<HTMLElement>) {
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) close(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('pointerdown', down);
+    window.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', down);
+      window.removeEventListener('keydown', key);
+    };
+  }, [open, close, ref]);
+}
+
+/**
+ * メニューの中身（スマホの ☰ と PC の「メニュー ▾」で共通）。建築と歩きで同じ見出し・同じ並びにする。
+ * 画面にボタンが出ているもの（PC のモード切り替え・建築の取り消し・スマホの歩く画面の地図・PC の視点）は重ねて出さない。画質は操作設定の中、最新版にするはセーブの中だけ。
+ */
+function GameMenu({ walking, close }: { walking: boolean; close: () => void }) {
+  const touch = useTouchDevice();
+  const setMode = useGame((s) => s.setMode);
+  const setOverlay = useGame((s) => s.setOverlay);
+  const undo = useGame((s) => s.undo);
+  const canUndo = useGame((s) => s.past.length > 0);
+  const item = (icon: IconName, text: string, short: string, run: () => void, disabled = false) => (
+    <button key={text} className="walk-menu-item" disabled={disabled} onClick={() => { close(); run(); }}>
+      <IconLabel icon={icon} text={text} short={short} />
+    </button>
+  );
+  const show = (o: Overlay) => () => setOverlay(o);
+  const section = (title: string, children: React.ReactNode, status?: React.ReactNode) => (
+    <section className="menu-sec" aria-label={title}>
+      <div className="menu-head" aria-hidden="true">{title}</div>
+      {status}
+      <div className="menu-items">{children}</div>
+    </section>
+  );
+  return (
+    <div className="walk-menu-list game-menu">
+      {section('町へ行く', <>
+        {touch && (walking ? item('hammer', '建築に戻る', '建築', () => setMode('build')) : item('walk', '歩いてみる', '歩く', () => setMode('walk')))}
+        {!(touch && walking) && item('map', '地図', '地図', show('map'))}
+        {touch && walking && item('eye', '視点を切り替え', '視点', () => walkActions.toggleView())}
+      </>)}
+      {section('かせぐ', <>
+        {item('briefcase', 'バイト', 'バイト', show('jobs'))}
+        {item('book', '建築の依頼', '依頼', show('quests'))}
+      </>)}
+      {section('家づくり', <>
+        {item('house', '設計図・階のコピー', '設計図', show('blueprints'))}
+        {item('crown', '家のランキング', '順位', show('ranking'))}
+        {walking && item('undo', '取り消し', '戻す', undo, !canUndo)}
+      </>, touch && <div className="walk-menu-status"><BuildChip /></div>)}
+      {section('わたし', <>
+        {item('camera', '写真を撮る', '写真', () => usePhoto.getState().set({ on: true }))}
+        {item('shirt', 'クローゼット', '服', show('closet'))}
+        {item('face', '見た目を変える', '見た目', show('looks-edit'))}
+      </>)}
+      {section('設定・セーブ', <>
+        {item('settings', '操作設定', '設定', show('controls'))}
+        <SaveMenu />
+      </>)}
     </div>
   );
 }
@@ -302,17 +326,17 @@ function useNoPageZoom(touch: boolean) {
   }, [touch]);
 }
 
-/** 上のバー（折り返すと高さが変わる）とお金のバーの下端を CSS 変数にして、その下に他の表示を並べる */
+/** 上のバー（折り返すと高さが変わる）の下端を CSS 変数にして、その下に他の表示を並べる */
 function useTopBarHeight(app: React.RefObject<HTMLDivElement>, touch: boolean, walking: boolean, driving: boolean) {
   useEffect(() => {
     const root = app.current;
-    const bars = root ? [...root.querySelectorAll('.topbar, .moneybar, .touch-hud-row')] : [];
+    const bars = root ? [...root.querySelectorAll('.topbar, .touch-hud-row')] : [];
     if (!root || bars.length === 0) return;
     const update = () => {
       const top = root.getBoundingClientRect().top;
       const bottom = (sel: string) => Math.ceil((root.querySelector(sel)?.getBoundingClientRect().bottom ?? top) - top);
       root.style.setProperty('--top-h', `${bottom('.topbar')}px`);
-      root.style.setProperty('--hud-top', `${Math.max(bottom('.topbar'), bottom('.moneybar'), ...Array.from(root.querySelectorAll('.touch-hud-row'), b => Math.ceil(b.getBoundingClientRect().bottom - top)))}px`);
+      root.style.setProperty('--hud-top', `${Math.max(bottom('.topbar'), ...Array.from(root.querySelectorAll('.touch-hud-row'), b => Math.ceil(b.getBoundingClientRect().bottom - top)))}px`);
     };
     update();
     const ro = new ResizeObserver(update);
@@ -341,48 +365,66 @@ function ModeButton() {
   );
 }
 
-function TopBar() {
+/** PC の工事中・設計変更ありの表示。上のバーには入れず、右の列（ガイドの上）に出す */
+function BuildStatus() {
+  return <div className="build-status"><BuildChip /></div>;
+}
+
+/** PC の上のバー（1本）：左に所持金、中央にモードの切り替えと道具、右に「メニュー ▾」 */
+function TopBar({ walking }: { walking: boolean }) {
   const tool = useGame((s) => s.tool);
   const setTool = useGame((s) => s.setTool);
   const undo = useGame((s) => s.undo);
   const redo = useGame((s) => s.redo);
   const canUndo = useGame((s) => s.past.length > 0);
   const canRedo = useGame((s) => s.future.length > 0);
-  const walking = useGame((s) => s.mode === 'walk');
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useCloseOutside(open, close, menuRef);
   return (
     <div className="topbar">
-      <div className="brand">家づくり</div>
-      <ModeButton />
-      <div className="tools tool-list">
-        <button className={`tool${tool === 'select' ? ' on' : ''}`} onClick={() => { useGame.getState().select(null); setTool('select'); }} title="1 / Esc">視点操作</button>
-        {TOOLS.map((t) => (
-          <button
-            key={t.id}
-            className={`tool${tool === t.id ? ' on' : ''}`}
-            onClick={(e) => {
-              e.currentTarget.blur(); // Space（ジャンプ）でボタンが押し直されないように
-              setTool(tool === t.id ? 'select' : t.id); // もう一度押すと手ぶらに戻る
-            }}
-            title={`ショートカット：${t.key}`}
-          >
-            <kbd className="key">{t.key}</kbd>
-            {walking && t.id === 'select' ? '手ぶら' : t.label}
-          </button>
-        ))}
+      <MoneyStatus />
+      <div className="topbar-center">
+        <ModeButton />
+        {!walking && <>
+          <div className="tools tool-list">
+            <button className={`tool${tool === 'select' ? ' on' : ''}`} onClick={() => { useGame.getState().select(null); setTool('select'); }} title="1 / Esc">視点操作</button>
+            {TOOLS.map((t) => (
+              <button
+                key={t.id}
+                className={`tool${tool === t.id ? ' on' : ''}`}
+                onClick={(e) => {
+                  e.currentTarget.blur(); // Space（ジャンプ）でボタンが押し直されないように
+                  setTool(tool === t.id ? 'select' : t.id); // もう一度押すと手ぶらに戻る
+                }}
+                title={`ショートカット：${t.key}`}
+              >
+                <kbd className="key">{t.key}</kbd>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div className="tools history">
+            <button className="tool" disabled={!canUndo} aria-label="取り消し" onClick={(e) => {
+                e.currentTarget.blur();
+                undo();
+              }} title="Ctrl+Z">{iconText("↶")}
+            </button>
+            <button className="tool" disabled={!canRedo} aria-label="やり直し" onClick={(e) => {
+                e.currentTarget.blur();
+                redo();
+              }} title="Ctrl+Y">{iconText("↷")}
+            </button>
+          </div>
+        </>}
       </div>
-      <div className="tools history">
-        <button className="tool" disabled={!canUndo} onClick={(e) => {
-            e.currentTarget.blur();
-            undo();
-          }} title="Ctrl+Z">{iconText("↶")}<span className="btn-label"> 取り消し</span>
+      <div className="topbar-right" ref={menuRef}>
+        <button className={`tool menu-button${open ? ' on' : ''}`} aria-label="メニュー" aria-expanded={open} onClick={(e) => { e.currentTarget.blur(); setOpen(!open); }}>
+          {iconText("☰")}<span aria-hidden="true"> メニュー</span>{iconText(" ▾")}
         </button>
-        <button className="tool" disabled={!canRedo} onClick={(e) => {
-            e.currentTarget.blur();
-            redo();
-          }} title="Ctrl+Y">{iconText("↷")}<span className="btn-label"> やり直し</span>
-        </button>
+        {open && <GameMenu walking={walking} close={close} />}
       </div>
-      <SaveMenu />
     </div>
   );
 }
@@ -400,13 +442,14 @@ function SaveMenu() {
   return (
     <div className="save">
       <button
-        className="tool"
+        className="walk-menu-item"
+        aria-expanded={open}
         onClick={() => {
           setOpen(!open);
           setConfirmClear(false);
         }}
       >
-        <AppIcon name="save" className="ph-icon" /> セーブ<span className="btn-label"> / ロード</span>{iconText(" ▾")}</button>
+        <IconLabel icon="save" text="セーブ / ロード" short="セーブ" /></button>
       {open && (
         <div className="save-menu">
           <p className="info">自動セーブされています。別の家を残したいときはスロットに保存します。</p>

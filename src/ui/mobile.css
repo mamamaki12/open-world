@@ -538,3 +538,24 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .build-history { gap: 8px; }
 .touch .build-history button { min-width: 56px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .touch .build-history button .app-icon { width: 22px; height: 22px; }
+
+/* ☰ のメニュー（建築と歩きで同じ並び。PC の「メニュー ▾」も同じ部品）：見出しで区切った組ごとに、札を3列に並べる */
+.game-menu .menu-sec { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.game-menu .menu-sec + .menu-sec { padding-top: 6px; border-top: 1px dashed rgba(41, 57, 47, 0.35); }
+.game-menu .menu-head { font-size: 12px; font-weight: 700; line-height: 16px; letter-spacing: .05em; color: var(--pocket-muted, #5d6b60); margin: 0 2px; }
+.game-menu .menu-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.game-menu .walk-menu-status { padding: 0 2px; }
+.touch .game-menu { display: flex; flex-direction: column; gap: 8px; max-height: calc(100dvh - var(--hud-top) - 14px - env(safe-area-inset-top, 0px)); overflow-y: auto; }
+.touch .game-menu .save { display: flex; }
+.touch .game-menu .save > .walk-menu-item { flex: 1; min-width: 0; }
+/* 小さいスマホの縦向き：札を少し低くして、なるべくスクロールせずに収める（押せる範囲は 44px 以上） */
+@media (orientation: portrait) and (max-height: 640px) {
+  .touch .game-menu .walk-menu-item { min-height: 50px; padding: 4px 2px; gap: 2px; }
+  .touch .game-menu .walk-menu-item .app-icon { width: 22px; height: 22px; }
+}
+/* 横向き：組を2列に並べて、高さを抑える。右の「建てる」・カメラのボタンにはかからない幅 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .game-menu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 8px 12px; width: min(596px, calc(100vw - 250px)); }
+  .touch .game-menu > .menu-sec { grid-column: auto; }
+  .touch .game-menu .menu-sec:nth-child(2) { padding-top: 0; border-top: 0; }
+}
