@@ -298,7 +298,7 @@ function openConnection(generation: number, resume: boolean) {
           sharedSpawn = false;
           const o = civicOffset();
           Object.assign(playerMemory, { x: o.x + VENUE_DOORS.casino.x, y: 0, z: o.z + VENUES.casino.z0 - 2.5,
-            yaw: Math.PI, bodyYaw: Math.PI, pitch: -.22, distance: 4.2 });
+            yaw: 0, bodyYaw: 0, pitch: -.22, distance: 4.2 }); // カジノを背にして町の方を向く
           // App may already have opened the first-time appearance editor after welcome.
           // Position initialization must not dismiss a dialog the player is using.
           useGame.setState({ mode: 'walk', tool: 'select' });
