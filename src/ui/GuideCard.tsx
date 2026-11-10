@@ -61,7 +61,7 @@ export function GuideCard() {
       <div className="guide-card open" role="status">
         <div className="guide-head">
           <b><AppIcon name="star" /> はじめての家づくり {i + 1}/{steps.length}</b>
-          <button className="tool close guide-close" onClick={() => setFolded(true)} aria-label="ガイドを閉じる" aria-expanded title="閉じる"><AppIcon name="close" /></button>
+          <button className="tool guide-fold" onClick={() => setFolded(true)} aria-label="ガイドをたたむ" aria-expanded title="ガイドをたたむ"><AppIcon name="less" /></button>
         </div>
         <div className="guide-body">
           <div className="guide-step">{steps[i].label}</div>
@@ -78,7 +78,7 @@ export function GuideCard() {
       <button className="guide-line" onClick={open}>
         {quest ? <><b>{iconText('📋')} {quest.title}</b><span>{missingText(checks)}</span></> : <><b>{iconText('📋')} 建築の依頼</b><span>依頼を受けて家を建てると、お礼がもらえます</span></>}
       </button>
-      <button className="guide-x" onClick={() => g.setFolded(true)} aria-label="たたむ">–</button>
+      <button className="guide-x" onClick={() => g.setFolded(true)} aria-label="依頼をたたむ" title="依頼をたたむ"><AppIcon name="less" /></button>
     </div>
   );
 }

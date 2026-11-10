@@ -75,6 +75,7 @@ export const ICON_PATHS = {
   down: 'm4 10 8 8 8-8M12 2v16',
   expand: 'M14 3h7v7M21 3 9 15M10 21H3v-7M3 21l12-12',
   more: 'm5 9 7 7 7-7',
+  less: 'm5 15 7-7 7 7',
   undo: 'M8 3 2 9l6 6M2 9h11a8 8 0 0 1 8 8v4',
   redo: 'm16 3 6 6-6 6M22 9H11a8 8 0 0 0-8 8v4',
   rotate: 'M5 8a8 8 0 1 1-1 9M2 3v6h6',
