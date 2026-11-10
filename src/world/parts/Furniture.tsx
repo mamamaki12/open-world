@@ -3,7 +3,7 @@ import type { Ref } from 'react';
 import { furnitureLightSources } from '../furnitureLights';
 import * as THREE from 'three';
 import { furnitureDef, hasMovingParts } from '../../catalog';
-import type { FurnitureDef, FurniturePiece, Paint } from '../../catalog';
+import type { FurnitureDef, FurniturePiece } from '../../catalog';
 import { furnitureBaseY } from '../../building/rules';
 import { mountedTransform } from '../../building/mounts';
 import type { FurniturePart } from '../../building/types';
@@ -13,21 +13,8 @@ import { plainMaterial } from '../materials';
 import type { Highlight } from '../materials';
 import { usePart } from './usePart';
 import { useHouseData } from '../HouseScope';
+import { PAINT } from '../../catalog/paints';
 
-const PAINT: Record<Exclude<Paint, 'main'>, { color: string; roughness?: number; metalness?: number }> = {
-  wood: { color: '#7a5535', roughness: 0.6 },
-  white: { color: '#f2f0eb', roughness: 0.8 },
-  black: { color: '#18191b', roughness: 0.3 },
-  dark: { color: '#333436', roughness: 0.8 },
-  accent: { color: '#7b4b3a', roughness: 0.8 },
-  counter: { color: '#e6e3dc', roughness: 0.25 },
-  steel: { color: '#b5b9bd', roughness: 0.3, metalness: 0.8 },
-  water: { color: '#4cb4dc', roughness: 0.08, metalness: 0.1 },
-  green: { color: '#4f7a45', roughness: 0.9 },
-  soil: { color: '#5a4232', roughness: 1 },
-  stone: { color: '#c9c5bb', roughness: 0.9 },
-  terracotta: { color: '#b8613f', roughness: 0.85 },
-};
 
 /** 表札の文字を描いたテクスチャ。板の色が暗ければ白い字、明るければ黒い字 */
 function LabelPlane({ text, plate, size, pos }: { text: string; plate: string; size: [number, number]; pos: [number, number, number] }) {

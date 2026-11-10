@@ -1,6 +1,7 @@
 import { AppIcon, iconText, type IconName } from './AppIcon';
 // スマホ用の建築メニュー：「建てる」ボタンから開き、道具を大きなカードで選び、その下で種類・素材・色を選ぶ
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import './build-menu.css';
 import { setBuildMenuOpen } from '../state/controls';
 import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
@@ -99,6 +100,14 @@ export function BuildMenu({
     window.addEventListener('keydown', onKey);
     return () => { setBuildMenuOpen(false); window.removeEventListener('keydown', onKey); };
   }, [onClose]);
+  // 道具を選んだあとは道具が1列の帯になるので、選んだ道具が帯の中に見えるようにする
+  const catalog = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const strip = catalog.current, card = strip?.querySelector<HTMLElement>(`[data-tool="${tool}"]`);
+    if (!strip || !card || strip.scrollWidth <= strip.clientWidth) return;
+    const r = card.getBoundingClientRect(), b = strip.getBoundingClientRect();
+    if (r.left < b.left || r.right > b.right) strip.scrollLeft += r.left - b.left - (b.width - r.width) / 2;
+  }, [tool]);
   return (
     <div className="overlay build-menu-overlay" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="build-menu" role="dialog" aria-label="建築メニュー">
@@ -110,7 +119,7 @@ export function BuildMenu({
           </button>
         </div>
         <div className={`build-menu-body${tool === 'select' ? ' catalog-only' : ''}`}>
-          <div className="build-menu-catalog">
+          <div className="build-menu-catalog" ref={catalog}>
           <div className="build-menu-tools">
             {tools.map((t) => (
               <button key={t.id} data-tool={t.id} className={`tool-card${tool === t.id ? ' on' : ''}`} onClick={() => setTool(t.id)}>

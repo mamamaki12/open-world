@@ -2,12 +2,12 @@
 
 ## 現在の状態
 
-- 状態: 作業中
+- 状態: 検証待ち
 - PR: 未作成
 - 公開: 未公開
-- 残作業: 道具を選んだら道具カードを1列の帯にし、下の種類・素材を1つのスクロールにする → 素材・色・家具を大きな見本で並べる → 文字の大きさ・濃さ → 各サイズで確認。
+- 残作業: 全画面の重なり・文字拡大・すき間の検査を main の作業ツリーで流す → PR を作る。
 - 将来の拡張・追加確認: なし。
-- 確認根拠: 未確認
+- 確認根拠: check-build-menu-layout・check-pick-to-confirm・check-phone-build-ux・check-launcher-layout・check-build-controls・check-phone-build-top・check-aim-controls がローカルで通過（2026-11-10）。
 - 最終更新: 2026-11-10
 
 - ブランチ: claude/pensive-davinci-6ppi2e
@@ -25,3 +25,4 @@
 ## 経過記録
 
 - 2026-11-10: plan を作成。
+- 2026-11-10: 実装。BuildMenu.tsx（道具を選ぶと帯にし、選んだ道具を帯の中へスクロール）、新しい src/ui/build-menu.css（帯・横向きの左の列・設定の1つのスクロール・大きな見本・文字）、FinishPicker.tsx（今の素材は見本つきの札、「ほかの○○を選ぶ（N種）」は本物のボタン、一覧の見本 96px、選んだものにチェック、色は 44px・虹色に「色を選ぶ」）、ToolOptions.tsx（家具は分類の札＋絵つきの一覧 FurnitureCatalog）、thumbnails.ts（furnitureThumb：部品を斜め上から見た絵）、塗りの色は src/catalog/paints.ts に移して 3D と共通に。check-build-menu-layout.mjs は、縦画面で道具を選んだあとの帯だけ横スクロールを許し、代わりに「帯が横にスクロールする・選んだ道具が帯の中に見える・設定が帯の下」を確かめるように変更（帯は意図した横スクロールのため）。check-ui-spacing.mjs に道具ごとの建築メニューを追加。文字の大きさは設定の中で 12px が値段の補足だけ、ほかは 13〜15px。補足の色 #59694f は紙の地で 4.7〜5.8:1。PC の左の道具パネルは家具が3列の絵つきになり、素材の一覧ボタンが本物のボタンになった（ほかは今のまま）。

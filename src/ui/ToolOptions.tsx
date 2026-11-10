@@ -9,6 +9,9 @@ import { useGame } from '../state/store';
 import type { Tool } from '../state/store';
 import { useInteraction } from '../state/interaction';
 import { FinishPicker, NamedSwatches, SashPicker } from './FinishPicker';
+import { furnitureThumb } from './thumbnails';
+import { useState } from 'react';
+import type { FurnitureDef } from '../catalog';
 import { useTouchDevice } from './useTouchDevice';
 
 export const TOOL_HELP: Record<Tool, string> = {
@@ -46,7 +49,6 @@ export function ToolOptions({ showHelp = true, onPicked }: { showHelp?: boolean;
   const d = useGame((s) => s.defaults);
   const set = useGame((s) => s.setDefaults);
   const eraseMulti = useGame(s => s.eraseMulti);
-  const designs = useDesigns((s) => s.designs);
   const stairRot = useInteraction((s) => s.stairRot);
 
   // 家具を選んだらすぐ決定。表札は文字を入れるので閉じない
@@ -147,36 +149,7 @@ export function ToolOptions({ showHelp = true, onPicked }: { showHelp?: boolean;
           {getFurniture(d.furnitureType).label && (
             <NameplateInput value={d.nameplateText} onChange={(nameplateText) => set({ nameplateText })} />
           )}
-          <div>
-            <div className="field-label">自分でデザインした家具</div>
-            <div className="choice-list">
-              {designs.map((f) => (
-                <button key={f.id} className={`choice${f.id === d.furnitureType ? ' on' : ''}`} onClick={() => pickFurniture(f.id)}>
-                  <span>{f.name}</span>
-                  <small onClick={(e) => { e.stopPropagation(); openDesigner(f); }}>編集</small>
-                </button>
-              ))}
-              <button className="choice" onClick={() => openDesigner()}><span>＋ 家具をデザインする</span></button>
-            </div>
-          </div>
-          {(
-            [
-              ['外構・ガレージ・庭', FURNITURE.filter((f) => f.category === 'outdoor')],
-               ['照明', FURNITURE.filter((f) => f.category === 'lighting')],
-               ['家の中', FURNITURE.filter((f) => !f.category)],
-            ] as const
-          ).map(([label, items]) => (
-            <div key={label}>
-              <div className="field-label">{iconText(label)}</div>
-              <div className="choice-list">
-                {items.map((f) => (
-                  <button key={f.id} className={`choice${f.id === d.furnitureType ? ' on' : ''}`} onClick={() => pickFurniture(f.id)}>
-                    <span>{f.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+          <FurnitureCatalog current={d.furnitureType} onPick={pickFurniture} />
           <button className="btn" onClick={() => set({ furnitureRotation: (d.furnitureRotation + 90) % 360 })}>
             向きを変える<span className="kbd-hint">（R）</span>：{d.furnitureRotation}°
           </button>
@@ -326,3 +299,51 @@ export function Slider({ label, unit, min, max, step, value, onChange, scale = 1
   );
 }
 
+
+type FurnitureGroup = 'all' | 'mine' | 'indoor' | 'lighting' | 'outdoor';
+const FURNITURE_GROUPS: { id: FurnitureGroup; label: string }[] = [
+  { id: 'all', label: 'すべて' }, { id: 'indoor', label: '家の中' }, { id: 'lighting', label: '照明' },
+  { id: 'outdoor', label: '外構・庭' }, { id: 'mine', label: '自分のデザイン' },
+];
+
+/** 家具の一覧：分類の札で絞り込み、前から見た小さな絵つきの札を並べる。選んだものは太い枠とチェック */
+function FurnitureCatalog({ current, onPick }: { current: string; onPick: (id: string) => void }) {
+  const designs = useDesigns((s) => s.designs);
+  const [group, setGroup] = useState<FurnitureGroup>('all');
+  const sections: [FurnitureGroup, string, FurnitureDef[]][] = [
+    ['outdoor', '外構・ガレージ・庭', FURNITURE.filter((f) => f.category === 'outdoor')],
+    ['lighting', '照明', FURNITURE.filter((f) => f.category === 'lighting')],
+    ['indoor', '家の中', FURNITURE.filter((f) => !f.category)],
+  ];
+  const item = (f: FurnitureDef, extra?: React.ReactNode) => (
+    <button key={f.id} className={`choice furniture-item${f.id === current ? ' on' : ''}`} aria-pressed={f.id === current} onClick={() => onPick(f.id)}>
+      <span className="furniture-name">{f.name}</span>
+      <img className="furniture-thumb" src={furnitureThumb(f)} alt="" />
+      {extra}
+    </button>
+  );
+  return (
+    <>
+      <div className="furniture-groups" role="group" aria-label="家具の分類">
+        {FURNITURE_GROUPS.map((g) => (
+          <button key={g.id} className={`furniture-group${g.id === group ? ' on' : ''}`} aria-pressed={g.id === group} onClick={() => setGroup(g.id)}>{g.label}</button>
+        ))}
+      </div>
+      {(group === 'all' || group === 'mine') && (
+        <div>
+          <div className="field-label">自分でデザインした家具</div>
+          <div className="choice-list furniture-grid">
+            {designs.map((f) => item(f, <small className="furniture-edit" onClick={(e) => { e.stopPropagation(); openDesigner(f); }}>編集</small>))}
+            <button className="choice furniture-new" onClick={() => openDesigner()}><span>{iconText('＋ 家具をデザインする')}</span></button>
+          </div>
+        </div>
+      )}
+      {sections.filter(([id]) => group === 'all' || group === id).map(([id, label, items]) => (
+        <div key={id}>
+          <div className="field-label">{iconText(label)}</div>
+          <div className="choice-list furniture-grid">{items.map((f) => item(f))}</div>
+        </div>
+      ))}
+    </>
+  );
+}

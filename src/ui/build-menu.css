@@ -1,0 +1,106 @@
+/* スマホの建築メニュー：道具を選んだあとの「種類・素材・色」を見やすく（2026-11-10「建築資材を選択する画面がとても見にくい」）
+   - 道具カードは上の1列の帯（横向きは左の細い列）にまとめ、残りの高さを設定の1つのスクロールに使う
+   - 素材・色・家具は大きな見本で並べ、選んだものは太い枠とチェック
+   - 名前・見出しは 13px 以上、補足は 12px 以上で紙の地に 4.5:1 以上の色
+   PC の左の道具パネル（.build-menu の外）はここでは変えない */
+
+#root .build-menu:has(.build-menu-body:not(.catalog-only)) { height: 90dvh; }
+#root .build-menu .build-menu-body:not(.catalog-only) {
+  display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 0; gap: 0;
+}
+#root .build-menu .build-menu-body:not(.catalog-only) .build-menu-catalog {
+  flex: none; display: flex; align-items: stretch; gap: 8px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  padding: 8px calc(12px + var(--safe-r, 0px)) 10px calc(12px + var(--safe-l, 0px));
+  border-bottom: 2px solid var(--pocket-ink); background: var(--pocket-panel); scrollbar-width: thin;
+}
+#root .build-menu .build-menu-body:not(.catalog-only) :is(.build-menu-tools, .build-menu-prefabs) { display: contents; }
+#root .build-menu .build-menu-body:not(.catalog-only) .tool-card {
+  flex: none; flex-direction: row; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 4px 12px; white-space: nowrap;
+}
+#root .build-menu .build-menu-body:not(.catalog-only) .tool-card-icon { font-size: 20px; line-height: 1; }
+#root .build-menu .build-menu-body:not(.catalog-only) .tool-card-name { font-size: 14px; }
+#root .build-menu .build-menu-body:not(.catalog-only) .tool-card-desc { display: none; }
+/* すぐ建つお店は道具と性質が違うので、少し離して並べる */
+#root .build-menu .build-menu-body:not(.catalog-only) .build-menu-prefabs > .tool-card:first-child { margin-left: 12px; }
+#root .build-menu .build-menu-body:not(.catalog-only) .tool-card.on { box-shadow: 0 3px 0 var(--pocket-ink), inset 0 0 0 2px #c4d39e; }
+#root .build-menu .build-menu-body:not(.catalog-only) .build-menu-options {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; margin: 0; padding: 0;
+}
+#root .build-menu .build-menu-options > .tool-options {
+  border: 0; box-shadow: none; background: transparent; border-radius: 0;
+  padding: 12px calc(14px + var(--safe-r, 0px)) 24px calc(14px + var(--safe-l, 0px));
+}
+
+/* スマホ横：道具は左の細い列、設定は右の高さ全部 */
+@media (orientation: landscape) and (max-height: 500px) {
+  #root .build-menu:has(.build-menu-body:not(.catalog-only)) { height: 100%; }
+  #root .build-menu .build-menu-body:not(.catalog-only) { flex-direction: row; }
+  #root .build-menu .build-menu-body:not(.catalog-only) .build-menu-catalog {
+    flex-direction: column; width: 148px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+    padding: 8px 8px 12px calc(8px + var(--safe-l, 0px)); border-bottom: 0; border-right: 2px solid var(--pocket-ink);
+  }
+  #root .build-menu .build-menu-body:not(.catalog-only) .tool-card { justify-content: flex-start; padding: 4px 8px; white-space: normal; text-align: left; }
+  #root .build-menu .build-menu-body:not(.catalog-only) .build-menu-prefabs > .tool-card:first-child { margin-left: 0; margin-top: 12px; }
+  #root .build-menu .build-menu-body:not(.catalog-only) .build-menu-options { min-width: 0; }
+  /* 横は幅が広いので、種類の一覧は2列にして縦を短く */
+  #root .build-menu .build-menu-options .choice-list:not(.furniture-grid) { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+}
+
+/* ---- 設定の中身 ---- */
+#root .build-menu .build-menu-options .field { margin-bottom: 18px; }
+#root .build-menu .build-menu-options .field-label { font-size: 15px; font-weight: 700; color: var(--pocket-ink); margin-bottom: 8px; }
+#root .build-menu .build-menu-options .choice-list { gap: 8px; }
+#root .build-menu .build-menu-options .choice { font-size: 15px; min-height: 44px; align-items: center; }
+#root .build-menu .build-menu-options .choice small { font-size: 13px; color: var(--pocket-muted); }
+#root .build-menu .build-menu-options .choice.on small { color: #e1e9be; }
+#root .build-menu .build-menu-options .seg button { font-size: 14px; min-height: 44px; }
+
+/* 素材：今の素材を大きく、一覧を開くのは本物のボタン、開いた一覧は大きな見本 */
+#root .build-menu .mat-current { padding: 8px; gap: 12px; border: 2px solid var(--pocket-line); border-radius: 3px; background: #fffdf4; }
+#root .build-menu .mat-thumb { width: 64px; height: 64px; border-radius: 2px; }
+#root .build-menu .mat-name { font-size: 15px; }
+#root .build-menu .mat-note { font-size: 13px; color: var(--pocket-muted); }
+#root .build-menu .mat-price { font-size: 13px; font-weight: 700; color: var(--pocket-ink); }
+#root .build-menu .mat-toggle { min-height: 44px; margin-top: 8px; font-size: 14px; }
+#root .build-menu .mat-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 10px; }
+#root .build-menu .mat-tile { padding: 4px; gap: 3px; border: 2px solid var(--pocket-line); border-radius: 3px; background: #fffdf4; }
+#root .build-menu .mat-tile img { border-radius: 2px; min-height: 56px; }
+#root .build-menu .mat-tile-name { font-size: 13px; line-height: 1.3; min-height: 2.6em; color: var(--pocket-ink); }
+#root .build-menu .mat-tile small { font-size: 12px; color: var(--pocket-muted); }
+#root .build-menu .mat-tile.on { border: 3px solid var(--pocket-ink); padding: 3px; background: #e9efcf; box-shadow: none; }
+#root .build-menu .mat-tile.on .mat-tile-name { font-weight: 700; }
+
+/* 色：44px の見本、虹色は「色を選ぶ」と書く */
+#root .build-menu .swatch-label { font-size: 14px; font-weight: 700; color: var(--pocket-ink); margin-top: 12px; }
+#root .build-menu .swatches { gap: 8px; margin-top: 8px; }
+#root .build-menu .swatch { width: 44px; height: 44px; border-radius: 3px; border: 2px solid #fffdf4; box-shadow: 0 0 0 2px var(--pocket-line); }
+#root .build-menu .swatch.on { outline: 0; box-shadow: 0 0 0 3px var(--pocket-ink), 0 0 0 5px #fffdf4, 0 0 0 6px var(--pocket-ink); }
+#root .build-menu .swatch.on::after {
+  content: ''; position: absolute; right: -6px; top: -6px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--pocket-selected) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.2 6.4l2.4 2.4L9.8 3.6' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 13px no-repeat;
+  box-shadow: 0 0 0 2px #fffdf4;
+}
+#root .build-menu .swatch.custom { width: auto; padding: 0 12px 0 6px; gap: 8px; font-size: 13px; background: #fffdf4; }
+#root .build-menu .swatch-rainbow { width: 30px; height: 30px; border-radius: 2px; }
+
+/* 家具：分類の札（44px）と、絵つきの一覧（2〜3列） */
+#root .build-menu .furniture-groups { gap: 8px; margin-bottom: 14px; }
+#root .build-menu .furniture-group { min-height: 44px; padding: 4px 12px; font-size: 14px; box-shadow: 0 3px 0 var(--pocket-line); }
+#root .build-menu .furniture-group.on { box-shadow: 0 3px 0 var(--pocket-ink); }
+#root .build-menu .choice-list.furniture-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+#root .build-menu .choice.furniture-item { padding: 6px; }
+#root .build-menu .choice.furniture-new { min-height: 44px; }
+#root .build-menu .furniture-name { font-size: 13px; }
+#root .build-menu .choice.furniture-item.on { border-width: 3px; padding: 5px; }
+#root .build-menu .choice.furniture-item.on .furniture-thumb { background: #fffdf4; }
+#root .build-menu .swatches { background: transparent; padding: 4px 0 4px 2px; }
+
+/* 見出しの「建てる」「道具をしまう」が幅320pxで2行に折れないように */
+#root .build-menu .build-menu-head :is(.build-menu-title, .btn) { white-space: nowrap; }
+@media (max-width: 360px) {
+  #root .build-menu .build-menu-head { gap: 8px; padding-left: calc(10px + var(--safe-l, 0px)); padding-right: calc(10px + var(--safe-r, 0px)); }
+  #root .build-menu .build-menu-title { font-size: 16px; }
+  #root .build-menu .build-menu-head .btn { padding-left: 10px; padding-right: 10px; font-size: 14px; }
+  #root .build-menu .build-menu-done { min-width: 0; }
+}

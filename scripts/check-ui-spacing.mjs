@@ -68,7 +68,17 @@ for (const size of sizes) {
     await check('build');
     await menu.click(); await check('build-menu-list', '.walk-menu-list'); await menu.dispatchEvent('click');
     const fab = page.locator('.build-fab').first();
-    if (await fab.count()) { await fab.click(); await check('build-menu'); await page.keyboard.press('Escape'); }
+    if (await fab.count()) {
+      await fab.click(); await check('build-menu');
+      // 道具を選んだあとの種類・素材・色・家具の一覧（素材の一覧も開く）
+      for (const t of ['floor', 'wall', 'window', 'door', 'stair', 'roof', 'furniture']) {
+        await page.locator(`.build-menu [data-tool="${t}"]`).click();
+        const more = page.locator('.build-menu .mat-toggle').first();
+        if (await more.count()) await more.click();
+        await check('build-menu-' + t, '.build-menu');
+      }
+      await page.keyboard.press('Escape');
+    }
     for (const tool of ['wall', 'floor', 'furniture', 'erase']) {
       const ok = await game((t) => { try { window.__ow.game.getState().setTool(t); return true; } catch { return false; } }, tool);
       if (!ok) { skipped.push(size.name + ' build-' + tool + ': 道具なし'); continue; }
