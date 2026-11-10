@@ -2,9 +2,10 @@
 
 ## 現在の状態
 
-- 状態: 作業中
+- 状態: 完了（PRマージ待ち）
 - ブランチ: `claude/project-thread-gurk2w`
-- 残作業: 修正・確認・PR
+- 残作業: なし
+- 確認根拠: `scripts/check-joystick-release.mjs`（pointerup が届かないとき修正前は失敗、修正後は成功）
 - 最終更新: 2026-11-10
 
 ## 症状（しんご 2026-11-10）
