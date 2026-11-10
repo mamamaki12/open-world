@@ -469,6 +469,43 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
   .guide-table th, .guide-table td { padding: 3px 4px; }
 }
 .guide-table td:first-child { white-space: nowrap; }
+.guide-toggle { min-height: 44px; }
+
+/* 遊び方は閉じたまま台を先に見せる。初めてのゲームでは、開くボタンを光らせて知らせる（2026-11-10） */
+.guide.fresh { box-shadow: 0 0 0 2px #e8c56a; animation: guide-glow 1.6s ease-in-out 4; }
+@keyframes guide-glow { 50% { box-shadow: 0 0 0 3px rgba(232, 197, 106, 0.5), 0 0 18px rgba(232, 197, 106, 0.65); } }
+@media (prefers-reduced-motion: reduce) { .guide.fresh { animation: none; } }
+.guide-sheet-head, .guide-backdrop { display: none; }
+
+/* スマホ：開いた遊び方は画面の下から出るシートにして、台と賭けるボタンを押し下げない。背景を押しても閉じる */
+.touch .guide.open .guide-backdrop { display: block; position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.45); }
+.touch .guide.open .guide-body {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 61;
+  max-height: min(78dvh, calc(100dvh - 32px)); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: 0 calc(16px + var(--safe-r, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) calc(16px + var(--safe-l, 0px));
+  background: #14231c; border-top: 2px solid #e8c56a; border-radius: 16px 16px 0 0; box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+}
+.touch .casino-paper .guide.open .guide-body { background: #fffaf0; }
+.touch .guide.open .guide-sheet-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  position: sticky; top: 0; z-index: 1; padding: 8px 0; margin-bottom: 2px;
+  background: inherit; border-bottom: 1px solid rgba(232, 197, 106, 0.45); font-size: 15px;
+}
+.touch .guide-close { min-height: 44px; flex: none; }
+/* 横向きのスマホ：シートは高さを広く使い、上に少しだけ残した背景を押しても閉じられるようにする */
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .guide.open .guide-body { max-height: calc(100dvh - 52px); }
+}
+
+/* 横向きのスマホ：ロビーの歓迎の帯を隠して、ゲームの札が最初の画面に入るようにする */
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .casino-lobby-hero { display: none; }
+  .touch .casino-game-grid { padding-top: 10px; gap: 10px; }
+  .touch .casino-card-scene { height: 64px; }
+  .touch .casino-card-scene > span { font-size: 36px; }
+  .touch .casino-card-copy { padding: 10px 12px; }
+  .touch .casino-card-copy p { display: none; }
+}
 
 /* ===== 券売機（自動発売機）：本体＝グレーの筐体、画面＝白地に大きなボタン。種類ごとに色を変える ===== */
 .tm { --tm: #00704a; --tm-dark: #004d33; --tm-soft: #e3f3ec;
@@ -696,3 +733,5 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
 .roulette-touch-tools button[aria-pressed=true] {background:#ffe08a;color:#30230f;outline:2px solid #b99440;}
 .touch .felt-scroll {scrollbar-width:thin;scrollbar-color:#d4b85e #12452e;}
 .touch .spot {min-height:44px;}
+/* 指で押す端末ではマスが44px以上になるので、下の2段（1st 12〜・1-18〜）も44pxにして、上下のマスが重ならないようにする */
+.touch .roulette-table {grid-template-rows:repeat(3,46px) 44px 44px;}

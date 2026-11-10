@@ -273,22 +273,38 @@ const TITLES: Record<GuideGame, string> = {
   boat: 'ボートレースの遊び方',
 };
 
+/**
+ * 遊び方は初めてでも閉じておき、台と賭けるボタンを先に見せる。
+ * 初めてのゲームでは開くボタンを光らせて知らせる。スマホでは開くと画面の下から出るシートになる（casino.css）
+ */
 export function Guide({ game }: { game: GuideGame }) {
-  const [open, setOpen] = useState(() => firstVisit(game));
+  const [open, setOpen] = useState(false);
+  const [fresh, setFresh] = useState(() => firstVisit(game));
   useEffect(() => markSeen(game), [game]);
+  const toggle = () => {
+    setFresh(false);
+    setOpen(!open);
+  };
   return (
-    <div className={`guide${open ? ' open' : ''}`}>
-      <button className="guide-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
+    <div className={`guide${open ? ' open' : ''}${fresh ? ' fresh' : ''}`}>
+      <button className="guide-toggle" onClick={toggle} aria-expanded={open}>
         <span>{iconText("📖 ")}{iconText(TITLES[game])}（はじめての方へ）</span>
         <span className="guide-arrow">{iconText(open ? '閉じる ▲' : '開く ▼')}</span>
       </button>
       {open && (
-        <div className="guide-body">
-          {game === 'slots' && <SlotsGuide />}
-          {game === 'roulette' && <RouletteGuide />}
-          {game === 'highlow' && <HighLowGuide />}
-          {(game === 'horse' || game === 'keirin' || game === 'boat') && <RaceGuide kind={game} />}
-        </div>
+        <>
+          <div className="guide-backdrop" onPointerDown={() => setOpen(false)} />
+          <div className="guide-body" role="dialog" aria-label={TITLES[game]}>
+            <div className="guide-sheet-head">
+              <b>{iconText("📖 ")}{TITLES[game]}</b>
+              <button className="btn guide-close" onClick={() => setOpen(false)}>{iconText('✕ 閉じる')}</button>
+            </div>
+            {game === 'slots' && <SlotsGuide />}
+            {game === 'roulette' && <RouletteGuide />}
+            {game === 'highlow' && <HighLowGuide />}
+            {(game === 'horse' || game === 'keirin' || game === 'boat') && <RaceGuide kind={game} />}
+          </div>
+        </>
       )}
     </div>
   );
