@@ -34,9 +34,31 @@ function Joystick({ driving }: { driving: boolean }) {
   useEffect(() => {
     const reset = () => release();
     const hidden = () => { if (document.hidden) release(); };
+    // 指を離したイベントがスティックの要素に届かないことがある（別の指と同時に触ったときなど）。
+    // window でも受けて、追っている指が離れたら必ず戻す。
+    const pointerEnd = (e: PointerEvent) => { if (e.pointerId === pointer.current) release(); };
+    // タッチイベントは確実に届くので、スティックの上で始まった指が残っていなければ戻す
+    const touchEnd = (e: TouchEvent) => {
+      if (pointer.current === null) return;
+      const el = base.current;
+      const stillOn = Array.from(e.touches).some((t) => el && t.target instanceof Node && el.contains(t.target));
+      if (!stillOn) release();
+    };
     window.addEventListener('blur', reset);
     document.addEventListener('visibilitychange', hidden);
-    return () => { window.removeEventListener('blur', reset); document.removeEventListener('visibilitychange', hidden); release(); };
+    window.addEventListener('pointerup', pointerEnd, true);
+    window.addEventListener('pointercancel', pointerEnd, true);
+    window.addEventListener('touchend', touchEnd, true);
+    window.addEventListener('touchcancel', touchEnd, true);
+    return () => {
+      window.removeEventListener('blur', reset);
+      document.removeEventListener('visibilitychange', hidden);
+      window.removeEventListener('pointerup', pointerEnd, true);
+      window.removeEventListener('pointercancel', pointerEnd, true);
+      window.removeEventListener('touchend', touchEnd, true);
+      window.removeEventListener('touchcancel', touchEnd, true);
+      release();
+    };
   }, []);
 
   const move = (e: ReactPointerEvent) => {
@@ -57,7 +79,8 @@ function Joystick({ driving }: { driving: boolean }) {
       ref={base}
       className={`joystick${running ? ' running' : ''}`}
       onPointerDown={(e) => {
-        if (pointer.current !== null) return;
+        // 前の指が離れたことに気づけていなくても、新しくスティックに触った指に切り替える
+        if (pointer.current !== null && pointer.current !== e.pointerId && e.pointerType !== 'touch') return;
         pointer.current = e.pointerId;
         e.currentTarget.setPointerCapture(e.pointerId);
         const r = base.current!.getBoundingClientRect();
