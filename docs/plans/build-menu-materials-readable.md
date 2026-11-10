@@ -2,10 +2,10 @@
 
 ## 現在の状態
 
-- 状態: 検証待ち
-- PR: 未作成
+- 状態: 公開待ち
+- PR: #168（マージ待ち）
 - 公開: 未公開
-- 残作業: 全画面の重なり・文字拡大・すき間の検査を main の作業ツリーで流す → PR を作る。
+- 残作業: #168 のマージと公開の確認。
 - 将来の拡張・追加確認: なし。
 - 確認根拠: check-build-menu-layout・check-pick-to-confirm・check-phone-build-ux・check-launcher-layout・check-build-controls・check-phone-build-top・check-aim-controls がローカルで通過（2026-11-10）。
 - 最終更新: 2026-11-10

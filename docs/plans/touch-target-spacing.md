@@ -2,12 +2,12 @@
 
 ## 現在の状態
 
-- 状態: 検証待ち
-- PR: 未作成（#167 はマージ済み）
+- 状態: 公開待ち
+- PR: #168（マージ待ち）
 - 公開: 未公開
-- 残作業: check-ui-overlap-all・check-large-text を通す → PR を作る。
+- 残作業: #168 のマージと公開の確認。
 - 将来の拡張・追加確認: なし。
-- 確認根拠: scripts/check-ui-spacing.mjs が 390×844・844×390・320×568 の各71画面で「直す」0件（2026-11-10 ローカル）。typecheck・vitest 通過。
+- 確認根拠: check-ui-spacing（3サイズ×78画面、名前のないボタンの判定つき）・check-ui-overlap-all・check-large-text・typecheck・vitest がローカルで通過（2026-11-10）。
 - 最終更新: 2026-11-10
 
 - ブランチ: claude/pensive-davinci-6ppi2e
