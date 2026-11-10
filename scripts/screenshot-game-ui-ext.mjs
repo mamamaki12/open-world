@@ -36,12 +36,13 @@ async function captureDesktop() {
   await page.waitForTimeout(500);
   await page.screenshot({ path: join(outDir, `${prefix}-walk-desktop.png`), fullPage: false });
 
-  await page.locator('.save > .tool').first().click();
+  await page.getByRole('button', { name: 'メニュー', exact: true }).click();
+  await page.locator('.game-menu .save > button').first().click();
   await waitForAttached(page, '.save-menu');
   await page.waitForTimeout(300);
   await page.screenshot({ path: join(outDir, `${prefix}-save-desktop.png`), fullPage: false });
 
-  await page.locator('.save > .tool').first().click();
+  await page.getByRole('button', { name: 'メニュー', exact: true }).click();
   await page.waitForTimeout(200);
   await page.keyboard.press('m');
   await waitForAttached(page, '.map-screen');

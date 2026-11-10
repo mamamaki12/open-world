@@ -216,6 +216,7 @@ try {
   await page.keyboard.up('Space'); await page.keyboard.press('Escape');
   await page.waitForFunction(()=>document.pointerLockElement===null);
   console.log('Held jump confirmed across two takeoffs.');
+  await page.getByRole('button', { name: 'メニュー', exact: true }).click();
   await page.getByRole('button', { name: '操作設定', exact: true }).first().click();
   const slider=page.getByRole('slider', { name: '視点感度' }); await slider.focus(); await slider.press('Home'); for(let i=0;i<12;i++) await slider.press('ArrowRight');
   await page.getByRole('checkbox', { name: '上下の視点操作を反転' }).check();

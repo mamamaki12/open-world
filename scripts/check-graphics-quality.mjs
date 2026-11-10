@@ -1,4 +1,4 @@
-// 画質（高・中・低）：スマホは ☰ メニュー、PC は操作設定から選べて、低で解像度・影・フレーム数が下がり、再読み込み後も残る
+// 画質（高・中・低）：スマホも PC もメニュー →「操作設定」から選べて、低で解像度・影・フレーム数が下がり、再読み込み後も残る
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -14,7 +14,7 @@ const state = (page) => page.evaluate(async () => {
   return { ratio: c.width / c.clientWidth, shadows: gl.shadowMap.enabled, sunShadow, fps: (gl.info.render.frame - f0) / 2, saved: localStorage.getItem('open-world:graphics') };
 });
 try {
-  // スマホ：初期は中。☰ → 低
+  // スマホ：初期は中。☰ → 設定 → 低
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   let page = await ctx.newPage(); page.setDefaultTimeout(120000); page.on('pageerror', e => errors.push(e.message));
   await page.goto(url + '?touch=1&play=1');
@@ -23,6 +23,7 @@ try {
   const mid = await state(page);
   assert.ok(Math.abs(mid.ratio - 1.5) < 0.05 && mid.shadows && mid.sunShadow, JSON.stringify(mid));
   await page.getByRole('button', { name: 'メニュー', exact: true }).click();
+  await page.getByRole('button', { name: '操作設定' }).click();
   const picker = page.getByRole('radiogroup', { name: '画質' });
   await picker.getByRole('radio', { name: '低' }).click();
   await page.screenshot({ path: `${out}/phone-menu.png` });
@@ -44,6 +45,7 @@ try {
   await page.evaluate(() => { window.__ow.economy.setState({ tick: () => {} }); window.__ow.game.setState({ mode: 'walk', overlay: null }); });
   const high = await state(page);
   assert.ok(Math.abs(high.ratio - 2) < 0.05 && high.shadows, JSON.stringify(high));
+  await page.getByRole('button', { name: 'メニュー', exact: true }).click();
   await page.getByRole('button', { name: '操作設定', exact: true }).first().click();
   await page.getByRole('radiogroup', { name: '画質' }).getByRole('radio', { name: '低' }).click();
   await page.screenshot({ path: `${out}/pc-settings.png` });

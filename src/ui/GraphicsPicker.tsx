@@ -1,4 +1,4 @@
-// 画質（高・中・低）を選ぶボタン。スマホの ☰ メニューと操作設定に置く
+// 画質（高・中・低）を選ぶボタン。操作設定（☰ メニュー →「設定」）に置く
 import { GRAPHICS_LABEL, useGraphics } from '../state/graphics';
 import type { GraphicsQuality } from '../state/graphics';
 
