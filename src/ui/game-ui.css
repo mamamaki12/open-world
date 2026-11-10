@@ -306,3 +306,7 @@
 /* 縦持ちは横に余裕がないので、削除・建てる の列の真上に置く（スティックにも重ならない） */
 @media (orientation: portrait) { #root .app.touch.walk .door-prompts { right: calc(16px + var(--safe-r)); bottom: calc(164px + var(--safe-b)); } }
 @media (orientation: portrait) { #root .app.touch.walk:has(.aim-buttons button) .door-prompts { bottom: calc(226px + var(--safe-b)); } }
+
+/* パネル（不動産屋・カジノ・バイトなど）を開いている間は、後ろの画面のボタンや文字（上のバー・所持金・地図ボタン・歩きモードの説明など）を隠す。
+   パネルの端から半分だけはみ出して重なって見えていた（2026-11-10）。3D画面（canvas）とお知らせ（toast）はそのまま */
+#root .app.has-overlay:not(.photo-mode) > :not(.overlay):not(.toast):not(:has(canvas)) { visibility: hidden; }

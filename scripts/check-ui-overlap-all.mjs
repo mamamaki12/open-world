@@ -30,6 +30,23 @@ for (const size of sizes) {
   const check = async (step, root = 'body') => {
     await page.waitForTimeout(500);
     const bad = await page.evaluate(scan, root);
+    // パネル（.modal）の端に、後ろの画面のボタンや文字が中途半端に隠れていないか
+    bad.push(...await page.evaluate(() => {
+      const modal = document.querySelector('.overlay .modal'); if (!modal) return [];
+      const m = modal.getBoundingClientRect(); const out = [];
+      for (const e of document.querySelectorAll('button,a,input,span,b,strong,div,p')) {
+        if (e.closest('.overlay') || e.closest('[aria-hidden="true"]') || e.closest('.toast')) continue;
+        const own = /^(BUTTON|A|INPUT)$/.test(e.tagName) || [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+        if (!own || (!/^(BUTTON|A|INPUT)$/.test(e.tagName) && e.closest('button,a'))) continue;
+        const s = getComputedStyle(e); if (s.visibility === 'hidden' || +s.opacity === 0) continue;
+        const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
+        const w = Math.min(r.right, m.right) - Math.max(r.left, m.left), h = Math.min(r.bottom, m.bottom) - Math.max(r.top, m.top);
+        if (w <= 2 || h <= 2) continue;
+        if (w >= r.width - 1 && h >= r.height - 1) continue; // 完全に隠れていれば見えないのでよい
+        out.push('half-hidden behind panel: ' + (e.getAttribute('aria-label') || e.textContent).trim().slice(0, 24) + ' <' + e.tagName.toLowerCase() + '.' + String(e.className).split(' ')[0] + '>');
+      }
+      return out;
+    }));
     report[size.name + ' ' + step] = bad;
     if (bad.length) { failed++; console.log('NG', size.name, step, '\n  ' + bad.join('\n  ')); await page.screenshot({ path: `${out}/${size.name}-${step}.png` }); }
     else { console.log('ok', size.name, step); if (process.env.SHOTS) await page.screenshot({ path: `${out}/${size.name}-${step}.png` }); }
