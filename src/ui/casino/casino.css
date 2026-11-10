@@ -74,7 +74,8 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px;
   background: rgba(0, 0, 0, 0.25); border-radius: 12px;
 }
-.tray-ops { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px; }
+.tray-ops { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+.touch .tray-ops .btn { min-width: 44px; }
 .chip-stack { position: relative; display: inline-block; width: 30px; height: 50px; flex: none; }
 .stack-chip {
   position: absolute; left: 0; width: 30px; height: 11px; border-radius: 50%; background: var(--chip);
@@ -229,7 +230,7 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
 
 .felt-scroll { overflow-x: auto; padding-bottom: 4px; }
 .roulette-table {
-  display: grid; min-width: 600px; grid-template-columns: 46px repeat(12, minmax(38px, 1fr)) 56px;
+  display: grid; min-width: 630px; grid-template-columns: 46px repeat(12, minmax(44px, 1fr)) 56px;
   grid-template-rows: repeat(3, 46px) 40px 40px; border: 2px solid #e8dcc0; border-radius: 8px; overflow: hidden;
   background: #11603d; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
@@ -423,9 +424,12 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
 .race-view.full .race-controls .btn { color: #222; }
 /* ---- 画面に収める（スロット・ルーレット・ハイ＆ロー）：台の3Dは画面の高さに合わせて縮め、回すボタンはいつも見える位置に ---- */
 .casino-felt .casino-stage { max-height: 40vh; max-height: 40dvh; min-height: 170px; }
-.casino-felt .casino-go, .casino-felt .hl-buttons {
+.casino-felt .casino-go-bar, .casino-felt .hl-buttons {
   position: sticky; bottom: 0; z-index: 4;
 }
+/* 下に固定した「回す」ボタンの上に、押しても何も起きない帯（10px）を置き、×2・½ などの賭け金ボタンとくっつかないようにする */
+.casino-go-bar { display: flex; flex-direction: column; }
+.casino-felt .casino-go-bar { padding-top: 10px; background: linear-gradient(transparent, #0b2a1d 10px); }
 .casino-felt .casino-go { box-shadow: 0 4px 0 #7a5c18, 0 -6px 18px rgba(8, 36, 25, 0.9); }
 .casino-felt .hl-buttons { padding: 8px 0 2px; background: linear-gradient(transparent, #0b2a1d 30%); }
 /* 縦が低い画面では所持金の説明を省き、上を詰める */

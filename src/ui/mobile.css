@@ -220,8 +220,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .build-fab { width: 62px; height: 62px; border-radius: 18px; }
   .build-fab-icon { font-size: 24px; }
   .build-fab-label { font-size: 12px; }
-  .touch-camera { grid-template-columns: 38px 38px; gap: 6px; }
-  .touch-camera .touch-btn { width: 38px; height: 38px; font-size: 17px; }
+  .touch-camera { grid-template-columns: 44px 44px; gap: 8px; }
+  .touch-camera .touch-btn { width: 44px; height: 44px; font-size: 18px; }
 
   .touch .build-menu-overlay { align-items: stretch; }
   .build-menu { width: 100%; max-height: none; height: 100%; border-radius: 0; }
@@ -430,7 +430,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .app.touch .touch-hud .walk-menu-status .chip { display: block; max-width: none; white-space: normal; font-size: 12px; background: transparent; color: var(--game-text, #fff); box-shadow: none; border: 0; padding: 2px 0; min-height: 0; }
 
 /* 建築画面で道具を持っているとき「建てる」の真下に出す「しまう」（メニューを開かずに手ぶらに戻る） */
-.build-fab-stack { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.build-fab-stack { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .build-fab-away {
   display: flex; align-items: center; justify-content: center; gap: 2px; height: 30px; padding: 0 4px;
   border: 0; border-radius: 15px; background: rgba(255,255,255,0.95); color: #333; font-size: 12px; font-weight: 700;
@@ -484,3 +484,33 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 }
 /* 1行に収まる幅（300〜360px）だけ折り返さない。もっと狭い（文字拡大など）ときは折り返して右上の削除ボタンを避ける */
 @media (min-width: 300px) and (max-width: 360px) { .touch-hud-row { flex-wrap: nowrap; } }
+
+/* ===== ボタン同士の距離（2026-11-10「ボタンとボタンの距離が異様に近いとこなども修正」）=====
+   ボタンは下に 3px の影があるので、すき間 4px だと見た目は 1px ほどしか空かない。指で押し分けられるよう 8px 以上あける。
+   測り方は scripts/check-ui-spacing.mjs */
+/* 左上の ☰・所持金・取り消し・やり直し（幅320pxでも1行に収まる） */
+.touch-hud-row { gap: 8px; }
+/* ☰ のメニューの項目 */
+.walk-menu-list { gap: 8px; }
+.walk-menu-item, .walk-menu-list .save > .tool { min-height: 44px; }
+/* セーブ／ロード：保存・読込・サンプルの家・更地にする・開始画面へ。更地にする は右端に離す */
+.save-menu .row { gap: 8px; margin-top: 10px; }
+.save-menu .row .btn.danger { margin-left: auto; }
+.touch .save-menu .btn { min-height: 44px; }
+/* 操作設定のチェック（上下の反転・中央照準）：1行 44px にして押し分けやすく */
+.touch .check { min-height: 44px; margin-left: 0; gap: 8px; }
+/* 写真モードの 時間・天気 */
+.touch .photo-row .tool { min-height: 44px; }
+/* 見た目・美容院の選択札 */
+.touch .looks-chip { min-height: 44px; }
+/* 画質（高・中・低） */
+.touch .graphics-picker button { min-height: 44px; }
+/* 家具デザイン：選んだ部品の 素材・形・動き と 複製・削除。削除 は右端に離す */
+.designer-part .row.wrap { margin-top: 10px; }
+.touch .designer-part select { min-height: 44px; }
+.designer-part .btn.danger { margin-left: auto; }
+/* 幅360px以下：写真モードの 時間・天気 は見出しを上の行に出し、ボタンを1行に収める（すき間 8px のまま） */
+@media (max-width: 360px) {
+  .touch .photo-row:not(.main) > span { flex-basis: 100%; text-align: center; margin: 0; }
+  .touch .photo-row .tool { padding: 4px 7px; }
+}
