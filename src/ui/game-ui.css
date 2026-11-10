@@ -36,7 +36,7 @@
 #root :is(.topbar,.moneybar,.panel,.modal,.save-menu,.controls-help,.levelbar,
   .toast,.sheet,.build-menu,.walk-menu-list,.world-session-panel,.world-session-toggle,
   .drive-hud,.vehicle-roster,.touch-cash,.walk-cash,.quick-tools,.world-network-warning,
-  .furniture-edit-hint,.modal-network-warning) {
+  .furniture-edit-hint,.modal-network-warning,.guide-card) {
   background: var(--pocket-paper);
   color: var(--pocket-ink);
   border: 2px solid var(--pocket-ink);
@@ -57,7 +57,7 @@
   .tool-card-desc,.world-note,.world-subtitle,.world-field,.drive-keyboard-help) {
   color: var(--pocket-muted);
 }
-#root :is(.modal-head,.build-menu-head,.sheet-head,.designer-foot) {
+#root :is(.modal-head,.build-menu-head,.sheet-head,.designer-foot,.guide-head) {
   background: var(--pocket-lcd);
   color: var(--pocket-ink);
   border-bottom: 2px solid var(--pocket-ink);
