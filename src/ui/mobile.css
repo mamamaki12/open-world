@@ -170,7 +170,9 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   background: rgba(250, 249, 246, 0.95); box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .joystick.running .joystick-knob { background: #ffb347; }
-.joystick-hint { position: absolute; top: -22px; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+/* スティックの上の文字：明るい壁や空の前でも読めるよう、濃い札にのせる */
+.joystick-hint { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-size: 13px; font-weight: 700; color: #fff; background: rgba(20,24,30,0.78); border-radius: 999px; padding: 2px 10px; line-height: 1.4; pointer-events: none; }
+.joystick-hint:empty { display: none; }
 .touch-actions {
   position: absolute; right: calc(16px + var(--safe-r)); bottom: calc(20px + var(--safe-b));
   display: grid; grid-template-areas: 'j'; gap: 12px; align-items: end; justify-items: center;
@@ -406,7 +408,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .drive-pedal .pedal-pad{position:absolute;inset:0 0 18px;border-radius:12px 12px 16px 16px;
   background:repeating-linear-gradient(180deg,#2b2f33 0 6px,#16191c 6px 10px);
   border:3px solid #a9b0b6;box-shadow:inset 0 2px 0 #fff3,0 4px 0 #555c62,0 6px 10px #0007;}
-.drive-pedal .pedal-name{position:absolute;left:0;right:0;bottom:0;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px #000a;}
+/* ペダルの下の文字：道路の明るい色に溶けないよう、濃い札にのせる */
+.drive-pedal .pedal-name{position:absolute;left:0;right:0;bottom:0;font-size:12px;line-height:1.25;font-weight:700;color:#fff;background:#141820d0;border-radius:6px;padding:1px 0;}
 .drive-brake.touch-btn{width:84px;height:78px;}
 .drive-accelerator.touch-btn{width:52px;height:112px;}
 .drive-pedal.touch-btn[aria-pressed=true]{transform:perspective(200px) rotateX(24deg);}
@@ -423,8 +426,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .drive-handbrake.touch-btn[aria-pressed=true]{background:#ffcf66;color:#292019;}
 .drive-drift{display:block;color:#ffcf66;font-size:12px;letter-spacing:.08em;}
 @media(orientation:landscape) and (max-height:500px){.drive-handbrake.touch-btn{width:48px;height:48px;}.drive-brakes{gap:4px;}}
-.drive-brake .pedal-pad{bottom:28px;}
-.drive-brake .pedal-name small{display:block;font-size:9px;line-height:1.2;}
+.drive-brake .pedal-pad{bottom:32px;}
+.drive-brake .pedal-name small{display:block;font-size:10px;line-height:1.2;}
 .walk-menu-status:empty { display: none; }
 .walk-menu-status { padding: 4px 6px 6px; }
 .app.touch .touch-hud .walk-menu-status .chip { display: block; max-width: none; white-space: normal; font-size: 12px; background: transparent; color: var(--game-text, #fff); box-shadow: none; border: 0; padding: 2px 0; min-height: 0; }
