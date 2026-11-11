@@ -99,6 +99,7 @@ export function HighLow() {
   const stake = pot > 0 ? pot : bet;
   return (
     <div className="game highlow">
+      <div className="casino-table-side">
       <div className={`hl-table${outcome ? ` ${outcome}` : ''}`}>
         <Stage camera={{ position: [0.15, 1.75, 1.75], fov: 40 }} target={[0.1, 0, 0.05]} height={320} label="カードテーブル">
           <CardTable3D current={card} incoming={flipping?.card ?? null} past={past} />
@@ -122,6 +123,8 @@ export function HighLow() {
         </div>
         {burst && burst.level > 0 && <WinBurst key={burst.id} level={burst.level} amount={burst.amount} text="GET!" />}
       </div>
+      </div>
+      <div className="casino-side">
       <div className="hl-buttons">
         <button className="btn hl-btn high" disabled={hi === 0 || !!flipping} onClick={() => guess('high')}>{iconText("▲ ハイ")}<small>{iconText("×")}{hi || '-'}</small>
         </button>
@@ -135,6 +138,7 @@ export function HighLow() {
       </div>
       {pot === 0 && !flipping && <BetInput value={bet} onChange={setBet} />}
       <p className="muted">倍率は当たりやすさから決まります（還元率 95%）。</p>
+      </div>
     </div>
   );
 }

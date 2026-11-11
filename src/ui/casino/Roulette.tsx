@@ -165,6 +165,8 @@ export function Roulette() {
 
   return (
     <div className="game roulette">
+      {/* 横向きのスマホでは盤を左、チップ・賭け台・スピンを右の列に並べる（ほかの画面では包みは無いのと同じ） */}
+      <div className="casino-table-side">
       <div className="roulette-top">
         <div className="wheel-wrap">
           <Stage camera={{ position: [0, 1.5, 1.55], fov: 42 }} target={[0, 0, 0.08]} height={360} label="ルーレットのホイール">
@@ -212,7 +214,9 @@ export function Roulette() {
         </div>
         {level > 0 && result && <WinBurst key={result.id} level={level} amount={result.win} text={level === 2 ? 'BIG WIN!!' : 'WIN!'} />}
       </div>
+      </div>
 
+      <div className="casino-side">
       <div className="roulette-touch-tools">
         <p className="scroll-hint">{iconText("← 台を左右になぞると、残りの数字・賭け方を表示できます →")}</p>
         <button className="btn small" aria-pressed={removing} disabled={spinning} onClick={() => setRemoving(v => !v)}>{removing ? 'チップを外す：ON（マスをタップ）' : 'チップを外すモード'}</button>
@@ -262,6 +266,7 @@ export function Roulette() {
         </button>
       </div>
       <p className="muted">{iconText("マスを押すと、持っているチップを置きます。「チップを外すモード」で外したいマスを押すと取り消せます。数字 ×36、列・ダース ×3、赤黒・奇数偶数・前半後半 ×2。0 が出ると 0 以外は負け。還元率 97.3%")}</p>
+      </div>
     </div>
   );
 }

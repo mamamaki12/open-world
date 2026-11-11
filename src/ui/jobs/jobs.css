@@ -41,3 +41,42 @@
 .counter { display: grid; justify-items: center; gap: 2px; min-width: 76px; padding: 10px 6px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-size: 13px; }
 .counter b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .counter .swatch { width: 26px; height: 8px; border-radius: 2px; }
+/* 問題（job-question）と答え（job-answers）の包みは、ふだんは無いのと同じ */
+.job-question, .job-answers { display: contents; }
+/* 横向きのスマホ：上に残り時間と「やめる」、その下で問題を左・答えのボタンを右の列に（2026-11-10）。
+   「やめる（給料なし）」は左上に置き、何度も押す答えのボタン（右）から離す */
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .jobs-modal { max-width: none; }
+  .touch .jobs-modal .modal-body:has(.job-shift) { display: flex; flex-direction: column; padding-top: 6px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .touch .job-shift { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 16px; flex: 1 1 auto; min-height: 0; }
+  .touch .job-head { grid-column: 1 / -1; gap: 6px 14px; }
+  .touch .job-head > .btn { order: -1; }
+  .touch .job-timer { font-size: 17px; }
+  .touch .job-bar { grid-column: 1 / -1; margin: 4px 0 8px; }
+  .touch .job-shift .job-game { grid-row: 3 / 5; grid-column: 1 / -1; grid-template-columns: subgrid; grid-template-rows: auto minmax(0, 1fr); align-items: start; gap: 6px 16px; min-height: 0; }
+  .touch .job-question, .touch .job-answers { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; justify-self: stretch; }
+  .touch .job-question { grid-column: 1; grid-row: 1; }
+  .touch .job-answers { grid-column: 2; grid-row: 1 / 3; }
+  .touch .job-game > .job-flash { grid-column: 1; grid-row: 2; }
+  .touch .job-game > .ledger { grid-column: 1; grid-row: 2; }
+  .touch .job-answers > p { margin: 0; }
+  /* 答えのボタン：右の列の幅で並べ、2行に収める */
+  .touch .job-answers .coin-row, .touch .job-answers .bins, .touch .job-answers .counters { width: 100%; }
+  .touch .job-answers .coin { min-height: 44px; }
+  .touch .job-answers .bins { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .touch .job-answers .bin { min-height: 48px; padding: 8px 4px; }
+  .touch .job-answers .counters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .touch .job-answers .counter { min-width: 0; }
+  .touch .job-answers .btn.big { width: 100%; min-height: 64px; }
+  /* やり直す・1つ戻す と 渡す・出す は横に並べる */
+  .touch .register .job-answers, .touch .burger .job-answers { flex-direction: row; flex-wrap: wrap; align-items: center; align-content: flex-start; }
+  .touch .job-answers > p, .touch .job-answers > .coin-row, .touch .job-answers > .btn.big { flex: 1 1 100%; }
+  .touch .job-answers > .btn.primary:not(.big) { min-width: 120px; }
+  /* ハンバーガー：注文票と作っているバーガーを横に並べる */
+  .touch .burger .job-question { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+  .touch .burger .order-ticket { flex: 1 1 150px; }
+  .touch .burger .burger-stack { flex: 0 1 150px; }
+  .touch .traffic .road { max-width: 100%; }
+  /* シフト終了：給料のカードは右の列（答えのボタンの上）に出す */
+  .touch .job-shift > .job-result { grid-column: 2; grid-row: 3 / 5; z-index: 1; margin: 0; align-self: start; max-height: 100%; overflow-y: auto; }
+}

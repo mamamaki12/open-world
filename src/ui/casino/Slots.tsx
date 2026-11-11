@@ -132,6 +132,8 @@ export function Slots() {
   const level: 0 | 1 | 2 = result ? (result.mult >= 200 ? 2 : result.mult >= 15 ? 1 : 0) : 0;
   return (
     <div className="game slots">
+      {/* 横向きのスマホでは台を左、賭け金とボタンを右の列に並べる（ほかの画面では包みは無いのと同じ） */}
+      <div className="casino-table-side">
       <div className={`slot-floor${big ? ' big-win' : ''}`}>
         <Stage camera={{ position: [0.5, 0.75, 3.3], fov: 40 }} target={[0.05, 0.42, 0]} height={460} label="スロット台">
           {/* となりに並ぶ台（飾り） */}
@@ -164,6 +166,8 @@ export function Slots() {
           <WinBurst key={result.id} level={level} amount={result.win} text={level === 2 ? 'JACKPOT!!' : 'BIG WIN!'} />
         )}
       </div>
+      </div>
+      <div className="casino-side">
       <BetInput value={bet} onChange={setBet} disabled={spinning} />
       <div className="casino-go-bar">
         <button className="btn casino-go big-btn" disabled={spinning || bet <= 0} onClick={spin}>
@@ -189,6 +193,7 @@ export function Slots() {
           <b>{iconText("×")}{CHERRY_PAY}</b>
         </div>
         <p className="muted">還元率 {(slotReturnRate() * 100).toFixed(1)}%</p>
+      </div>
       </div>
     </div>
   );

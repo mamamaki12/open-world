@@ -92,21 +92,28 @@ export function RaceGame({ kind }: { kind: RaceKind }) {
 
   return (
     <div className="game race">
-      <RaceHeader race={race} />
-      {phase === 'card' && tickets.length > 0 && <RaceMoney spent={tickets.reduce((s,t)=>s+t.stake,0)} />}
-      {phase !== 'card' && result && <RaceView race={race} motion={result.motion} order={result.order} onDone={onDone} ticketPanel={<RaceTickets race={race} probs={probs} tickets={tickets} />} />}
-      {phase === 'done' && result && <ResultBoard race={race} probs={probs} result={result} tickets={tickets} onNext={next} />}
-      {phase === 'card' && (
-        <>
-          <RaceCard race={race} probs={probs} />
-          <TicketMachine race={race} probs={probs} onBuy={(ts) => setTickets((cur) => [...cur, ...ts])} />
-          <PrintedTickets race={race} probs={probs} tickets={tickets} />
-          <div className="row">
-            <button className="btn primary big-btn" onClick={start}>
-              {tickets.length ? '発走！ レースを観る' : `${cfg.ticket}を買わずにレースを観る`}
-            </button>
-          </div>
-        </>
+      {/* 横向きのスマホでは出走表・レース映像を左、券売機・払戻を右の列に並べる（ほかの画面では包みは無いのと同じ） */}
+      <div className="casino-table-side">
+        <RaceHeader race={race} />
+        {phase === 'card' && tickets.length > 0 && <RaceMoney spent={tickets.reduce((s,t)=>s+t.stake,0)} />}
+        {phase !== 'card' && result && <RaceView race={race} motion={result.motion} order={result.order} onDone={onDone} ticketPanel={<RaceTickets race={race} probs={probs} tickets={tickets} />} />}
+        {phase === 'card' && <RaceCard race={race} probs={probs} />}
+      </div>
+      {phase !== 'running' && (
+        <div className="casino-side">
+          {phase === 'done' && result && <ResultBoard race={race} probs={probs} result={result} tickets={tickets} onNext={next} />}
+          {phase === 'card' && (
+            <>
+              <TicketMachine race={race} probs={probs} onBuy={(ts) => setTickets((cur) => [...cur, ...ts])} />
+              <PrintedTickets race={race} probs={probs} tickets={tickets} />
+              <div className="row">
+                <button className="btn primary big-btn" onClick={start}>
+                  {tickets.length ? '発走！ レースを観る' : `${cfg.ticket}を買わずにレースを観る`}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

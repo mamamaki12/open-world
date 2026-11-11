@@ -29,6 +29,11 @@ export function JobsPanel() {
   const def = job ? jobDef(job) : null;
   const timeUp = !!def && left <= 0;
   const pay = def ? shiftPay(def, score.ok, score.miss) : 0;
+  // 一覧を下までスクロールしてから選んでも、残り時間と「やめる」が見える上から始める
+  const shiftRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    shiftRef.current?.closest('.modal-body')?.scrollTo(0, 0);
+  }, [job, round]);
 
   useEffect(() => {
     if (!def) return;
@@ -62,7 +67,7 @@ export function JobsPanel() {
       {!def ? (
         <JobList onPick={start} />
       ) : (
-        <div className="job-shift">
+        <div className="job-shift" ref={shiftRef}>
           <div className="job-head">
             <b>{def.name}</b>
             <span className={`job-timer${left < 10 && !timeUp ? ' hurry' : ''}`}>{timeUp ? 'シフト終了' : `残り ${Math.ceil(left)} 秒`}</span>
@@ -149,6 +154,7 @@ function Register({ add, timeUp }: GameProps) {
   };
   return (
     <div className="job-game register">
+      <div className="job-question">
       <div className="receipt">
         {c.items.map((it, i) => (
           <div key={i} className={`receipt-row${i < scanned ? ' done' : ''}`}>
@@ -163,6 +169,8 @@ function Register({ add, timeUp }: GameProps) {
           </>
         )}
       </div>
+      </div>
+      <div className="job-answers">
       {!allScanned ? (
         <button className="btn primary big" disabled={timeUp} onClick={() => setScanned((n) => n + 1)}>
           ピッ（{c.items[scanned].name} をスキャン）
@@ -181,6 +189,7 @@ function Register({ add, timeUp }: GameProps) {
           <button className="btn primary" disabled={timeUp} onClick={hand}>渡す</button>
         </>
       )}
+      </div>
       <Flash msg={flash} />
     </div>
   );
@@ -198,6 +207,7 @@ function Warehouse({ add, timeUp }: GameProps) {
   };
   return (
     <div className="job-game warehouse">
+      <div className="job-question">
       <div className="parcel">
         <div className="parcel-tag">
           <small>お届け先</small>
@@ -205,10 +215,13 @@ function Warehouse({ add, timeUp }: GameProps) {
           <small>品名：{iconText(p.label)}</small>
         </div>
       </div>
+      </div>
+      <div className="job-answers">
       <div className="bins">
         {REGIONS.map((r) => (
           <button key={r} className="bin" disabled={timeUp} onClick={() => drop(r)}>{r}</button>
         ))}
+      </div>
       </div>
       <Flash msg={flash} />
     </div>
@@ -234,6 +247,7 @@ function Burger({ add, timeUp }: GameProps) {
   };
   return (
     <div className="job-game burger">
+      <div className="job-question">
       <div className="order-ticket">
         <small>注文票</small>
         <b>{order.name}</b>
@@ -248,6 +262,8 @@ function Burger({ add, timeUp }: GameProps) {
         ))}
         <div className="layer bun">バンズ（下）</div>
       </div>
+      </div>
+      <div className="job-answers">
       <div className="coin-row">
         {TOPPINGS.map((t) => (
           <button key={t} className="coin" disabled={timeUp} onClick={() => setStack((s) => [...s, t])}>{t}</button>
@@ -255,6 +271,7 @@ function Burger({ add, timeUp }: GameProps) {
       </div>
       <button className="btn" disabled={timeUp || !stack.length} onClick={() => setStack((s) => s.slice(0, -1))}>1つ戻す</button>{' '}
       <button className="btn primary" disabled={timeUp} onClick={serve}>バンズをのせて出す</button>
+      </div>
       <Flash msg={flash} />
     </div>
   );
@@ -293,6 +310,7 @@ function Traffic({ add, timeUp, seconds }: GameProps) {
   const actual = tally(passes);
   return (
     <div className="job-game traffic">
+      <div className="job-question">
       <svg viewBox={`0 0 ${W} 120`} className="road" role="img" aria-label="道路">
         <rect x={0} y={20} width={W} height={80} fill="#555" />
         <line x1={0} x2={W} y1={60} y2={60} stroke="#fff" strokeDasharray="18 14" strokeWidth={3} />
@@ -309,6 +327,8 @@ function Traffic({ add, timeUp, seconds }: GameProps) {
           );
         })}
       </svg>
+      </div>
+      <div className="job-answers">
       <div className="counters">
         {VEHICLES.map((v) => (
           <button key={v} className="counter" disabled={timeUp} onClick={() => setCounted((c) => ({ ...c, [v]: c[v] + 1 }))}>
@@ -316,6 +336,7 @@ function Traffic({ add, timeUp, seconds }: GameProps) {
             {v}<b>{iconText(counted[v])}</b>
           </button>
         ))}
+      </div>
       </div>
       {timeUp && (
         <table className="ledger compact">

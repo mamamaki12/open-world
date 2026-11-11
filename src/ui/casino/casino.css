@@ -739,3 +739,98 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
 .touch .spot {min-height:44px;}
 /* 指で押す端末ではマスが44px以上になるので、下の2段（1st 12〜・1-18〜）も44pxにして、上下のマスが重ならないようにする */
 .touch .roulette-table {grid-template-rows:repeat(3,46px) 44px 44px;}
+
+/* ===== 横向きのスマホ：台（盤・リール・テーブル・出走表）を左、賭け金とボタンを右の列に（2026-11-10）=====
+   縦向き・PC では包み（casino-table-side・casino-side）は無いのと同じにして、今までの並びのまま */
+.casino-table-side, .casino-side { display: contents; }
+@media (orientation: landscape) and (max-height: 500px) {
+  /* 左の列：上に「戻る・所持金・遊び方・音」の1行、その下に台。右の列：賭け金とボタン（上から下まで使う）。
+     左右の列はそれぞれ中だけスクロールする */
+  .touch .casino-playing .modal-body {
+    --casino-side: 46%;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto minmax(0, var(--casino-side));
+    grid-template-rows: auto auto minmax(0, 1fr);
+    align-items: center; gap: 6px 8px; overflow: hidden; flex: 1 1 auto;
+    padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .touch .casino-playing .modal-body:has(.game.roulette) { --casino-side: 57%; }
+  .touch .casino-playing .modal-body:not(:has(.casino-side)) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .touch .casino-playing .casino-bar, .touch .casino-playing .casino-felt, .touch .casino-playing .casino-paper,
+  .touch .casino-playing .game { display: contents; }
+  .touch .casino-playing .casino-game-nav { grid-row: 1; grid-column: 1; margin: 0; }
+  .touch .casino-playing .casino-game-nav > span { display: none; }
+  .touch .casino-playing .casino-wallet { grid-row: 1; grid-column: 2; min-width: 0; align-self: stretch; align-items: center; flex-wrap: nowrap; overflow: hidden; }
+  .touch .casino-playing .wallet-label { display: none; }
+  .touch .casino-playing .wallet-amount { white-space: nowrap; }
+  .touch .casino-playing .guide { grid-row: 1; grid-column: 3; margin: 0; }
+  .touch .casino-playing .guide-toggle { padding: 4px 12px; }
+  .touch .casino-playing .guide-toggle .guide-arrow { display: none; }
+  .touch .casino-playing .casino-bar .mute { grid-row: 1; grid-column: 4; min-width: 44px; min-height: 44px; }
+  .touch .casino-playing .casino-voice-note { grid-row: 2; grid-column: 1 / 5; margin: 0; padding: 3px 10px; }
+  .touch .casino-playing .casino-table-side, .touch .casino-playing .casino-side {
+    display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; align-self: stretch;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  }
+  .touch .casino-playing .casino-table-side > *, .touch .casino-playing .casino-side > * { flex-shrink: 0; }
+  .touch .casino-playing .casino-table-side { grid-row: 3; grid-column: 1 / 5; }
+  .touch .casino-playing .casino-side { grid-row: 1 / 4; grid-column: 5; }
+  /* 3Dの台は左の列の高さいっぱいに */
+  .touch .casino-playing .casino-table-side .casino-stage { flex: 1 1 auto; height: auto !important; max-height: none; min-height: 140px; }
+  .touch .casino-playing .slot-floor, .touch .casino-playing .hl-table { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .touch .casino-playing .slot-floor .slot-display { flex: none; }
+  .touch .casino-playing .hl-info { flex: none; padding: 6px 12px; gap: 2px; }
+  /* ルーレット：盤の横に出目と賭け金。右の列は「チップ＋スピン」を1行に、その下に賭け台 */
+  .touch .casino-playing .roulette-top { flex: 1 1 auto; min-height: 0; flex-wrap: nowrap; align-items: stretch; gap: 8px; }
+  .touch .casino-playing .wheel-wrap { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .touch .casino-playing .roulette-side { flex: 0 0 112px; min-width: 0; gap: 6px; overflow-y: auto; }
+  .touch .casino-playing .tote { padding: 6px; }
+  .touch .casino-playing .roulette-result { font-size: 13px; line-height: 1.4; }
+  .touch .casino-playing .bet-total b { display: block; margin: 0; }
+  .touch .casino-playing .roulette .casino-side { display: grid; grid-template-columns: repeat(5, auto) minmax(0, 1fr); grid-auto-rows: max-content; align-content: start; align-items: center; gap: 8px; }
+  .touch .casino-playing .roulette .chip-tray { display: contents; }
+  .touch .casino-playing .roulette .chip-tray > .ow-chip { grid-row: 1; }
+  .touch .casino-playing .roulette .casino-go-bar { grid-row: 1; grid-column: 6; position: static; padding: 0; background: none; }
+  .touch .casino-playing .roulette .casino-side > :not(.chip-tray):not(.casino-go-bar), .touch .casino-playing .roulette .tray-ops { grid-column: 1 / -1; }
+  .touch .casino-playing .roulette .felt-scroll { grid-row: 2; }
+  .touch .casino-playing .roulette .tray-ops { grid-row: 3; }
+  .touch .casino-playing .roulette .roulette-touch-tools { grid-row: 4; }
+  .touch .casino-playing .roulette .casino-side > .warn { grid-row: 5; margin: 0; }
+  .touch .casino-playing .roulette .casino-side > .muted { grid-row: 6; margin: 0; }
+  .touch .casino-playing .roulette .tray-ops { margin: 0; }
+  /* スロット・ハイ＆ロー：回す・ハイ／ローは右の列の下に固定 */
+  .touch .casino-playing .casino-side .casino-go-bar, .touch .casino-playing .casino-side .hl-buttons { margin-top: auto; }
+  .touch .casino-playing .casino-side .casino-go { padding: 10px 14px; font-size: 17px; }
+  .touch .casino-playing .bet-amount { font-size: 20px; min-width: 0; }
+  .touch .casino-playing .chip-tray { padding: 8px; gap: 8px; }
+  /* 競馬・競輪・ボート：左右の列をそれぞれ白い紙に */
+  .touch .casino-playing .casino-paper .casino-table-side, .touch .casino-playing .casino-paper .casino-side {
+    padding: 8px 10px; border-radius: 10px; background: #fbfaf7; color: var(--ink);
+    border-top: 5px solid #1e7a3c; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  .touch .casino-playing .casino-paper.keirin .casino-table-side, .touch .casino-playing .casino-paper.keirin .casino-side { border-top-color: #e07b00; }
+  .touch .casino-playing .casino-paper.boat .casino-table-side, .touch .casino-playing .casino-paper.boat .casino-side { border-top-color: #1d5fbf; }
+  .touch .casino-playing .casino-paper .tm { margin: 0; }
+  .touch .casino-playing .casino-paper .tm-body { grid-template-columns: minmax(0, 1fr); }
+  .touch .casino-playing .casino-paper .casino-table-side:only-child { grid-column: 1 / -1; }
+  /* 「発走！ レースを観る」は券売機の下に固定して、いつでも押せるように */
+  .touch .casino-playing .casino-paper .casino-side > .row { position: sticky; bottom: -8px; z-index: 2; margin: auto -10px -8px; padding: 6px 10px 8px; background: #fbfaf7; box-shadow: 0 -6px 10px rgba(251, 250, 247, 0.9); }
+  .touch .casino-playing .casino-paper .casino-side > .row .btn { flex: 1; }
+}
+/* 横向きでも幅が狭いスマホ（568×320 など）：上の行は所持金を広く取り、遊び方と音は右の列の上に置く */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 700px) {
+  .touch .casino-playing .modal-body:has(.casino-side) .casino-wallet { grid-column: 2 / 5; }
+  .touch .casino-playing .modal-body:has(.casino-side) .guide { grid-column: 5; justify-self: start; }
+  .touch .casino-playing .modal-body:has(.casino-side) .casino-bar .mute { grid-column: 5; justify-self: end; }
+  .touch .casino-playing .casino-side { grid-row: 3; }
+  .touch .casino-playing .wallet-amount { font-size: 16px; }
+  /* ルーレット：スピンはチップの下の行に */
+  .touch .casino-playing .roulette .casino-go-bar { grid-row: 2; grid-column: 1 / -1; }
+  .touch .casino-playing .roulette .felt-scroll { grid-row: 3; }
+  .touch .casino-playing .roulette .tray-ops { grid-row: 4; }
+  .touch .casino-playing .roulette .roulette-touch-tools { grid-row: 5; }
+  .touch .casino-playing .roulette .casino-side > .warn { grid-row: 6; }
+  .touch .casino-playing .roulette .casino-side > .muted { grid-row: 7; }
+  .touch .casino-playing .roulette-top { flex: none; flex-direction: column; }
+  .touch .casino-playing .wheel-wrap { flex: none; height: 190px; }
+  .touch .casino-playing .roulette-side { flex: none; overflow: visible; }
+}
