@@ -1,5 +1,5 @@
 // スマホの移動スティック：指を離したら必ず戻る。スティックの要素に pointerup が届かなくても（別の指と同時に触ったときなど）戻り、
-// 戻りそこねても次にスティックに触った指で操作し直せる
+// 戻りそこねても次にスティックに触った指で操作し直せる。2回タップでジャンプもできる
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -11,7 +11,8 @@ const page=await context.newPage();page.setDefaultTimeout(60000);const errors=[]
 const cdp=await context.newCDPSession(page);
 const knob=()=>page.$eval('.joystick-knob',el=>el.style.transform);
 const block=(list)=>page.evaluate(l=>{window.__block=new Set(l);},list);
-const touch=(type,points)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:points});
+// 押した時刻を指定する（ブラウザが重くて処理が遅れても、タップの間隔を実機と同じにする）
+let clock=Date.now()/1000;const touch=(type,points,dt=0.3)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:points,timestamp:clock+=dt});
 try{
   await page.goto((process.env.WORLD_TEST_URL||'http://127.0.0.1:5173/')+'?play=1&touch=1');await page.waitForFunction(()=>window.__ow?.scene);
   await page.evaluate(()=>window.__ow.game.getState().setMode('walk'));
@@ -36,6 +37,12 @@ try{
   await page.waitForTimeout(400);
   await push(2);await touch('touchEnd',[]);await page.waitForTimeout(150);
   assert.ok(await centered(),'new touch takes over a stuck stick and releases');
+  // 4. スティックを2回タップするとジャンプする（離したことを window で受けても1回目のタップを覚えている）
+  await page.waitForTimeout(400);
+  const jumps=()=>page.evaluate(()=>window.__ow.motion.jumps);const j0=await jumps();
+  for(const id of [3,4]){await touch('touchStart',[{x:r.x,y:r.y,id}],0.08);await touch('touchEnd',[],0.06);}
+  await page.waitForTimeout(200);
+  assert.equal(await jumps(),j0+1,'double tap on stick jumps');
   assert.deepEqual(errors,[]);
   console.log('ok: joystick release');
 }finally{await browser.close();}

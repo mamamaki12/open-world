@@ -31,18 +31,27 @@ function Joystick({ driving }: { driving: boolean }) {
     touchMove.y = 0;
     setKnob({ x: 0, y: 0 });
   };
+  // 指を離した：短く触れて離したなら2回タップの1回目として覚える。
+  // window でも受けるので、先に呼ばれた方だけが判定する（どちらから呼ばれてもジャンプが効くように）
+  // 時刻はイベントの発生時刻（e.timeStamp）で比べる。画面が重くて処理が遅れてもタップの判定がずれない
+  const endRef = useRef<(id: number, at: number) => void>(() => undefined);
+  endRef.current = (id: number, now: number) => {
+    if (id !== pointer.current) return;
+    if (now - downAt.current < TAP_MS) tapAt.current = now;
+    release();
+  };
   useEffect(() => {
     const reset = () => release();
     const hidden = () => { if (document.hidden) release(); };
     // 指を離したイベントがスティックの要素に届かないことがある（別の指と同時に触ったときなど）。
     // window でも受けて、追っている指が離れたら必ず戻す。
-    const pointerEnd = (e: PointerEvent) => { if (e.pointerId === pointer.current) release(); };
+    const pointerEnd = (e: PointerEvent) => endRef.current(e.pointerId, e.timeStamp);
     // タッチイベントは確実に届くので、スティックの上で始まった指が残っていなければ戻す
     const touchEnd = (e: TouchEvent) => {
       if (pointer.current === null) return;
       const el = base.current;
       const stillOn = Array.from(e.touches).some((t) => el && t.target instanceof Node && el.contains(t.target));
-      if (!stillOn) release();
+      if (!stillOn) endRef.current(pointer.current, e.timeStamp);
     };
     window.addEventListener('blur', reset);
     document.addEventListener('visibilitychange', hidden);
@@ -85,7 +94,7 @@ function Joystick({ driving }: { driving: boolean }) {
         e.currentTarget.setPointerCapture(e.pointerId);
         const r = base.current!.getBoundingClientRect();
         center.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-        const now = performance.now();
+        const now = e.timeStamp;
         if (!driving && now - tapAt.current < DOUBLE_TAP_MS) {
           tapAt.current = -Infinity;
           walkActions.jump();
@@ -95,12 +104,7 @@ function Joystick({ driving }: { driving: boolean }) {
         move(e);
       }}
       onPointerMove={(e) => e.pointerId === pointer.current && move(e)}
-      onPointerUp={(e) => {
-        if (e.pointerId !== pointer.current) return;
-        const now = performance.now();
-        if (now - downAt.current < TAP_MS) tapAt.current = now;
-        release();
-      }}
+      onPointerUp={(e) => endRef.current(e.pointerId, e.timeStamp)}
       onPointerCancel={(e) => e.pointerId === pointer.current && release()}
       onLostPointerCapture={(e) => e.pointerId === pointer.current && release()}
     >
