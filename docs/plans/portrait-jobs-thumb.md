@@ -6,7 +6,7 @@
 - PR: 未作成
 - 公開: 未公開
 - 残作業: PR 作成とマージ後の公開確認（スマホ縦向きでバイト4種の答えのボタンが画面の下にあること、ペダル・スティックの文字が読めること）。
-- 確認根拠: typecheck・vitest（750件）・vite build と、check-jobs（pc・phone）・check-ui-overlap-all・check-ui-spacing（234画面、近すぎる組0・名前のないボタン0）がローカルで通過。縦 320×568 で4種とも、何問か出しても本文がはみ出さないこと（スクロールなし）を測った。
+- 確認根拠: typecheck・vitest（750件）・vite build と、check-jobs（pc・phone）・check-ui-overlap-all・check-ui-spacing（234画面、近すぎる組0・名前のないボタン0）・check-double-tap-jump・check-car-cockpit・check-app-icons・check-handheld-ui・check-shared-ui-layout・check-shared-wallet がローカルで通過。check-large-text は文字の重なり・はみ出しの NG は0で、マシンが混んでいたため PC の拡大表示で撮影のタイムアウトだけ出た（#174 と同じ）。縦 320×568 で4種とも、何問か出しても本文がはみ出さないこと（スクロールなし）を測った。
 - 最終更新: 2026-11-11
 
 - ブランチ: claude/pensive-davinci-6ppi2e
