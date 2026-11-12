@@ -442,6 +442,13 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .modal.designer { width: min(1100px, 100%); height: calc(100% - 16px); }
 .designer-name { flex: 1; min-width: 120px; font-size: 15px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; }
 .designer-price { font-weight: 700; }
+/* 幅の狭いスマホ：見出しが「家具を／デザイ／ン」と3行に折れないよう、1行目に見出しと閉じる、2行目に名前と値段（2026-11-12） */
+@media (max-width: 480px) {
+  .modal.designer .modal-head .modal-title { order: 1; flex: none; white-space: nowrap; }
+  .modal.designer .modal-head .close { order: 2; margin-left: auto; }
+  .modal.designer .modal-head .designer-name { order: 3; flex: 1 1 calc(100% - 120px); min-width: 0; }
+  .modal.designer .modal-head .designer-price { order: 4; white-space: nowrap; }
+}
 .designer-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.2fr 1fr; }
 .designer-view { position: relative; min-height: 260px; }
 .designer-view-actions { position: absolute; left: 10px; bottom: 10px; }
@@ -453,6 +460,8 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .designer-foot { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: #fff; }
 @media (max-width: 760px), (max-height: 520px) and (orientation: landscape) {
   .designer-body { grid-template-columns: 1fr; grid-template-rows: minmax(200px, 40%) 1fr; }
+  /* 見本の高さは行の高さに合わせる（260px のままだと、背の低いスマホで「引き出し・扉を開けてみる」が下の部品のボタンに重なる） */
+  .designer-view { min-height: 0; }
   .designer-controls { border-left: 0; border-top: 1px solid var(--line); }
 }
 @media (max-height: 520px) and (orientation: landscape) {
