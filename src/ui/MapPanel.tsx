@@ -28,6 +28,15 @@ const SCALE = 3.2, PAD = 28;
 const sx = (x: number) => PAD + (x - TOWN_BOUNDS.x0 + 12) * SCALE;
 const sy = (z: number) => PAD + (z - TOWN_BOUNDS.z0 + 28) * SCALE;
 const WIDTH = sx(TOWN_BOUNDS.x1 + 35) + PAD, HEIGHT = sy(TOWN_BOUNDS.z1 + 35) + PAD;
+/** 高さが幅のこの倍より大きい画面は「縦長」として、自分のまわりを大きく見せる */
+const PORTRAIT = 1.2, NEAR = 2;
+/** 開いたときの見え方：ふつうは町全体。縦長の画面で me があれば、町全体の NEAR 倍で自分を真ん中に（地図の外は出さない） */
+function initialView(w: number, h: number, me: { x: number; y: number } | null): View {
+  const fit = Math.min(w / WIDTH, h / HEIGHT);
+  if (!me || h <= w * PORTRAIT) return { k: fit, x: (w - WIDTH * fit) / 2, y: (h - HEIGHT * fit) / 2 };
+  const k = fit * NEAR, place = (screen: number, full: number, at: number) => full <= screen ? (screen - full) / 2 : Math.min(0, Math.max(screen - full, screen / 2 - at * k));
+  return { k, x: place(w, WIDTH * k, me.x), y: place(h, HEIGHT * k, me.y) };
+}
 /** 地図に書く公式のお店の短い名前（服屋はまとめて「服」） */
 const SHORT: Partial<Record<Venue, string>> = { casino: 'CASINO', estate: '不動産屋', dealer: '車', tuner: 'カスタム', exchange: '証券', salon: '美容室' };
 // 携帯ゲーム機の画面に合わせた少ない色（くすんだ緑の濃淡＋紙色。赤と金は目印だけ）
@@ -61,16 +70,20 @@ export function MapPanel() {
   }, [close]);
   const mx = plotX(here) + (walking ? playerMemory.x : LOT_W * GRID / 2);
   const mz = plotZ(here) + (walking ? playerMemory.z : LOT_D * GRID / 2);
-  // 開いたとき・画面の向きが変わったときは町全体が入る大きさにする（すぐどのお店でもタップできる）
+  // 開いたとき・画面の向きが変わったときは町全体が入る大きさにする（すぐどのお店でもタップできる）。
+  // 縦長の画面（縦向きのスマホ）は町が真ん中に小さく出て上下が森になるので、自分のまわりを大きく見せる（「町全体」で全体に戻せる）
+  const me = useRef({ x: sx(mx), y: sy(mz) }); me.current = { x: sx(mx), y: sy(mz) };
+  const [whole, setWhole] = useState(false);
+  const tall = size.h > size.w * PORTRAIT;
   useLayoutEffect(() => {
     const el = box.current; if (!el) return;
     const measure = () => {
-      const w = el.clientWidth, h = el.clientHeight, k = Math.min(w / WIDTH, h / HEIGHT);
-      setSize({ w, h }); setView({ k, x: (w - WIDTH * k) / 2, y: (h - HEIGHT * k) / 2 });
+      const w = el.clientWidth, h = el.clientHeight;
+      setSize({ w, h }); setView(initialView(w, h, whole ? null : me.current));
     };
     measure();
     const ro = new ResizeObserver(measure); ro.observe(el); return () => ro.disconnect();
-  }, []);
+  }, [whole]);
 
   // 指1本で移動、2本でピンチ。動かさずに離したらタップ（その場所の家・お店を選ぶ）
   const points = useRef(new Map<number, { x: number; y: number }>());
@@ -195,6 +208,7 @@ export function MapPanel() {
     </div>
     {reconnecting && <p className="modal-network-warning map-network-warning" role="status">{networkMessage}</p>}
     <button className="map-close" onClick={() => close(null)} aria-label="閉じる">{iconText('✕')}</button>
+    {tall && <button className="map-whole" onClick={() => { setPick(null); setWhole(!whole); }}>{whole ? '自分のまわり' : '町全体'}</button>}
   </div>;
 }
 
