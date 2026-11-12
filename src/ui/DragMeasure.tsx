@@ -1,4 +1,4 @@
-// スマホで壁・床・屋根をなぞっている間、指で隠れる大きさを画面の上に出す
+// 壁・床・屋根をなぞっている間、大きさを画面の上に出す（スマホは指で隠れるため、PCは斜めから狙うと分かりにくいため）。置けないときは理由も出す
 import { useEffect, useState } from 'react';
 import { GRID } from '../building/dimensions';
 import { useInteraction, type Preview } from '../state/interaction';
@@ -24,8 +24,8 @@ export function DragMeasure() {
   const preview = useInteraction((s) => s.preview);
   const [down, setDown] = useState(false);
   useEffect(() => {
-    const start = (e: PointerEvent) => { if (e.pointerType === 'touch' && e.target instanceof HTMLCanvasElement) setDown(true); };
-    const end = (e: PointerEvent) => { if (e.pointerType === 'touch') setDown(false); };
+    const start = (e: PointerEvent) => { if ((e.pointerType === 'touch' || e.button === 0) && e.target instanceof HTMLCanvasElement) setDown(true); };
+    const end = () => setDown(false);
     document.addEventListener('pointerdown', start, true);
     document.addEventListener('pointerup', end, true);
     document.addEventListener('pointercancel', end, true);
@@ -40,7 +40,7 @@ export function DragMeasure() {
   const valid = 'valid' in preview ? preview.valid : true;
   return (
     <div className={`drag-measure${valid ? '' : ' invalid'}`} role="status">
-      {text}{!valid && <small>ここには置けません</small>}
+      {text}{!valid && <small>{('reason' in preview && preview.reason) || 'ここには置けません'}</small>}
     </div>
   );
 }

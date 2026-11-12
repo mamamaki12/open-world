@@ -4,8 +4,8 @@ import type { Rect } from '../building/rules';
 import type { PartRef } from '../building/types';
 
 export type Preview =
-  | { kind: 'rect'; rect: Rect; valid: boolean; tool: 'floor' | 'roof' | 'erase' }
-  | { kind: 'wall'; x0: number; z0: number; x1: number; z1: number; valid: boolean }
+  | { kind: 'rect'; rect: Rect; valid: boolean; tool: 'floor' | 'roof' | 'erase'; reason?: string | null }
+  | { kind: 'wall'; x0: number; z0: number; x1: number; z1: number; valid: boolean; reason?: string | null }
   | { kind: 'stair'; x: number; z: number; valid: boolean }
   | { kind: 'furniture'; x: number; z: number }
   | { kind: 'nameplate'; mount: NonNullable<import('../building/types').FurniturePart['wallMount']>; type?: string }

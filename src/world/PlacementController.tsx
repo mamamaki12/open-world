@@ -185,9 +185,8 @@ export function PlacementController() {
           const rect = dragStart ? cellRect(dragStart, c) : cellRect(c, c);
           const level = g.tool === 'floor' ? surface : surface - 1;
           g.setLevel(level);
-          const valid =
-            (g.tool === 'floor' ? floorPlacementPlan(g.house, level, rect).error : canPlaceRoof(g.house, level, rect)) === null;
-          ui.setPreview({ kind: 'rect', rect, valid, tool: g.tool });
+          const reason = g.tool === 'floor' ? floorPlacementPlan(g.house, level, rect).error : canPlaceRoof(g.house, level, rect);
+          ui.setPreview({ kind: 'rect', rect, valid: reason === null, tool: g.tool, reason });
           break;
         }
         case 'wall': {
@@ -195,8 +194,8 @@ export function PlacementController() {
           const q = pointAt(p);
           const single = singleBlock();
           const seg = single ? blockWall(p) : dragStart ? axisAlignedSegment(dragStart, q) : { x0: q.x, z0: q.z, x1: q.x, z1: q.z };
-          const valid = !(dragStart || single) || canPlaceWall(g.house, { level: surface, ...seg }) === null;
-          ui.setPreview({ kind: 'wall', ...seg, valid });
+          const reason = dragStart || single ? canPlaceWall(g.house, { level: surface, ...seg }) : null;
+          ui.setPreview({ kind: 'wall', ...seg, valid: reason === null, reason });
           break;
         }
         case 'stair': {
