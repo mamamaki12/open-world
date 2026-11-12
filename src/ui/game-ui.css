@@ -301,7 +301,10 @@
   /* 横向きのスマホ：左に題字、右に名前と「ひとりで遊ぶ」「みんなのワールドで遊ぶ」を並べて、2つとも最初の画面に入れる（#174 の横向きの2列と同じ考え） */
   #root .world-card { width: min(100%, 800px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 20px; align-items: start; }
   #root .world-card > * { grid-column: 2; min-width: 0; }
-  #root .world-card > .pocket-title-screen { grid-column: 1; grid-row: 1 / span 20; position: sticky; top: 0; margin: 0; padding-bottom: 8px; }
+  /* 左の題字の枠は右の列の高さいっぱいに伸ばす（下が空かないように）。題字・ひとこと・家の絵は、最初に見えている部分の上下の真ん中に置く */
+  #root .world-card > .pocket-title-screen { grid-column: 1; grid-row: 1 / span 20; align-self: stretch; margin: 0; padding: 16px; box-sizing: border-box; }
+  #root .pocket-title-body { height: calc(100dvh - 72px); max-height: 100%; display: flex; flex-direction: column; justify-content: center; }
+  #root .world-card > .pocket-title-screen .pocket-town { height: 56px; margin-top: 10px; }
   #root .world-card > .world-field { margin-top: 0; }
   #root .world-choices { margin: 12px 0 14px; }
   #root .world-choice { min-height: 64px; padding-block: 10px; }

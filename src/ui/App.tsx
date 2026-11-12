@@ -206,7 +206,7 @@ function WalkMenu() {
   const ref = useRef<HTMLDivElement>(null);
   useCloseOutside(open, close, ref);
   return (
-    <div className="touch-hud walk-menu" ref={ref}>
+    <div className={`touch-hud walk-menu${open ? ' menu-open' : ''}`} ref={ref}>
       <div className="touch-hud-row">
         <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>{iconText("☰")}</button>
         <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
@@ -230,7 +230,7 @@ function TouchHud() {
   const ref = useRef<HTMLDivElement>(null);
   useCloseOutside(open, close, ref);
   return (
-    <div className="touch-hud walk-menu build-hud" ref={ref}>
+    <div className={`touch-hud walk-menu build-hud${open ? ' menu-open' : ''}`} ref={ref}>
       <div className="touch-hud-row">
         <button className={`tool icon${open ? ' on' : ''}`} onClick={() => setOpen(!open)} aria-label="メニュー" aria-expanded={open}>{iconText("☰")}</button>
         <span className={`touch-cash plain${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
@@ -385,7 +385,7 @@ function TopBar({ walking }: { walking: boolean }) {
   const menuRef = useRef<HTMLDivElement>(null);
   useCloseOutside(open, close, menuRef);
   return (
-    <div className="topbar">
+    <div className={`topbar${open ? ' menu-open' : ''}`}>
       <MoneyStatus />
       <div className="topbar-center">
         <ModeButton />
