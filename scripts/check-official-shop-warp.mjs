@@ -17,6 +17,8 @@ try {
     for (const kind of kinds) {
       await page.evaluate(() => window.__ow.game.getState().setOverlay('map'));
       const label = await page.evaluate(async k => (await import('/src/building/venues.ts')).VENUES[k].name, kind);
+      // 縦向きのスマホは自分のまわりを大きく出すので、「町全体」にしてからお店を選ぶ
+      if (touch) await page.getByRole('button', { name: '町全体', exact: true }).click();
       await page.locator('.map-canvas svg').getByRole('button', { name: label, exact: true }).click();
       await page.locator('.map-pop').getByRole('button', { name: 'ワープ', exact: true }).click();
       const r = await page.evaluate(async k => {
@@ -28,6 +30,7 @@ try {
       if (kind === 'casino' || kind === 'maison') { await page.waitForTimeout(1500); await page.screenshot({ path: `${out}/${name}-${kind}.png` }); }
     }
     await page.evaluate(() => window.__ow.game.getState().setOverlay('map'));
+    if (touch) await page.getByRole('button', { name: '町全体', exact: true }).click();
     await page.locator('.map-canvas svg').getByRole('button', { name: 'まちの不動産', exact: true }).click();
     await page.locator('.map-pop').waitFor();
     await page.screenshot({ path: `${out}/${name}-map.png` });
