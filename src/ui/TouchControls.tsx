@@ -202,20 +202,31 @@ export function TouchWalkControls({ build }: { build: ReactNode }) {
   );
 }
 
+/** 回転ボタン：1回押すと 30° 回る（短いタップでも向きが分かるように）。押し続けるとそのまま回り続ける */
+let turnTimer: ReturnType<typeof setTimeout> | undefined;
+function turnHold(dir: 1 | -1, on: boolean) {
+  clearTimeout(turnTimer);
+  if (!on) { touchCamera.turn = 0; return; }
+  touchCamera.turnKick = dir * Math.PI / 6;
+  turnTimer = setTimeout(() => { touchCamera.turn = dir; }, 350);
+}
+
 export function TouchCameraPad() {
   useEffect(
     () => () => {
+      clearTimeout(turnTimer);
       touchCamera.turn = 0;
+      touchCamera.turnKick = 0;
       touchCamera.zoom = 0;
     },
     [],
   );
   return (
     <div className="touch-camera">
-      <HoldButton label="左に回る" onHold={(on) => (touchCamera.turn = on ? 1 : 0)}>
+      <HoldButton label="左に回る" onHold={(on) => turnHold(1, on)}>
         <AppIcon name="orbitLeft" />
       </HoldButton>
-      <HoldButton label="右に回る" onHold={(on) => (touchCamera.turn = on ? -1 : 0)}>
+      <HoldButton label="右に回る" onHold={(on) => turnHold(-1, on)}>
         <AppIcon name="orbitRight" />
       </HoldButton>
       <HoldButton label="寄る" onHold={(on) => (touchCamera.zoom = on ? 1 : 0)}>

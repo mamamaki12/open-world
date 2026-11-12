@@ -34,13 +34,25 @@ export function GuideCard() {
   const folded = touch ? !touchOpen : g.folded;
   const setFolded = (v: boolean) => (touch ? setTouchOpen(!v) : g.setFolded(v));
   const quest = g.activeQuest();
+  // 見本の家（最初から建っている分）は数えず、チュートリアルを始めてから増えた分で進める
+  const lotId = lot?.id ?? null;
+  const count = { floors: house.floors.length, walls: house.walls.length, doors: house.openings.filter((o) => o.kind === 'door').length };
+  const start = g.start;
+  useEffect(() => {
+    if (g.tutorial !== 'active') return;
+    // 始めたとき・別の土地に移ったときは今の数から数える。部品を消して減ったら、減った数を新しい起点にする
+    if (!start || start.lot !== lotId) g.setStart({ lot: lotId, ...count });
+    else if (count.floors < start.floors || count.walls < start.walls || count.doors < start.doors)
+      g.setStart({ lot: lotId, floors: Math.min(count.floors, start.floors), walls: Math.min(count.walls, start.walls), doors: Math.min(count.doors, start.doors) });
+  });
+  const base = start && start.lot === lotId ? start : { floors: count.floors, walls: count.walls, doors: count.doors };
   const steps = useMemo(() => tutorialSteps({
-    floors: house.floors.length,
-    walls: house.walls.length,
-    door: house.openings.some((o) => o.kind === 'door'),
+    floors: count.floors - base.floors,
+    walls: count.walls - base.walls,
+    door: count.doors > base.doors,
     built: !!lot?.built || !!lot?.construction || sold || g.delivered > 0,
     sold: sold || g.delivered > 0,
-  }), [house, lot?.built, lot?.construction, sold, g.delivered]);
+  }), [house, base.floors, base.walls, base.doors, lot?.built, lot?.construction, sold, g.delivered]);
   const checks = useMemo(() => (quest ? checkQuest(quest, house, lot?.location ?? null) : []), [quest, house, lot?.location]);
   const stepIndex = steps.findIndex((s) => !s.ok);
   useEffect(() => { if (g.tutorial === 'active' && stepIndex < 0) useGuide.getState().finishTutorial('done'); }, [g.tutorial, stepIndex]);
