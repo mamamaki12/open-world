@@ -4,6 +4,9 @@
    - 名前・見出しは 13px 以上、補足は 12px 以上で紙の地に 4.5:1 以上の色
    PC の左の道具パネル（.build-menu の外）はここでは変えない */
 
+/* 建築メニューは画面の下に付ける。.touch .overlay の stretch が勝って画面の上に貼り付き、下に隙間が出ていた（2026-11-12）。
+   道具を選ぶ前は中身の高さだけにして、上に家が見えるようにする */
+#root .touch .build-menu-overlay { align-items: flex-end; }
 #root .build-menu:has(.build-menu-body:not(.catalog-only)) { height: 90dvh; }
 #root .build-menu .build-menu-body:not(.catalog-only) {
   display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 0; gap: 0;
@@ -34,6 +37,7 @@
 
 /* スマホ横：道具は左の細い列、設定は右の高さ全部 */
 @media (orientation: landscape) and (max-height: 500px) {
+  #root .touch .build-menu-overlay { align-items: stretch; }
   #root .build-menu:has(.build-menu-body:not(.catalog-only)) { height: 100%; }
   #root .build-menu .build-menu-body:not(.catalog-only) { flex-direction: row; }
   #root .build-menu .build-menu-body:not(.catalog-only) .build-menu-catalog {

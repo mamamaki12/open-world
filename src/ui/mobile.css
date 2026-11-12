@@ -412,6 +412,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .drive-pedal .pedal-name{position:absolute;left:0;right:0;bottom:0;font-size:12px;line-height:1.25;font-weight:700;color:#fff;background:#141820d0;border-radius:6px;padding:1px 0;}
 .drive-brake.touch-btn{width:84px;height:78px;}
 .drive-accelerator.touch-btn{width:52px;height:112px;}
+/* 「アクセル」は細いペダルの幅では2行に折れるので、札だけ左右に少し広げて1行にする */
+.drive-accelerator .pedal-name{left:-6px;right:-6px;white-space:nowrap;}
 .drive-pedal.touch-btn[aria-pressed=true]{transform:perspective(200px) rotateX(24deg);}
 .drive-pedal.touch-btn[aria-pressed=true] .pedal-pad{border-color:#ffcf66;box-shadow:inset 0 2px 0 #fff3,0 1px 0 #555c62,0 2px 4px #0007;}
 .touch.driving .touch-actions{bottom:calc(104px + var(--safe-b));display:flex;gap:8px;}
