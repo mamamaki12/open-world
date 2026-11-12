@@ -84,7 +84,7 @@
  #root .boutique-modal .boutique-balance { padding:0; }
  .boutique-balance small { display:inline; margin-right:8px; }
  .boutique-layout { margin-top:8px; }
- .boutique-listbar { padding:4px 0; }
+ .boutique-listbar { padding:4px 0 10px; }
  /* 服は3列・正方形の絵にして、1段目が画面に収まるようにする */
  .garment-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px 10px; }
  .garment-image { aspect-ratio:1/1; }
