@@ -48,7 +48,22 @@ export const currentEndpoint = () => endpoint;
 interface Command { id: string; lot: string; delta: Change[]; reserved: number; settle?: boolean; undoOf?: string }
 interface Result { id: string; ok: boolean; cost?: number; message?: string }
 let pending: Command | null = null;
+/** 確定待ちの間に建てた分。手元ではすぐ表示し、前の変更が確定したら順に送る */
+let queued: Command[] = [];
 const ownHistory: Command[] = [];
+/** サーバーの町の上に、まだ確定していない自分の変更を重ねて表示する（すでに反映済みの分は飛ばす） */
+function showUnconfirmed() {
+  const lot = useEconomy.getState().currentLotId;
+  let house = useGame.getState().house, changed = false;
+  for (const c of [pending, ...queued]) {
+    if (!c || c.lot !== lot || c.undoOf) continue;
+    try { house = applyChanges(house, c.delta); changed = true; } catch { /* 反映済み・食い違いは町の正本のまま */ }
+  }
+  if (changed) { sessionGate.applying = true; try { useGame.setState({ house }); } finally { sessionGate.applying = false; } }
+}
+function showLocally(after: House) {
+  sessionGate.applying = true; try { useGame.setState({ house: after, selection: null }); } finally { sessionGate.applying = false; }
+}
 const syncHistory = () => { if (sessionGate.edit) useGame.setState({ past: ownHistory.map(() => useGame.getState().house), future: [] }); };
 function currentWorldHouse(w: WorldSave, id: string): House | null {
   const l = w.economy.lots.find(l => l.id === id);
@@ -70,10 +85,14 @@ async function finish(result: Result) {
     else { ownHistory.push(pending); if (ownHistory.length > 100) ownHistory.shift(); }
   }
   pending = null; useSession.setState({ busy: false, message: result.ok ? '建築を確定しました' : result.message ?? '変更できませんでした' });
-  if (!result.ok) useGame.getState().notify(result.message ?? '変更できませんでした');
+  // 断られたら、そのあとに重ねて建てた分も前提が崩れるので、まとめて取り消して町の正本に戻す
+  if (!result.ok) { const dropped = queued.length; queued = []; useGame.getState().notify(`建築を取り消しました：${result.message ?? '変更できませんでした'}${dropped ? `（続けて建てた${dropped}件も取り消し）` : ''}`); }
   if (sessionGate.role === 'guest' && remoteWorld && !useGame.getState().dragBase) applyWorld(remoteWorld, true);
   syncHistory();
   await persist();
+  const next = result.ok ? queued.shift() : undefined;
+  if (next) await send_(next);
+  showUnconfirmed();
 }
 async function accept(sender: string, command: Command) {
   const answer = (r: Result) => sender === savedBundle().profile.id ? void finish(r) : send({ type: 'result', target: sender, result: r });
@@ -128,17 +147,29 @@ async function submit(before: House, after: House) {
   const s = useSession.getState(), me = savedBundle().profile.id;
   if (s.status !== 'connected') return useGame.getState().notify('接続が戻ってから建築してください');
   if (!s.members.some(m => m.id === me && m.canBuild)) return useGame.getState().notify('ホストに共同建築の許可をもらってください');
-  if (pending || s.busy) return useGame.getState().notify('前の変更を確定しています');
   const delta = changes(before, after); if (!delta.length) return;
+  // 手元ではすぐ表示する。確定待ちの間に建てた分は列に並べ、前の変更が確定してから送る
+  if (pending || s.busy) {
+    const lot = useEconomy.getState().currentLotId;
+    if (!lot) return useGame.getState().notify('先に不動産屋で土地を購入してください');
+    if (queued.length >= 30) return useGame.getState().notify('同期が追いついていません。少し待ってから建ててください');
+    queued.push({ id: crypto.randomUUID(), lot, delta, reserved: 0 }); showLocally(after); return;
+  }
   // 着工は無料（ひとりモードと同じ）
   const cost = 0;
   if (!Number.isSafeInteger(cost) || cost < 0 || (cost > 0 && !useEconomy.getState().pay(cost, '共同建築（確定待ち）'))) return useGame.getState().notify('所持金が足りません');
   const id = crypto.randomUUID(), lot = useEconomy.getState().currentLotId;
   if (!lot) { useEconomy.getState().receive(cost, '共同建築の取消'); useGame.getState().notify('先に不動産屋で土地を購入してください'); return; }
-  pending = { id, lot, delta, reserved: cost }; useSession.setState({ busy: true });
-  savedBundle().pending = [...(savedBundle().pending ?? []), { id, room: s.code, worldId: sessionGate.worldId, amount: cost }];
-  try { await persist(); if (s.role === 'host') { const command = pending; approvalQueue = approvalQueue.then(() => accept(me, command)); } else send({ type: 'command', command: pending }); }
-  catch { await finish({ id, ok: false, message: '保存できないため操作を取り消しました' }).catch(() => undefined); }
+  showLocally(after);
+  await send_({ id, lot, delta, reserved: cost });
+}
+/** 建築の変更を1件送る（確定するまで pending） */
+async function send_(command: Command) {
+  const s = useSession.getState(), me = savedBundle().profile.id;
+  pending = command; useSession.setState({ busy: true });
+  savedBundle().pending = [...(savedBundle().pending ?? []), { id: command.id, room: s.code, worldId: sessionGate.worldId, amount: command.reserved }];
+  try { await persist(); if (s.role === 'host') { approvalQueue = approvalQueue.then(() => accept(me, command)); } else send({ type: 'command', command }); }
+  catch { await finish({ id: command.id, ok: false, message: '保存できないため操作を取り消しました' }).catch(() => undefined); }
 }
 function endpointURL(value: string) {
   const u = new URL(value);
@@ -293,6 +324,7 @@ function openConnection(generation: number, resume: boolean) {
             if (lot) { preferred = lot; purchaseTargets.delete(id); }
           }
           applyWorld(remoteWorld!, true, preferred);
+          showUnconfirmed();
         }
         if (state.shared && sharedSpawn) {
           sharedSpawn = false;
@@ -384,7 +416,7 @@ export async function leaveWorld() {
   await persist(); intendedLeave = true; ++epoch; clearTimeout(reconnectTimer); send({ type: 'leave' }); socket?.close(); socket = null;
   sessionGate.edit = null; sessionGate.undo = null; ownHistory.length = 0; restoreHome(); leaveShared();
   useDoors.setState({ target: null, climb: null, climbing: false }); useVisit.setState({ plot: null }); useVenue.setState({ inside: null });
-  pending = null;
+  pending = null; queued = [];
   useSession.setState({ screen: 'menu', role: 'home', shared: false, status: 'offline', code: '', members: [], poses: {}, message: '', busy: false }); await persist();
 }
 /** Install once outside React effects; subscriptions never outlive the page. */
