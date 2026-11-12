@@ -61,8 +61,11 @@ try {
   await until(guest, async S => !(await import(S)).useSession.getState().busy, S);
   assert.equal(await money(guest), budget, 'building is free');
   assert.equal(await guest.evaluate(async () => JSON.stringify((await import('/src/session/saves.ts')).savedBundle().home)), original, 'visiting never overwrites home');
+  // ほかの人の土地も編集できる（#130）。建てた人の画面には確定を待たずにすぐ出て、確定後に相手にも届く（#178）
   await add(host, 'host-intrusion', 5);
-  await host.waitForFunction(() => !window.__ow?.game.getState().house.furniture.some(f => f.id === 'host-intrusion'));
+  assert.ok(await host.evaluate(() => window.__ow?.game.getState().house.furniture.some(f => f.id === 'host-intrusion')), 'own edit shows before the relay confirms');
+  await guest.waitForFunction(() => window.__ow?.game.getState().house.furniture.some(f => f.id === 'host-intrusion'));
+  await until(host, async S => !(await import(S)).useSession.getState().busy, S);
   interruptNextEdit = true;
   await add(guest, 'reconnected-build', 6);
   await until(guest, async S => { const m = await import(S); return m.useSession.getState().status === 'connected' && !m.useSession.getState().busy; }, S);
@@ -94,7 +97,7 @@ try {
   await host.evaluate(async S => (await import(S)).leaveWorld(), S);
   const backup = await host.evaluate(async () => { const m = await import('/src/session/saves.ts'); await m.persist(); return JSON.stringify(m.snapshot()); });
   await host.evaluate(async backup => (await import('/src/session/saves.ts')).importSave(backup), backup);
-  console.log(JSON.stringify({ code, budget, result: 'shared join / land / free build / owner-only / reconnect / sale between players / common money / persistence / backup passed' }));
+  console.log(JSON.stringify({ code, budget, result: 'shared join / land / free build / edit other lots instantly / reconnect / sale between players / common money / persistence / backup passed' }));
   assert.deepEqual(errors, []);
 } catch (e) {
   console.log('browser errors', errors);
