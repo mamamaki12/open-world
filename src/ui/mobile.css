@@ -522,8 +522,10 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* ===== スマホは文字のボタンをアイコンに（2026-11-10「文字じゃなくてアイコンに変えれるとこはどんどん」）=====
    文字は IconLabel（AppIcon.tsx）で読み上げ用に残す。押せる範囲 44px・すき間 8px は崩さない */
-/* ☰ のメニュー：アイコンの上に短い名前の札を3列（横向きは4列）に並べる */
-.touch .walk-menu-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(300px, calc(100vw - 24px)); min-width: 0; box-sizing: border-box; }
+/* ☰ のメニューを開いている間は、右の「建てる」「削除」などのボタンより前に出す */
+.touch .touch-hud.menu-open { z-index: 8; }
+/* ☰ のメニュー：アイコンの上に短い名前の札を3列（横向きは4列）に並べる。幅は右上の丸い地図ボタン（52px）にかからないように */
+.touch .walk-menu-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(300px, calc(100vw - 72px - var(--safe-l) - var(--safe-r))); min-width: 0; box-sizing: border-box; }
 .touch .walk-menu-list > :not(.walk-menu-item) { grid-column: 1 / -1; }
 .touch .walk-menu-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; padding: 6px 2px; text-align: center; font-size: 13px; }
 .touch .walk-menu-item .app-icon { width: 24px; height: 24px; }
@@ -566,7 +568,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 }
 /* セーブ／ロードを開いたら、ほかの組を隠してメニューの中にそのまま出す。
    前は小窓がメニューの上に重なり、後ろのメニューの端や切れた文字が見えていた（縦・横とも） */
-.touch .game-menu.saving { display: flex; width: min(320px, calc(100vw - 24px)); }
+.touch .game-menu.saving { display: flex; width: min(320px, calc(100vw - 72px - var(--safe-l) - var(--safe-r))); }
 .touch .game-menu.saving > .menu-sec:not(:last-child) { display: none; }
 .touch .game-menu.saving > .menu-sec:last-child { padding-top: 0; border-top: 0; }
 .touch .game-menu.saving .menu-items { display: flex; flex-direction: column; }
@@ -578,3 +580,11 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .touch .game-menu.saving .menu-head { display: none; }
 .touch .game-menu.saving .save > .walk-menu-item { justify-content: flex-start; padding: 6px 12px; }
 .touch .game-menu.saving .save > .walk-menu-item::before { content: '‹'; font-size: 22px; line-height: 1; margin-right: 2px; }
+/* 建築中の幅の狭いスマホ（縦向き）は、メニューを開いている間だけ右の列（削除・建てる・カメラ）を隠す。メニューの右端に「建てる」が半分隠れて見えていた */
+@media (orientation: portrait) and (max-width: 380px) {
+  .touch-hud.menu-open ~ .touch-right { visibility: hidden; }
+}
+/* 横向き：☰ とガイドの札のすき間を 8px に（行のすき間 4px ＋ 札の上 4px。前は 7px） */
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .touch-hud > .guide-card { margin-top: 4px; }
+}

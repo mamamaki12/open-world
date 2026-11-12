@@ -193,9 +193,15 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .build-status { margin-bottom: 8px; }
 .build-status .chip { display: block; font-size: 13px; padding: 6px 10px; border: 2px solid var(--pocket-ink, #29392f); border-radius: 3px; background: var(--pocket-paper, #f6f0dc); }
 .topbar .menu-button { white-space: nowrap; }
+/* PC でメニューを開いている間は、上のバーごと下の道具バー（z-index 5）より前に出す。前はセーブの中身が道具バーの下にもぐっていた */
+.app:not(.touch) .topbar.menu-open { z-index: 7; }
+/* 建築中の PC は上のバーが2行に折れて「メニュー」が2行目の左に来るので、右端に寄せる（左に寄ったままだとメニューが画面の左の外へ開いていた） */
+.app:not(.touch) .topbar-right { margin-left: auto; }
+/* 歩いているときは、メニューを下の道具バーの上で止める（中はスクロール） */
+.app.walk:not(.touch) .game-menu { max-height: calc(100dvh - var(--top-h) - var(--quick-tools-h, 98px) - 34px); }
 /* PC のメニュー：右上から下に開く。中身はスマホと同じ（見出しで区切り、アイコンと名前の札を3列） */
 .app:not(.touch) .game-menu {
-  position: absolute; right: 0; top: calc(100% + 10px); z-index: 6; width: 420px; max-width: calc(100vw - 24px); box-sizing: border-box;
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 6; width: 450px; max-width: calc(100vw - 24px); box-sizing: border-box;
   display: flex; flex-direction: column; gap: 8px; padding: 10px;
   max-height: calc(100dvh - var(--top-h) - 24px); overflow-y: auto;
 }

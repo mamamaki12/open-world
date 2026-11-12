@@ -1,6 +1,6 @@
 /** Small original pixel illustration for the menu. It never touches the 3D scene. */
 export function PocketTitle(){
-  return <div className="pocket-title-screen">
+  return <div className="pocket-title-screen"><div className="pocket-title-body">
     <p className="world-eyebrow">まちづくり・くらしのゲーム</p>
     <h1>OPEN WORLD</h1>
     <p className="world-subtitle">今日は、どの町で過ごす？</p>
@@ -9,5 +9,5 @@ export function PocketTitle(){
       <path fill="#c4d39e" d="M42 29h6v6h-6zm17 0h6v6h-6zm-10 7h7v8h-7zm36-16h5v5h-5zm9 0h5v5h-5zm-9 10h5v5h-5zm9 0h5v5h-5zm32 0h6v6h-6zm11 0h6v6h-6zm34-9h6v6h-6zm10 0h6v6h-6zm-10 10h6v6h-6zm10 0h6v6h-6zm29-2h6v6h-6zm9 0h5v6h-5z"/>
       <path fill="currentColor" opacity=".4" d="M24 40h4v4h-4zm87 0h4v4h-4zm43-4h4v8h-4zm83 4h3v4h-3z"/>
     </svg>
-  </div>;
+  </div></div>;
 }
