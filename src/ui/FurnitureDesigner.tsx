@@ -1,4 +1,4 @@
-import { iconText } from './AppIcon';
+import { IconLabel, iconText } from './AppIcon';
 // 家具のデザイン画面：部品（板・脚・引き出し・扉・クッションなど）を組み合わせて、色と素材を選ぶ
 import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
@@ -118,7 +118,7 @@ export function FurnitureDesigner() {
           <div className="modal-title">家具をデザイン</div>
           <input className="designer-name" value={draft.name} maxLength={30} onChange={(e) => update({ name: e.target.value })} aria-label="家具の名前" />
           <span className="designer-price">{yen(designPrice(draft))}</span>
-          <button className="tool close" onClick={close} aria-label="閉じる">{iconText("✕ 閉じる")}</button>
+          <button className="tool close" onClick={close} aria-label="閉じる" title="閉じる"><IconLabel icon="close" text="閉じる" pcIcon /></button>
         </div>
         <div className="designer-body">
           <div className="designer-view">
@@ -139,7 +139,7 @@ export function FurnitureDesigner() {
             <div className="field">
               <div className="field-label">部品を足す（{draft.parts.length}/{MAX_PARTS}）</div>
               <div className="row wrap">
-                {PART_KINDS.map((k) => <button key={k.id} className="btn small" onClick={() => add(k.piece)} aria-label="拡大">{iconText("＋")}{k.name}</button>)}
+                {PART_KINDS.map((k) => <button key={k.id} className="btn small" onClick={() => add(k.piece)} aria-label={`${k.name}を足す`}>{iconText("＋")}{k.name}</button>)}
               </div>
             </div>
             <div className="field">

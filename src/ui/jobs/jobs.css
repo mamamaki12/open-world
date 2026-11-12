@@ -135,3 +135,9 @@
   .touch .job-answers .counter { font-size: 12px; }
   .touch .job-answers .coin { font-size: 13px; }
 }
+/* 横向きのスマホ：バイトの一覧を2列にし、説明と「依頼を見る」を1行に並べて、4つの仕事を最初の画面で見せる（2026-11-12） */
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch .job-list { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  .touch .job-list > p.muted { margin: 0; align-self: center; font-size: 13px; }
+  .touch .job-card { padding: 8px 12px; }
+}

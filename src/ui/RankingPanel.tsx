@@ -4,7 +4,7 @@ import { Modal } from './Modal';
 import { useGame } from '../state/store';
 import { useEconomy } from '../state/economy';
 import { useSession } from '../session/session';
-import { sessionGate } from '../session/gate';
+import { onlineWorld, sessionGate } from '../session/gate';
 import { savedBundle } from '../session/saves';
 import { warpToLot } from '../world/Player';
 import { cleanLikes, likeRanking, LIKE_MAX_BONUS, LIKE_STEP } from '../economy/likes';
@@ -21,7 +21,14 @@ export function RankingPanel() {
   const like = (id: string) => setMsg((sessionGate.act ? sessionGate.act(id, { type: 'like' }, 0) : '接続していません') ?? '');
   return (
     <Modal title="🏆 家のランキング" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined}>
-      {!shared ? <p>みんなのワールドで、ほかの人の家を見に行って「いいね」できます。いいねが多い家ほど査定が上がり、ランキングに出ます。</p> : <>
+      {!shared ? <>
+        <p>みんなのワールドで、ほかの人の家を見に行って「いいね」できます。いいねが多い家ほど査定が上がり、ランキングに出ます。開始画面の「みんなのワールドで遊ぶ」から入れます。</p>
+        {/* ひとりで遊ぶときは、ランキングに出す家づくりへ案内する */}
+        <div className="row empty-next">
+          <button className="btn primary" onClick={() => { close(null); useGame.getState().setMode('build'); }}>{iconText('🔨 家を建てる')}</button>
+          {!onlineWorld() && <button className="btn" onClick={() => close('quests')}>{iconText('📋 建築の依頼を見る')}</button>}
+        </div>
+      </> : <>
         <p className="info">気に入った家に「いいね」しよう。いいね1つで建物の査定が{Math.round(LIKE_STEP * 100)}%上がります（最大{Math.round(LIKE_MAX_BONUS * 100)}%）。</p>
         {msg && <p className="info"><b>{msg}</b></p>}
         {ranked.length === 0 && <p className="info">まだ家が建っていません。</p>}
