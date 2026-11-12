@@ -237,8 +237,11 @@ export function PlacementController() {
         const p = groundPoint(e, surfaceAt(e));
         inside = !!p && p.x >= -GRID && p.x <= (lotSize.w + 1) * GRID && p.z >= -GRID && p.z <= (lotSize.d + 1) * GRID;
       }
-      touchGesture.reserved = !aimBuilding() && reservesTouch(g.tool, g.mode, g.eraseMulti, inside);
-      touchGesture.placeable = touchGesture.reserved && inside;
+      const reserves = !aimBuilding() && reservesTouch(g.tool, g.mode, g.eraseMulti, inside);
+      // 真上から見る床・壁では、土地の外から触れた1本指でも画面を回さない（線を引くつもりで回ってしまうため。回すのはボタンか2本指）
+      const topView = g.mode === 'build' && (g.tool === 'floor' || g.tool === 'wall');
+      touchGesture.reserved = reserves || (!aimBuilding() && topView);
+      touchGesture.placeable = reserves && inside;
       const c = controlsRef.current;
       if (c) c.touches.ONE = touchGesture.reserved ? (-1 as THREE.TOUCH) : THREE.TOUCH.ROTATE;
     };
