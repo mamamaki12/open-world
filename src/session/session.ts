@@ -92,7 +92,7 @@ async function finish(result: Result) {
   await persist();
   const next = result.ok ? queued.shift() : undefined;
   if (next) await send_(next);
-  showUnconfirmed();
+  if (sessionGate.role === 'guest') showUnconfirmed();
 }
 async function accept(sender: string, command: Command) {
   const answer = (r: Result) => sender === savedBundle().profile.id ? void finish(r) : send({ type: 'result', target: sender, result: r });
@@ -149,6 +149,9 @@ async function submit(before: House, after: House) {
   if (!s.members.some(m => m.id === me && m.canBuild)) return useGame.getState().notify('ホストに共同建築の許可をもらってください');
   const delta = changes(before, after); if (!delta.length) return;
   // 手元ではすぐ表示する。確定待ちの間に建てた分は列に並べ、前の変更が確定してから送る
+  // ホストは自分の端末で確定するので待ち時間がない。手元に先に出すと、断られたときに戻す町の控え（captureWorld）に混ざるため、ゲストだけにする
+  const guest = s.role === 'guest';
+  if ((pending || s.busy) && !guest) return useGame.getState().notify('前の変更を確定しています');
   if (pending || s.busy) {
     const lot = useEconomy.getState().currentLotId;
     if (!lot) return useGame.getState().notify('先に不動産屋で土地を購入してください');
@@ -160,7 +163,7 @@ async function submit(before: House, after: House) {
   if (!Number.isSafeInteger(cost) || cost < 0 || (cost > 0 && !useEconomy.getState().pay(cost, '共同建築（確定待ち）'))) return useGame.getState().notify('所持金が足りません');
   const id = crypto.randomUUID(), lot = useEconomy.getState().currentLotId;
   if (!lot) { useEconomy.getState().receive(cost, '共同建築の取消'); useGame.getState().notify('先に不動産屋で土地を購入してください'); return; }
-  showLocally(after);
+  if (guest) showLocally(after);
   await send_({ id, lot, delta, reserved: cost });
 }
 /** 建築の変更を1件送る（確定するまで pending） */
