@@ -1,4 +1,4 @@
-// スマホで置く道具（床・壁・屋根・階段・家具・窓・表札）を持っていて、置き始められる場所に触れた1本指ではカメラが回らない。指でずらして離した場所に置く。置けない場所（土地の外）から触れた指は回る
+// スマホで置く道具（床・壁・屋根・階段・家具・窓・表札）を持っていて、置き始められる場所に触れた1本指ではカメラが回らない。指でずらして離した場所に置く。置けない場所（土地の外）から触れた指は回る（真上から見る床・壁だけは、線を引くつもりで回らないよう回さない）
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { chromium } from 'playwright';
@@ -64,7 +64,9 @@ try{
     // 床は真上から見るので、土地の端から1マス（置ける範囲）より外の、画面のいちばん下を使う
     const from=tool==='floor'?{x:120,y:838}:far;
     const b2=await cam();await drag(from,{x:from.x+120,y:from.y});const a2=await cam();
-    assert.ok(Math.hypot(...b2.map((v,i)=>v-a2[i]))>0.05,`one finger outside the lot rotates while holding ${tool}`);
+    const turned=Math.hypot(...b2.map((v,i)=>v-a2[i]))>0.05;
+    if(tool==='floor')assert.ok(!turned,'top view (floor): one finger outside the lot must not rotate');
+    else assert.ok(turned,`one finger outside the lot rotates while holding ${tool}`);
     assert.equal(await parts(),n,`nothing placed from outside the lot (${tool})`);
   }
   // 土地の中で床をなぞると回らず置ける
