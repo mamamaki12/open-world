@@ -323,6 +323,7 @@ function LandShop() {
                   >
                     買う
                   </button>
+                  {price > money && <small className="land-short">あと {yen(price - money)}</small>}
                 </td>
               </tr>
             );

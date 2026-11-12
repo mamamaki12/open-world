@@ -239,6 +239,7 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .ledger { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0; }
 .ledger th { text-align: left; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); padding: 4px 6px; }
 .ledger td { padding: 4px 6px; border-bottom: 1px solid #eeebe4; }
+.land-short { display: block; margin-top: 2px; color: var(--danger); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .ledger .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ledger tr.total td { font-weight: 700; border-top: 2px solid var(--line); }
 .ledger tr.on td { background: #eef3ff; }
