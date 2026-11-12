@@ -166,8 +166,8 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
   font: 600 10px/14px system-ui, sans-serif; text-align: center;
   border-radius: 3px; background: rgba(0,0,0,0.08); color: inherit; opacity: 0.75;
 }
-/* 画面が狭いときは上のバーが折り返さないよう、キー表示を省く */
-@media (max-width: 1100px) {
+/* 画面が狭いときは上のバーが折り返さないよう、キー表示を省く（1280px でも相場の▲▼や天気の文字で折り返したので 1320px まで） */
+@media (max-width: 1320px) {
   .tool .key { display: none; }
   .brand { display: none; }
   .topbar { gap: 6px; }

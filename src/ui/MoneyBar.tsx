@@ -23,7 +23,7 @@ export function MoneyStatus() {
     <div className="money" title="所持金">
       <span className={`cash${money < 0 ? ' minus' : ''}`}>{yen(money)}</span>
       <span className="sub">
-        {day}日目 ・ 相場 <b className={trend}>{market.toFixed(2)}{iconText(trend === 'up' ? '▲' : trend === 'down' ? '▼' : '')}</b> ・ {iconText(clockLabel(climate))}
+        {day}日目 ・ 相場 <b className={trend}>{market.toFixed(2)}<span className="trend-mark" style={trend ? undefined : { visibility: 'hidden' }}>{iconText(trend === 'down' ? '▼' : '▲')}</span></b> ・ {iconText(clockLabel(climate))}
       </span>
     </div>
   );
