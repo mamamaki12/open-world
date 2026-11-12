@@ -123,6 +123,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByLabel('あなたの名前').waitFor(); await join();
   await page.evaluate(async () => (await import('/src/state/store.ts')).useGame.getState().setOverlay('map'));
+  await page.getByRole('button', { name: '町全体', exact: true }).click();
   await page.locator('.map-canvas svg').getByRole('button', { name: 'ほかの人の家', exact: true }).click();
   await page.locator('.map-pop', { hasText: '持ち主：ほかの人' }).waitFor();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

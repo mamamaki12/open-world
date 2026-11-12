@@ -564,3 +564,17 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .touch .game-menu > .menu-sec { grid-column: auto; }
   .touch .game-menu .menu-sec:nth-child(2) { padding-top: 0; border-top: 0; }
 }
+/* セーブ／ロードを開いたら、ほかの組を隠してメニューの中にそのまま出す。
+   前は小窓がメニューの上に重なり、後ろのメニューの端や切れた文字が見えていた（縦・横とも） */
+.touch .game-menu.saving { display: flex; width: min(320px, calc(100vw - 24px)); }
+.touch .game-menu.saving > .menu-sec:not(:last-child) { display: none; }
+.touch .game-menu.saving > .menu-sec:last-child { padding-top: 0; border-top: 0; }
+.touch .game-menu.saving .menu-items { display: flex; flex-direction: column; }
+.touch .game-menu.saving .menu-items > .walk-menu-item { display: none; }
+.touch .game-menu.saving .save { flex-direction: column; gap: 8px; }
+.touch .game-menu.saving .save > .walk-menu-item { flex-direction: row; gap: 8px; min-height: 44px; }
+#root .touch .game-menu.saving .save-menu { position: static; width: auto; max-width: none; max-height: none; overflow: visible; padding: 4px 2px 0; background: transparent; box-shadow: none; border: 0; }
+/* 上の「セーブ」は、押すとメニューに戻るボタン（左に ‹ を付けて分かるように） */
+.touch .game-menu.saving .menu-head { display: none; }
+.touch .game-menu.saving .save > .walk-menu-item { justify-content: flex-start; padding: 6px 12px; }
+.touch .game-menu.saving .save > .walk-menu-item::before { content: '‹'; font-size: 22px; line-height: 1; margin-right: 2px; }

@@ -276,6 +276,8 @@ function GameMenu({ walking, close }: { walking: boolean; close: () => void }) {
     </button>
   );
   const show = (o: Overlay) => () => setOverlay(o);
+  // スマホでセーブの中身を開いたら、ほかの組を隠してメニューの中に出す（後ろのメニューが透けて見えないように）
+  const [saving, setSaving] = useState(false);
   const section = (title: string, children: React.ReactNode, status?: React.ReactNode) => (
     <section className="menu-sec" aria-label={title}>
       <div className="menu-head" aria-hidden="true">{title}</div>
@@ -284,7 +286,7 @@ function GameMenu({ walking, close }: { walking: boolean; close: () => void }) {
     </section>
   );
   return (
-    <div className="walk-menu-list game-menu">
+    <div className={`walk-menu-list game-menu${touch && saving ? ' saving' : ''}`}>
       {section('町へ行く', <>
         {touch && (walking ? item('hammer', '建築に戻る', '建築', () => setMode('build')) : item('walk', '歩いてみる', '歩く', () => setMode('walk')))}
         {!(touch && walking) && item('map', '地図', '地図', show('map'))}
@@ -306,7 +308,7 @@ function GameMenu({ walking, close }: { walking: boolean; close: () => void }) {
       </>)}
       {section('設定・セーブ', <>
         {item('settings', '操作設定', '設定', show('controls'))}
-        <SaveMenu />
+        <SaveMenu onOpenChange={setSaving} />
       </>)}
     </div>
   );
@@ -429,8 +431,9 @@ function TopBar({ walking }: { walking: boolean }) {
   );
 }
 
-function SaveMenu() {
-  const [open, setOpen] = useState(false);
+function SaveMenu({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
+  const [open, setOpenState] = useState(false);
+  const setOpen = (v: boolean) => { setOpenState(v); onOpenChange?.(v); };
   const [confirmClear, setConfirmClear] = useState(false);
   const [, refresh] = useState(0);
   const house = useGame((s) => s.house);

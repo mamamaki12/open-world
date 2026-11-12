@@ -298,6 +298,13 @@
   #root .world-launch { padding-block: 10px; }
   #root .pocket-title-screen { padding-top: 8px; }
   #root .pocket-town { height: 40px; }
+  /* 横向きのスマホ：左に題字、右に名前と「ひとりで遊ぶ」「みんなのワールドで遊ぶ」を並べて、2つとも最初の画面に入れる（#174 の横向きの2列と同じ考え） */
+  #root .world-card { width: min(100%, 800px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 20px; align-items: start; }
+  #root .world-card > * { grid-column: 2; min-width: 0; }
+  #root .world-card > .pocket-title-screen { grid-column: 1; grid-row: 1 / span 20; position: sticky; top: 0; margin: 0; padding-bottom: 8px; }
+  #root .world-card > .world-field { margin-top: 0; }
+  #root .world-choices { margin: 12px 0 14px; }
+  #root .world-choice { min-height: 64px; padding-block: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { #root :is(button,.choice,.tool) { transition: none; } }
 
