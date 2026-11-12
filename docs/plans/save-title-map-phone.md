@@ -6,7 +6,7 @@
 - PR: 未作成
 - 公開: 未公開
 - 残作業: PR の CI で check-* を確かめる。マージ後の公開確認（スマホで ☰ →「セーブ」を押すと後ろのメニューが見えないこと、横向きのタイトル画面で「みんなのワールドで遊ぶ」が最初の画面に入ること、縦向きで地図を開くと自分のまわりが大きく出ること）。
-- 確認根拠: 下の「経過記録」。
+- 確認根拠: typecheck・vitest（750件）・vite build がローカルで通過。check-ui-spacing・check-ui-overlap-all・check-handheld-ui・check-large-text・check-launcher-layout・check-official-shop-warp・check-map-own-lot もローカルで通過（2026-11-12）。check-gameplay-regressions（共有ワールドの地図）は CI で確かめる。
 - 最終更新: 2026-11-12
 
 - ブランチ: claude/pensive-davinci-6ppi2e
