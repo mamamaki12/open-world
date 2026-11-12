@@ -6,7 +6,7 @@ import { Modal } from './Modal';
 import { useGame } from '../state/store';
 import { useEconomy } from '../state/economy';
 import { useSession } from '../session/session';
-import { sessionGate } from '../session/gate';
+import { onlineWorld, sessionGate } from '../session/gate';
 import { savedBundle } from '../session/saves';
 import { warpToLot } from '../world/Player';
 import { REQUEST_LIMITS, cleanRequests, requestError } from '../economy/requests';
@@ -35,7 +35,14 @@ export function RequestsPanel() {
   };
 
   return <Modal title="🤝 仕事の依頼" onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="shop-panel">
-    {!shared ? <p>みんなのワールドで、ほかのプレイヤーに仕事を頼んだり、引き受けたりできます。</p> : <>
+    {!shared ? <>
+      <p>みんなのワールドで、ほかのプレイヤーに仕事を頼んだり、引き受けたりできます。開始画面の「みんなのワールドで遊ぶ」から入れます。</p>
+      {/* ひとりで遊ぶときは、ここでできる次のことへ案内する（空の画面で終わらせない） */}
+      <div className="row empty-next">
+        <button className="btn primary" onClick={() => close('jobs')}>{iconText('💼 バイトを探す')}</button>
+        {!onlineWorld() && <button className="btn" onClick={() => close('quests')}>{iconText('📋 建築の依頼を見る')}</button>}
+      </div>
+    </> : <>
       <p className="shop-note">報酬は依頼したときに預かり、依頼した人が「完了」を押すと引き受けた人に渡ります。だれも引き受けていなければ取り下げて戻せます。</p>
       <div className="shop-items">
         {all.map(({ r, lot }) => <div key={r.id} className="shop-item card">

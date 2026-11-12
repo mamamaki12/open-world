@@ -71,3 +71,40 @@
 .catalog-filter-panel summary span {margin-left:auto;font-size:11px;color:var(--pocket-muted);font-weight:400;}
 .catalog-filter-panel .catalog-filters {border:0;border-top:1px solid var(--pocket-line);}
 @media(max-width:600px){.catalog-intro>small{font-size:10px;}.catalog-filter-panel summary {font-size:12px;gap:8px;}.catalog-filter-panel summary span {font-size:10px;}}
+/* 横向きのスマホ（高さ 500px 以下）：飾りの見出しを畳み、一覧では車、詳しい画面では絵と値段を最初に見せる（2026-11-12）。
+   ほかの画面では包み（catalog-toolbar・catalog-detail-top）は無いのと同じ */
+.catalog-toolbar,.catalog-detail-top {display:contents;}
+@media (orientation:landscape) and (max-height:500px){
+ #root .catalog-modal .modal-body {padding:8px 16px 20px;}
+ .catalog-modal .cat-top {padding-bottom:6px;}
+ /* 「お気に入りの一台を。」の見出しは読み上げにだけ残す（一覧に戻ったときの目印にも使う） */
+ .catalog-intro {position:absolute;width:1px;height:1px;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+ .catalog-toolbar {display:flex;align-items:flex-start;gap:12px;margin:8px 0;}
+ .catalog-toolbar .catalog-filter-panel {flex:1;min-width:0;}
+ .catalog-filter-panel summary {min-height:44px;padding:6px 12px;}
+ .catalog-toolbar .catalog-results {flex:none;margin:0;}
+ .catalog-results b {font-size:16px;}
+ /* 車のカードは横長（左に絵、右に名前と値段）にして2列。カード全体が押せるので「詳しく見る」の行は畳む */
+ .catalog-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+ #root .catalog-modal .cat-card {flex-direction:row;align-items:stretch;}
+ .catalog-modal .cat-card img {width:44%;flex:none;height:auto;align-self:center;}
+ .catalog-card-copy {padding:8px 10px;gap:2px;justify-content:center;}
+ .catalog-modal .cat-card b {font-size:15px;}
+ .catalog-modal .cat-price {font-size:14px;margin:2px 0 0;align-self:flex-start;}
+ .catalog-card-link {display:none;}
+ .catalog-footnote {margin-top:14px;}
+ /* 詳しい画面：「一覧」と車名を1行に、絵（左）と値段・購入（右）を並べる */
+ .catalog-detail-top {display:flex;align-items:center;gap:12px;margin:8px 0;}
+ .catalog-detail-top .catalog-back {margin:0;flex:none;}
+ .catalog-detail-top .catalog-model-head {flex:1;min-width:0;margin:0;align-items:center;flex-wrap:nowrap;}
+ .catalog-model-head small,.catalog-model-head p {font-size:11px;}
+ .catalog-model-head h2 {font-size:20px;margin:0;}
+ .catalog-detail-grid {grid-template-columns:minmax(0,1.25fr) minmax(240px,1fr);gap:12px;}
+ .catalog-modal .cat-stage {aspect-ratio:auto;height:calc(100dvh - 210px);min-height:150px;max-height:none;}
+ .catalog-preview-hint {margin:4px 0 8px;}
+ .catalog-purchase {padding:12px;}
+ .catalog-modal .cat-buy-price {margin:0 0 8px;}
+ .catalog-modal .cat-buy-price b {font-size:24px;}
+ .catalog-purchase p {margin:6px 0;}
+ .catalog-balance {padding:8px 0;}
+}

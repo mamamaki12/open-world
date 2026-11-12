@@ -84,6 +84,8 @@ button.ow-chip:disabled { opacity: 0.5; cursor: default; }
 
 .casino-modal .bet-input { gap: 8px; }
 .casino-modal .bet-row { flex-wrap: wrap; gap: 10px; }
+/* 「賭け金」の文字は暗い台の上でも読めるよう、所持金の札と同じ金色に（2026-11-12） */
+#root .casino-modal .bet-label { color: #e6cf98; }
 .bet-amount { font-size: 24px; font-weight: 800; color: #ffd86b; font-variant-numeric: tabular-nums; min-width: 150px; }
 .bet-amount.minus { color: #ff8f8f; }
 .casino-modal .bet-row input { width: 130px; background: #fff; color: #23262b; }

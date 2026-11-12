@@ -13,7 +13,7 @@ import { useGame } from '../state/store';
 import { yen } from '../economy/money';
 import { CarModel } from '../world/CarModel';
 import { atTuner } from '../world/vehicleLogic';
-import { playerMemory } from '../world/Player';
+import { playerMemory, warpToVenue } from '../world/Player';
 import { playEngineRev } from '../world/engineSound';
 import { Modal } from './Modal';
 import './vehicles.css';
@@ -53,6 +53,7 @@ export function TunerPanel() {
   if (!car) return <Modal title={title} onClose={() => close(null)} tabs={[]} tab="" onTab={() => undefined} className="dealer-modal">
     <p className="dealer-intro">あなたの一台を、あなただけの一台に。</p>
     <p>まだ車を持っていません。隣の AVENUE MOTORS で車を買ってから来てください。</p>
+    <div className="row empty-next"><button className="btn primary" onClick={() => warpToVenue('dealer')}>{iconText('🚗 車屋の前へ行く')}</button></div>
   </Modal>;
   const def = getCar(car.model)!, before = tunedCar(def, (car.mods ?? STOCK_MODS)), after = tunedCar(def, mods);
   const lines = quote(car, { color, mods }), total = quoteTotal(lines);
