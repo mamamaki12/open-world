@@ -19,3 +19,14 @@
   .looks-layout { grid-template-columns:1fr; }
   .looks-preview { height:240px; }
 }
+/* 「決定」「この髪型にする」は、選んでいる途中でも画面の下に見えるようにする（横向き・幅320のスマホで下まで動かさないと見えなかった。2026-11-12） */
+/* 下に余白があると、止めた帯の下から選択肢がのぞくので、余白は帯の中に持たせる */
+#root .looks-modal .modal-body { padding-bottom:0; }
+.looks-actions { position:sticky; bottom:0; z-index:1; background:var(--pocket-panel, #fff); border-top:1px solid var(--pocket-line, #ccc); padding:8px 0 calc(12px + env(safe-area-inset-bottom, 0px)); }
+@media (orientation:landscape) and (max-height:500px) {
+  /* 横向きは左の絵を画面の高さに収めて止め、右の列だけ動かす */
+  .looks-preview { position:sticky; top:0; height:calc(100dvh - 110px); min-height:180px; }
+  .looks-layout { align-items:start; }
+}
+/* 2列のときは左の絵の下にも余白を残す（本体の下の余白を帯に移したため） */
+@media (min-width:701px) { .looks-preview { margin-bottom:16px; } }

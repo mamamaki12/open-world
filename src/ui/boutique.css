@@ -77,7 +77,17 @@
  .boutique-layout { grid-template-columns:250px minmax(0,1fr); gap:24px; }
  .boutique-preview { height:230px; }
  .boutique-fitting { position:static; }
- .boutique-masthead { padding:16px 0; }
+ /* 横向きのスマホ：大きな見出しを1行に畳み、試着の絵と服の一覧を最初に見せる（2026-11-12） */
+ #root .boutique-modal .boutique-masthead { padding:6px 12px; margin-top:0; }
+ .boutique-masthead .store-eyebrow,.boutique-masthead p { display:none; }
+ #root .boutique-modal .boutique-masthead h1 { font-size:16px; margin:0; }
+ #root .boutique-modal .boutique-balance { padding:0; }
+ .boutique-balance small { display:inline; margin-right:8px; }
+ .boutique-layout { margin-top:8px; }
+ .boutique-listbar { padding:4px 0 10px; }
+ /* 服は3列・正方形の絵にして、1段目が画面に収まるようにする */
+ .garment-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px 10px; }
+ .garment-image { aspect-ratio:1/1; }
 }
 .modal.boutique-modal { width:min(1280px,100%); background:#fff; border-radius:2px; }
 .boutique-fitting-toggle { display:none; }

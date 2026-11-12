@@ -508,3 +508,5 @@ select { font: inherit; font-size: 14px; padding: 5px; border-radius: 6px; borde
 .graphics-picker.compact { margin: 0; padding: 6px 8px 6px 12px; background: #fff; border-radius: 9px; }
 .graphics-picker.compact .graphics-picker-label { font-size: 15px; flex: 1; }
 .graphics-picker.compact button { min-width: 40px; padding: 5px 10px; }
+/* 空の画面（ひとりで遊ぶときの依頼・ランキング、車がないときのカーカスタム）に出す、次の行き先のボタン（2026-11-12） */
+.row.empty-next { gap: 8px; margin-top: 12px; }

@@ -153,7 +153,7 @@ function CasinoLobby({ onSelect }: { onSelect: (game: Tab) => void }) {
       {TABS.map(game => { const detail = GAME_DETAILS[game.id]; return (
         <button key={game.id} className="casino-game-card" data-scene={detail.scene} onClick={() => onSelect(game.id)}>
           <div className="casino-card-scene" aria-hidden="true"><span>{iconText(detail.icon)}</span><i /><i /><i /></div>
-          <div className="casino-card-copy"><small>{detail.tag}</small><h2>{iconText(game.label)}</h2><p>{detail.copy}</p><b>このゲームで遊ぶ <span>{iconText("↗")}</span></b></div>
+          <div className="casino-card-copy"><small>{detail.tag}</small><h2>{iconText(game.label)}</h2><p>{detail.copy}</p><b>このゲームで遊ぶ <span>{iconText("→")}</span></b></div>
         </button>
       ); })}
     </div>
