@@ -185,9 +185,8 @@ export function PlacementController() {
           const rect = dragStart ? cellRect(dragStart, c) : cellRect(c, c);
           const level = g.tool === 'floor' ? surface : surface - 1;
           g.setLevel(level);
-          const valid =
-            (g.tool === 'floor' ? floorPlacementPlan(g.house, level, rect).error : canPlaceRoof(g.house, level, rect)) === null;
-          ui.setPreview({ kind: 'rect', rect, valid, tool: g.tool });
+          const reason = g.tool === 'floor' ? floorPlacementPlan(g.house, level, rect).error : canPlaceRoof(g.house, level, rect);
+          ui.setPreview({ kind: 'rect', rect, valid: reason === null, tool: g.tool, reason });
           break;
         }
         case 'wall': {
@@ -195,8 +194,8 @@ export function PlacementController() {
           const q = pointAt(p);
           const single = singleBlock();
           const seg = single ? blockWall(p) : dragStart ? axisAlignedSegment(dragStart, q) : { x0: q.x, z0: q.z, x1: q.x, z1: q.z };
-          const valid = !(dragStart || single) || canPlaceWall(g.house, { level: surface, ...seg }) === null;
-          ui.setPreview({ kind: 'wall', ...seg, valid });
+          const reason = dragStart || single ? canPlaceWall(g.house, { level: surface, ...seg }) : null;
+          ui.setPreview({ kind: 'wall', ...seg, valid: reason === null, reason });
           break;
         }
         case 'stair': {
@@ -237,8 +236,11 @@ export function PlacementController() {
         const p = groundPoint(e, surfaceAt(e));
         inside = !!p && p.x >= -GRID && p.x <= (lotSize.w + 1) * GRID && p.z >= -GRID && p.z <= (lotSize.d + 1) * GRID;
       }
-      touchGesture.reserved = !aimBuilding() && reservesTouch(g.tool, g.mode, g.eraseMulti, inside);
-      touchGesture.placeable = touchGesture.reserved && inside;
+      const reserves = !aimBuilding() && reservesTouch(g.tool, g.mode, g.eraseMulti, inside);
+      // 真上から見る床・壁では、土地の外から触れた1本指でも画面を回さない（線を引くつもりで回ってしまうため。回すのはボタンか2本指）
+      const topView = g.mode === 'build' && (g.tool === 'floor' || g.tool === 'wall');
+      touchGesture.reserved = reserves || (!aimBuilding() && topView);
+      touchGesture.placeable = reserves && inside;
       const c = controlsRef.current;
       if (c) c.touches.ONE = touchGesture.reserved ? (-1 as THREE.TOUCH) : THREE.TOUCH.ROTATE;
     };

@@ -43,9 +43,16 @@ export function BuildCamera() {
     camera.lookAt(target);
     controls.update();
     return () => {
-      camera.position.copy(position);
-      controls.target.copy(target);
-      camera.lookAt(target);
+      // 角度と距離だけ元に戻し、見ている場所（target）は真上でずらした・寄った所のままにする。
+      // 元の位置に戻すと、いま張った床が画面の外になり、ドア・窓のたびに探し直すことになる
+      const now = controls.target.clone();
+      const zoom = Math.min(Math.max(camera.position.distanceTo(now) / height, 0.3), 3);
+      // 真上で回転ボタンで回した分も、斜めの視点に引き継ぐ（入ったときは +z 向き＝角度0）
+      const now0 = camera.position.clone().sub(now);
+      const spin = Math.atan2(now0.x, now0.z);
+      const offset = position.clone().sub(target).multiplyScalar(zoom).applyAxisAngle(new THREE.Vector3(0, 1, 0), spin);
+      camera.position.copy(now).add(offset);
+      camera.lookAt(now);
       controls.update();
     };
   }, [preciseTouch, camera, controls]);
@@ -88,13 +95,18 @@ export function BuildCamera() {
     // Q を押すとカメラは上から見て時計回りに家のまわりを回る（E はその逆）。スマホは回転ボタン
     const turn = (pressed(CAMERA_KEYS.turnRight) ? 1 : 0) - (pressed(CAMERA_KEYS.turnLeft) ? 1 : 0) || touchCamera.turn;
     const zoom = touchCamera.zoom;
-    if (!fwd && !side && !turn && !zoom) return;
+    const kick = touchCamera.turnKick;
+    if (!fwd && !side && !turn && !zoom && !kick) return;
     const fast = pressed(CAMERA_KEYS.fast) ? 2.5 : 1;
     const target = controls.target;
     const offset = camera.position.clone().sub(target);
 
-    if (turn) {
-      offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), turn * TURN_SPEED * fast * dt);
+    // 1回押した分（kick）は速めに回し切る。押し続けている間は turn で回り続ける
+    const kickStep = kick ? Math.sign(kick) * Math.min(Math.abs(kick), TURN_SPEED * 2.5 * dt) : 0;
+    touchCamera.turnKick = kick - kickStep;
+    const angle = (turn ? turn * TURN_SPEED * fast * dt : 0) + (turn ? 0 : kickStep);
+    if (angle) {
+      offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
       camera.position.copy(target).add(offset);
     }
     if (zoom) {

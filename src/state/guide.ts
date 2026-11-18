@@ -19,6 +19,8 @@ interface GuideData {
   delivered: number;
   /** ヒントを小さくたたんでいる */
   folded: boolean;
+  /** チュートリアルを始めたときの土地と、床・壁・ドアの数（見本の家の分を数えないため） */
+  start?: { lot: string | null; floors: number; walls: number; doors: number };
 }
 
 interface GuideState extends GuideData {
@@ -31,6 +33,7 @@ interface GuideState extends GuideData {
   finishTutorial: (how: 'done' | 'skipped') => void;
   restartTutorial: () => void;
   setFolded: (folded: boolean) => void;
+  setStart: (start: NonNullable<GuideData['start']>) => void;
 }
 
 function load(): GuideData {
@@ -73,11 +76,12 @@ export const useGuide = create<GuideState>((set, get) => ({
     return null;
   },
   finishTutorial: (tutorial) => set({ tutorial }),
-  restartTutorial: () => set({ tutorial: 'active', folded: false }),
+  restartTutorial: () => set({ tutorial: 'active', folded: false, start: undefined }),
   setFolded: (folded) => set({ folded }),
+  setStart: (start) => set({ start }),
 }));
 
 useGuide.subscribe((s) => {
-  const { tutorial, next, active, delivered, folded } = s;
-  try { localStorage.setItem(KEY, JSON.stringify({ tutorial, next, active, delivered, folded })); } catch { /* 保存できなくても遊べる */ }
+  const { tutorial, next, active, delivered, folded, start } = s;
+  try { localStorage.setItem(KEY, JSON.stringify({ tutorial, next, active, delivered, folded, start })); } catch { /* 保存できなくても遊べる */ }
 });

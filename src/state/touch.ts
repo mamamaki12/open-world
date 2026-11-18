@@ -7,7 +7,8 @@ export const touchMove = { x: 0, y: 0 };
 export const RUN_THRESHOLD = 0.92;
 
 /** 建築モードのカメラボタン（押している間だけ動く）：turn = 左回りが +、zoom = 寄るが + */
-export const touchCamera = { turn: 0, zoom: 0 };
+/** turnKick：回転ボタンを1回押した分の、まだ回っていない角度（ラジアン） */
+export const touchCamera = { turn: 0, zoom: 0, turnKick: 0 };
 
 /** 歩きモードの動作ボタン。Player が表示されている間だけ中身が入る */
 export const walkActions: {

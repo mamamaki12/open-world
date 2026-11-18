@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { climateAt, type Climate } from './climate';
 import { usePhoto } from '../state/photo';
+import { useGame } from '../state/store';
 import { glassMaterial } from './materials';
 import { MAT as STREET } from './Streetscape';
 import { grassMaterial } from './Town';
@@ -55,6 +56,9 @@ export function ClimateLights({ center, shadowSize, precipitation = 1 }: { cente
   const wet = c.weather === 'rain' || c.weather === 'snow';
   const dim = c.weather === 'clear' ? 1 : wet ? 0.45 : 0.6;
   const day = 1 - c.night;
+  // 建築画面（歩いていない）では、夜や雨でも建てる場所が見えるよう明るさに下限を付ける（空や街灯は時間どおり）
+  const building = useGame((s) => s.mode === 'build');
+  const lit = building ? Math.max(day * dim, 0.5) : day * dim;
 
   // 太陽は東から昇って西へ沈む。夜は月（弱い青い光）として反対側に
   const angle = ((c.hour - 6) / 24) * Math.PI * 2;
@@ -75,13 +79,13 @@ export function ClimateLights({ center, shadowSize, precipitation = 1 }: { cente
     else if (c.season === 'autumn') grass.color.set('#e9d6a8');
     else if (c.season === 'summer') grass.color.set('#f2ffe8');
     else grass.color.copy(WHITE);
-    scene.environmentIntensity = 0.12 + 0.88 * day * dim;
+    scene.environmentIntensity = 0.12 + 0.88 * lit;
     const fogColor = DAY_SKY.clone().lerp(GREY, wet ? 0.6 : c.weather === 'cloudy' ? 0.3 : 0).lerp(NIGHT_SKY, k);
     // 霧は付けたり外したりしない（外すと全部の材質のシェーダーを作り直して重くなる）。晴れの日は遠くへ追いやる
     fog.color.copy(fogColor);
     fog.near = wet ? 25 : c.weather === 'cloudy' ? 60 : 900;
     fog.far = wet ? 160 : c.weather === 'cloudy' ? 320 : 2000;
-  }, [c.night, c.season, c.weather, day, dim, wet, scene, fog]);
+  }, [c.night, c.season, c.weather, day, dim, lit, wet, scene, fog]);
 
   return (
     <>
@@ -94,11 +98,11 @@ export function ClimateLights({ center, shadowSize, precipitation = 1 }: { cente
         mieDirectionalG={0.85}
       />
       {c.night > 0.5 && <NightDome />}
-      <hemisphereLight ref={hemiRef} args={[c.night > 0.5 ? '#5a6a99' : '#dfeaff', '#bdb6a6', 0.15 + 0.4 * day * dim]} />
+      <hemisphereLight ref={hemiRef} args={[c.night > 0.5 ? '#5a6a99' : '#dfeaff', '#bdb6a6', 0.15 + 0.4 * lit]} />
       <directionalLight
         ref={sunRef}
         position={sunPos}
-        intensity={c.sun >= 0 ? 0.2 + 2.4 * day * dim : 0.25}
+        intensity={c.sun >= 0 || building ? 0.2 + 2.4 * lit : 0.25}
         color={c.sun >= 0 ? (c.sun < 0.3 ? '#ffc58a' : '#fff3e2') : '#9db4ff'}
         castShadow={shadowSize > 0}
         shadow-mapSize={[Math.max(shadowSize, 256), Math.max(shadowSize, 256)]}

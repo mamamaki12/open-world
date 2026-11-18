@@ -103,6 +103,7 @@ export function App() {
             {editingFurniture && <Inspector />}
           </div>
           <ControlsHelp />
+          <DragMeasure />
         </>
       )}
       {walking && <WorldActionHud />}

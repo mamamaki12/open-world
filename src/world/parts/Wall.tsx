@@ -2,6 +2,7 @@ import { useContext, useEffect, useMemo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { getOpening, getFurniture } from '../../catalog';
 import { GRID, WALL_THICKNESS } from '../../building/dimensions';
+import { useTouchDevice } from '../../ui/useTouchDevice';
 import { canPlaceOpening, newId, snapOpeningOffset, wallBaseY, wallHeight, wallLength, wallOutsideSide } from '../../building/rules';
 import type { OpeningPart, WallPart } from '../../building/types';
 import { useGame } from '../../state/store';
@@ -35,6 +36,9 @@ interface Props {
 export function Wall({ wall, openings, outside }: Props) {
   const { highlight, handlers } = usePart({ kind: 'wall', id: wall.id });
   const tool = useGame((s) => s.tool);
+  // スマホで床・壁を真上から置くときは、壁が細い線にしか見えないので上端を濃く太めに出す
+  const touch = useTouchDevice();
+  const topView = useGame((s) => touch && s.mode === 'build' && (s.tool === 'floor' || s.tool === 'wall'));
   const foreign = !!useContext(HouseScope).activate;
   const placingNameplate = useGame((s) => s.tool === 'furniture' && !!getFurniture(s.defaults.furnitureType).mount);
   const house = useHouseData();
@@ -175,6 +179,12 @@ export function Wall({ wall, openings, outside }: Props) {
       {openings.map((o) => (
         <Opening key={o.id} opening={o} outside={outside === -1 ? -1 : 1} />
       ))}
+      {topView && (
+        <mesh position={[length / 2, height + 0.02, 0]} raycast={() => null} renderOrder={2}>
+          <boxGeometry args={[length + WALL_THICKNESS, 0.03, WALL_THICKNESS + 0.14]} />
+          <meshBasicMaterial color="#2f3b33" />
+        </mesh>
+      )}
     </group>
   );
 }
