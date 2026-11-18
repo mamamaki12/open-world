@@ -23,7 +23,7 @@ async function share(url: string) {
   const name = `open-world-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.jpg`;
   try {
     const file = new File([await (await fetch(url)).blob()], name, { type: 'image/jpeg' });
-    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: 'Open World の写真' }); return; }
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: '一休建築士の写真' }); return; }
   } catch { /* 共有できなければ保存にする */ }
   const a = document.createElement('a');
   a.href = url; a.download = name; a.click();

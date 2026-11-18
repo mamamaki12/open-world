@@ -26,7 +26,7 @@ export function SessionRoot() {
   useEffect(() => { if (ready && import.meta.env.DEV && new URLSearchParams(location.search).get('play') === '1') void enterOffline(); }, [ready]);
   // 保存データが読み込めないときは詰みになりやすいので、手元へ書き出す・消して始め直す復旧手段を出す。
   const corrupt = !!failure && failure.includes('保存データを読み込めません');
-  if (!ready) return <main className="world-launch"><section className="world-card"><h1>OPEN WORLD</h1><p>{failure || 'ワールドを読み込んでいます…'}</p>{failure && <p>このブラウザの保存領域を利用できるか確認してください。既存セーブは削除していません。</p>}
+  if (!ready) return <main className="world-launch"><section className="world-card"><h1>一休建築士</h1><p>{failure || 'ワールドを読み込んでいます…'}</p>{failure && <p>このブラウザの保存領域を利用できるか確認してください。既存セーブは削除していません。</p>}
     {corrupt && <>
       <div className="world-actions">
         <button onClick={() => void downloadRawSave().then(got => setRecover(got ? '保存データを書き出しました。' : '書き出せる保存データが見つかりませんでした。')).catch(() => setRecover('書き出せませんでした。'))}>保存データを書き出す</button>
