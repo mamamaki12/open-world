@@ -1,6 +1,6 @@
 {
-  "name": "家づくり",
-  "short_name": "家づくり",
+  "name": "一休建築士",
+  "short_name": "一休建築士",
   "description": "自分の土地に家を建てて、歩いてみる。ブラウザで遊べる3Dの家づくりゲーム。",
   "lang": "ja",
   "start_url": "./",
