@@ -7,9 +7,12 @@
 Node 20以降で`npm ci`。別々のターミナルで以下を実行する。
 
 ```sh
-node server/relay.mjs
+node server/dist/relay.mjs
 npm run dev -- --host 127.0.0.1
 ```
+
+- `server/relay.mjs` は `src/` の TypeScript を読み込むので、そのままでは `node` で起動できない。1ファイルにまとめた `server/dist/relay.mjs` を起動する。`server/relay.mjs` を直したら `npm run build:server` で作り直す。
+- Windows では保存先を指定して起動する（指定しないと保存先のパスが壊れて起動に失敗する）：`$env:WORLD_FILE = "$PWD\server\shared-world.json"; node server/dist/relay.mjs`
 
 `http://127.0.0.1:5173/`の開始画面からホストを作り、別ブラウザでコードを入力する。ホストの右下メニューで共同建築を許可する。接続先の既定値は開発時だけ`ws://127.0.0.1:8787`。
 

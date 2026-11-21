@@ -12,11 +12,29 @@
 Node.js 20 以上が必要です。
 
 ```bash
-npm install
+npm ci           # 初回と、package-lock.json が変わったとき
 npm run dev      # http://localhost:5173 で起動
 npm test         # ルール（配置判定・屋根の形・お金の計算）のテスト
 npm run build    # dist/ に公開用ファイルを作る
 ```
+
+ひとりで遊ぶだけなら、これだけで動きます。
+
+### みんなで遊ぶとき（中継サーバー）
+
+ワールドに人を招くときは、中継サーバーも別のターミナルで起動します。
+
+```bash
+node server/dist/relay.mjs   # http://127.0.0.1:8787 で起動（/health が ok を返す）
+```
+
+Windows では、保存先を指定してから起動します（指定しないと保存先のパスが壊れて起動に失敗します）。
+
+```powershell
+$env:WORLD_FILE = "$PWD\server\shared-world.json"; node server/dist/relay.mjs
+```
+
+開発中の画面は、最初から `ws://127.0.0.1:8787` につなぎます。確かめ方と公開の設定は [server/README.md](server/README.md) にあります。
 
 ## 公開（本番）
 
